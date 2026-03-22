@@ -32,6 +32,9 @@ static void _vcpu_yield(vcpu_t _Nonnull self);
 void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params)
 {
     assert(sched_params->type == SCHED_PARAM_QOS);
+    assert(sched_params->u.qos.category >= SCHED_QOS_BACKGROUND && sched_params->u.qos.category <= SCHED_QOS_REALTIME);
+    assert(sched_params->u.qos.priority >= QOS_PRI_LOWEST && sched_params->u.qos.priority <= QOS_PRI_HIGHEST);
+
 
     memset(self, 0, sizeof(struct vcpu));
     stk_init(&self->kernel_stack);
@@ -43,8 +46,7 @@ void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params
     self->flags = 0;
     self->flags |= (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->flags |= (g_sys_desc->cpu_model == CPU_MODEL_68060) ? VP_FLAG_HAS_BC : 0;
-    self->qos = sched_params->u.qos.category;
-    self->qos_priority = sched_params->u.qos.priority;
+    self->base_priority = SCHED_PRI_FROM_QOS(sched_params->u.qos.category, sched_params->u.qos.priority);
 
     vcpu_sched_params_changed(self);
 }
@@ -166,23 +168,25 @@ void vcpu_destroy(vcpu_t _Nullable self)
 
 void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
+    const int base_qos_class = SCHED_QOS_CLASS(self->base_priority);
+    const int base_qos_pri = SCHED_QOS_PRI(self->base_priority);
     int eff_pri;
 
     self->flags &= ~VP_FLAG_FIXED_PRI;
-    if ((self->qos == SCHED_QOS_BACKGROUND && self->qos_priority == QOS_PRI_LOWEST) || (self->qos == SCHED_QOS_REALTIME)) {
+    if ((base_qos_class == SCHED_QOS_BACKGROUND && base_qos_pri == QOS_PRI_LOWEST) || (base_qos_class == SCHED_QOS_REALTIME)) {
         self->flags |= VP_FLAG_FIXED_PRI;
     }
 
 
     if (vcpu_is_fixed_pri(self)) {
         // Fixed priority
-        eff_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + self->qos_priority - QOS_PRI_LOWEST;
+        eff_pri = self->base_priority;
     }
     else {
         // Dynamic priority
         const int pri_boost = (self->priority_penalty <= 0) ? self->priority_boost : 0;
-        const int qos_pri = __min(self->qos_priority + pri_boost, QOS_PRI_HIGHEST);
-        const int boosted_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + qos_pri - QOS_PRI_LOWEST;
+        const int boosted_qos_pri = __min(base_qos_pri + pri_boost, QOS_PRI_HIGHEST);
+        const int boosted_pri = SCHED_PRI_FROM_QOS(base_qos_class, boosted_qos_pri);
         const int dyn_top_pri = SCHED_QOS_URGENT * QOS_PRI_COUNT - 1;
         const int dyn_bot_pri = SCHED_PRI_LOWEST + 1;
 
@@ -203,8 +207,8 @@ errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Non
     switch (type) {
         case SCHED_PARAM_QOS:
             params->type = SCHED_PARAM_QOS;
-            params->u.qos.category = self->qos;
-            params->u.qos.priority = self->qos_priority;
+            params->u.qos.category = SCHED_QOS_CLASS(self->base_priority);
+            params->u.qos.priority = SCHED_QOS_PRI(self->base_priority);
             break;
 
         default:
@@ -239,20 +243,19 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
     }
 
 
+    const int new_base_pri = SCHED_PRI_FROM_QOS(params->u.qos.category, params->u.qos.priority);
     const int sps = preempt_disable();
     
-    if (self->qos != params->u.qos.category || self->qos_priority != params->u.qos.priority) {
+    if (self->base_priority != new_base_pri) {
         switch (self->sched_state) {
             case SCHED_STATE_INITIATED:
-                self->qos = params->u.qos.category;
-                self->qos_priority = params->u.qos.priority;
+                self->base_priority = new_base_pri;
                 vcpu_sched_params_changed(self);
                 break;
 
             case SCHED_STATE_READY:
                 sched_set_unready(g_sched, self, false);
-                self->qos = params->u.qos.category;
-                self->qos_priority = params->u.qos.priority;
+                self->base_priority = new_base_pri;
                 vcpu_sched_params_changed(self);
                 sched_set_ready(g_sched, self, true);
                 break;
@@ -260,8 +263,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
             case SCHED_STATE_RUNNING:
             case SCHED_STATE_WAITING:
             case SCHED_STATE_SUSPENDED:
-                self->qos = params->u.qos.category;
-                self->qos_priority = params->u.qos.priority;
+                self->base_priority = new_base_pri;
                 if (self->sched_state == SCHED_STATE_RUNNING) {
                     vcpu_reset_quantum(self);
                 }

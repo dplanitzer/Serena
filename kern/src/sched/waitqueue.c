@@ -173,7 +173,7 @@ static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Non
     }
 
 
-    if (vp->qos >= SCHED_QOS_INTERACTIVE) {
+    if (vcpu_effective_qos_class(vp) >= SCHED_QOS_INTERACTIVE) {
         vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
     
         if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
@@ -224,7 +224,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 
 
     // Restore the quantum for some QoS classes
-    if (vp->qos == SCHED_QOS_REALTIME) {
+    if (vcpu_effective_qos_class(vp) == SCHED_QOS_REALTIME) {
         vcpu_reset_quantum(vp);
     }
 

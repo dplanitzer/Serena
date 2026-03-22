@@ -44,6 +44,16 @@ typedef uint32_t    pop_word_t;
 #define SCHED_QUANTUM_NUDGE 1
 
 
+#define SCHED_PRI_FROM_QOS(__qos_class, __qos_pri) \
+(((__qos_class) - 1) << QOS_PRI_SHIFT) + (__qos_pri) - QOS_PRI_LOWEST
+
+#define SCHED_QOS_CLASS(__sched_pri) \
+(((__sched_pri) >> QOS_PRI_SHIFT) + 1)
+
+#define SCHED_QOS_PRI(__sched_pri) \
+(((__sched_pri) & (QOS_PRI_COUNT-1)) + QOS_PRI_LOWEST)
+
+
 // Set if the context switcher should activate the VP set in 'scheduled' and
 // deactivate the VP set in 'running'.
 #define CSW_SIGNAL_SWITCH       0x01

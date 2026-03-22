@@ -132,12 +132,12 @@ struct vcpu {
     int8_t                          wakeup_reason;
     
     // Scheduling related state
-    int8_t                          qos;                    // call vcpu_sched_params_changed() on change
-    int8_t                          qos_priority;
+    int8_t                          base_priority;          // call vcpu_sched_params_changed() on change
+    int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_sched_params_changed() on change)
     int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_sched_params_changed() on change)
-    int8_t                          reserved;
-    int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
+    int8_t                          reserved1;
+    int8_t                          reserved2;
     int8_t                          sched_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
@@ -302,15 +302,21 @@ extern void vcpu_destroy(vcpu_t _Nullable self);
 extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 
 // Resets the receiver's quantum tick count back to the full count for another
-// quantum
+// quantum. The quantum length is based on the effective QoS class.
 // @Entry Condition: preemption disabled
 #define vcpu_reset_quantum(__self) \
-(__self)->quantum_countdown = qos_quantum((__self)->qos)
+(__self)->quantum_countdown = qos_quantum(SCHED_QOS_CLASS((__self)->effective_priority))
 
 // Returns true if the vcpu should be scheduled using a fixed priority policy.
 // Only valid after vcpu_sched_params_changed() has been called
+// @Entry Condition: preemption disabled
 #define vcpu_is_fixed_pri(__self) \
 (((__self)->flags & VP_FLAG_FIXED_PRI) == VP_FLAG_FIXED_PRI)
+
+// Returns the effective QoS class.
+// @Entry Condition: preemption disabled
+#define vcpu_effective_qos_class(__self) \
+SCHED_QOS_CLASS((__self)->effective_priority)
 
 
 //
