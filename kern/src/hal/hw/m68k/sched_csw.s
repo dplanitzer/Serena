@@ -29,38 +29,34 @@
 _sched_highest_priority_ready:
     movem.l d2 / a2-a3, -(sp)
 
-    moveq   #31,d2
+    moveq   #31, d2
     move.l  (12 + 4)(sp), a3                                 ; a3 := self
     lea.l   sched_ready_queue(a3), a2                   ; a2 := &self->ready_queue.priority[0]
     move.l  (sched_ready_queue_populated + 2*4)(a3), d0 ; d0 := self->ready_queue.populated[2]
     bfffo   d0{0:32}, d1
     beq.s   .1
-    move.l  d1, d0
-    move.l  d2, d0
-    sub.l   d1, d0
-    add.l   #64, d0
-    move.l  (a2, d0.l*8), d0
+    move.w  d2, d0
+    sub.w   d1, d0
+    add.w   #64, d0
+    move.l  (a2, d0.w*8), d0
     bra.s   .done
 
 .1:
     move.l  (sched_ready_queue_populated + 1*4)(a3), d0 ; d0 := self->ready_queue.populated[1]
     bfffo   d0{0:32}, d1
     beq.s   .2
-    move.l  d1, d0
-    move.l  d2, d0
-    sub.l   d1, d0
-    add.l   #32, d0
-    move.l  (a2, d0.l*8), d0
+    move.w  d2, d0
+    sub.w   d1, d0
+    add.w   #32, d0
+    move.l  (a2, d0.w*8), d0
     bra.s   .done
 
 .2:
     move.l  (sched_ready_queue_populated + 0*4)(a3), d0 ; d0 := self->ready_queue.populated[0]
     bfffo   d0{0:32}, d1
     beq.s   .3
-    move.l  d1, d0
-    move.l  d2, d0
-    sub.l   d1, d0
-    move.l  (a2, d0.l*8), d0
+    sub.w   d1, d2
+    move.l  (a2, d2.w*8), d0
     bra.s   .done
 
 .3:
