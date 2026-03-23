@@ -17,6 +17,19 @@
 #endif
 
 
+// A direct interrupt handler function. This function is executed in the interrupt
+// context. The function will receive 'arg' as its first argument. The IRQ is
+// auto-cleared by the kernel after the function returns.
+typedef void (*irq_direct_func_t)(void* _Nullable arg);
+
+// A function that is invoked to potentially handle the interrupt. Should return
+// IRQ_HANDLED if the interrupt was handled; 0 otherwise. The kernel will invoke
+// all functions registered for a particular IRQ ID and it will clear the IRQ
+// pending hardware flag after the last handler has returned.
+typedef void (*irq_handler_func_t)(void* _Nullable arg);
+
+
+
 // Sets the CPU's interrupt priority mask to 'mask' and returns the previous mask.
 // Calls to irq_set_mask() may be nested by pairing them with irq_restore_mask():
 // first call sets the new mask and returns the previous mask and the second call
@@ -45,17 +58,15 @@ extern void irq_disable_src(int irq_id);
 // Sets a function that should be called when an interrupt of type 'irq_id' is
 // triggered. The function will receive 'arg' as its first argument.
 // @Note: the function will run in the interrupt context
-typedef void (*irq_direct_func_t)(void* _Nullable arg);
 extern void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nullable arg);
 
-
-// Returns 0 to continue IRQ processing and a value != 0 to end IRQ processing
-typedef int (*irq_handler_func_t)(void* _Nullable arg);
 
 #define IRQ_PRI_HIGHEST -128
 #define IRQ_PRI_NORMAL  0
 #define IRQ_PRI_LOWEST  127
 
+// Keep in sync with the following assembler files:
+// m68k-amiga: irq_asm.s
 typedef struct irq_handler {
     struct irq_handler* _Nullable   next;
     irq_handler_func_t _Nonnull     func;

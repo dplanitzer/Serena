@@ -16,10 +16,9 @@
     xref _g_irq_disk_block_func
     xref _g_irq_disk_block_arg
 
-    xref _g_vbl_handlers;
-    xref _g_int2_handlers;
-    xref _g_int6_handlers;
-    xref __irq_run_handlers
+    xref _g_vbl_handlers
+    xref _g_int2_handlers
+    xref _g_int6_handlers
 
     xref _g_sched
     xref _sched_on_any_irq
@@ -71,6 +70,20 @@ IRQ_ID_DISK_BLOCK                   equ 1
 IRQ_ID_SERIAL_TBE equ 0
 
 IRQ_ID_COUNT                        equ 24
+
+
+    clrso
+irq_handler_next            so.l    1           ; 4
+irq_handler_func            so.l    1           ; 4
+irq_handler_arg             so.l    1           ; 4
+irq_handler_id              so.b    1           ; 1
+irq_handler_priority        so.b    1           ; 1
+irq_handler_enabled         so.b    1           ; 1
+irq_handler_reserved        so.b    1           ; 1
+irq_handler_SIZEOF          so
+    ifeq (irq_handler_SIZEOF == 16)
+        fail "irq_handler structure size is incorrect."
+    endif
 
 
 
@@ -215,10 +228,12 @@ cdi_done:
 
 ;-------------------------------------------------------------------------------
 ; Marks the start of interrupt context. First disables all IRQs levels altogether
-; because we do not supported nested IRQ handling at this time. This is the same
-; as disabling preemption. Preemption is re-enabled when we do the RTE. Note that
-; the CPU has already saved the original status register contents on the stack.
-; Then saves registers d0, d1, d7, a0 and a1.
+; because we do not supported nested IRQ handling to avoid complexity and issues
+; with things like nested kernel stacks, debugging, etc.
+;
+; This is currently the same as disabling preemption. Preemption is re-enabled
+; when we do the RTE. Note that the CPU has already saved the original status
+; register contents on the stack. Then saves registers d0, d1, d7, a0 and a1.
 ; Finally increments the IRQ nesting count in the scheduler data structure to
 ; indicate that we are executing in the interrupt context.
     macro ENTER_IRQ_CTX
@@ -229,20 +244,47 @@ cdi_done:
     endm
 
 
+;------------------------
+; Iterates over and executes shared interrupt handlers
+; INPUT: a0 -> pointer to first irq_handler_t
+    align 4
+__irq_run_handlers:
+    move.l  a2, -(sp)
+    move.l  a0, a2
+    tst.l   a2      ; movea.l doesn't set the CC flags
+    beq     .done
+
+.loop:
+    lea.l   irq_handler_func(a2), a0
+    tst.b   irq_handler_enabled(a2)
+    beq     .next_iter
+    move.l  irq_handler_arg(a2), -(sp)
+    move.l  (a0), a1
+    jsr     (a1)
+    addq.w  #4, sp
+
+.next_iter:
+    movea.l (a2), a2
+    tst.l   a2      ; movea.l doesn't set the CC flags
+    bne     .loop
+
+.done:
+    move.l  (sp)+, a2
+    rts
+
+
 ;-------------------------------------------------------------------------------
 ; Level 1 IRQ handler
     align 4
 __irq_level_1:
     ENTER_IRQ_CTX
 
-    lea     CUSTOM_BASE, a0
-    move.w  INTREQR(a0), d7
-    move.w  #(INTF_TBE | INTF_DSKBLK | INTF_SOFT), INTREQ(a0)
+    move.w  CUSTOM_BASE + INTREQR, d7
 
     btst    #INTB_TBE, d7
     beq.s   irq_handler_dskblk
-    nop
 ;    CALL_IRQ_HANDLERS irc_handlers_SERIAL_TRANSMIT_BUFFER_EMPTY
+    move.w  #INTF_TBE, CUSTOM_BASE + INTREQ
 
 irq_handler_dskblk:
     btst    #INTB_DSKBLK, d7
@@ -251,12 +293,13 @@ irq_handler_dskblk:
     move.l  _g_irq_disk_block_func, a0
     jsr     (a0)
     addq.w  #4, sp
+    move.w  #INTF_DSKBLK, CUSTOM_BASE + INTREQ
 
 irq_handler_soft:
     btst    #INTB_SOFT, d7
     beq     irq_handler_done
 ;    CALL_IRQ_HANDLERS irc_handlers_SOFT
-    nop
+    move.w  #INTF_SOFT, CUSTOM_BASE + INTREQ
     bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
@@ -318,10 +361,9 @@ irq_handler_ports:
     btst    #INTB_PORTS, d7
     beq     irq_handler_done
 
-    move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
-    move.l  _g_int2_handlers, -(sp)
+    move.l  _g_int2_handlers, a0
     jsr     __irq_run_handlers
-    addq.w  #4, sp
+    move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
     bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
@@ -330,27 +372,25 @@ irq_handler_ports:
 __irq_level_3:
     ENTER_IRQ_CTX
 
-    lea     CUSTOM_BASE, a0
-    move.w  INTREQR(a0), d7
-    move.w  #(INTF_COPER | INTF_VERTB | INTF_BLIT), INTREQ(a0)
+    move.w  CUSTOM_BASE + INTREQR, d7
 
     btst    #INTB_VERTB, d7
     beq.s   irq_handler_blitter
-    move.l  _g_vbl_handlers, -(sp)
+    move.l  _g_vbl_handlers, a0
     jsr     __irq_run_handlers
-    addq.w  #4, sp
+    move.w  #INTF_VERTB, CUSTOM_BASE + INTREQ
 
 irq_handler_blitter:
     btst    #INTB_BLIT, d7
     beq.s   irq_handler_copper
 ;    CALL_IRQ_HANDLERS irc_handlers_BLITTER
-    nop
+    move.w  #INTF_BLIT, CUSTOM_BASE + INTREQ
 
 irq_handler_copper:
     btst    #INTB_COPER, d7
     beq     irq_handler_done
 ;    CALL_IRQ_HANDLERS irc_handlers_COPPER
-    nop
+    move.w  #INTF_COPER, CUSTOM_BASE + INTREQ
     bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
@@ -359,32 +399,30 @@ irq_handler_copper:
 __irq_level_4:
     ENTER_IRQ_CTX
 
-    lea     CUSTOM_BASE, a0
-    move.w  INTREQR(a0), d7
-    move.w  #(INTF_AUD0 | INTF_AUD1 | INTF_AUD2 | INTF_AUD3), INTREQ(a0)
+    move.w  CUSTOM_BASE + INTREQR, d7
 
     btst    #INTB_AUD2, d7
     beq.s   irq_handler_audio0
 ;    CALL_IRQ_HANDLERS irc_handlers_AUDIO0
-    nop
+    move.w  #INTF_AUD0, CUSTOM_BASE + INTREQ
 
 irq_handler_audio0:
     btst    #INTB_AUD0, d7
     beq.s   irq_handler_audio3
 ;    CALL_IRQ_HANDLERS irc_handlers_AUDIO1
-    nop
+    move.w  #INTF_AUD1, CUSTOM_BASE + INTREQ
 
 irq_handler_audio3:
     btst    #INTB_AUD3, d7
     beq.s   irq_handler_audio1
 ;    CALL_IRQ_HANDLERS irc_handlers_AUDIO2
-    nop
+    move.w  #INTF_AUD2, CUSTOM_BASE + INTREQ
 
 irq_handler_audio1:
     btst    #INTB_AUD1, d7
     beq     irq_handler_done
 ;    CALL_IRQ_HANDLERS irc_handlers_AUDIO3
-    nop
+    move.w  #INTF_AUD3, CUSTOM_BASE + INTREQ
     bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
@@ -393,20 +431,18 @@ irq_handler_audio1:
 __irq_level_5:
     ENTER_IRQ_CTX
 
-    lea     CUSTOM_BASE, a0
-    move.w  INTREQR(a0), d7
-    move.w  #(INTF_RBF | INTF_DSKSYN), INTREQ(a0)
+    move.w  CUSTOM_BASE + INTREQR, d7
 
     btst    #INTB_RBF, d7
     beq.s   irq_handler_dsksync
 ;    CALL_IRQ_HANDLERS irc_handlers_SERIAL_RECEIVE_BUFFER_FULL
-    nop
+    move.w  #INTF_RBF, CUSTOM_BASE + INTREQ
 
 irq_handler_dsksync:
     btst    #INTB_DSKSYN, d7
     beq     irq_handler_done
 ;    CALL_IRQ_HANDLERS irc_handlers_DISK_SYNC
-    nop
+    move.w  #INTF_DSKSYN, CUSTOM_BASE + INTREQ
     bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
@@ -451,10 +487,9 @@ irq_handler_exter:
     btst    #INTB_EXTER, d7
     beq.s   irq_handler_done
 
-    move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
-    move.l  _g_int6_handlers, -(sp)
+    move.l  _g_int6_handlers, a0
     jsr     __irq_run_handlers
-    addq.w  #4, sp
+    move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
 
     ; FALL THROUGH
 

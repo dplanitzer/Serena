@@ -31,6 +31,8 @@ void* _Nullable     g_irq_disk_block_arg;
 // irq_handlers_for_id() is defined in the platform specific irq.c file
 void irq_add_handler(irq_handler_t* _Nonnull h)
 {
+    assert(h->func != NULL);
+
     const unsigned sim = irq_set_mask(IRQ_MASK_ALL);
 
     irq_handler_t** listp = irq_handlers_for_id(h->id);
@@ -98,20 +100,21 @@ void irq_set_handler_enabled(irq_handler_t* _Nonnull h, bool enabled)
     irq_restore_mask(sim);
 }
 
+#if 0
+// m68k-amiga: irq_asm.s
 // Called from the IRQ context. Run all handlers for the given interrupt list
 void _irq_run_handlers(irq_handler_t* _Nullable irq_list)
 {
     register irq_handler_t* ch = irq_list;
 
     while (ch) {
-        if (ch->func && ch->enabled) {
-            if (ch->func(ch->arg)) {
-                break;
-            }
+        if (ch->enabled) {
+            ch->func(ch->arg);
         }
         ch = ch->next;
     }
 }
+#endif
 
 
 void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nullable arg)

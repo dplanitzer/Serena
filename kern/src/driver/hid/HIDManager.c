@@ -18,7 +18,7 @@
 
 
 extern const uint8_t gUSBHIDKeyFlags[256];
-int _vbl_handler(HIDManagerRef _Nonnull self);
+void _vbl_handler(HIDManagerRef _Nonnull self);
 static void _collect_framebuffer_size(HIDManagerRef _Nonnull self);
 static void _reports_collector_loop(HIDManagerRef _Nonnull self);
 
@@ -790,10 +790,9 @@ static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull dri
 }
 
 
-int _vbl_handler(HIDManagerRef _Nonnull self)
+void _vbl_handler(HIDManagerRef _Nonnull self)
 {
     vcpu_sigsend(self->reportsCollector, SIGVBL);
-    return 0;
 }
 
 

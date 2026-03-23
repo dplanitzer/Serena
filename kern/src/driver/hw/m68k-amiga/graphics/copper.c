@@ -19,7 +19,7 @@ typedef struct sprite_ctl_change {
 } sprite_ctl_change_t;
 
 
-extern int vbl_irq(void);
+extern void vbl_irq(void);
 
 
 static irq_handler_t            g_copper_vblank;
@@ -188,7 +188,7 @@ static void copper_csw(void)
 // Called at the vertical blank interrupt. Triggers the execution of the correct
 // Copper program (odd or even field as needed). Also makes a scheduled program
 // active / running if needed.
-int vbl_irq(void)
+void vbl_irq(void)
 {
     register const uint8_t pending_ctls = g_sprite_change_pending;
 
@@ -207,7 +207,7 @@ int vbl_irq(void)
     // state
     if (g_copper_ready_prog) {
         copper_csw();
-        return 0;
+        return;
     }
 
 
@@ -222,8 +222,6 @@ int vbl_irq(void)
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
-
-    return 0;
 }
 
 #if 0
