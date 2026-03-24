@@ -30,12 +30,12 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost)
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
     
-    // Don't do a WAKEUP_CSW here because we are currently holding the mutex and
-    // thus the other guy would not be able to grab the mutex and all we would
-    // end up doing is a useless CSW from us to the other guy and the other guy
-    // then has to CSW back to us when it tries to take the mutex that we are
-    // still holding. 
-    wq_wakeup_many(&self->wq, flags, WRES_WAKEUP, pri_boost);
+    // We do a WAKEUP_NO_IMMED_CSW here because we are currently holding the
+    // mutex and thus the other guy would not be able to grab the mutex and all
+    // we would end up doing is a useless CSW from us to the other guy and the
+    // other guy then has to CSW back to us when it tries to take the mutex that
+    // we are still holding. 
+    wq_wakeup_many(&self->wq, flags | WAKEUP_NO_IMMED_CSW, WRES_WAKEUP, pri_boost);
     preempt_restore(sps);
 }
 

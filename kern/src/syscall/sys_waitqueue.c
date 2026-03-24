@@ -143,7 +143,7 @@ SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const struct time
     u_wait_queue_t uwp_to_wait = _find_uwq(pp, pa->q2);
 
     if (uwp_to_wake && uwp_to_wait) {
-        wq_wakeup_many(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP, 0);
+        wq_wakeup_many(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_NO_IMMED_CSW, WRES_WAKEUP, 0);
         err = wq_timedwait(&uwp_to_wait->wq, NULL, pa->flags, pa->wtp, NULL);
     }
     else {
@@ -163,7 +163,7 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
     if (uwp) {
-        wq_wakeup_many(&uwp->wq, wflags | WAKEUP_CSW, WRES_WAKEUP, 0);
+        wq_wakeup_many(&uwp->wq, wflags, WRES_WAKEUP, 0);
     }
     else {
         err = EBADF;

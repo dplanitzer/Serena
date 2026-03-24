@@ -34,7 +34,7 @@ errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
     }
         
     if ((self->wait_sigs & sigbit) != 0) {
-        wq_wakeup_vcpu(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL, pri_boost);
+        wq_wakeup_vcpu(self->waiting_on_wait_queue, self, 0, WRES_SIGNAL, pri_boost);
     }
     preempt_restore(sps);
 

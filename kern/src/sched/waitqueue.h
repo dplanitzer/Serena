@@ -31,8 +31,13 @@ struct vcpu;
 // Requests that wakeup() wakes up at most one vcpu instead of all.
 #define WAKEUP_ONE  1
 
-// Allow wakeup() to do a context switch. 
-#define WAKEUP_CSW  2
+// Do not allow the wakeup() call to immediately context switch to the waiting
+// vcpu even if the QoS class and the current execution context would in
+// principle allow for such a switch to happen. The waiting vcpu will still be
+// marked ready and added to teh ready queue. The context switch will be
+// deferred until preemption is reenabled and the quantum of the calling vcpu
+// has expired.
+#define WAKEUP_NO_IMMED_CSW  2
 
 
 // Wait result/wakeup reason

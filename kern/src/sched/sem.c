@@ -39,5 +39,5 @@ errno_t sem_onwait(sem_t* _Nonnull self, const struct timespec* _Nonnull deadlin
 // @Entry Condition: preemption disabled
 void sem_wake(sem_t* _Nullable self)
 {
-    wq_wakeup_many(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP, 0);
+    wq_wakeup_many(&self->wq, WAKEUP_ALL, WRES_WAKEUP, 0);
 }

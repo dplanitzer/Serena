@@ -221,7 +221,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
     // Context switch immediately to the receiver is allowed to do so, we're not
     // running in the interrupt context and the waiting vcpu priority is higher
     // or the same as ours.
-    if (((flags & WAKEUP_CSW) == WAKEUP_CSW) && !sched_is_irq_ctx(g_sched)) {
+    if (((flags & WAKEUP_NO_IMMED_CSW) == 0) && !sched_is_irq_ctx(g_sched)) {
         if (vcpu_effective_qos_class(vp) >= SCHED_QOS_INTERACTIVE) {
             vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
     
@@ -237,20 +237,19 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
 // @Entry Condition: preemption disabled
 void wq_wakeup_many(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost)
 {
+    register deque_node_t* cp = self->q.first;
+
     if ((flags & WAKEUP_ONE) == 0) {
         // Make all waiting VPs ready and find a VP to potentially context switch to.
-        register deque_node_t* cp = self->q.first;
-        register int adj_flags = flags & ~(WAKEUP_CSW|WAKEUP_ONE);
-
         while (cp) {
             register deque_node_t* np = cp->next;
             
-            wq_wakeup_vcpu(self, (vcpu_t)cp, adj_flags, reason, pri_boost);
+            wq_wakeup_vcpu(self, (vcpu_t)cp, WAKEUP_NO_IMMED_CSW, reason, pri_boost);
             cp = np;
         }
     }
     else {
         // Wake the first waiter
-        wq_wakeup_vcpu(self, (vcpu_t)self->q.first, flags, reason, pri_boost);
+        wq_wakeup_vcpu(self, (vcpu_t)cp, flags & ~WAKEUP_ONE, reason, pri_boost);
     }
 }
