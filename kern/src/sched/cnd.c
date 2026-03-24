@@ -35,7 +35,7 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost)
     // end up doing is a useless CSW from us to the other guy and the other guy
     // then has to CSW back to us when it tries to take the mutex that we are
     // still holding. 
-    wq_wake(&self->wq, flags, WRES_WAKEUP, pri_boost);
+    wq_wakeup_many(&self->wq, flags, WRES_WAKEUP, pri_boost);
     preempt_restore(sps);
 }
 

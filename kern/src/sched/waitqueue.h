@@ -99,13 +99,13 @@ extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable
 // should be granted to 'vp'. This should be in the range [0...QOS_PRI_COUNT-1].
 // @IRQ Context Safe
 // @Entry Condition: preemption disabled
-extern bool wq_wakeone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, wres_t reason, int pri_boost);
+extern void wq_wakeup_vcpu(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, wres_t reason, int pri_boost);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. 'pri_boost' is the priority boost that should be
 // granted to 'vp'. This should be in the range [0...QOS_PRI_COUNT-1].
 // @IRQ Context Safe
 // @Entry Condition: preemption disabled
-extern void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost);
+extern void wq_wakeup_many(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost);
 
 #endif /* _WAITQUEUE_H */

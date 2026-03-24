@@ -16,7 +16,7 @@
 // Invoked by the clock when a wait timeout expires
 void sched_wait_timeout_irq(vcpu_t _Nonnull vp)
 {
-    wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT, 0);
+    wq_wakeup_vcpu(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT, 0);
 }
 
 

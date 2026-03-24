@@ -198,7 +198,7 @@ _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     
     if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && g_sched_wq.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
-        wq_wakeone(&g_sched_wq, self->boot_vp, WAKEUP_CSW, WRES_WAKEUP, 0);
+        wq_wakeup_vcpu(&g_sched_wq, self->boot_vp, WAKEUP_CSW, WRES_WAKEUP, 0);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue

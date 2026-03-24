@@ -166,29 +166,13 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, i
 }
 
 
-static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Nonnull vp)
-{
-    if ((flags & WAKEUP_CSW) == 0 || sched_is_irq_ctx(g_sched)) {
-        return;
-    }
-
-
-    if (vcpu_effective_qos_class(vp) >= SCHED_QOS_INTERACTIVE) {
-        vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
-    
-        if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
-            sched_switch_to(g_sched, vp);
-        }
-    }
-}
-
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason, int pri_boost)
+void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason, int pri_boost)
 {
     // Nothing to do if we are not waiting
     if (vp->sched_state != SCHED_STATE_WAITING) {
-        return false;
+        return;
     }
     
 
@@ -229,54 +213,44 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     }
 
 
-    bool isReady;
+    // Make the VP ready and move it to the front of its ready queue if it
+    // didn't use all of its quantum before blocking
+    sched_set_ready(g_sched, vp, true);
+    
 
-    if (vp->sched_state == SCHED_STATE_WAITING) {
-        // Make the VP ready and move it to the front of its ready queue if it
-        // didn't use all of its quantum before blocking
-        sched_set_ready(g_sched, vp, true);
-        
-        wq_maybe_switch_to(self, flags, vp);
-        isReady = true;
-    } else {
-        // The VP is suspended. Move it to the suspended state so that it will
-        // be added to the ready queue once we resume it.
-        vp->sched_state = SCHED_STATE_SUSPENDED;
-        isReady = false;
+    // Context switch immediately to the receiver is allowed to do so, we're not
+    // running in the interrupt context and the waiting vcpu priority is higher
+    // or the same as ours.
+    if (((flags & WAKEUP_CSW) == WAKEUP_CSW) && !sched_is_irq_ctx(g_sched)) {
+        if (vcpu_effective_qos_class(vp) >= SCHED_QOS_INTERACTIVE) {
+            vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
+    
+            if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
+                sched_switch_to(g_sched, vp);
+            }
+        }
     }
-
-    return isReady;
 }
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost)
+void wq_wakeup_many(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost)
 {
-    register deque_node_t* cp = self->q.first;
-    register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
-    vcpu_t pRunCandidate = NULL;
+    if ((flags & WAKEUP_ONE) == 0) {
+        // Make all waiting VPs ready and find a VP to potentially context switch to.
+        register deque_node_t* cp = self->q.first;
+        register int adj_flags = flags & ~(WAKEUP_CSW|WAKEUP_ONE);
 
-    
-    // Make all waiting VPs ready and find a VP to potentially context switch to.
-    while (cp) {
-        register deque_node_t* np = cp->next;
-        register vcpu_t vp = (vcpu_t)cp;
-        register const bool isReady = wq_wakeone(self, vp, 0, reason, pri_boost);
-
-        if (pRunCandidate == NULL && isReady) {
-            pRunCandidate = vp;
+        while (cp) {
+            register deque_node_t* np = cp->next;
+            
+            wq_wakeup_vcpu(self, (vcpu_t)cp, adj_flags, reason, pri_boost);
+            cp = np;
         }
-        if (isWakeupOne) {
-            break;
-        }
-
-        cp = np;
     }
-        
-    
-    // Set the VP that we found running if context switches are allowed.
-    if (pRunCandidate) {
-        wq_maybe_switch_to(self, flags, pRunCandidate);
+    else {
+        // Wake the first waiter
+        wq_wakeup_vcpu(self, (vcpu_t)self->q.first, flags, reason, pri_boost);
     }
 }
