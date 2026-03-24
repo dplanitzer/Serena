@@ -70,6 +70,8 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
             // Apply a penalty to the vcpu if it has never blocked
             if ((run->flags & VP_FLAG_DID_WAIT) == 0) {
                 run->priority_boost = 0;
+                run->quantum_boost = 0;
+                
                 if (run->priority_penalty < SCHED_PRI_HIGHEST) {
                     run->priority_penalty++;
                 }

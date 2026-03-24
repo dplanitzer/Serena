@@ -27,12 +27,19 @@ sched_t                 g_sched;
 static struct waitqueue g_sched_wq;     // The scheduler VP waits on this queue
 
 // Note that a quantum tick is 16.667ms
-const int8_t g_quantum_length[SCHED_QOS_COUNT] = {
+const int8_t g_quantum_base_length[SCHED_QOS_COUNT] = {
     SCHED_QUANTUM(1),       /* Realtime */
     SCHED_QUANTUM(2),       /* Urgent */
     SCHED_QUANTUM(4),       /* Interactive */
     SCHED_QUANTUM(8),       /* Utility */
     SCHED_QUANTUM(12)       /* Background */
+};
+const int8_t g_quantum_max_length[SCHED_QOS_COUNT] = {
+    SCHED_QUANTUM(2),       /* Realtime */
+    SCHED_QUANTUM(3),       /* Urgent */
+    SCHED_QUANTUM(6),       /* Interactive */
+    SCHED_QUANTUM(10),      /* Utility */
+    SCHED_QUANTUM(14)       /* Background */
 };
 
 

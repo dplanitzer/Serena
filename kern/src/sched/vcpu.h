@@ -136,7 +136,7 @@ struct vcpu {
     int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_sched_params_changed() on change)
     int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_sched_params_changed() on change)
-    int8_t                          reserved1;
+    int8_t                          quantum_boost;
     int8_t                          reserved2;
     int8_t                          sched_state;
     uint8_t                         flags;
@@ -304,8 +304,7 @@ extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 // Resets the receiver's quantum tick count back to the full count for another
 // quantum. The quantum length is based on the effective QoS class.
 // @Entry Condition: preemption disabled
-#define vcpu_reset_quantum(__self) \
-(__self)->quantum_countdown = qos_quantum(SCHED_QOS_CLASS((__self)->effective_priority))
+extern void vcpu_reset_quantum(vcpu_t _Nonnull self);
 
 // Returns true if the vcpu should be scheduled using a fixed priority policy.
 // Only valid after vcpu_sched_params_changed() has been called
@@ -317,6 +316,11 @@ extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 // @Entry Condition: preemption disabled
 #define vcpu_effective_qos_class(__self) \
 SCHED_QOS_CLASS((__self)->effective_priority)
+
+// Sets the quantum boost value. The value is clamped to the range 0..INT8_MAX.
+// The boost is applied starting with the next quantum.
+// @Entry Condition: preemption disabled
+extern void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost);
 
 
 //

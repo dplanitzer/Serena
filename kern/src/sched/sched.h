@@ -95,9 +95,8 @@ struct sched {
 typedef struct sched* sched_t;
 
 
-extern const int8_t g_quantum_length[SCHED_QOS_COUNT];
-#define qos_quantum(__qos) \
-g_quantum_length[__qos]
+extern const int8_t g_quantum_base_length[SCHED_QOS_COUNT];
+extern const int8_t g_quantum_max_length[SCHED_QOS_COUNT];
 
 extern sched_t _Nonnull g_sched;
 

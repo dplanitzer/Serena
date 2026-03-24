@@ -123,6 +123,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     const int sps = preempt_disable();
     self->priority_boost = 0;
     self->priority_penalty = 0;
+    self->quantum_boost = 0;
     vcpu_sched_params_changed(self);
     preempt_restore(sps);
 
@@ -166,6 +167,11 @@ void vcpu_destroy(vcpu_t _Nullable self)
     }
 }
 
+void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost)
+{
+    self->quantum_boost = __max(__min(boost, INT8_MAX), 0);
+}
+
 void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
     const int base_qos_class = SCHED_QOS_CLASS(self->base_priority);
@@ -197,6 +203,15 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 //    assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
 
     self->effective_priority = (int8_t)eff_pri;
+}
+
+void vcpu_reset_quantum(vcpu_t _Nonnull self)
+{
+    register const int8_t qos_class = SCHED_QOS_CLASS(self->effective_priority);
+    register const int8_t base_len = g_quantum_base_length[qos_class];
+    register const int8_t max_len = g_quantum_max_length[qos_class];
+
+    self->quantum_countdown = __min(base_len + self->quantum_boost, max_len);
 }
 
 errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params)
