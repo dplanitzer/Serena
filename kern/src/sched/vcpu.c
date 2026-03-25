@@ -29,11 +29,10 @@ static void _vcpu_yield(vcpu_t _Nonnull self);
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params)
+void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 {
-    assert(sched_params->type == SCHED_PARAM_QOS);
-    assert(sched_params->u.qos.category >= SCHED_QOS_BACKGROUND && sched_params->u.qos.category <= SCHED_QOS_REALTIME);
-    assert(sched_params->u.qos.priority >= QOS_PRI_LOWEST && sched_params->u.qos.priority <= QOS_PRI_HIGHEST);
+    assert(policy->qos_class >= SCHED_QOS_BACKGROUND && policy->qos_class <= SCHED_QOS_REALTIME);
+    assert(policy->qos_priority >= QOS_PRI_LOWEST && policy->qos_priority <= QOS_PRI_HIGHEST);
 
 
     memset(self, 0, sizeof(struct vcpu));
@@ -46,7 +45,7 @@ void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params
     self->flags = 0;
     self->flags |= (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->flags |= (g_sys_desc->cpu_model == CPU_MODEL_68060) ? VP_FLAG_HAS_BC : 0;
-    self->base_priority = SCHED_PRI_FROM_QOS(sched_params->u.qos.category, sched_params->u.qos.priority);
+    self->base_priority = SCHED_PRI_FROM_QOS(policy->qos_class, policy->qos_priority);
 
     vcpu_sched_params_changed(self);
 }
@@ -66,7 +65,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
         try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
         doFree = true;
 
-        vcpu_init(vp, &ac->schedParams);
+        vcpu_init(vp, &ac->policy);
         vcpu_suspend(vp);
     }
 
@@ -84,7 +83,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     
     // Configure the vcpu
     try(_vcpu_reset_mcontext(vp, ac, true));
-    vcpu_setschedparams(vp, &ac->schedParams);
+    vcpu_setpolicy(vp, &ac->policy);
     vcpu_reset_quantum(vp);
     
     if (ac->isUser) {
@@ -214,51 +213,37 @@ void vcpu_reset_quantum(vcpu_t _Nonnull self)
     self->quantum_countdown = __min(base_len + self->quantum_boost, max_len);
 }
 
-errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params)
+errno_t vcpu_policy(vcpu_t _Nonnull self, vcpu_policy_t* _Nonnull policy)
 {
-    decl_try_err();
     const int sps = preempt_disable();
-
-    switch (type) {
-        case SCHED_PARAM_QOS:
-            params->type = SCHED_PARAM_QOS;
-            params->u.qos.category = SCHED_QOS_CLASS(self->base_priority);
-            params->u.qos.priority = SCHED_QOS_PRI(self->base_priority);
-            break;
-
-        default:
-            err = EINVAL;
-            break;
-    }
+    policy->qos_class = SCHED_QOS_CLASS(self->base_priority);
+    policy->qos_priority = SCHED_QOS_PRI(self->base_priority);
     preempt_restore(sps);
 
-    return err;
+    return EOK;
 }
 
-errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull params)
+errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 {
     decl_try_err();
 
-    if (params->type != SCHED_PARAM_QOS) {
+    if (policy->qos_class < SCHED_QOS_BACKGROUND || policy->qos_class > SCHED_QOS_REALTIME) {
         return EINVAL;
     }
-    if (params->u.qos.category < SCHED_QOS_BACKGROUND || params->u.qos.category > SCHED_QOS_REALTIME) {
+    if (policy->qos_priority < QOS_PRI_LOWEST || policy->qos_priority > QOS_PRI_HIGHEST) {
         return EINVAL;
     }
-    if (params->u.qos.priority < QOS_PRI_LOWEST || params->u.qos.priority > QOS_PRI_HIGHEST) {
-        return EINVAL;
-    }
-    if (params->u.qos.category == SCHED_QOS_BACKGROUND && params->u.qos.priority == QOS_PRI_LOWEST) {
+    if (policy->qos_class == SCHED_QOS_BACKGROUND && policy->qos_priority == QOS_PRI_LOWEST) {
         // Reserved for scheduler 
         return EPERM;
     }
-    if (params->u.qos.category == SCHED_QOS_REALTIME && params->u.qos.priority == QOS_PRI_HIGHEST) {
+    if (policy->qos_class == SCHED_QOS_REALTIME && policy->qos_priority == QOS_PRI_HIGHEST) {
         // Reserved for scheduler 
         return EPERM;
     }
 
 
-    const int new_base_pri = SCHED_PRI_FROM_QOS(params->u.qos.category, params->u.qos.priority);
+    const int new_base_pri = SCHED_PRI_FROM_QOS(policy->qos_class, policy->qos_priority);
     const int sps = preempt_disable();
     
     if (self->base_priority != new_base_pri) {

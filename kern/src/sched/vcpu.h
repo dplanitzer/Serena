@@ -39,7 +39,7 @@ typedef struct vcpu_acquisition {
     size_t                  userStackSize;
     vcpuid_t                id;
     vcpuid_t                groupid;
-    sched_params_t          schedParams;
+    vcpu_policy_t           policy;
     bool                    isUser;
 } vcpu_acquisition_t;
 
@@ -191,14 +191,13 @@ extern _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self);
 #define vcpu_isuser(__self) \
 (((__self)->flags & VP_FLAG_USER_OWNED) == VP_FLAG_USER_OWNED)
 
-// Returns a copy of the given virtual processor's scheduling parameters.
-extern errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params);
+// Returns a copy of the given virtual processor's scheduling policy.
+extern errno_t vcpu_policy(vcpu_t _Nonnull self, vcpu_policy_t* _Nonnull policy);
 
-// Changes the scheduling parameters of the given virtual processor. Does not
+// Changes the scheduling policy of the given virtual processor. Does not
 // immediately reschedule the VP if it is currently running. Instead the VP is
-// allowed to finish its current quanta.
-// XXX might want to change that in the future?
-extern errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull params);
+// allowed to finish its current quantum.
+extern errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 
 // Returns the current (effective) priority of the given VP.
 extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
@@ -291,7 +290,7 @@ extern void vcpu_uret_exit(void);
 // Scheduler
 //
 
-extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params);
+extern void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 
 extern void vcpu_destroy(vcpu_t _Nullable self);
 

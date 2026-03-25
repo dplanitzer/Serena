@@ -635,19 +635,18 @@ kdispatch_item_t _Nullable kdispatch_current_item(void)
 }
 
 
-static void _kdispatch_applyschedparams(kdispatch_t _Nonnull _Locked self, int qos, int priority)
+static void _kdispatch_apply_policy(kdispatch_t _Nonnull _Locked self, int qos, int priority)
 {
-    sched_params_t params;
+    vcpu_policy_t policy;
 
-    params.type = SCHED_PARAM_QOS;
-    params.u.qos.category = qos;
-    params.u.qos.priority = priority;
+    policy.qos_class = qos;
+    policy.qos_priority = priority;
     
     self->attr.qos = qos;
     self->attr.priority = priority;
 
     deque_for_each(&self->workers, struct kdispatch_worker, it,
-        vcpu_setschedparams(it->vcpu, &params);
+        vcpu_setpolicy(it->vcpu, &policy);
     )
 }
 
@@ -666,7 +665,7 @@ errno_t kdispatch_setpriority(kdispatch_t _Nonnull self, int priority)
     }
 
     mtx_lock(&self->mutex);
-    _kdispatch_applyschedparams(self, self->attr.qos, priority);
+    _kdispatch_apply_policy(self, self->attr.qos, priority);
     mtx_unlock(&self->mutex);
     
     return EOK;
@@ -687,7 +686,7 @@ errno_t kdispatch_setqos(kdispatch_t _Nonnull self, int qos)
     }
 
     mtx_lock(&self->mutex);
-    _kdispatch_applyschedparams(self, qos, self->attr.priority);
+    _kdispatch_apply_policy(self, qos, self->attr.priority);
     mtx_unlock(&self->mutex);
     
     return EOK;

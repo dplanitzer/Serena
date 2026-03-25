@@ -165,7 +165,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     ac.userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
     ac.id = self->next_avail_vcpuid++;
     ac.groupid = attr->groupid;
-    ac.schedParams = attr->sched_params;
+    ac.policy = attr->policy;
     ac.isUser = is_uproc;
 
     try(vcpu_acquire(&ac, &vp));

@@ -282,18 +282,17 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 
 
     // Create the VP
-    sched_params_t sp;
-    sp.type = SCHED_PARAM_QOS;
-    sp.u.qos.category = SCHED_QOS_REALTIME;
-    sp.u.qos.priority = QOS_PRI_HIGHEST;
-    vcpu_init(self, &sp);
+    vcpu_policy_t policy;
+    policy.qos_class = SCHED_QOS_REALTIME;
+    policy.qos_priority = QOS_PRI_HIGHEST;
+    vcpu_init(self, &policy);
 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)fn;
     ac.arg = arg;
     ac.kernelStackBase = pKernelStackBase;
     ac.kernelStackSize = kernelStackSize;
-    ac.schedParams = sp;
+    ac.policy = policy;
     ac.isUser = false;
 
     try_bang(_vcpu_reset_mcontext(self, &ac, false));
@@ -324,17 +323,16 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
 
     // Create the VP
-    sched_params_t sp;
-    sp.type = SCHED_PARAM_QOS;
-    sp.u.qos.category = SCHED_QOS_BACKGROUND;
-    sp.u.qos.priority = QOS_PRI_LOWEST;
-    vcpu_init(self, &sp);
+    vcpu_policy_t policy;
+    policy.qos_class = SCHED_QOS_BACKGROUND;
+    policy.qos_priority = QOS_PRI_LOWEST;
+    vcpu_init(self, &policy);
 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)idle_vcpu_run;
     ac.kernelStackBase = pKernelStackBase;
     ac.kernelStackSize = kernelStackSize;
-    ac.schedParams = sp;
+    ac.policy = policy;
     ac.isUser = false;
 
     try_bang(_vcpu_reset_mcontext(self, &ac, true));

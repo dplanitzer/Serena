@@ -90,8 +90,8 @@ SYSCALL_REF(vcpu_suspend);
 SYSCALL_REF(vcpu_resume);
 SYSCALL_REF(vcpu_rw_mcontext);
 SYSCALL_REF(vcpu_yield);
-SYSCALL_REF(vcpu_getschedparams);
-SYSCALL_REF(vcpu_setschedparams);
+SYSCALL_REF(vcpu_policy);
+SYSCALL_REF(vcpu_setpolicy);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -165,8 +165,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigurgent, SC_VOID),
     SYSCALL_ENTRY(excpt_sethandler, SC_ERRNO),
     SYSCALL_ENTRY(proc_exec, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getschedparams, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_setschedparams, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_policy, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_setpolicy, SC_ERRNO),
     SYSCALL_ENTRY(clock_getres, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_rw_mcontext, SC_ERRNO),
     SYSCALL_ENTRY(test, SC_ERRNO),

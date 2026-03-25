@@ -638,19 +638,18 @@ dispatch_item_t _Nullable dispatch_current_item(void)
 }
 
 
-static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos, int priority)
+static void _dispatch_apply_policy(dispatch_t _Nonnull _Locked self, int qos, int priority)
 {
-    sched_params_t params;
+    vcpu_policy_t policy;
 
-    params.type = SCHED_PARAM_QOS;
-    params.u.qos.category = qos;
-    params.u.qos.priority = priority;
+    policy.qos_class = qos;
+    policy.qos_priority = priority;
     
     self->attr.qos = qos;
     self->attr.priority = priority;
 
     deque_for_each(&self->workers, struct dispatch_worker, it,
-        vcpu_setschedparams(it->vcpu, &params);
+        vcpu_setpolicy(it->vcpu, &policy);
     )
 }
 
@@ -670,7 +669,7 @@ int dispatch_setpriority(dispatch_t _Nonnull self, int priority)
     }
 
     mtx_lock(&self->mutex);
-    _dispatch_applyschedparams(self, self->attr.qos, priority);
+    _dispatch_apply_policy(self, self->attr.qos, priority);
     mtx_unlock(&self->mutex);
     
     return 0;
@@ -692,7 +691,7 @@ int dispatch_setqos(dispatch_t _Nonnull self, int qos)
     }
 
     mtx_lock(&self->mutex);
-    _dispatch_applyschedparams(self, qos, self->attr.priority);
+    _dispatch_apply_policy(self, qos, self->attr.priority);
     mtx_unlock(&self->mutex);
     
     return 0;

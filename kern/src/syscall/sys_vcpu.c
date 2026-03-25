@@ -137,20 +137,20 @@ SYSCALL_0(vcpu_yield)
     return EOK;
 }
 
-SYSCALL_3(vcpu_getschedparams, vcpuid_t id, int type, sched_params_t* _Nonnull params)
+SYSCALL_2(vcpu_policy, vcpuid_t id, vcpu_policy_t* _Nonnull policy)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     if (pa->id == VCPUID_SELF) {
-        err = vcpu_getschedparams(vp, pa->type, pa->params);
+        err = vcpu_policy(vp, pa->policy);
     }
     else {
         mtx_lock(&pp->mtx);
         vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
         if (vcp) {
-            err = vcpu_getschedparams(vcp, pa->type, pa->params);
+            err = vcpu_policy(vcp, pa->policy);
         }
         else {
             err = ESRCH;
@@ -161,20 +161,20 @@ SYSCALL_3(vcpu_getschedparams, vcpuid_t id, int type, sched_params_t* _Nonnull p
     return err;
 }
 
-SYSCALL_2(vcpu_setschedparams, vcpuid_t id, const sched_params_t* _Nonnull params)
+SYSCALL_2(vcpu_setpolicy, vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     if (pa->id == VCPUID_SELF) {
-        err = vcpu_setschedparams(vp, pa->params);
+        err = vcpu_setpolicy(vp, pa->policy);
     }
     else {
         mtx_lock(&pp->mtx);
         vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
         if (vcp) {
-            err = vcpu_setschedparams(vcp, pa->params);
+            err = vcpu_setpolicy(vcp, pa->policy);
         }
         else {
             err = ESRCH;
