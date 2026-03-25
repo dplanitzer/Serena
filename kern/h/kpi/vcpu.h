@@ -23,51 +23,51 @@
 // Note that the highest priority of Realtime and the lowest priority of
 // Background are privileged priority bands that owned by the scheduler.
 // 
-// SCHED_QOS_REALTIME:
+// VCPU_QOS_REALTIME:
 //  - fixed priority
 //  - smallest quantum
 //  - minimized latency on wakeup
 //  -- eg used for animations, video  & audio playback
 //
-// SCHED_QOS_URGENT:
+// VCPU_QOS_URGENT:
 //  - dynamic priority
 //  - longer quantum compared to realtime QoS
 //  - short latency on wakeup
 //  -- eg used for I/O drivers
 //
-// SCHED_QOS_INTERACTIVE:
+// VCPU_QOS_INTERACTIVE:
 //  - dynamic priority
 //  - longer quantum compared to urgent QoS
 //  - short latency on wakeup
 //  -- eg used for apps the user is interacting with
 //
-// SCHED_QOS_UTILITY:
+// VCPU_QOS_UTILITY:
 //  - dynamic priority
 //  - longer quantum compared to interactive QoS
 //  - higher latency on wakeup
 //  -- eg used for background cpu-bound jobs inside an interactive app
 //
-// SCHED_QOS_BACKGROUND:
+// VCPU_QOS_BACKGROUND:
 //  - dynamic priority
 //  - longest quantum of all QoS
 //  - higher latency on wakeup
 //  -- eg used for system wide or user specific cpu-bound jobs that should run on the background
-#define SCHED_QOS_REALTIME      5
-#define SCHED_QOS_URGENT        4
-#define SCHED_QOS_INTERACTIVE   3
-#define SCHED_QOS_UTILITY       2
-#define SCHED_QOS_BACKGROUND    1
+#define VCPU_QOS_REALTIME       5
+#define VCPU_QOS_URGENT         4
+#define VCPU_QOS_INTERACTIVE    3
+#define VCPU_QOS_UTILITY        2
+#define VCPU_QOS_BACKGROUND     1
 
-#define SCHED_QOS_COUNT         5
+#define VCPU_QOS_COUNT          5
 
 
 // Priorities per QoS level
-#define QOS_PRI_HIGHEST      7
-#define QOS_PRI_NORMAL       0
-#define QOS_PRI_LOWEST      -8
+#define VCPU_PRI_HIGHEST    7
+#define VCPU_PRI_NORMAL     0
+#define VCPU_PRI_LOWEST    -8
 
-#define QOS_PRI_SHIFT       4
-#define QOS_PRI_COUNT       (1 << QOS_PRI_SHIFT)
+#define VCPU_PRI_SHIFT      4
+#define VCPU_PRI_COUNT      (1 << VCPU_PRI_SHIFT)
 
 
 typedef struct vcpu_policy {

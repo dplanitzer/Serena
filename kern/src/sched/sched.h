@@ -21,7 +21,7 @@
 
 
 // Absolute scheduler priorities
-#define SCHED_PRI_COUNT     (SCHED_QOS_COUNT * QOS_PRI_COUNT)   /* 80 */
+#define SCHED_PRI_COUNT     (VCPU_QOS_COUNT * VCPU_PRI_COUNT)   /* 80 */
 #define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)                 /* 79 */
 #define SCHED_PRI_LOWEST    0                                   /*  0 */
 
@@ -45,13 +45,13 @@ typedef uint32_t    pop_word_t;
 
 
 #define SCHED_PRI_FROM_QOS(__qos_class, __qos_pri) \
-(((__qos_class) - 1) << QOS_PRI_SHIFT) + (__qos_pri) - QOS_PRI_LOWEST
+(((__qos_class) - 1) << VCPU_PRI_SHIFT) + (__qos_pri) - VCPU_PRI_LOWEST
 
 #define SCHED_QOS_CLASS(__sched_pri) \
-(((__sched_pri) >> QOS_PRI_SHIFT) + 1)
+(((__sched_pri) >> VCPU_PRI_SHIFT) + 1)
 
 #define SCHED_QOS_PRI(__sched_pri) \
-(((__sched_pri) & (QOS_PRI_COUNT-1)) + QOS_PRI_LOWEST)
+(((__sched_pri) & (VCPU_PRI_COUNT-1)) + VCPU_PRI_LOWEST)
 
 
 // Set if the context switcher should activate the VP set in 'scheduled' and
@@ -95,8 +95,8 @@ struct sched {
 typedef struct sched* sched_t;
 
 
-extern const int8_t g_quantum_base_length[SCHED_QOS_COUNT];
-extern const int8_t g_quantum_max_length[SCHED_QOS_COUNT];
+extern const int8_t g_quantum_base_length[VCPU_QOS_COUNT];
+extern const int8_t g_quantum_max_length[VCPU_QOS_COUNT];
 
 extern sched_t _Nonnull g_sched;
 

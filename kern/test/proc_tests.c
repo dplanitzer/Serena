@@ -55,8 +55,8 @@ void proc_exit_test(int argc, char *argv[])
         attr.func = (vcpu_func_t)((r) ? spin_loop : just_wait);
         attr.arg = gStr[r];
         attr.stack_size = 0;
-        attr.policy.qos_class = SCHED_QOS_INTERACTIVE;
-        attr.policy.qos_priority = QOS_PRI_NORMAL + i;
+        attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
+        attr.policy.qos_priority = VCPU_PRI_NORMAL + i;
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);
@@ -68,8 +68,8 @@ void proc_exit_test(int argc, char *argv[])
     attr.func = (vcpu_func_t)just_suspend;
     attr.arg = "SUSPENDED";
     attr.stack_size = 0;
-    attr.policy.qos_class = SCHED_QOS_INTERACTIVE;
-    attr.policy.qos_priority = QOS_PRI_NORMAL;
+    attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
+    attr.policy.qos_priority = VCPU_PRI_NORMAL;
     attr.groupid = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     gId[CONCURRENCY] = vcpu_acquire(&attr);

@@ -109,8 +109,8 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
     ac.userStackSize = PROC_DEFAULT_USER_STACK_SIZE;
     ac.id = VCPUID_MAIN;
     ac.groupid = VCPUID_MAIN_GROUP;
-    ac.policy.qos_class = SCHED_QOS_INTERACTIVE;
-    ac.policy.qos_priority = QOS_PRI_NORMAL;
+    ac.policy.qos_class = VCPU_QOS_INTERACTIVE;
+    ac.policy.qos_priority = VCPU_PRI_NORMAL;
     ac.isUser = true;
 
     err = vcpu_acquire(&ac, &vp);

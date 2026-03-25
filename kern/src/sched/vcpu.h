@@ -206,7 +206,7 @@ extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list and the vcpu is woken up if it is currently waiting and the signal
 // 'signo' is in the active wake set. 'pri_boost' is the QoS priority boost that
-// should be granted to 'self'. This should be in the range [0...QOS_PRI_COUNT-1].
+// should be granted to 'self'. This should be in the range [0...VCPU_PRI_COUNT-1].
 // @IRQ Context Safe
 extern errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost);
 

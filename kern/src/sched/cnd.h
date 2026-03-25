@@ -56,7 +56,7 @@ extern errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const st
 
 // Wakes up one or all waiters on the condition variable. 'pri_boost' is the QoS
 // priority boost that should be applied to the vps that are waiting on the
-// condition variable. This should be in the range [0...QOS_PRI_COUNT-1].
+// condition variable. This should be in the range [0...VCPU_PRI_COUNT-1].
 extern void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost);
 
 #endif /* _CND_H */

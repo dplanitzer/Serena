@@ -197,7 +197,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
         // Apply the priority boost. Note that the new boost replaces an already
         // existing boost. Boost values do not stack.
         if (pri_boost > 0) {
-            vp->priority_boost = __min(pri_boost, QOS_PRI_COUNT-1);
+            vp->priority_boost = __min(pri_boost, VCPU_PRI_COUNT-1);
             do_sched_params_changed = true;
         }
 
@@ -208,7 +208,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
 
 
     // Restore the quantum for some QoS classes
-    if (vcpu_effective_qos_class(vp) == SCHED_QOS_REALTIME) {
+    if (vcpu_effective_qos_class(vp) == VCPU_QOS_REALTIME) {
         vcpu_reset_quantum(vp);
     }
 
@@ -222,7 +222,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
     // running in the interrupt context and the waiting vcpu priority is higher
     // or the same as ours.
     if (((flags & WAKEUP_NO_IMMED_CSW) == 0) && !sched_is_irq_ctx(g_sched)) {
-        if (vcpu_effective_qos_class(vp) >= SCHED_QOS_INTERACTIVE) {
+        if (vcpu_effective_qos_class(vp) >= VCPU_QOS_INTERACTIVE) {
             vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
     
             if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {

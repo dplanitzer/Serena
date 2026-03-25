@@ -31,8 +31,8 @@ static void _vcpu_yield(vcpu_t _Nonnull self);
 // \param priority the initial VP priority
 void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 {
-    assert(policy->qos_class >= SCHED_QOS_BACKGROUND && policy->qos_class <= SCHED_QOS_REALTIME);
-    assert(policy->qos_priority >= QOS_PRI_LOWEST && policy->qos_priority <= QOS_PRI_HIGHEST);
+    assert(policy->qos_class >= VCPU_QOS_BACKGROUND && policy->qos_class <= VCPU_QOS_REALTIME);
+    assert(policy->qos_priority >= VCPU_PRI_LOWEST && policy->qos_priority <= VCPU_PRI_HIGHEST);
 
 
     memset(self, 0, sizeof(struct vcpu));
@@ -178,7 +178,7 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
     int eff_pri;
 
     self->flags &= ~VP_FLAG_FIXED_PRI;
-    if ((base_qos_class == SCHED_QOS_BACKGROUND && base_qos_pri == QOS_PRI_LOWEST) || (base_qos_class == SCHED_QOS_REALTIME)) {
+    if ((base_qos_class == VCPU_QOS_BACKGROUND && base_qos_pri == VCPU_PRI_LOWEST) || (base_qos_class == VCPU_QOS_REALTIME)) {
         self->flags |= VP_FLAG_FIXED_PRI;
     }
 
@@ -190,9 +190,9 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
     else {
         // Dynamic priority
         const int pri_boost = (self->priority_penalty <= 0) ? self->priority_boost : 0;
-        const int boosted_qos_pri = __min(base_qos_pri + pri_boost, QOS_PRI_HIGHEST);
+        const int boosted_qos_pri = __min(base_qos_pri + pri_boost, VCPU_PRI_HIGHEST);
         const int boosted_pri = SCHED_PRI_FROM_QOS(base_qos_class, boosted_qos_pri);
-        const int dyn_top_pri = SCHED_QOS_URGENT * QOS_PRI_COUNT - 1;
+        const int dyn_top_pri = VCPU_QOS_URGENT * VCPU_PRI_COUNT - 1;
         const int dyn_bot_pri = SCHED_PRI_LOWEST + 1;
 
         eff_pri = boosted_pri - self->priority_penalty;
@@ -227,17 +227,17 @@ errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull polic
 {
     decl_try_err();
 
-    if (policy->qos_class < SCHED_QOS_BACKGROUND || policy->qos_class > SCHED_QOS_REALTIME) {
+    if (policy->qos_class < VCPU_QOS_BACKGROUND || policy->qos_class > VCPU_QOS_REALTIME) {
         return EINVAL;
     }
-    if (policy->qos_priority < QOS_PRI_LOWEST || policy->qos_priority > QOS_PRI_HIGHEST) {
+    if (policy->qos_priority < VCPU_PRI_LOWEST || policy->qos_priority > VCPU_PRI_HIGHEST) {
         return EINVAL;
     }
-    if (policy->qos_class == SCHED_QOS_BACKGROUND && policy->qos_priority == QOS_PRI_LOWEST) {
+    if (policy->qos_class == VCPU_QOS_BACKGROUND && policy->qos_priority == VCPU_PRI_LOWEST) {
         // Reserved for scheduler 
         return EPERM;
     }
-    if (policy->qos_class == SCHED_QOS_REALTIME && policy->qos_priority == QOS_PRI_HIGHEST) {
+    if (policy->qos_class == VCPU_QOS_REALTIME && policy->qos_priority == VCPU_PRI_HIGHEST) {
         // Reserved for scheduler 
         return EPERM;
     }

@@ -84,8 +84,8 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     attr.arg = self;
     attr.stack_size = 0;
     attr.groupid = VCPUID_MAIN_GROUP;
-    attr.policy.qos_class = SCHED_QOS_REALTIME;
-    attr.policy.qos_priority = QOS_PRI_HIGHEST - 1;
+    attr.policy.qos_class = VCPU_QOS_REALTIME;
+    attr.policy.qos_priority = VCPU_PRI_HIGHEST - 1;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     attr.data = 0;
     try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->reportsCollector));
@@ -430,7 +430,7 @@ void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t 
     mtx_lock(&self->mtx);
     clock_gettime(g_mono_clock, &self->now);
     _queue_event(self, type, driverId, pEventData);
-    cnd_broadcast_with_boost(&self->evqCnd, QOS_PRI_HIGHEST);
+    cnd_broadcast_with_boost(&self->evqCnd, VCPU_PRI_HIGHEST);
     mtx_unlock(&self->mtx);
 }
 
