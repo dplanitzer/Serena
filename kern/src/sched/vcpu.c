@@ -123,6 +123,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     self->priority_boost = 0;
     self->priority_penalty = 0;
     self->quantum_boost = 0;
+    self->sched_nice = 0;
     vcpu_sched_params_changed(self);
     preempt_restore(sps);
 
@@ -171,6 +172,21 @@ void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost)
     self->quantum_boost = __max(__min(boost, INT8_MAX), 0);
 }
 
+void vcpu_set_nice(vcpu_t _Nonnull self, int nice)
+{
+    const int new_nice = __max(__min(nice, VCPU_QOS_URGENT * VCPU_PRI_COUNT), 0);
+
+    if (self->sched_nice != new_nice) {
+        self->sched_nice = new_nice;
+        if (self->sched_nice > 0) {
+            // we give this guy a second chance
+            self->priority_penalty = 0;
+        }
+
+        vcpu_sched_params_changed(self);
+    }
+}
+
 void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
     const int base_qos_class = SCHED_QOS_CLASS(self->base_priority);
@@ -195,7 +211,7 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
         const int dyn_top_pri = VCPU_QOS_URGENT * VCPU_PRI_COUNT - 1;
         const int dyn_bot_pri = SCHED_PRI_LOWEST + 1;
 
-        eff_pri = boosted_pri - self->priority_penalty;
+        eff_pri = boosted_pri - self->priority_penalty - self->sched_nice;
         eff_pri = __max(__min(eff_pri, dyn_top_pri), dyn_bot_pri);
     }
 

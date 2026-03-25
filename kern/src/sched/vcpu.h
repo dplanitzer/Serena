@@ -137,7 +137,7 @@ struct vcpu {
     int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_sched_params_changed() on change)
     int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_sched_params_changed() on change)
     int8_t                          quantum_boost;
-    int8_t                          reserved2;
+    int8_t                          sched_nice;             // scheduling nice parameter (call vcpu_sched_params_changed() on change)
     int8_t                          sched_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
@@ -320,6 +320,10 @@ SCHED_QOS_CLASS((__self)->effective_priority)
 // The boost is applied starting with the next quantum.
 // @Entry Condition: preemption disabled
 extern void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost);
+
+// Sets the scheduling nice value. The value is clamped to the range 0..64.
+// @Entry Condition: preemption disabled
+extern void vcpu_set_nice(vcpu_t _Nonnull self, int nice);
 
 
 //

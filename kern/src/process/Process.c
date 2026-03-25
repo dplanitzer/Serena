@@ -225,6 +225,10 @@ errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _Nonnull 
             *param = self->quantum_boost;
             break;
 
+        case PROC_SCHED_NICE:
+            *param = self->sched_nice;
+            break;
+
         default:
             err = EINVAL;
             break;
@@ -246,6 +250,16 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
                 const int sps = preempt_disable();
 
                 vcpu_set_quantum_boost(cvp, *param);
+                preempt_restore(sps);
+            );
+            break;
+
+        case PROC_SCHED_NICE:
+            deque_for_each(&self->vcpu_queue, vcpu_t, it,
+                vcpu_t cvp = vcpu_from_owner_qe(it);
+                const int sps = preempt_disable();
+
+                vcpu_set_nice(cvp, *param);
                 preempt_restore(sps);
             );
             break;

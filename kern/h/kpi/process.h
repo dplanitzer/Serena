@@ -84,6 +84,8 @@ struct proc_status {
 #define SEO_UMASK_NO_CHANGE -1
 
 
-#define PROC_SCHED_QUANTUM_BOOST    1
+// Scheduling parameters that apply to a process as a whole
+#define PROC_SCHED_QUANTUM_BOOST    1       /* param range: 0..15 */
+#define PROC_SCHED_NICE             2       /* param range: 0..63 */
 
 #endif /* _KPI_PROCESS_H */

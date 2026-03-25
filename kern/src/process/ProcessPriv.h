@@ -92,7 +92,8 @@ typedef struct Process {
 
     // Scheduling parameters
     int8_t                          quantum_boost;
-    int8_t                          reserved[3];
+    int8_t                          sched_nice;
+    int8_t                          reserved[2];
 
     // I/O Channels
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
