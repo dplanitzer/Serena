@@ -65,6 +65,10 @@ extern int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec*
 // @Concurrency: Safe
 extern mode_t umask(mode_t mask);
 
+
+extern int proc_schedparam(pid_t pid, int type, int* _Nonnull param);
+extern int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param);
+
 __CPP_END
 
 #endif /* _SYS_PROCESS_H */

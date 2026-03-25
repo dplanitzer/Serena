@@ -83,4 +83,7 @@ struct proc_status {
 // Tell umask() to just return the current umask without changing it
 #define SEO_UMASK_NO_CHANGE -1
 
+
+#define PROC_SCHED_QUANTUM_BOOST    1
+
 #endif /* _KPI_PROCESS_H */

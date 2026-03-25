@@ -169,12 +169,13 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     ac.isUser = is_uproc;
 
     try(vcpu_acquire(&ac, &vp));
+    vcpu_set_quantum_boost(vp, self->quantum_boost);
 
     vp->proc = self;
     vp->udata = attr->data;
     deque_add_last(&self->vcpu_queue, &vp->owner_qe);
     self->vcpu_count++;
-
+    
 catch:
     mtx_unlock(&self->mtx);
 
@@ -212,6 +213,50 @@ void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred)
     cred->pid = self->pid;
     cred->ppid = self->ppid;
     cred->uid = FileManager_GetRealUserId(&self->fm);
+}
+
+errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _Nonnull param)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    switch (type) {
+        case PROC_SCHED_QUANTUM_BOOST:
+            *param = self->quantum_boost;
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _Nonnull param)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    switch (type) {
+        case PROC_SCHED_QUANTUM_BOOST:
+            deque_for_each(&self->vcpu_queue, vcpu_t, it,
+                vcpu_t cvp = vcpu_from_owner_qe(it);
+                const int sps = preempt_disable();
+
+                vcpu_set_quantum_boost(cvp, *param);
+                preempt_restore(sps);
+            );
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
 }
 
 

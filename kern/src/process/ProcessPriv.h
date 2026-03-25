@@ -90,6 +90,10 @@ typedef struct Process {
     size_t                          vcpu_count;
     vcpuid_t                        next_avail_vcpuid;
 
+    // Scheduling parameters
+    int8_t                          quantum_boost;
+    int8_t                          reserved[3];
+
     // I/O Channels
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
     

@@ -8,6 +8,7 @@
 
 #include "syscalldecls.h"
 #include <kpi/process.h>
+#include <process/ProcessManager.h>
 
 
 SYSCALL_1(exit, int status)
@@ -72,4 +73,51 @@ SYSCALL_0(getpargs)
 SYSCALL_5(proc_timedjoin, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
 {
     return Process_TimedJoin(vp->proc, pa->scope, pa->id, pa->flags, pa->wtp, pa->ps);
+}
+
+SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == 0 || pa->pid == pp->pid) {
+        err = Process_GetSchedParam(pp, pa->type, pa->param);
+    }
+    else {
+        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (tpp) {
+            Process_GetSchedParam(tpp, pa->type, pa->param);
+            Process_Release(tpp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
+    return err;
+}
+
+SYSCALL_3(proc_setschedparam, pid_t pid, int type, int* _Nonnull param)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == 0 || pa->pid == pp->pid) {
+        err = Process_SetSchedParam(pp, pa->type, pa->param);
+    }
+    else {
+        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (tpp) {
+            Process_SetSchedParam(tpp, pa->type, pa->param);
+            Process_Release(tpp);
+        }
+        else {
+            err = ESRCH;
+        }
+
+    }
+
+    return err;
 }

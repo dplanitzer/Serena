@@ -86,6 +86,11 @@ extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, 
 extern errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id);
 
 
+// Sets/gets a scheduling parameter
+extern errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _Nonnull param);
+extern errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _Nonnull param);
+
+
 //
 // Introspection
 //

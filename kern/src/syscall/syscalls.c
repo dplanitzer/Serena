@@ -62,6 +62,9 @@ SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
 SYSCALL_REF(proc_timedjoin);
 SYSCALL_REF(proc_exec);
+SYSCALL_REF(proc_schedparam);
+SYSCALL_REF(proc_setschedparam);
+
 
 SYSCALL_REF(alloc_address_space);
 
@@ -96,7 +99,7 @@ SYSCALL_REF(vcpu_setpolicy);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   71
+#define SYSCALL_COUNT   73
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -170,6 +173,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(clock_getres, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_rw_mcontext, SC_ERRNO),
     SYSCALL_ENTRY(test, SC_ERRNO),
+    SYSCALL_ENTRY(proc_schedparam, SC_ERRNO),
+    SYSCALL_ENTRY(proc_setschedparam, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

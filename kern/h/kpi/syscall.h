@@ -86,6 +86,8 @@ enum {
     SC_clock_getres,        // errno_t clock_getres(clockid_t clock, struct timespec* _Nonnull res)
     SC_vcpu_rw_mcontext,    // errno_t vcpu_rw_mcontext(vcpuid_t id, mcontext_t* _Nonnull ctx, bool isRead)
     SC_test,                // errno_t __test(void)
+    SC_proc_schedparam,     // int proc_schedparam(pid_t pid, int type, int* _Nonnull param)
+    SC_proc_setschedparam,  // int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param)
 };
 
 
