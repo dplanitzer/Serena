@@ -31,6 +31,7 @@ static void _vcpu_yield(vcpu_t _Nonnull self);
 // \param priority the initial VP priority
 void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 {
+    assert(policy->version == sizeof(vcpu_policy_t));
     assert(policy->qos_class >= VCPU_QOS_BACKGROUND && policy->qos_class <= VCPU_QOS_REALTIME);
     assert(policy->qos_priority >= VCPU_PRI_LOWEST && policy->qos_priority <= VCPU_PRI_HIGHEST);
 
@@ -229,9 +230,14 @@ void vcpu_reset_quantum(vcpu_t _Nonnull self)
     self->quantum_countdown = __min(base_len + self->quantum_boost, max_len);
 }
 
-errno_t vcpu_policy(vcpu_t _Nonnull self, vcpu_policy_t* _Nonnull policy)
+errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull policy)
 {
+    if (version != sizeof(vcpu_policy_t)) {
+        return EINVAL;
+    }
+    
     const int sps = preempt_disable();
+    policy->version = sizeof(vcpu_policy_t);
     policy->qos_class = SCHED_QOS_CLASS(self->base_priority);
     policy->qos_priority = SCHED_QOS_PRI(self->base_priority);
     preempt_restore(sps);
@@ -243,6 +249,9 @@ errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull polic
 {
     decl_try_err();
 
+    if (policy->version != sizeof(vcpu_policy_t)) {
+        return EINVAL;
+    }
     if (policy->qos_class < VCPU_QOS_BACKGROUND || policy->qos_class > VCPU_QOS_REALTIME) {
         return EINVAL;
     }

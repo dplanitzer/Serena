@@ -10,9 +10,9 @@
 #include <kpi/syscall.h>
 
 
-int vcpu_policy(vcpu_t _Nullable vcpu, vcpu_policy_t* _Nonnull policy)
+int vcpu_policy(vcpu_t _Nullable vcpu, int version, vcpu_policy_t* _Nonnull policy)
 {
-    return (int)_syscall(SC_vcpu_policy, (vcpu) ? vcpu->id : VCPUID_SELF, policy);
+    return (int)_syscall(SC_vcpu_policy, (vcpu) ? vcpu->id : VCPUID_SELF, version, policy);
 }
 
 int vcpu_setpolicy(vcpu_t _Nullable vcpu, const vcpu_policy_t* _Nonnull policy)

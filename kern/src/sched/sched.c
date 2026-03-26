@@ -283,6 +283,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 
     // Create the VP
     vcpu_policy_t policy;
+    policy.version = sizeof(vcpu_policy_t);
     policy.qos_class = VCPU_QOS_REALTIME;
     policy.qos_priority = VCPU_PRI_HIGHEST;
     vcpu_init(self, &policy);
@@ -324,6 +325,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
     // Create the VP
     vcpu_policy_t policy;
+    policy.version = sizeof(vcpu_policy_t);
     policy.qos_class = VCPU_QOS_BACKGROUND;
     policy.qos_priority = VCPU_PRI_LOWEST;
     vcpu_init(self, &policy);

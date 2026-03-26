@@ -55,6 +55,7 @@ void proc_exit_test(int argc, char *argv[])
         attr.func = (vcpu_func_t)((r) ? spin_loop : just_wait);
         attr.arg = gStr[r];
         attr.stack_size = 0;
+        attr.policy.version = sizeof(vcpu_policy_t);
         attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
         attr.policy.qos_priority = VCPU_PRI_NORMAL + i;
         attr.groupid = 0;
@@ -68,6 +69,7 @@ void proc_exit_test(int argc, char *argv[])
     attr.func = (vcpu_func_t)just_suspend;
     attr.arg = "SUSPENDED";
     attr.stack_size = 0;
+    attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr.policy.qos_priority = VCPU_PRI_NORMAL;
     attr.groupid = 0;

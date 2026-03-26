@@ -71,6 +71,7 @@
 
 
 typedef struct vcpu_policy {
+    int version;        // sizeof(vcpu_policy_t)
     int qos_class;
     int qos_priority;
 } vcpu_policy_t;

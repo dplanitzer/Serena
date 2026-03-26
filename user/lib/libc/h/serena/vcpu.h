@@ -71,7 +71,7 @@ extern int vcpu_setcontext(vcpu_t _Nonnull vcpu, const mcontext_t* _Nonnull ctx)
 
 extern void vcpu_yield(void);
 
-extern int vcpu_policy(vcpu_t _Nullable vcpu, vcpu_policy_t* _Nonnull policy);
+extern int vcpu_policy(vcpu_t _Nullable vcpu, int version, vcpu_policy_t* _Nonnull policy);
 extern int vcpu_setpolicy(vcpu_t _Nullable vcpu, const vcpu_policy_t* _Nonnull policy);
 
 

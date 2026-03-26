@@ -40,6 +40,7 @@ void vcpu_acquire_test(int argc, char *argv[])
         attr.func = (vcpu_func_t)test_acquire_loop;
         attr.arg = gStr[i];
         attr.stack_size = 0;
+        attr.policy.version = sizeof(vcpu_policy_t);
         attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
         attr.policy.qos_priority = VCPU_PRI_NORMAL;
         attr.groupid = 0;
@@ -83,6 +84,7 @@ void vcpu_scheduling_test(int argc, char *argv[])
     attr.func = (vcpu_func_t)test_scheduling_infinite_loop;
     attr.arg = NULL;
     attr.stack_size = 0;
+    attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr.policy.qos_priority = VCPU_PRI_NORMAL;
     attr.groupid = 0;
@@ -94,6 +96,7 @@ void vcpu_scheduling_test(int argc, char *argv[])
     attr2.func = (vcpu_func_t)test_scheduling_print_loop;
     attr2.arg = NULL;
     attr2.stack_size = 0;
+    attr2.policy.version = sizeof(vcpu_policy_t);
     attr2.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr2.policy.qos_priority = VCPU_PRI_LOWEST;
     attr2.groupid = 0;
@@ -143,6 +146,7 @@ void vcpu_sigkill_test(int argc, char *argv[])
     attr.func = (vcpu_func_t)test_sigkill_print_loop;
     attr.arg = NULL;
     attr.stack_size = 0;
+    attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr.policy.qos_priority = VCPU_PRI_NORMAL;
     attr.groupid = 0;
@@ -154,6 +158,7 @@ void vcpu_sigkill_test(int argc, char *argv[])
     attr2.func = (vcpu_func_t)test_sigkill_terminator;
     attr2.arg = NULL;
     attr2.stack_size = 0;
+    attr2.policy.version = sizeof(vcpu_policy_t);
     attr2.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr2.policy.qos_priority = VCPU_PRI_NORMAL;
     attr2.groupid = 0;
@@ -208,6 +213,7 @@ void vcpu_suspend_test(int argc, char *argv[])
     attr.func = (vcpu_func_t)test_suspend_print_loop;
     attr.arg = NULL;
     attr.stack_size = 0;
+    attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr.policy.qos_priority = VCPU_PRI_NORMAL;
     attr.groupid = 0;
@@ -219,6 +225,7 @@ void vcpu_suspend_test(int argc, char *argv[])
     attr2.func = (vcpu_func_t)test_suspend_A_loop;
     attr2.arg = NULL;
     attr2.stack_size = 0;
+    attr2.policy.version = sizeof(vcpu_policy_t);
     attr2.policy.qos_class = VCPU_QOS_INTERACTIVE;
     attr2.policy.qos_priority = VCPU_PRI_NORMAL;
     attr2.groupid = 0;

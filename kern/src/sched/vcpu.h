@@ -191,8 +191,10 @@ extern _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self);
 #define vcpu_isuser(__self) \
 (((__self)->flags & VP_FLAG_USER_OWNED) == VP_FLAG_USER_OWNED)
 
-// Returns a copy of the given virtual processor's scheduling policy.
-extern errno_t vcpu_policy(vcpu_t _Nonnull self, vcpu_policy_t* _Nonnull policy);
+// Returns a copy of the given virtual processor's scheduling policy. 'version'
+// specifies which version of the policy structure should be returned. Returns
+// EINVAL if the requested version isn't supported.
+extern errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull policy);
 
 // Changes the scheduling policy of the given virtual processor. Does not
 // immediately reschedule the VP if it is currently running. Instead the VP is
