@@ -161,20 +161,20 @@ SYSCALL_3(vcpu_policy, vcpuid_t id, int version, vcpu_policy_t* _Nonnull policy)
     return err;
 }
 
-SYSCALL_2(vcpu_setpolicy, vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
+SYSCALL_2(vcpu_set_policy, vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     if (pa->id == VCPUID_SELF) {
-        err = vcpu_setpolicy(vp, pa->policy);
+        err = vcpu_set_policy(vp, pa->policy);
     }
     else {
         mtx_lock(&pp->mtx);
         vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
         if (vcp) {
-            err = vcpu_setpolicy(vcp, pa->policy);
+            err = vcpu_set_policy(vcp, pa->policy);
         }
         else {
             err = ESRCH;

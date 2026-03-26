@@ -79,7 +79,7 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
     
     // Create the child process
     mtx_lock(&self->mtx);
-    if (!vcpu_aborting(vcpu_current())) {
+    if (!vcpu_is_aborting(vcpu_current())) {
         err = proc_create_child(self, opts, ovrFh, &cp);
     }
     else {

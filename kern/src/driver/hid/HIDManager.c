@@ -792,7 +792,7 @@ static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull dri
 
 void _vbl_handler(HIDManagerRef _Nonnull self)
 {
-    vcpu_sigsend(self->reportsCollector, SIGVBL);
+    vcpu_send_signal(self->reportsCollector, SIGVBL);
 }
 
 
@@ -981,7 +981,7 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 
 
         mtx_unlock(&self->mtx);
-        vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, &signo);
+        vcpu_wait_for_signal(&self->reportsWaitQueue, &self->reportSigs, &signo);
         mtx_lock(&self->mtx);
     }
 

@@ -109,12 +109,12 @@ void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
 
 
         if (hasChange && self->screenConfigObserver) {
-            vcpu_sigsend(self->screenConfigObserver, self->screenConfigObserverSignal);
+            vcpu_send_signal(self->screenConfigObserver, self->screenConfigObserverSignal);
         }
 
 
         mtx_unlock(&self->io_mtx);
-        vcpu_sigwait(&self->copvpWaitQueue, &self->copvpSigs, &signo);
+        vcpu_wait_for_signal(&self->copvpWaitQueue, &self->copvpSigs, &signo);
         mtx_lock(&self->io_mtx);
     }
 

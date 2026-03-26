@@ -153,7 +153,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     vcpu_acquisition_t ac;
 
     mtx_lock(&self->mtx);
-    if (vcpu_aborting(vcpu_current())) {
+    if (vcpu_is_aborting(vcpu_current())) {
         throw(EINTR);
     }
 

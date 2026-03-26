@@ -233,11 +233,11 @@ errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
 
     mtx_lock(&self->mutex);
     if (self->attr.maxConcurrency == 1 && self->workers.first) {
-        vcpu_sigsend(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
+        vcpu_send_signal(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
     }
     else {
         deque_for_each(&self->workers, struct kdispatch_worker, it,
-            vcpu_sigsend(it->vcpu, signo);
+            vcpu_send_signal(it->vcpu, signo);
         )
     }
 

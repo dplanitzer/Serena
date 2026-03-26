@@ -15,7 +15,7 @@
 #include <kpi/signal.h>
 
 
-errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
+errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
 {
     decl_try_err();
 
@@ -41,7 +41,7 @@ errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
     return err;
 }
 
-sigset_t vcpu_sigpending(vcpu_t _Nonnull self)
+sigset_t vcpu_pending_signals(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
     const sigset_t set = self->pending_sigs;
@@ -50,7 +50,7 @@ sigset_t vcpu_sigpending(vcpu_t _Nonnull self)
     return set;
 }
 
-bool vcpu_aborting(vcpu_t _Nonnull self)
+bool vcpu_is_aborting(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
     const bool r = ((self->pending_sigs & _SIGBIT(SIGKILL)) != 0) ? true : false;
@@ -80,7 +80,7 @@ static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set
     return 0;
 }
 
-errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo)
+errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo)
 {
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
@@ -107,7 +107,7 @@ errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int*
     return err;
 }
 
-errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
+errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
 {
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;

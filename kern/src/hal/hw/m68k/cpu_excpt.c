@@ -315,7 +315,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     const int cpu_code = (is_hw_excpt) ? excpt_frame_getvecnum(efp) : excpt_frame_getvecnum(efp) - CPU_VEC_SOFT_EXCPT;
     const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 7);
     const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 4);
-    const excpt_handler_t* ehp = vcpu_get_excpt_handler_ref(vp);
+    const excpt_handler_t* ehp = vcpu_excpt_handler_ref(vp);
     excpt_info_t ei;
 
 

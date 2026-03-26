@@ -132,12 +132,12 @@ struct vcpu {
     int8_t                          wakeup_reason;
     
     // Scheduling related state
-    int8_t                          base_priority;          // call vcpu_sched_params_changed() on change
-    int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
-    int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_sched_params_changed() on change)
-    int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_sched_params_changed() on change)
+    int8_t                          base_priority;          // call vcpu_on_sched_param_changed() on change
+    int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_on_sched_param_changed()
+    int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_on_sched_param_changed() on change)
+    int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_on_sched_param_changed() on change)
     int8_t                          quantum_boost;
-    int8_t                          sched_nice;             // scheduling nice parameter (call vcpu_sched_params_changed() on change)
+    int8_t                          sched_nice;             // scheduling nice parameter (call vcpu_on_sched_param_changed() on change)
     int8_t                          sched_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
@@ -182,13 +182,13 @@ extern _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self);
 ((vcpu_t)(g_sched->running))
 
 // Returns the VPID of the currently running virtual processor.
-#define vcpu_currentid() \
+#define vcpu_current_id() \
 ((vcpuid_t)(g_sched->running->id))
 
 
 // Returns true if the vcpu supports user space operations; false if it supports
 // kernel space operations only.
-#define vcpu_isuser(__self) \
+#define vcpu_has_user_state(__self) \
 (((__self)->flags & VP_FLAG_USER_OWNED) == VP_FLAG_USER_OWNED)
 
 // Returns a copy of the given virtual processor's scheduling policy. 'version'
@@ -199,10 +199,7 @@ extern errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _No
 // Changes the scheduling policy of the given virtual processor. Does not
 // immediately reschedule the VP if it is currently running. Instead the VP is
 // allowed to finish its current quantum.
-extern errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
-
-// Returns the current (effective) priority of the given VP.
-extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
+extern errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 
 
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
@@ -210,24 +207,24 @@ extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 // 'signo' is in the active wake set. 'pri_boost' is the QoS priority boost that
 // should be granted to 'self'. This should be in the range [0...VCPU_PRI_COUNT-1].
 // @IRQ Context Safe
-extern errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost);
+extern errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost);
 
-// Same as vcpu_sigsend_with_boost() without a priority boost.
-#define vcpu_sigsend(__self, __signo) \
-vcpu_sigsend_with_boost(__self, __signo, 0)
+// Same as vcpu_send_signal_boost() without a priority boost.
+#define vcpu_send_signal(__self, __signo) \
+vcpu_send_signal_boost(__self, __signo, 0)
 
 // Returns a copy of the pending signals
-extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);
+extern sigset_t vcpu_pending_signals(vcpu_t _Nonnull self);
+
+// @Entry Condition: preemption disabled
+extern errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
+
+// @Entry Condition: preemption disabled
+extern errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns true if the vcpu is in aborting state. Meaning that it has received a
 // SIGKILL and that it will relinquish soon.
-extern bool vcpu_aborting(vcpu_t _Nonnull self);
-
-// @Entry Condition: preemption disabled
-extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
-
-// @Entry Condition: preemption disabled
-extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
+extern bool vcpu_is_aborting(vcpu_t _Nonnull self);
 
 
 // Returns a reference to the vcpu's exception handler info if an exception handler
@@ -235,7 +232,7 @@ extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnu
 // macro will never overlap with vcpu_set_excpt_handler(). E.g. it is safe to call
 // this from cpu_exception() since the vcpu can either process an exception or
 // execute vcpu_set_excpt_handler(), but never both at the same time.
-#define vcpu_get_excpt_handler_ref(__self) \
+#define vcpu_excpt_handler_ref(__self) \
 (((__self)->excpt_handler.func) ? &(__self)->excpt_handler : NULL)
 
 extern errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
@@ -300,7 +297,7 @@ extern void vcpu_destroy(vcpu_t _Nullable self);
 // priority, boost, penalty, etc) has changed and that the effective priority
 // should be recomputed.
 // @Entry Condition: preemption disabled
-extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
+extern void vcpu_on_sched_param_changed(vcpu_t _Nonnull self);
 
 // Resets the receiver's quantum tick count back to the full count for another
 // quantum. The quantum length is based on the effective QoS class.
@@ -308,10 +305,15 @@ extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 extern void vcpu_reset_quantum(vcpu_t _Nonnull self);
 
 // Returns true if the vcpu should be scheduled using a fixed priority policy.
-// Only valid after vcpu_sched_params_changed() has been called
+// Only valid after vcpu_on_sched_param_changed() has been called
 // @Entry Condition: preemption disabled
 #define vcpu_is_fixed_pri(__self) \
 (((__self)->flags & VP_FLAG_FIXED_PRI) == VP_FLAG_FIXED_PRI)
+
+// Returns the effective (current) priority of the given vcpu.
+// @Entry Condition: preemption disabled
+#define vcpu_effective_priority(__self) \
+((__self)->effective_priority)
 
 // Returns the effective QoS class.
 // @Entry Condition: preemption disabled

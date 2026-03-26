@@ -29,19 +29,19 @@ SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
 
-    return vcpu_sigwait(&pp->siwa_queue, pa->set, pa->signo);
+    return vcpu_wait_for_signal(&pp->siwa_queue, pa->set, pa->signo);
 }
 
 SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
 
-    return vcpu_sigtimedwait(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
+    return vcpu_timedwait_for_signal(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
 }
 
 SYSCALL_1(sigpending, sigset_t* _Nonnull set)
 {
-    *(pa->set) = vcpu_sigpending(vp);
+    *(pa->set) = vcpu_pending_signals(vp);
     return EOK;
 }
 

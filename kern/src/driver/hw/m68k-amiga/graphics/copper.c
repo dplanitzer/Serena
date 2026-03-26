@@ -180,7 +180,7 @@ static void copper_csw(void)
 
 
     if (g_retire_vcpu) {
-        vcpu_sigsend(g_retire_vcpu, g_retire_signo);
+        vcpu_send_signal(g_retire_vcpu, g_retire_signo);
     }
     sem_relinquish(&g_copper_notify_sem);
 }

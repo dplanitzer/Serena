@@ -99,7 +99,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
         mtx_unlock(&self->mtx);
         
 
-        err = vcpu_sigtimedwait(&self->siwa_queue, &hot_sigs, flags | TIMER_ABSTIME, &deadline, &signo);
+        err = vcpu_timedwait_for_signal(&self->siwa_queue, &hot_sigs, flags | TIMER_ABSTIME, &deadline, &signo);
         if (err != EOK) {
             return err;
         }
@@ -149,7 +149,7 @@ void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
     deque_for_each(&self->vcpu_queue, deque_node_t, it,
         vcpu_t cvp = vcpu_from_owner_qe(it);
 
-        vcpu_sigsend(cvp, SIGKILL);
+        vcpu_send_signal(cvp, SIGKILL);
     )
 }
 

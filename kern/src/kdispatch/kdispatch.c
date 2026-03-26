@@ -647,7 +647,7 @@ static void _kdispatch_apply_policy(kdispatch_t _Nonnull _Locked self, int qos, 
     self->attr.priority = priority;
 
     deque_for_each(&self->workers, struct kdispatch_worker, it,
-        vcpu_setpolicy(it->vcpu, &policy);
+        vcpu_set_policy(it->vcpu, &policy);
     )
 }
 

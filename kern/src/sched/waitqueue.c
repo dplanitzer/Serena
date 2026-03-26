@@ -202,7 +202,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
         }
 
         if (do_sched_params_changed) {
-            vcpu_sched_params_changed(vp);
+            vcpu_on_sched_param_changed(vp);
         }
     }
 

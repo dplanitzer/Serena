@@ -76,7 +76,7 @@ void _kdispatch_worker_destroy(kdispatch_worker_t _Nullable self)
 
 void _kdispatch_worker_wakeup(kdispatch_worker_t _Nonnull _Locked self)
 {
-    vcpu_sigsend(self->vcpu, SIGDISP);
+    vcpu_send_signal(self->vcpu, SIGDISP);
 }
 
 void _kdispatch_worker_submit(kdispatch_worker_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item, bool doWakeup)
@@ -156,7 +156,7 @@ static void _wait_for_resume(kdispatch_worker_t _Nonnull _Locked self)
 
     while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
         mtx_unlock(&q->mutex);
-        vcpu_sigtimedwait(&self->wq, &self->hotsigs, 0, &TIMESPEC_INF, &signo);
+        vcpu_timedwait_for_signal(&self->wq, &self->hotsigs, 0, &TIMESPEC_INF, &signo);
         mtx_lock(&q->mutex);
     }
 
@@ -261,7 +261,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
         mtx_unlock(&q->mutex);
-        const errno_t err = vcpu_sigtimedwait(&self->wq, &self->hotsigs, flags, &deadline, &signo);
+        const errno_t err = vcpu_timedwait_for_signal(&self->wq, &self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
         if (err == ETIMEDOUT && _should_relinquish(self)) {

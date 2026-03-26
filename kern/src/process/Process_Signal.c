@@ -157,7 +157,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
 static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int signo)
 {
     _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
-    vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
+    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
 }
 
 // Suspend all vcpus in the process if the process is currently in running state.
@@ -210,7 +210,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
     if (target_vp) {
         // This sigsend() will auto-force-resume the receiving vcpu if we're
         // sending SIGKILL
-        vcpu_sigsend(target_vp, signo);
+        vcpu_send_signal(target_vp, signo);
         return EOK;
     }
     else {
@@ -228,7 +228,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
         if (cvp->groupid == id) {
             // This sigsend() will auto-force-resume the receiving vcpu if we're
             // sending SIGKILL
-            vcpu_sigsend(cvp, signo);
+            vcpu_send_signal(cvp, signo);
             hasMatch = true;
         }
     )
@@ -331,7 +331,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     }
     else if (self->state == PROC_STATE_EXITING && signo == SIGCHLD && self->exit_coordinator) {
         // Auto-route SIGCHLD to the exit coordinator because we're in EXIT state
-        vcpu_sigsend(self->exit_coordinator, signo);
+        vcpu_send_signal(self->exit_coordinator, signo);
     }
     mtx_unlock(&self->mtx);
 

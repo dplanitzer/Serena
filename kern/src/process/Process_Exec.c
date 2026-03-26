@@ -209,7 +209,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
     
     // Don't do an exec() if we are in the process of being shut down
-    if (vcpu_aborting(vcpu_current())) {
+    if (vcpu_is_aborting(vcpu_current())) {
         throw(EINTR);
     }
 

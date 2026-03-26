@@ -87,7 +87,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
             if (do_sched_params_changed) {
-                vcpu_sched_params_changed(run);
+                vcpu_on_sched_param_changed(run);
             }
         }
 

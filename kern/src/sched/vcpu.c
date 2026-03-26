@@ -48,7 +48,7 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     self->flags |= (g_sys_desc->cpu_model == CPU_MODEL_68060) ? VP_FLAG_HAS_BC : 0;
     self->base_priority = SCHED_PRI_FROM_QOS(policy->qos_class, policy->qos_priority);
 
-    vcpu_sched_params_changed(self);
+    vcpu_on_sched_param_changed(self);
 }
 
 errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP)
@@ -84,7 +84,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     
     // Configure the vcpu
     try(_vcpu_reset_mcontext(vp, ac, true));
-    vcpu_setpolicy(vp, &ac->policy);
+    vcpu_set_policy(vp, &ac->policy);
     vcpu_reset_quantum(vp);
     
     if (ac->isUser) {
@@ -125,7 +125,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     self->priority_penalty = 0;
     self->quantum_boost = 0;
     self->sched_nice = 0;
-    vcpu_sched_params_changed(self);
+    vcpu_on_sched_param_changed(self);
     preempt_restore(sps);
 
 
@@ -184,11 +184,11 @@ void vcpu_set_nice(vcpu_t _Nonnull self, int nice)
             self->priority_penalty = 0;
         }
 
-        vcpu_sched_params_changed(self);
+        vcpu_on_sched_param_changed(self);
     }
 }
 
-void vcpu_sched_params_changed(vcpu_t _Nonnull self)
+void vcpu_on_sched_param_changed(vcpu_t _Nonnull self)
 {
     const int base_qos_class = SCHED_QOS_CLASS(self->base_priority);
     const int base_qos_pri = SCHED_QOS_PRI(self->base_priority);
@@ -235,7 +235,7 @@ errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull p
     if (version != sizeof(vcpu_policy_t)) {
         return EINVAL;
     }
-    
+
     const int sps = preempt_disable();
     policy->version = sizeof(vcpu_policy_t);
     policy->qos_class = SCHED_QOS_CLASS(self->base_priority);
@@ -245,7 +245,7 @@ errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull p
     return EOK;
 }
 
-errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
+errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 {
     decl_try_err();
 
@@ -275,13 +275,13 @@ errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull polic
         switch (self->sched_state) {
             case SCHED_STATE_INITIATED:
                 self->base_priority = new_base_pri;
-                vcpu_sched_params_changed(self);
+                vcpu_on_sched_param_changed(self);
                 break;
 
             case SCHED_STATE_READY:
                 sched_set_unready(g_sched, self, false);
                 self->base_priority = new_base_pri;
-                vcpu_sched_params_changed(self);
+                vcpu_on_sched_param_changed(self);
                 sched_set_ready(g_sched, self, true);
                 break;
                 
@@ -292,7 +292,7 @@ errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull polic
                 if (self->sched_state == SCHED_STATE_RUNNING) {
                     vcpu_reset_quantum(self);
                 }
-                vcpu_sched_params_changed(self);
+                vcpu_on_sched_param_changed(self);
                 break;
 
             case SCHED_STATE_TERMINATING:
@@ -308,15 +308,6 @@ errno_t vcpu_setpolicy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull polic
     return err;
 }
 
-int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
-{
-    const int sps = preempt_disable();
-    const uint8_t pri = self->effective_priority;
-    preempt_restore(sps);
-
-    return (int)pri;
-}
-
 // @Entry Condition: preemption disabled
 static void _vcpu_yield(vcpu_t _Nonnull self)
 {
@@ -324,7 +315,7 @@ static void _vcpu_yield(vcpu_t _Nonnull self)
         if (!vcpu_is_fixed_pri(self) && self->priority_penalty > 0) {
             // Half the priority penalty, if any
             self->priority_penalty /= 2;
-            vcpu_sched_params_changed(self);
+            vcpu_on_sched_param_changed(self);
         }
         self->flags |= VP_FLAG_DID_WAIT;
 
@@ -377,7 +368,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     else {
         // 'self' is some other vcpu in some state (running, ready, waiting). Trigger a deferred suspend on it
         self->suspension_count++;
-        vcpu_sigsend(self, SIGVPDS);
+        vcpu_send_signal(self, SIGVPDS);
     }
 
 catch:
