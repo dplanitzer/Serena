@@ -11,6 +11,7 @@
                 "${workspaceFolder}/../../kern/h/*"
             ],
             "defines": [
+                "__IDE__",
                 "DEBUG=1",
                 "__ILP32__=1",
                 "__M68K__",
