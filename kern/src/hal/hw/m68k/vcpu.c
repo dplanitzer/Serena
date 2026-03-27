@@ -37,7 +37,7 @@ size_t min_vcpu_kernel_stack_size(void)
 // \param self the virtual processor
 // \param act the activation record
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
+errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
 {
     struct func_frame {
         void* ret_addr;
@@ -146,103 +146,8 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
     return EOK;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//XXX will go away
 
-static void __vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx, cpu_basic_state_t* _Nonnull is_sa, cpu_full_state_t* _Nullable fp_sa)
-{
-    // See _vcpu_read_mcontext().
-    for (int i = 0; i < 7; i++) {
-        is_sa->a[i] = ctx->a[i];
-        is_sa->d[i] = ctx->d[i];
-    }
-    is_sa->usp = ctx->a[7];
-    is_sa->d[7] = ctx->d[7];
-
-    is_sa->ef.pc = ctx->pc;
-    is_sa->ef.sr &= 0xff00;
-    is_sa->ef.sr |= ctx->sr & 0xff;     // update CCR only
-
-
-    // Set the FPU state
-    if (fp_sa) {
-        fp_sa->f.fpcr = ctx->fpcr;
-        fp_sa->f.fpiar = ctx->fpiar;
-        fp_sa->f.fpsr = ctx->fpsr;
-
-        for (int i = 0; i < 8; i++) {
-            fp_sa->f.fp[i] = ctx->fp[i];
-        }
-
-
-        // Replace the old fsave with an idle fsave. This ensures that eg a
-        // deferred exception that might have been triggered by the previous FPU
-        // state will be abandoned.
-        memcpy(fp_sa->f.fsave, g_fpu_idle_fsave, FPU_MAX_FSAVE_SIZE);
-    }
-}
-
-void _vcpu_write_excpt_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
-{
-    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-    cpu_full_state_t* cpu_sa = self->excpt_sa;
-    cpu_basic_state_t* is_sa = (cpu_basic_state_t*)((char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
-
-    __vcpu_write_mcontext(self, ctx, is_sa, (hasFPU) ? cpu_sa : NULL);
-}
-
-static void __vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, const cpu_basic_state_t* _Nonnull is_sa, const cpu_full_state_t* _Nullable fp_sa)
-{
-    // Get the integer state from the syscall save area if it exists and the
-    // context switch save area otherwise. The CSW save area holds the kernel
-    // integer state if we're inside a system call. The system call save area
-    // holds the user integer state. The FPU state is always stored in the
-    // CSW save area. System calls don't save the FPU state since the kernel
-    // doesn't use it.
-    for (int i = 0; i < 7; i++) {
-        ctx->a[i] = is_sa->a[i];
-        ctx->d[i] = is_sa->d[i];
-    }
-    ctx->a[7] = is_sa->usp;
-    ctx->d[7] = is_sa->d[7];
-
-    ctx->pc = is_sa->ef.pc;
-    ctx->sr = is_sa->ef.sr & 0x00ff;      // read CCR only
-
-
-    // Get the FPU state
-    if (fp_sa && !cpu_is_null_fsave(&fp_sa->f.fsave[0])) {
-        ctx->fpcr = fp_sa->f.fpcr;
-        ctx->fpiar = fp_sa->f.fpiar;
-        ctx->fpsr = fp_sa->f.fpsr;
-
-        for (int i = 0; i < 8; i++) {
-            ctx->fp[i] = fp_sa->f.fp[i];
-        }
-    }
-    else {
-        ctx->fpcr = 0;
-        ctx->fpiar = 0;
-        ctx->fpsr = 0;
-
-        for (int i = 0; i < 8; i++) {
-            ctx->fp[i] = (float96_t){0};
-        }
-    }
-}
-
-void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
-{
-    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-    const cpu_full_state_t* cpu_sa = self->excpt_sa;
-    const cpu_basic_state_t* is_sa = (const cpu_basic_state_t*)((const char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
-
-    __vcpu_read_mcontext(self, ctx, is_sa, (hasFPU) ? cpu_sa : NULL);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_68k_t* _Nonnull sp)
+void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_m68k_t* _Nonnull sp)
 {
     // See _cpu_set_basic_state().
     for (int i = 0; i < 7; i++) {
@@ -257,7 +162,7 @@ void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_68k_t
     dp->ef.sr |= sp->sr & 0xff;     // update CCR only
 }
 
-void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_68k_float_t* _Nonnull sp)
+void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_m68k_float_t* _Nonnull sp)
 {
     dp->fpcr = sp->fpcr;
     dp->fpiar = sp->fpiar;
@@ -275,7 +180,7 @@ void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_68k_f
 }
 
 
-void _cpu_get_basic_state(vcpu_state_68k_t* _Nonnull dp, const cpu_basic_state_t* _Nonnull sp)
+void _cpu_get_basic_state(vcpu_state_m68k_t* _Nonnull dp, const cpu_basic_state_t* _Nonnull sp)
 {
     for (int i = 0; i < 7; i++) {
         dp->a[i] = sp->a[i];
@@ -288,7 +193,7 @@ void _cpu_get_basic_state(vcpu_state_68k_t* _Nonnull dp, const cpu_basic_state_t
     dp->sr = sp->ef.sr & 0x00ff;      // read CCR only
 }
 
-void _cpu_get_float_state(vcpu_state_68k_float_t* _Nonnull dp, const cpu_float_state_t* _Nonnull sp)
+void _cpu_get_float_state(vcpu_state_m68k_float_t* _Nonnull dp, const cpu_float_state_t* _Nonnull sp)
 {
     if (!cpu_is_null_fsave(&sp->fsave[0])) {
         dp->fpcr = sp->fpcr;

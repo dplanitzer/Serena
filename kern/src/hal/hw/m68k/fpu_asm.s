@@ -73,8 +73,8 @@ _fpu_idle_fsave:
 
 
 ;-------------------------------------------------------------------------------
-; void _cpu_get_float_regs(vcpu_state_68k_float_t* _Nonnull dp)
-; keep in sync with structure vcpu_state_68k_float
+; void _cpu_get_float_regs(vcpu_state_m68k_float_t* _Nonnull dp)
+; keep in sync with structure vcpu_state_m68k_float
 __cpu_get_float_regs:
     cargs   fgfr_dp.l
 
@@ -87,8 +87,8 @@ __cpu_get_float_regs:
 
 
 ;-------------------------------------------------------------------------------
-; void _cpu_set_float_regs(const vcpu_state_68k_float_t* _Nonnull dp)
-; keep in sync with structure vcpu_state_68k_float
+; void _cpu_set_float_regs(const vcpu_state_m68k_float_t* _Nonnull dp)
+; keep in sync with structure vcpu_state_m68k_float
 __cpu_set_float_regs:
     cargs   fsfr_dp.l
 

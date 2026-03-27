@@ -296,7 +296,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     ac.policy = policy;
     ac.isUser = false;
 
-    try_bang(_vcpu_reset_mcontext(self, &ac, false));
+    try_bang(_vcpu_reset_machine_state(self, &ac, false));
     
     return self;
 }
@@ -337,7 +337,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     ac.policy = policy;
     ac.isUser = false;
 
-    try_bang(_vcpu_reset_mcontext(self, &ac, true));
+    try_bang(_vcpu_reset_machine_state(self, &ac, true));
 
     return self;
 }

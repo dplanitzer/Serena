@@ -235,6 +235,10 @@ extern errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t
 extern bool vcpu_is_aborting(vcpu_t _Nonnull self);
 
 
+// Returns true if the vcpu is currently in exception mode/state
+#define vcpu_is_handling_exception(__self) \
+((__self)->excpt_id > 0)
+
 // Returns a reference to the vcpu's exception handler info if an exception handler
 // is assigned to the vcpu. Returns NULL otherwise. Assumes that execution of this
 // macro will never overlap with vcpu_set_excpt_handler(). E.g. it is safe to call
@@ -278,15 +282,15 @@ extern void vcpu_dump(vcpu_t _Nonnull self);
 //
 
 // Sets the closure which the virtual processor should run when it is next resumed.
-extern errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
+extern errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
 
-extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_68k_t* _Nonnull sp);
-extern void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_68k_float_t* _Nonnull sp);
-extern void _cpu_set_float_regs(const vcpu_state_68k_float_t* _Nonnull dp);
+extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_m68k_t* _Nonnull sp);
+extern void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_m68k_float_t* _Nonnull sp);
+extern void _cpu_set_float_regs(const vcpu_state_m68k_float_t* _Nonnull dp);
 
-extern void _cpu_get_basic_state(vcpu_state_68k_t* _Nonnull dp, const cpu_basic_state_t* _Nonnull sp);
-extern void _cpu_get_float_state(vcpu_state_68k_float_t* _Nonnull dp, const cpu_float_state_t* _Nonnull sp);
-extern void _cpu_get_float_regs(vcpu_state_68k_float_t* _Nonnull dp);
+extern void _cpu_get_basic_state(vcpu_state_m68k_t* _Nonnull dp, const cpu_basic_state_t* _Nonnull sp);
+extern void _cpu_get_float_state(vcpu_state_m68k_float_t* _Nonnull dp, const cpu_float_state_t* _Nonnull sp);
+extern void _cpu_get_float_regs(vcpu_state_m68k_float_t* _Nonnull dp);
 
 // These functions expect to be called in userspace.
 extern void vcpu_uret_relinquish_self(void);

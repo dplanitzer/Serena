@@ -22,27 +22,28 @@ typedef struct excpt_info {
 
 
 // Synchronously invoked when an exception happens. 'arg' is the argument provided
-// at registration time. 'ei' is the exception information and 'mc' is the
-// machine context (contents of CPU registers) at the time of the exception.
+// at registration time and 'ei' is the exception information record.
 //
-// An exception handler should return EXCPT_CONTINUE_EXECUTION is it has fixed
+// An exception handler should return EXCPT_CONTINUE_EXECUTION if it has fixed
 // the problem that led to the exception and the vcpu should continue from the
-// PC as stored in the machine context. It should return EXCPT_ABORT_EXECUTION
-// if the exception handler did not handled the exception and the process should
-// exit and inform its parent process that the exit was due to an unhandled
-// exception.
+// PC as stored in the exception information record. It should return
+// EXCPT_ABORT_EXECUTION if the exception handler did not handle the exception
+// and the process should exit and inform its parent process that the exit was
+// due to an unhandled exception.
 //
-// An exception handler that modifies the machine context and wants to indicate
-// that execution should continue at the original exception point with the new
-// machine context active, should return the value 
-// EXCPT_CONTINUE_EXECUTION|EXCPT_MODIFIED_MCTX.
+// An exception handler may read the full CPU state at the time when the
+// exception was triggered by calling the vcpu_state() function with the desired
+// VCPU_STATE_EXCPT_XXX flavor. The exception handler may update this state and
+// write it back by calling the vcpu_setstate() function. The updated CPU state
+// will be applied after the exception handler has return with
+// EXCPT_CONTINUE_EXECUTION.
 //
 // Calling exit() or exec() from inside an exception handler clears the exception
 // condition and marks the vcpu as "clean". For exit() this means that the
 // parent process will be informed about a non-exceptional exit() and for exec()
 // this means that the exec() call will replace the executable image and start
 // executing the new image as if no exception would have happened.
-typedef int (*excpt_func_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nullable mc);
+typedef int (*excpt_func_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei);
 
 
 typedef struct excpt_handler {
@@ -92,16 +93,5 @@ typedef struct excpt_handler {
 // Exception handler return value
 #define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
 #define EXCPT_ABORT_EXECUTION       1   /* the exception was not handled and execution should be aborted and the process terminated */
-
-// Optional flags that may be or'ed with EXCPT_CONTINUE_EXECUTION
-#define EXCPT_MODIFIED_MCTX         0x100   /* exception handler updated the machine context and the original thread of execution should continue with the new machine context */     
-
-
-// excpt_sethandler() flags
-#define EXCPT_MCTX      1       /* call the exception handler with the machine context (state of the CPU registers at the time of the exception)*/
-
-
-#define _EXCPT_CACT(__r) ((__r) & 0xff)
-#define _EXCPT_CFLAGS(__r) ((__r) & 0xff00)
 
 #endif /* _KERN_EXCEPTION_H */

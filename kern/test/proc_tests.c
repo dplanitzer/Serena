@@ -105,7 +105,7 @@ void proc_excpt_crash_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // proc_excpt_handler_test
 
-static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nullable mc)
+static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei)
 {
     if (ei->code == EXCPT_PRIV_INSTRUCTION) {
         printf("arg: %s\n", arg);
@@ -139,19 +139,26 @@ void proc_excpt_handler_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // proc_excpt_return_test
 
-static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
+static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei)
 {
     if (ei->code == EXCPT_PRIV_INSTRUCTION) {
+        vcpu_t vp_me = vcpu_self();
+        vcpu_state_m68k_t   regs;
+
         printf("arg: %s\n", arg);
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
         printf("addr: %p\n", ei->addr);
         printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
-        mc->pc += 2;        // Skip the 'move sr, d0'
-        mc->d[0] = 1234;    // Return a faked result
+        assert_ok(vcpu_state(vp_me, VCPU_STATE_EXCPT_M68K, &regs));
 
-        return EXCPT_CONTINUE_EXECUTION | EXCPT_MODIFIED_MCTX;
+        regs.pc += 2;        // Skip the 'move sr, d0'
+        regs.d[0] = 1234;    // Return a faked result
+
+        assert_ok(vcpu_setstate(vp_me, VCPU_STATE_EXCPT_M68K, &regs));
+
+        return EXCPT_CONTINUE_EXECUTION;
     }
 
     return EXCPT_ABORT_EXECUTION;
@@ -163,7 +170,7 @@ void proc_excpt_return_test(int argc, char *argv[])
 
     h.func = ex_handler2;
     h.arg = "returning from handler";
-    excpt_sethandler(EXCPT_MCTX, &h, NULL);
+    excpt_sethandler(0, &h, NULL);
     
     const int r = movesr();
     // -> process should have returned from ex_handler2
@@ -188,7 +195,7 @@ void proc_exec_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // proc_excpt_raise_test
 
-static int ex_handler_raised(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nullable mc)
+static int ex_handler_raised(void* arg, const excpt_info_t* _Nonnull ei)
 {
     if (ei->code == EXCPT_PAGE_ERROR) {
         printf("arg: %s\n", arg);
@@ -212,7 +219,7 @@ void proc_excpt_raise_test(int argc, char *argv[])
     h.arg = "raised PAGE_ERROR";
     excpt_sethandler(0, &h, NULL);
     
-    excpt_raise(EXCPT_PAGE_ERROR, 0x1234);
+    excpt_raise(EXCPT_PAGE_ERROR, (void*)0x1234);
     
     // -> process should have exited with (regular) status 0
     // -> should not print

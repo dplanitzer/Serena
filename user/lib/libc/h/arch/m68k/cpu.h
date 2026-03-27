@@ -15,35 +15,34 @@
 #define CPU_PAGE_SIZE   4096
 
 
-// Machine context (XXX will go away)
-typedef struct mcontext {
+typedef struct vcpu_state_m68k {
     unsigned long   d[8];
     unsigned long   a[8];
     unsigned long   pc;
     unsigned long   sr;     // CCR portion only (bits 0..7); rest is 0
+} vcpu_state_m68k_t;
 
+typedef struct vcpu_state_m68k_float {
     unsigned long   fpiar;
     unsigned long   fpsr;
     unsigned long   fpcr;
     float96_t       fp[8];
-} mcontext_t;
+} vcpu_state_m68k_float_t;
 
 
-typedef struct vcpu_state_68k {
-    unsigned long   d[8];
-    unsigned long   a[8];
-    unsigned long   pc;
-    unsigned long   sr;     // CCR portion only (bits 0..7); rest is 0
-} vcpu_state_68k_t;
+#define _VCPU_STATE_EXCPT       128
 
-typedef struct vcpu_state_68k_float {
-    unsigned long   fpiar;
-    unsigned long   fpsr;
-    unsigned long   fpcr;
-    float96_t       fp[8];
-} vcpu_state_68k_float_t;
+#define VCPU_STATE_M68K         1       /* vcpu_state_m68k_t */
+#define VCPU_STATE_M68K_FLOAT   2       /* vcpu_state_m68k_float_t */
 
-#define VCPU_STATE_68K          1
-#define VCPU_STATE_68K_FLOAT    2
+#define VCPU_STATE_EXCPT_M68K  (VCPU_STATE_M68K | _VCPU_STATE_EXCPT)                /* vcpu_state_m68k_t */
+#define VCPU_STATE_EXCPT_M68K_FLOAT (VCPU_STATE_M68K_FLOAT | _VCPU_STATE_EXCPT)     /* vcpu_state_m68k_float_t */
+
+
+#define _VCPU_IS_EXCPT_FLAVOR(__v) \
+(((__v) & _VCPU_STATE_EXCPT) == _VCPU_STATE_EXCPT)
+
+#define _VCPU_STRIP_EXCPT_FLAVOR(__v) \
+((__v) & ~_VCPU_STATE_EXCPT)
 
 #endif /* _ARCH_M68K_CPU_H */

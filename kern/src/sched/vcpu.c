@@ -83,7 +83,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
 
     
     // Configure the vcpu
-    try(_vcpu_reset_mcontext(vp, ac, true));
+    try(_vcpu_reset_machine_state(vp, ac, true));
     vcpu_set_policy(vp, &ac->policy);
     vcpu_reset_quantum(vp);
     
@@ -463,9 +463,24 @@ errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull sta
 {
     decl_try_err();
     const bool is_running = (self == vcpu_current()) ? true : false;
-    const cpu_basic_state_t* bp = (is_running) ? self->syscall_sa : &self->csw_sa->b;
-    const cpu_float_state_t* fp = (is_running) ? NULL : &self->csw_sa->f;
+    const cpu_basic_state_t* bp;
+    const cpu_float_state_t* fp;
     int sps;
+
+    if (_VCPU_IS_EXCPT_FLAVOR(flavor)) {
+        if (!vcpu_is_handling_exception(self)) {
+            return ESRCH;
+        }
+
+        flavor = _VCPU_STRIP_EXCPT_FLAVOR(flavor);
+        bp = &self->excpt_sa->b;
+        fp = &self->excpt_sa->f;
+    }
+    else {
+        bp = (is_running) ? self->syscall_sa : &self->csw_sa->b;
+        fp = (is_running) ? NULL : &self->csw_sa->f;
+    }
+
 
     // Must be suspended if we are not the running vcpu
     if (!is_running) {
@@ -475,11 +490,11 @@ errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull sta
 
     if (err == EOK) {
         switch (flavor) {
-            case VCPU_STATE_68K:
+            case VCPU_STATE_M68K:
                 _cpu_get_basic_state(state, bp);
                 break;
 
-            case VCPU_STATE_68K_FLOAT:
+            case VCPU_STATE_M68K_FLOAT:
                 if ((self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU) {
                     if (fp) {
                         _cpu_get_float_state(state, fp);
@@ -514,9 +529,24 @@ errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _N
 {
     decl_try_err();
     const bool is_running = (self == vcpu_current()) ? true : false;
-    cpu_basic_state_t* bp = (is_running) ? self->syscall_sa : &self->csw_sa->b;
-    cpu_float_state_t* fp = (is_running) ? NULL : &self->csw_sa->f;
+    cpu_basic_state_t* bp;
+    cpu_float_state_t* fp;
     int sps;
+
+    if (_VCPU_IS_EXCPT_FLAVOR(flavor)) {
+        if (!vcpu_is_handling_exception(self)) {
+            return ESRCH;
+        }
+
+        flavor = _VCPU_STRIP_EXCPT_FLAVOR(flavor);
+        bp = &self->excpt_sa->b;
+        fp = &self->excpt_sa->f;
+    }
+    else {
+        bp = (is_running) ? self->syscall_sa : &self->csw_sa->b;
+        fp = (is_running) ? NULL : &self->csw_sa->f;
+    }
+
 
     // Must be suspended if we are not the running vcpu
     if (!is_running) {
@@ -526,11 +556,11 @@ errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _N
 
     if (err == EOK) {
         switch (flavor) {
-            case VCPU_STATE_68K:
+            case VCPU_STATE_M68K:
                 _cpu_set_basic_state(bp, state);
                 break;
 
-            case VCPU_STATE_68K_FLOAT:
+            case VCPU_STATE_M68K_FLOAT:
                 if ((self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU) {
                     if (fp) {
                         _cpu_set_float_state(fp, state);
@@ -561,7 +591,7 @@ errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _N
 
 errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
-    if ((flags & ~EXCPT_MCTX) != 0 || (handler->func == NULL && flags != 0)) {
+    if ((flags != 0) || (handler->func == NULL && flags != 0)) {
         return EINVAL;
     }
 

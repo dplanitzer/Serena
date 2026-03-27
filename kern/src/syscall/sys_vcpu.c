@@ -172,7 +172,7 @@ SYSCALL_3(vcpu_state, vcpuid_t id, int flavor, vcpu_state_ref _Nonnull state)
     ProcessRef pp = vp->proc;
 
     if (pa->id == VCPUID_SELF || pa->id == vp->id) {
-        err = vcpu_policy(vp, pa->flavor, pa->state);
+        err = vcpu_state(vp, pa->flavor, pa->state);
     }
     else {
         mtx_lock(&pp->mtx);
