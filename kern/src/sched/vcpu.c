@@ -433,11 +433,12 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
     preempt_restore(sps);
 }
 
-errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool isRead)
+// Checks whether 'self' is in the process of being suspended or is suspended,
+// waits for suspension to have completed and returns EOK. Returns EBUSY if
+// 'self' is not in process suspension and not suspended either. 
+// @Entry Condition: preemption disabled
+static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
 {
-    decl_try_err();
-    const int sps = preempt_disable();
-
     for (;;) {
         if (self->sched_state == SCHED_STATE_SUSPENDED || (self->sched_state == SCHED_STATE_WAITING && (self->pending_sigs & _SIGBIT(SIGVPDS)) != 0)) {
             // Wait until the target vcpu has entered suspended state or it is
@@ -448,24 +449,112 @@ errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool is
         if ((self->pending_sigs & _SIGBIT(SIGVPDS)) == 0) {
             // The target vcpu isn't suspended and doesn't even have a deferred
             // suspension request pending. Won't be able to r/w its ucontext
-            err = EBUSY;
-            break;
+            return EBUSY;
         }
 
         _vcpu_yield(vcpu_current());
     }
 
-    
+    return EOK;
+}
+
+// Returns a copy of the receiver's CPU state.
+errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull state)
+{
+    decl_try_err();
+    const bool is_running = (self == vcpu_current()) ? true : false;
+    const cpu_basic_state_t* bp = (is_running) ? self->syscall_sa : &self->csw_sa->b;
+    const cpu_float_state_t* fp = (is_running) ? NULL : &self->csw_sa->f;
+    int sps;
+
+    // Must be suspended if we are not the running vcpu
+    if (!is_running) {
+        sps = preempt_disable();
+        err = _vcpu_await_suspension(self);
+    }
+
     if (err == EOK) {
-        if (isRead) {
-            _vcpu_read_mcontext(self, ctx);
-        }
-        else {
-            _vcpu_write_mcontext(self, ctx);
+        switch (flavor) {
+            case VCPU_STATE_68K:
+                _cpu_get_basic_state(state, bp);
+                break;
+
+            case VCPU_STATE_68K_FLOAT:
+                if ((self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU) {
+                    if (fp) {
+                        _cpu_get_float_state(state, fp);
+                    }
+                    else {
+                        // The kernel doesn't use the FP registers and doesn't save them.
+                        // Just read the directly from the CPU
+                        _cpu_get_float_regs(state);
+                    }
+                }
+                else {
+                    err = ENOTSUP;
+                }
+                break;
+
+            default:
+                err = EINVAL;
+                break;
         }
     }
 
-    preempt_restore(sps);
+    if (!is_running) {
+        preempt_restore(sps);
+    }
+
+    return err;
+}
+
+// Updates the CPU state of the receiver. If the receiver is not in running state,
+// then it must be in suspended state.
+errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _Nonnull state)
+{
+    decl_try_err();
+    const bool is_running = (self == vcpu_current()) ? true : false;
+    cpu_basic_state_t* bp = (is_running) ? self->syscall_sa : &self->csw_sa->b;
+    cpu_float_state_t* fp = (is_running) ? NULL : &self->csw_sa->f;
+    int sps;
+
+    // Must be suspended if we are not the running vcpu
+    if (!is_running) {
+        sps = preempt_disable();
+        err = _vcpu_await_suspension(self);
+    }
+
+    if (err == EOK) {
+        switch (flavor) {
+            case VCPU_STATE_68K:
+                _cpu_set_basic_state(bp, state);
+                break;
+
+            case VCPU_STATE_68K_FLOAT:
+                if ((self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU) {
+                    if (fp) {
+                        _cpu_set_float_state(fp, state);
+                    }
+                    else {
+                        // The kernel doesn't use the FP registers and doesn't save them.
+                        // Just write the directly to the CPU
+                        _cpu_set_float_regs(state);
+                    }
+                }
+                else {
+                    err = ENOTSUP;
+                }
+                break;
+
+            default:
+                err = EINVAL;
+                break;
+        }
+    }
+
+    if (!is_running) {
+        preempt_restore(sps);
+    }
 
     return err;
 }

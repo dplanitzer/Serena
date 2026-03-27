@@ -108,7 +108,7 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
         if (!stk_isvalidsp(&vp->kernel_stack, vp->csw_sa)) {
             abort();
         }
-        if (vcpu_has_user_state(vp) && !stk_isvalidsp(&vp->user_stack, vp->csw_sa->usp)) {
+        if (vcpu_has_user_state(vp) && !stk_isvalidsp(&vp->user_stack, vp->csw_sa->b.usp)) {
             abort();
         }
 

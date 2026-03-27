@@ -101,8 +101,8 @@ enum {
 struct vcpu {
     deque_node_t                    rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
 
-    cpu_savearea_t* _Nonnull        csw_sa;                 // Points to base of the context switcher CPU state save area 
-    syscall_savearea_t* _Nullable   syscall_sa;             // Points to base of the system call CPU state save area
+    cpu_full_state_t* _Nonnull      csw_sa;                 // Points to base of the context switcher CPU state save area 
+    cpu_basic_state_t* _Nullable    syscall_sa;             // Points to base of the system call CPU state save area
     stk_t                           kernel_stack;
     stk_t                           user_stack;
 
@@ -119,7 +119,7 @@ struct vcpu {
     // Exceptions support
     excpt_handler_t                 excpt_handler;          // exception handler and argument
     uint32_t                        excpt_handler_flags;    // exception handler flags
-    cpu_savearea_t* _Nullable       excpt_sa;               // Exception save area
+    cpu_full_state_t* _Nullable     excpt_sa;               // Exception save area
     int32_t                         excpt_id;               // 0 -> no exception active; > 0 -> exception EXCPT_XXX active
 
     // Signals
@@ -202,6 +202,14 @@ extern errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _No
 extern errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 
 
+// Returns a copy of the receiver's CPU state.
+extern errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull state);
+
+// Updates the CPU state of the receiver. If the receiver is not in running state,
+// then it must be in suspended state.
+extern errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _Nonnull state);
+
+
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list and the vcpu is woken up if it is currently waiting and the signal
 // 'signo' is in the active wake set. 'pri_boost' is the QoS priority boost that
@@ -261,10 +269,6 @@ extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 // Resuming a virtual processor is a synchronous operation.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
-// Read/write the machine context of 'self'. The machine context is the user
-// space portion of the vcpu CSW state.
-extern errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool isRead);
-
 
 extern void vcpu_dump(vcpu_t _Nonnull self);
 
@@ -276,9 +280,13 @@ extern void vcpu_dump(vcpu_t _Nonnull self);
 // Sets the closure which the virtual processor should run when it is next resumed.
 extern errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
 
-// Read/write the CPU context.
-extern void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx);
-extern void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx);
+extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_68k_t* _Nonnull sp);
+extern void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_68k_float_t* _Nonnull sp);
+extern void _cpu_set_float_regs(const vcpu_state_68k_float_t* _Nonnull dp);
+
+extern void _cpu_get_basic_state(vcpu_state_68k_t* _Nonnull dp, const cpu_basic_state_t* _Nonnull sp);
+extern void _cpu_get_float_state(vcpu_state_68k_float_t* _Nonnull dp, const cpu_float_state_t* _Nonnull sp);
+extern void _cpu_get_float_regs(vcpu_state_68k_float_t* _Nonnull dp);
 
 // These functions expect to be called in userspace.
 extern void vcpu_uret_relinquish_self(void);

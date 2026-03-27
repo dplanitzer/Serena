@@ -10,6 +10,8 @@
 
     xdef _fpu_get_model
     xdef _fpu_idle_fsave
+    xdef __cpu_get_float_regs
+    xdef __cpu_set_float_regs
 
 
 
@@ -68,3 +70,31 @@ _fpu_idle_fsave:
         fsave   (a0)
         rts
     einline
+
+
+;-------------------------------------------------------------------------------
+; void _cpu_get_float_regs(vcpu_state_68k_float_t* _Nonnull dp)
+; keep in sync with structure vcpu_state_68k_float
+__cpu_get_float_regs:
+    cargs   fgfr_dp.l
+
+    move.l      fgfr_dp(sp), a0
+    fmovem.l    fpiar, (a0)+
+    fmovem.l    fpsr, (a0)+
+    fmovem.l    fpcr, (a0)+
+    fmovem      fp0 - fp7, (a0)
+    rts
+
+
+;-------------------------------------------------------------------------------
+; void _cpu_set_float_regs(const vcpu_state_68k_float_t* _Nonnull dp)
+; keep in sync with structure vcpu_state_68k_float
+__cpu_set_float_regs:
+    cargs   fsfr_dp.l
+
+    move.l      fsfr_dp(sp), a0
+    fmovem.l    (a0)+, fpiar
+    fmovem.l    (a0)+, fpsr
+    fmovem.l    (a0)+, fpcr
+    fmovem      (a0), fp0 - fp7
+    rts

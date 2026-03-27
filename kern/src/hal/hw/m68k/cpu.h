@@ -540,35 +540,37 @@ extern bool cpu_is_null_fsave(const char* _Nonnull sfp);
 
 
 
+typedef struct cpu_float_state {
+    uint32_t    fpiar;          // |
+    uint32_t    fpsr;           // |
+    uint32_t    fpcr;           // | only valid if the fsave[0] != 0 (and thus not a NULL fsave frame)
+    float96_t   fp[8];          // |
+    uint8_t     fsave[FPU_MAX_FSAVE_SIZE];
+} cpu_float_state_t;
+
+typedef struct cpu_basic_state {
+    uint32_t    usp;
+    uint32_t    d[8];   
+    uint32_t    a[7];
+
+    excpt_0_frame_t ef;
+} cpu_basic_state_t;
+
+
 // Describes the CPU register set that is saved on a context switch and when
 // taking a CPU exception. Note that the exception frame 'ef' may have
 // additional fields in the case of an exception.
 // FP  state size: 324 bytes
 // INT state size:  64 bytes
 // CPU state size: 388 bytes
-typedef struct cpu_savearea {
-    uint32_t        fpiar;          // |
-    uint32_t        fpsr;           // |
-    uint32_t        fpcr;           // | only valid if the fsave[0] != 0 (and thus not a NULL fsave frame)
-    float96_t       fp[8];          // |
-    uint8_t         fsave[FPU_MAX_FSAVE_SIZE];
-
-    uint32_t        usp;
-    uint32_t        d[8];   
-    uint32_t        a[7];
-
-    excpt_0_frame_t ef;
-} cpu_savearea_t;
+typedef struct cpu_full_state {
+    cpu_float_state_t   f;
+    cpu_basic_state_t   b;
+} cpu_full_state_t;
 
 
 // Describes the CPU register set that is saved when entering a system call.
-typedef struct syscall_savearea {
-    uint32_t        usp;
-    uint32_t        d[8];   
-    uint32_t        a[7];
-
-    excpt_0_frame_t ef;
-} syscall_savearea_t;
+// cpu_basic_state_t
 
 
 // Stores '__val' as the result of a system call invocation in the savearea of

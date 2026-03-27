@@ -186,7 +186,7 @@ __cpu_exception:
 ;
 ; Stack at this point:
 ; __cpu_exception_return RTE frame
-; cpu_savearea_t
+; cpu_full_state_t
 ; original __cpu_exception RTE frame
 ;
 ; Registers at this point:

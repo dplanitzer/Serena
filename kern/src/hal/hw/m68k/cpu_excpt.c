@@ -219,7 +219,7 @@ static void fp_fsave_fixup(struct vcpu* _Nonnull vp)
 {
     if (g_sys_desc->fpu_model == FPU_MODEL_68882) {
         // MC68881/MC68882 User's Manual, page 5-10 (211)
-        struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
+        struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->f.fsave;
 
         if (idle_p->format == FSAVE_FORMAT_882_IDLE) {
             idle_p->biu_flags |= BIU_FP_EXCPT_PENDING;
@@ -229,7 +229,7 @@ static void fp_fsave_fixup(struct vcpu* _Nonnull vp)
 
     if (g_sys_desc->fpu_model == FPU_MODEL_68060) {
         // 68060UM, page 6-37
-        struct m68060_fsave_frame* fsave_p = (struct m68060_fsave_frame*)vp->excpt_sa->fsave;
+        struct m68060_fsave_frame* fsave_p = (struct m68060_fsave_frame*)vp->excpt_sa->f.fsave;
 
         if (fsave_p->format == FSAVE_FORMAT_68060_EXCP) {
             fsave_p->format = FSAVE_FORMAT_68060_IDLE;
@@ -308,7 +308,7 @@ static bool recov_access_error_060(const excpt_frame_t* _Nonnull efp)
 int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
-    excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
+    excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->b.ef;
     const bool is_hw_excpt = excpt_frame_ishw(efp);
     const int ef_format = excpt_frame_getformat(efp);
     const int cpu_model = g_sys_desc->cpu_model;
@@ -330,7 +330,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     ei.cpu_code = cpu_code;
 
     // get the PC and fault address
-    ei.sp = (void*)vp->excpt_sa->usp;
+    ei.sp = (void*)vp->excpt_sa->b.usp;
     ei.pc = (void*)efp->pc;
     ei.addr = (void*)get_faddr(cpu_model, efp);
 
@@ -413,7 +413,7 @@ void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
     }
 
 
-    uintptr_t orig_excpt_pc = vp->excpt_sa->ef.pc;
+    uintptr_t orig_excpt_pc = vp->excpt_sa->b.ef.pc;
     struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
 
     // Write back the (possibly) updated machine context
@@ -434,9 +434,9 @@ void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
     // would RTE that frame type, would cause the CPU to restart the interrupted
     // instruction. We don't want that so we dismiss the existing exception frame
     // and we replace it with a simple $0 frame.
-    if (vp->excpt_sa->ef.pc != orig_excpt_pc && excpt_frame_getformat(&vp->excpt_sa->ef) > 1) {
-        const int8_t frm_siz = g_excpt_frame_size[excpt_frame_getformat(&vp->excpt_sa->ef)];
-        const uint32_t* src_p = (const uint32_t*)&vp->excpt_sa->ef;
+    if (vp->excpt_sa->b.ef.pc != orig_excpt_pc && excpt_frame_getformat(&vp->excpt_sa->b.ef) > 1) {
+        const int8_t frm_siz = g_excpt_frame_size[excpt_frame_getformat(&vp->excpt_sa->b.ef)];
+        const uint32_t* src_p = (const uint32_t*)&vp->excpt_sa->b.ef;
         uint32_t* dst_p = (uint32_t*)((char*)src_p - frm_siz + 8);
 
         // We want to dismiss the original exception frame and replace it with a
@@ -448,8 +448,8 @@ void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
         dst_p[0] = src_p[0];
         dst_p[1] = src_p[1];
 
-        vp->excpt_sa->ef.pc = frm_siz - 8;
-        vp->excpt_sa->ef.fv |= 0x01;
+        vp->excpt_sa->b.ef.pc = frm_siz - 8;
+        vp->excpt_sa->b.ef.fv |= 0x01;
     }
 
 

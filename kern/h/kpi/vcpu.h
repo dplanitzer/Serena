@@ -82,6 +82,9 @@ struct vcpu;
 typedef struct vcpu* vcpu_t;
 
 
+typedef void* vcpu_state_ref;
+
+
 // Acquire the VP and immediately resume it
 #define VCPU_ACQUIRE_RESUMED    1
 

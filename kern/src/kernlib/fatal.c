@@ -90,9 +90,9 @@ _Noreturn void _Try_bang_failed0(void)
 _Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
 {
     vcpu_t vp = vcpu_current();
-    const cpu_savearea_t* sa = vp->excpt_sa;
-    excpt_frame_t* efp = (excpt_frame_t*)&sa->ef;
-    char* sp = (excpt_frame_isuser(efp)) ? (char*)sa->usp : ksp;
+    const cpu_full_state_t* sa = vp->excpt_sa;
+    excpt_frame_t* efp = (excpt_frame_t*)&sa->b.ef;
+    char* sp = (excpt_frame_isuser(efp)) ? (char*)sa->b.usp : ksp;
     const stk_t* stk = (excpt_frame_isuser(efp)) ? &vp->user_stack : &vp->kernel_stack;
     kdispatch_t dq = kdispatch_current_queue();
 
@@ -125,10 +125,10 @@ _Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
         excpt_frame_getformat(efp),
         (excpt_frame_isuser(efp)) ? "USR" : "KERN",
 
-        sa->d[0], sa->d[1], sa->d[2], sa->d[3],
-        sa->d[4], sa->d[5], sa->d[6], sa->d[7],
-        sa->a[0], sa->a[1], sa->a[2], sa->a[3],
-        sa->a[4], sa->a[5], sa->a[6], sp,
+        sa->b.d[0], sa->b.d[1], sa->b.d[2], sa->b.d[3],
+        sa->b.d[4], sa->b.d[5], sa->b.d[6], sa->b.d[7],
+        sa->b.a[0], sa->b.a[1], sa->b.a[2], sa->b.a[3],
+        sa->b.a[4], sa->b.a[5], sa->b.a[6], sp,
         excpt_frame_getpc(efp), excpt_frame_getsr(efp),
         (excpt_frame_isuser(efp)) ? "USTK" : "KSTK", stk->base, stk_getinitialsp(stk),
         efp,

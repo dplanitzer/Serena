@@ -66,13 +66,18 @@ extern _Noreturn void vcpu_relinquish_self(void);
 extern int vcpu_suspend(vcpu_t _Nullable vcpu);
 extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
-extern int vcpu_getcontext(vcpu_t _Nonnull vcpu, mcontext_t* _Nonnull ctx);
-extern int vcpu_setcontext(vcpu_t _Nonnull vcpu, const mcontext_t* _Nonnull ctx);
-
 extern void vcpu_yield(void);
 
+// Gets/sets the scheduling policy and parameters of vcpu 'vcpu'.
 extern int vcpu_policy(vcpu_t _Nullable vcpu, int version, vcpu_policy_t* _Nonnull policy);
 extern int vcpu_setpolicy(vcpu_t _Nullable vcpu, const vcpu_policy_t* _Nonnull policy);
+
+
+// Gets/sets the requested state of the vcpu 'vcpu'. Supported state values are
+// defined by the VCPU_STATE_XXX family of defines. Not that some states are
+// read-only.
+extern int vcpu_state(vcpu_t _Nonnull vcpu, int flavor, vcpu_state_ref _Nonnull state);
+extern int vcpu_setstate(vcpu_t _Nonnull vcpu, int flavor, const vcpu_state_ref _Nonnull state);
 
 
 extern vcpu_key_t _Nullable vcpu_key_create(void (* _Nullable destructor)(void*));
