@@ -308,8 +308,8 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     const int cpu_code = (is_hw_excpt) ? excpt_frame_getvecnum(efp) : excpt_frame_getvecnum(efp) - CPU_VEC_SOFT_EXCPT;
     const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 7);
     const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 4);
+    const bool is_nested = vcpu_is_handling_exception(vp);
     const excpt_handler_t* ehp = vcpu_excpt_handler_ref(vp);
-    excpt_info_t ei;
 
 
     // Clear branch cache, in case of a branch prediction error
@@ -319,13 +319,13 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 
     // get the exception code
-    ei.code = get_ecode(cpu_model, cpu_code, efp);
-    ei.cpu_code = cpu_code;
+    vp->excpt_state.code = get_ecode(cpu_model, cpu_code, efp);
+    vp->excpt_state.cpu_code = cpu_code;
 
     // get the PC and fault address
-    ei.sp = (void*)vp->excpt_sa->b.usp;
-    ei.pc = (void*)efp->pc;
-    ei.addr = (void*)get_faddr(cpu_model, efp);
+    vp->excpt_state.sp = (void*)vp->excpt_sa->b.usp;
+    vp->excpt_state.pc = (void*)efp->pc;
+    vp->excpt_state.addr = (void*)get_faddr(cpu_model, efp);
 
 
     // Halt system, if:
@@ -335,11 +335,11 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     // - 68060, push buffer bus error [MC68060UM, p8-25 (257)]
     // - 68060, store buffer bus error [MC68060UM, p8-25 (257)]
     if (!excpt_frame_isuser(efp)
-        || ei.code < 0
+        || vp->excpt_state.code < 0
         || (is_f7_access_err && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))
         || (is_f4_access_err && fslw_is_push_buffer_error(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_store_buffer_error(efp->u.f4_access_error.fslw))) {
-        _fatalException(ksp, ei.addr);
+        _fatalException(ksp, vp->excpt_state.addr);
         /* NOT REACHED */
     }
 
@@ -348,19 +348,19 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     // - no exception handler provided by user space
     // - 68060, an misaligned read-modify-write instruction [MC68060UM, p8-25 (257)]
     // - 68060, a move in which the destination op writes over its source op [MC68060UM, p8-25 (257)]
-    if (vcpu_is_handling_exception(vp)
+    if (is_nested
         || (is_f4_access_err && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
         || ehp == NULL) {
         // double fault or no exception handler -> exit
-        Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
+        Process_Exit(vp->proc, JREASON_EXCEPTION, vp->excpt_state.code);
         /* NOT REACHED */
     }
 
 
     if (is_hw_excpt) {
         // FP fsave frame may require some fix up
-        if (ei.code >= EXCPT_FLT_NAN && ei.code <= EXCPT_FLT_INEXACT) {
+        if (vp->excpt_state.code >= EXCPT_FLT_NAN && vp->excpt_state.code <= EXCPT_FLT_INEXACT) {
             fp_fsave_fixup(vp);
         }
 
@@ -373,13 +373,13 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     }
 
 
-    // Record the active exception type
-    vp->excpt_id = ei.code;
-
-
     // Push the exception info on the user stack
     struct u_excpt_frame* uep = (struct u_excpt_frame*)usp_grow(sizeof(struct u_excpt_frame));
-    uep->ei = ei;
+    uep->ei.code = vp->excpt_state.code;
+    uep->ei.cpu_code = vp->excpt_state.cpu_code;
+    uep->ei.sp = vp->excpt_state.sp;
+    uep->ei.pc = vp->excpt_state.pc;
+    uep->ei.addr = vp->excpt_state.addr;
     uep->ei_ptr = &uep->ei;
     uep->arg = ehp->arg;
     uep->ret_addr = (void*)_excpt_return;
@@ -393,10 +393,13 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
 {
+    const int ecode = vp->excpt_state.code;
+
+    // This vcpu is no longer processing an exception
+    vp->excpt_state.code = 0;
+
+
     if (excpt_hand_ret != EXCPT_CONTINUE_EXECUTION) {
-        const int ecode = vp->excpt_id;
-        
-        vp->excpt_id = 0;
         Process_Exit(vp->proc, JREASON_EXCEPTION, ecode);
         /* NOT REACHED */
     }
@@ -434,8 +437,4 @@ void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
         vp->excpt_sa->b.ef.pc = frm_siz - 8;
         vp->excpt_sa->b.ef.fv |= 0x01;
     }
-
-
-    // This vcpu is no longer processing an exception
-    vp->excpt_id = 0;
 }

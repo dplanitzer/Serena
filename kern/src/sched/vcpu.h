@@ -46,6 +46,18 @@ typedef struct vcpu_acquisition {
 #define VCPU_ACQUISITION_INIT {0}
 
 
+// Exception state. Valid if teh vcpu has taken an exception and is in the
+// process of handling it. Set up by cpu_exception() and torn down by
+// cpu_exception_return().
+typedef struct cpu_excpt_state {
+    void* _Nonnull  sp;         // user stack pointer at the time of the exception
+    void* _Nullable pc;         // program counter at the time of the exception (this is not always the instruction that caused the exception though)
+    void* _Nullable addr;       // fault address
+    int16_t          code;      // platform independent EXCPT_XXX code; if == 0 -> not in exception state; if > 0 -> in exception state
+    int16_t          cpu_code;  // corresponding CPU specific code
+} cpu_excpt_state_t;
+
+
 // VP scheduling state
 //
 // Possible state transitions:
@@ -120,7 +132,7 @@ struct vcpu {
     excpt_handler_t                 excpt_handler;          // exception handler and argument
     uint32_t                        excpt_handler_flags;    // exception handler flags
     cpu_full_state_t* _Nullable     excpt_sa;               // Exception save area
-    int32_t                         excpt_id;               // 0 -> no exception active; > 0 -> exception EXCPT_XXX active
+    cpu_excpt_state_t               excpt_state;            // Exception state as recorded by cpu_exception()
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())
@@ -237,7 +249,7 @@ extern bool vcpu_is_aborting(vcpu_t _Nonnull self);
 
 // Returns true if the vcpu is currently in exception mode/state
 #define vcpu_is_handling_exception(__self) \
-((__self)->excpt_id > 0)
+((__self)->excpt_state.code > 0)
 
 // Returns a reference to the vcpu's exception handler info if an exception handler
 // is assigned to the vcpu. Returns NULL otherwise. Assumes that execution of this

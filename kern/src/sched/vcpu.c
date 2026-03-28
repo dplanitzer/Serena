@@ -139,7 +139,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     self->pending_sigs = 0;
     self->excpt_handler = (excpt_handler_t){0};
     self->excpt_handler_flags = 0;
-    self->excpt_id = 0;
+    self->excpt_state = (cpu_excpt_state_t){0};
     self->excpt_sa = NULL;
     self->syscall_sa = NULL;
     self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_ACQUIRED);
