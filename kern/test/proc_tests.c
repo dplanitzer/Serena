@@ -111,7 +111,7 @@ static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei)
         printf("arg: %s\n", arg);
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
-        printf("addr: %p\n", ei->addr);
+        printf("addr: %p\n", ei->fault_addr);
         printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
         _Exit(EXIT_SUCCESS);
@@ -148,7 +148,7 @@ static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei)
         printf("arg: %s\n", arg);
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
-        printf("addr: %p\n", ei->addr);
+        printf("addr: %p\n", ei->fault_addr);
         printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
         assert_ok(vcpu_state(vp_me, VCPU_STATE_EXCPT_M68K, &regs));
@@ -201,7 +201,7 @@ static int ex_handler_raised(void* arg, const excpt_info_t* _Nonnull ei)
         printf("arg: %s\n", arg);
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
-        printf("addr: %p\n", ei->addr);
+        printf("addr: %p\n", ei->fault_addr);
         printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
         _Exit(EXIT_SUCCESS);

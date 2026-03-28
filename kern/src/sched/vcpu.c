@@ -510,6 +510,17 @@ errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull sta
                 }
                 break;
 
+            case VCPU_STATE_EXCPT: {
+                vcpu_state_excpt_t* esp = state;
+
+                esp->code = self->excpt_state.code;
+                esp->cpu_code = self->excpt_state.cpu_code;
+                esp->sp = self->excpt_state.sp;
+                esp->pc = self->excpt_state.pc;
+                esp->fault_addr = self->excpt_state.fault_addr;
+                break;
+            }
+
             default:
                 err = EINVAL;
                 break;

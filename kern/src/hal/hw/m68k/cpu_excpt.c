@@ -158,7 +158,7 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
     }
 }
 
-static uintptr_t get_faddr(int cpu_model, const excpt_frame_t* _Nonnull efp)
+static uintptr_t get_fault_addr(int cpu_model, const excpt_frame_t* _Nonnull efp)
 {
     // MC68020UM, p6-27 (152)ff
     switch (excpt_frame_getformat(efp)) {
@@ -325,7 +325,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     // get the PC and fault address
     vp->excpt_state.sp = (void*)vp->excpt_sa->b.usp;
     vp->excpt_state.pc = (void*)efp->pc;
-    vp->excpt_state.addr = (void*)get_faddr(cpu_model, efp);
+    vp->excpt_state.fault_addr = (void*)get_fault_addr(cpu_model, efp);
 
 
     // Halt system, if:
@@ -339,7 +339,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         || (is_f7_access_err && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))
         || (is_f4_access_err && fslw_is_push_buffer_error(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_store_buffer_error(efp->u.f4_access_error.fslw))) {
-        _fatalException(ksp, vp->excpt_state.addr);
+        _fatalException(ksp, vp->excpt_state.fault_addr);
         /* NOT REACHED */
     }
 
@@ -379,7 +379,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     uep->ei.cpu_code = vp->excpt_state.cpu_code;
     uep->ei.sp = vp->excpt_state.sp;
     uep->ei.pc = vp->excpt_state.pc;
-    uep->ei.addr = vp->excpt_state.addr;
+    uep->ei.fault_addr = vp->excpt_state.fault_addr;
     uep->ei_ptr = &uep->ei;
     uep->arg = ehp->arg;
     uep->ret_addr = (void*)_excpt_return;

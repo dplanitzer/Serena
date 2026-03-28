@@ -52,9 +52,9 @@ typedef struct vcpu_acquisition {
 typedef struct cpu_excpt_state {
     void* _Nonnull  sp;         // user stack pointer at the time of the exception
     void* _Nullable pc;         // program counter at the time of the exception (this is not always the instruction that caused the exception though)
-    void* _Nullable addr;       // fault address
-    int16_t          code;      // platform independent EXCPT_XXX code; if == 0 -> not in exception state; if > 0 -> in exception state
-    int16_t          cpu_code;  // corresponding CPU specific code
+    void* _Nullable fault_addr; // fault address
+    int16_t         code;       // platform independent EXCPT_XXX code; if == 0 -> not in exception state; if > 0 -> in exception state
+    int16_t         cpu_code;   // corresponding CPU specific code
 } cpu_excpt_state_t;
 
 

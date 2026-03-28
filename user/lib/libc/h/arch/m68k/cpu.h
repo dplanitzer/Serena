@@ -9,10 +9,20 @@
 #ifndef _ARCH_M68K_CPU_H
 #define _ARCH_M68K_CPU_H 1
 
+#include <arch/_null.h>
 #include <arch/floattypes.h>
 
 // Size of a standard page in bytes
 #define CPU_PAGE_SIZE   4096
+
+
+typedef struct vcpu_state_excpt {
+    int             code;       // platform independent EXCPT_XXX code
+    int             cpu_code;   // corresponding CPU specific code. Usually more detailed
+    void* _Nonnull  sp;         // user stack pointer at the time of the exception
+    void* _Nullable pc;         // program counter at the time of the exception (this is not always the instruction that caused the exception though)
+    void* _Nullable fault_addr; // fault address
+} vcpu_state_excpt_t;
 
 
 typedef struct vcpu_state_m68k {
@@ -30,19 +40,20 @@ typedef struct vcpu_state_m68k_float {
 } vcpu_state_m68k_float_t;
 
 
-#define _VCPU_STATE_EXCPT       128
+#define _VCPU_STATE_IS_EXCPT    128
 
 #define VCPU_STATE_M68K         1       /* vcpu_state_m68k_t */
 #define VCPU_STATE_M68K_FLOAT   2       /* vcpu_state_m68k_float_t */
 
-#define VCPU_STATE_EXCPT_M68K  (VCPU_STATE_M68K | _VCPU_STATE_EXCPT)                /* vcpu_state_m68k_t */
-#define VCPU_STATE_EXCPT_M68K_FLOAT (VCPU_STATE_M68K_FLOAT | _VCPU_STATE_EXCPT)     /* vcpu_state_m68k_float_t */
+#define VCPU_STATE_EXCPT            (3 | _VCPU_STATE_IS_EXCPT)                      /* vcpu_state_excpt_t [read only] */
+#define VCPU_STATE_EXCPT_M68K       (VCPU_STATE_M68K | _VCPU_STATE_IS_EXCPT)        /* vcpu_state_m68k_t */
+#define VCPU_STATE_EXCPT_M68K_FLOAT (VCPU_STATE_M68K_FLOAT | _VCPU_STATE_IS_EXCPT)  /* vcpu_state_m68k_float_t */
 
 
 #define _VCPU_IS_EXCPT_FLAVOR(__v) \
-(((__v) & _VCPU_STATE_EXCPT) == _VCPU_STATE_EXCPT)
+(((__v) & _VCPU_STATE_IS_EXCPT) == _VCPU_STATE_IS_EXCPT)
 
 #define _VCPU_STRIP_EXCPT_FLAVOR(__v) \
-((__v) & ~_VCPU_STATE_EXCPT)
+((__v) & ~_VCPU_STATE_IS_EXCPT)
 
 #endif /* _ARCH_M68K_CPU_H */
