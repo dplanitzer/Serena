@@ -80,8 +80,8 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAddToTail
     assert(vp->rewa_qe.next == NULL);
     
 
-    vp->sched_state = SCHED_STATE_READY;
-    const unsigned int pri = vp->effective_priority;
+    vp->run_state = VCPU_RUST_READY;
+    const unsigned int pri = vp->cur_priority;
 
     if (doAddToTail) {
         deque_add_last(&self->ready_queue.priority[pri], &vp->rewa_qe);
@@ -102,7 +102,7 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAddToTail
 // Called from: _sched_switch_context()
 void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyToRun)
 {
-    const unsigned int pri = vp->effective_priority;
+    const unsigned int pri = vp->cur_priority;
     
     if (doReadyToRun) {
         if (!stk_isvalidsp(&vp->kernel_stack, vp->csw_sa)) {
@@ -112,7 +112,7 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
             abort();
         }
 
-        vp->sched_state = SCHED_STATE_RUNNING;
+        vp->run_state = VCPU_RUST_RUNNING;
     }
 
 
@@ -187,7 +187,7 @@ _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     (void) preempt_disable();
 
 
-    vp->sched_state = SCHED_STATE_TERMINATING;
+    vp->run_state = VCPU_RUST_TERMINATING;
     deque_add_last(&self->finalizer_queue, &vp->owner_qe);
     
     
@@ -284,8 +284,8 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     // Create the VP
     vcpu_policy_t policy;
     policy.version = sizeof(vcpu_policy_t);
-    policy.qos_class = VCPU_QOS_REALTIME;
-    policy.qos_priority = VCPU_PRI_HIGHEST;
+    policy.qos.grade = VCPU_QOS_REALTIME;
+    policy.qos.priority = VCPU_PRI_HIGHEST;
     vcpu_init(self, &policy);
 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
@@ -326,8 +326,8 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     // Create the VP
     vcpu_policy_t policy;
     policy.version = sizeof(vcpu_policy_t);
-    policy.qos_class = VCPU_QOS_BACKGROUND;
-    policy.qos_priority = VCPU_PRI_LOWEST;
+    policy.qos.grade = VCPU_QOS_BACKGROUND;
+    policy.qos.priority = VCPU_PRI_LOWEST;
     vcpu_init(self, &policy);
 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;

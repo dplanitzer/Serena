@@ -213,3 +213,27 @@ SYSCALL_3(vcpu_setstate, vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull 
 
     return err;
 }
+
+SYSCALL_3(vcpu_info, vcpuid_t id, int flavor, vcpu_info_ref _Nonnull info)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->id == VCPUID_SELF || pa->id == vp->id) {
+        err = vcpu_info(vp, pa->flavor, pa->info);
+    }
+    else {
+        mtx_lock(&pp->mtx);
+        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+
+        if (vcp) {
+            err = vcpu_info(vcp, pa->flavor, pa->info);
+        }
+        else {
+            err = ESRCH;
+        }
+        mtx_unlock(&pp->mtx);
+    }
+
+    return err;
+}

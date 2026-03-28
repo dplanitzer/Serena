@@ -44,10 +44,10 @@ typedef uint32_t    pop_word_t;
 #define SCHED_QUANTUM_NUDGE 1
 
 
-#define SCHED_PRI_FROM_QOS(__qos_class, __qos_pri) \
-(((__qos_class) - 1) << VCPU_PRI_SHIFT) + (__qos_pri) - VCPU_PRI_LOWEST
+#define SCHED_PRI_FROM_QOS(__qos_grade, __qos_pri) \
+(((__qos_grade) - 1) << VCPU_PRI_SHIFT) + (__qos_pri) - VCPU_PRI_LOWEST
 
-#define SCHED_QOS_CLASS(__sched_pri) \
+#define SCHED_QOS_GRADE(__sched_pri) \
 (((__sched_pri) >> VCPU_PRI_SHIFT) + 1)
 
 #define SCHED_QOS_PRI(__sched_pri) \

@@ -80,6 +80,11 @@ extern int vcpu_state(vcpu_t _Nonnull vcpu, int flavor, vcpu_state_ref _Nonnull 
 extern int vcpu_setstate(vcpu_t _Nonnull vcpu, int flavor, const vcpu_state_ref _Nonnull state);
 
 
+// Returns information about a VCPU. 'flavor' selects the kinds of information
+// that should be returned.
+extern int vcpu_info(vcpu_t _Nonnull vcpu, int flavor, vcpu_info_ref _Nonnull info);
+
+
 extern vcpu_key_t _Nullable vcpu_key_create(void (* _Nullable destructor)(void*));
 extern void vcpu_key_delete(vcpu_key_t _Nullable key);
 

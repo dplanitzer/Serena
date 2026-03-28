@@ -115,12 +115,12 @@ sched_SIZEOF                        so
 
 
 ; The vcpu
-SCHED_STATE_INITIATED       equ 0   ; VP was just created and has not been scheduled yet
-SCHED_STATE_READY           equ 1   ; VP is able to run and is currently sitting on the ready queue
-SCHED_STATE_RUNNING         equ 2   ; VP is running
-SCHED_STATE_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-SCHED_STATE_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
-SCHED_STATE_TERMINATING     equ 5   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
+VCPU_RUST_INITIATED       equ 0   ; VP was just created and has not been scheduled yet
+VCPU_RUST_READY           equ 1   ; VP is able to run and is currently sitting on the ready queue
+VCPU_RUST_RUNNING         equ 2   ; VP is running
+VCPU_RUST_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+VCPU_RUST_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
+VCPU_RUST_TERMINATING     equ 5   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
 
 
 ; vcpu flags (keep in sync with vcpu.h)
@@ -162,12 +162,12 @@ vp_waiting_on_wait_queue                so.l    1           ; 4
 vp_wait_sigs                            so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
 vp_base_priority                        so.b    1           ; 1
-vp_effective_priority                   so.b    1           ; 1
+vp_cur_priority                         so.b    1           ; 1
 vp_priority_penalty                     so.b    1           ; 1
 vp_priority_boost                       so.b    1           ; 1
 vp_quantum_boost                        so.b    1           ; 1
-vp_reserved2                            so.b    1           ; 1
-vp_sched_state                          so.b    1           ; 1
+vp_sched_nice                           so.b    1           ; 1
+vp_run_state                            so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
 vp_quantum_countdown                    so.b    1           ; 1
 vp_suspension_count                     so.w    1           ; 2

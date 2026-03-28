@@ -22,7 +22,12 @@ SYSCALL_3(excpt_sethandler, int flags, const excpt_handler_t* _Nullable handler,
     return vcpu_set_excpt_handler(vp, pa->flags, pa->handler, pa->old_handler);
 }
 
-SYSCALL_0(test)
+SYSCALL_0(nosys)
 {
-    return 0;
+    return ENOSYS;
+}
+
+SYSCALL_0(nullsys)
+{
+    return EOK;
 }

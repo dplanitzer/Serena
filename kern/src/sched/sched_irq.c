@@ -49,7 +49,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         // Quantum isn't done yet. Check for preemption
         register vcpu_t rdy = sched_highest_priority_ready(self);
 
-        if (rdy && rdy->effective_priority > run->effective_priority) {
+        if (rdy && rdy->cur_priority > run->cur_priority) {
             sched_set_running_as_preemptor(self, rdy);
         }
     }
@@ -58,7 +58,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         // run another quantum
         register vcpu_t rdy = sched_highest_priority_ready(self);
 
-        if (rdy && rdy->effective_priority >= run->effective_priority) {
+        if (rdy && rdy->cur_priority >= run->cur_priority) {
             sched_set_running(self, rdy);
         }
 

@@ -46,7 +46,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     vcpu_t vp = (vcpu_t)g_sched->running;
     const sigset_t hot_sigs = (set) ? *set : SIGSET_NONMASKABLES;
 
-    assert(vp->sched_state == SCHED_STATE_RUNNING);
+    assert(vp->run_state == VCPU_RUST_RUNNING);
 
 
     if ((vp->pending_sigs & hot_sigs) != 0) {
@@ -57,7 +57,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     // FIFO order.
     deque_add_last(&self->q, &vp->rewa_qe);
     
-    vp->sched_state = SCHED_STATE_WAITING;
+    vp->run_state = VCPU_RUST_WAITING;
     vp->waiting_on_wait_queue = self;
     vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
@@ -171,7 +171,7 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, i
 void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason, int pri_boost)
 {
     // Nothing to do if we are not waiting
-    if (vp->sched_state != SCHED_STATE_WAITING) {
+    if (vp->run_state != VCPU_RUST_WAITING) {
         return;
     }
     
@@ -225,7 +225,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
         if (vcpu_effective_qos_class(vp) >= VCPU_QOS_INTERACTIVE) {
             vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
     
-            if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
+            if (pBestReadyVP == vp && vp->cur_priority >= g_sched->running->cur_priority) {
                 sched_switch_to(g_sched, vp);
             }
         }

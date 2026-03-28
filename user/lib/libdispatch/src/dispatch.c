@@ -643,8 +643,8 @@ static void _dispatch_apply_policy(dispatch_t _Nonnull _Locked self, int qos, in
     vcpu_policy_t policy;
 
     policy.version = sizeof(vcpu_policy_t);
-    policy.qos_class = qos;
-    policy.qos_priority = priority;
+    policy.qos.grade = qos;
+    policy.qos.priority = priority;
     
     self->attr.qos = qos;
     self->attr.priority = priority;

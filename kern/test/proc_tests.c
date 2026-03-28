@@ -56,8 +56,8 @@ void proc_exit_test(int argc, char *argv[])
         attr.arg = gStr[r];
         attr.stack_size = 0;
         attr.policy.version = sizeof(vcpu_policy_t);
-        attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
-        attr.policy.qos_priority = VCPU_PRI_NORMAL + i;
+        attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
+        attr.policy.qos.priority = VCPU_PRI_NORMAL + i;
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);
@@ -70,8 +70,8 @@ void proc_exit_test(int argc, char *argv[])
     attr.arg = "SUSPENDED";
     attr.stack_size = 0;
     attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos_class = VCPU_QOS_INTERACTIVE;
-    attr.policy.qos_priority = VCPU_PRI_NORMAL;
+    attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
+    attr.policy.qos.priority = VCPU_PRI_NORMAL;
     attr.groupid = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     gId[CONCURRENCY] = vcpu_acquire(&attr);

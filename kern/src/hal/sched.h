@@ -16,10 +16,10 @@
 //
 
 // Saves the current CPU state of the caller and restores the saved CPU state of
-// the virtual processor that is scheduled to run. If the sched_state of the
-// currently running virtual processor is SCHED_STATE_RUNNING then the state is
-// changed to SCHED_STATE_READY and the virtual processor is moved to the correct
-// ready queue. Otherwise the sched_state is not changed and the virtual
+// the virtual processor that is scheduled to run. If the run_state of the
+// currently running virtual processor is VCPU_RUST_RUNNING then the state is
+// changed to VCPU_RUST_READY and the virtual processor is moved to the correct
+// ready queue. Otherwise the run_state is not changed and the virtual
 // processor is not moved to the ready queue because this function assumes that
 // the correct state transition has already happend. Eg the vp has been moved to
 // waiting or suspended state. 

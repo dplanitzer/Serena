@@ -85,14 +85,6 @@ typedef struct cpu_excpt_state {
 // If on the other hand the vcpu is resumed before the wait finished, then the
 // vcpu_resume() call atomically clears the suspension request and the system
 // call will return directly to user space.
-enum {
-    SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
-    SCHED_STATE_READY,          // VP is able to run and is currently sitting on the ready queue
-    SCHED_STATE_RUNNING,        // VP is running
-    SCHED_STATE_WAITING,        // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-    SCHED_STATE_SUSPENDED,      // VP was running or ready and is now suspended (it is not on any queue)
-    SCHED_STATE_TERMINATING,    // VP is in the process of terminating and being reaped (it's on the finalizer queue)
-};
 
 
 // VP flags (keep in sync with machine/hw/m68k/lowmem.i)
@@ -145,12 +137,12 @@ struct vcpu {
     
     // Scheduling related state
     int8_t                          base_priority;          // call vcpu_on_sched_param_changed() on change
-    int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_on_sched_param_changed()
+    int8_t                          cur_priority;           // computed priority used for scheduling. Computed by vcpu_on_sched_param_changed()
     int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_on_sched_param_changed() on change)
     int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_on_sched_param_changed() on change)
     int8_t                          quantum_boost;
     int8_t                          sched_nice;             // scheduling nice parameter (call vcpu_on_sched_param_changed() on change)
-    int8_t                          sched_state;
+    int8_t                          run_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int16_t                         suspension_count;       // > 0 -> VP is suspended
@@ -220,6 +212,10 @@ extern errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonn
 // Updates the CPU state of the receiver. If the receiver is not in running state,
 // then it must be in suspended state.
 extern errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _Nonnull state);
+
+
+// Returns a copy of the receiver's information.
+extern errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info);
 
 
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
@@ -337,12 +333,12 @@ extern void vcpu_reset_quantum(vcpu_t _Nonnull self);
 // Returns the effective (current) priority of the given vcpu.
 // @Entry Condition: preemption disabled
 #define vcpu_effective_priority(__self) \
-((__self)->effective_priority)
+((__self)->cur_priority)
 
 // Returns the effective QoS class.
 // @Entry Condition: preemption disabled
 #define vcpu_effective_qos_class(__self) \
-SCHED_QOS_CLASS((__self)->effective_priority)
+SCHED_QOS_GRADE((__self)->cur_priority)
 
 // Sets the quantum boost value. The value is clamped to the range 0..INT8_MAX.
 // The boost is applied starting with the next quantum.

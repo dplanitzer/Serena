@@ -19,7 +19,11 @@
 #define VCPUID_MAIN_GROUP   1
 
 
-// Quality of Service level. From highest to lowest.
+struct vcpu;
+typedef struct vcpu* vcpu_t;
+
+
+// Quality of Service level/class/grade. From highest to lowest.
 // Note that the highest priority of Realtime and the lowest priority of
 // Background are privileged priority bands that owned by the scheduler.
 // 
@@ -70,19 +74,15 @@
 #define VCPU_PRI_COUNT      (1 << VCPU_PRI_SHIFT)
 
 
+typedef struct vcpu_qos {
+    int grade;
+    int priority;
+} vcpu_qos_t;
+
 typedef struct vcpu_policy {
-    int version;        // sizeof(vcpu_policy_t)
-    int qos_class;
-    int qos_priority;
+    int         version;        // sizeof(vcpu_policy_t)
+    vcpu_qos_t  qos;
 } vcpu_policy_t;
-
-
-
-struct vcpu;
-typedef struct vcpu* vcpu_t;
-
-
-typedef void* vcpu_state_ref;
 
 
 // Acquire the VP and immediately resume it
@@ -99,5 +99,45 @@ typedef struct _vcpu_acquire_attr {
     unsigned int            flags;
     intptr_t                data;
 } _vcpu_acquire_attr_t;
+
+
+// VCPU specific state. The actual state records are defined in the architecture
+// specific header files.
+typedef void* vcpu_state_ref;
+
+
+// Information about a VCPU
+typedef void* vcpu_info_ref;
+
+#define VCPU_INFO_STACK         1
+#define VCPU_INFO_SCHEDULING    2
+
+
+typedef struct vcpu_stack_info {
+    void*   base_ptr;
+    size_t  size;
+} vcpu_stack_info_t;
+
+
+#define VCPU_RUST_INITIATED     0   /* VP was just created and has not been scheduled yet */
+#define VCPU_RUST_READY         1   /* VP is able to run and is currently sitting on the ready queue */
+#define VCPU_RUST_RUNNING       2   /* VP is running */
+#define VCPU_RUST_WAITING       3   /* VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc) */
+#define VCPU_RUST_SUSPENDED     4   /* VP was running or ready and is now suspended (it is not on any queue) */
+#define VCPU_RUST_TERMINATING   5   /* VP is in the process of terminating and being reaped (it's on the finalizer queue) */
+
+#define VCPU_HAS_PRIORITY_BOOST     0x01
+#define VCPU_HAS_QUANTUM_BOOST      0x02
+#define VCPU_HAS_PRIORITY_PENALTY   0x04
+
+typedef struct vcpu_scheduling_info {
+    int             run_state;
+    vcpu_qos_t      base_qos;
+    vcpu_qos_t      cur_qos;
+    int             base_quantum_length;
+    int             cur_quantum_length;
+    int             suspend_count;
+    unsigned int    flags;
+} vcpu_scheduling_info_t;
 
 #endif /* _KPI_VCPU_H */

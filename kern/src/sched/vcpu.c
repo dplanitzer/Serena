@@ -32,8 +32,8 @@ static void _vcpu_yield(vcpu_t _Nonnull self);
 void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 {
     assert(policy->version == sizeof(vcpu_policy_t));
-    assert(policy->qos_class >= VCPU_QOS_BACKGROUND && policy->qos_class <= VCPU_QOS_REALTIME);
-    assert(policy->qos_priority >= VCPU_PRI_LOWEST && policy->qos_priority <= VCPU_PRI_HIGHEST);
+    assert(policy->qos.grade >= VCPU_QOS_BACKGROUND && policy->qos.grade <= VCPU_QOS_REALTIME);
+    assert(policy->qos.priority >= VCPU_PRI_LOWEST && policy->qos.priority <= VCPU_PRI_HIGHEST);
 
 
     memset(self, 0, sizeof(struct vcpu));
@@ -41,12 +41,12 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     stk_init(&self->user_stack);
     
     self->timeout = CLOCK_DEADLINE_INIT;    
-    self->sched_state = SCHED_STATE_INITIATED;
+    self->run_state = VCPU_RUST_INITIATED;
 
     self->flags = 0;
     self->flags |= (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->flags |= (g_sys_desc->cpu_model == CPU_MODEL_68060) ? VP_FLAG_HAS_BC : 0;
-    self->base_priority = SCHED_PRI_FROM_QOS(policy->qos_class, policy->qos_priority);
+    self->base_priority = SCHED_PRI_FROM_QOS(policy->qos.grade, policy->qos.priority);
 
     vcpu_on_sched_param_changed(self);
 }
@@ -76,7 +76,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // proceed with reconfiguring it. We only become the owner of the vcpu once
     // it has entered suspended state.
     const int sps = preempt_disable();
-    while (vp->sched_state != SCHED_STATE_SUSPENDED) {
+    while (vp->run_state != VCPU_RUST_SUSPENDED) {
         _vcpu_yield(vcpu_current());
     }
     preempt_restore(sps);
@@ -190,7 +190,7 @@ void vcpu_set_nice(vcpu_t _Nonnull self, int nice)
 
 void vcpu_on_sched_param_changed(vcpu_t _Nonnull self)
 {
-    const int base_qos_class = SCHED_QOS_CLASS(self->base_priority);
+    const int base_qos_class = SCHED_QOS_GRADE(self->base_priority);
     const int base_qos_pri = SCHED_QOS_PRI(self->base_priority);
     int eff_pri;
 
@@ -218,16 +218,21 @@ void vcpu_on_sched_param_changed(vcpu_t _Nonnull self)
 
 //    assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
 
-    self->effective_priority = (int8_t)eff_pri;
+    self->cur_priority = (int8_t)eff_pri;
+}
+
+static int8_t _vcpu_effective_quantum_length(vcpu_t _Nonnull self)
+{
+    register const int8_t qos_class = SCHED_QOS_GRADE(self->cur_priority);
+    register const int8_t base_len = g_quantum_base_length[qos_class];
+    register const int8_t max_len = g_quantum_max_length[qos_class];
+
+    return __min(base_len + self->quantum_boost, max_len);
 }
 
 void vcpu_reset_quantum(vcpu_t _Nonnull self)
 {
-    register const int8_t qos_class = SCHED_QOS_CLASS(self->effective_priority);
-    register const int8_t base_len = g_quantum_base_length[qos_class];
-    register const int8_t max_len = g_quantum_max_length[qos_class];
-
-    self->quantum_countdown = __min(base_len + self->quantum_boost, max_len);
+    self->quantum_countdown = _vcpu_effective_quantum_length(self);
 }
 
 errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull policy)
@@ -238,8 +243,8 @@ errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull p
 
     const int sps = preempt_disable();
     policy->version = sizeof(vcpu_policy_t);
-    policy->qos_class = SCHED_QOS_CLASS(self->base_priority);
-    policy->qos_priority = SCHED_QOS_PRI(self->base_priority);
+    policy->qos.grade = SCHED_QOS_GRADE(self->base_priority);
+    policy->qos.priority = SCHED_QOS_PRI(self->base_priority);
     preempt_restore(sps);
 
     return EOK;
@@ -252,50 +257,50 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
     if (policy->version != sizeof(vcpu_policy_t)) {
         return EINVAL;
     }
-    if (policy->qos_class < VCPU_QOS_BACKGROUND || policy->qos_class > VCPU_QOS_REALTIME) {
+    if (policy->qos.grade < VCPU_QOS_BACKGROUND || policy->qos.grade > VCPU_QOS_REALTIME) {
         return EINVAL;
     }
-    if (policy->qos_priority < VCPU_PRI_LOWEST || policy->qos_priority > VCPU_PRI_HIGHEST) {
+    if (policy->qos.priority < VCPU_PRI_LOWEST || policy->qos.priority > VCPU_PRI_HIGHEST) {
         return EINVAL;
     }
-    if (policy->qos_class == VCPU_QOS_BACKGROUND && policy->qos_priority == VCPU_PRI_LOWEST) {
+    if (policy->qos.grade == VCPU_QOS_BACKGROUND && policy->qos.priority == VCPU_PRI_LOWEST) {
         // Reserved for scheduler 
         return EPERM;
     }
-    if (policy->qos_class == VCPU_QOS_REALTIME && policy->qos_priority == VCPU_PRI_HIGHEST) {
+    if (policy->qos.grade == VCPU_QOS_REALTIME && policy->qos.priority == VCPU_PRI_HIGHEST) {
         // Reserved for scheduler 
         return EPERM;
     }
 
 
-    const int new_base_pri = SCHED_PRI_FROM_QOS(policy->qos_class, policy->qos_priority);
+    const int new_base_pri = SCHED_PRI_FROM_QOS(policy->qos.grade, policy->qos.priority);
     const int sps = preempt_disable();
     
     if (self->base_priority != new_base_pri) {
-        switch (self->sched_state) {
-            case SCHED_STATE_INITIATED:
+        switch (self->run_state) {
+            case VCPU_RUST_INITIATED:
                 self->base_priority = new_base_pri;
                 vcpu_on_sched_param_changed(self);
                 break;
 
-            case SCHED_STATE_READY:
+            case VCPU_RUST_READY:
                 sched_set_unready(g_sched, self, false);
                 self->base_priority = new_base_pri;
                 vcpu_on_sched_param_changed(self);
                 sched_set_ready(g_sched, self, true);
                 break;
                 
-            case SCHED_STATE_RUNNING:
-            case SCHED_STATE_WAITING:
-            case SCHED_STATE_SUSPENDED:
+            case VCPU_RUST_RUNNING:
+            case VCPU_RUST_WAITING:
+            case VCPU_RUST_SUSPENDED:
                 self->base_priority = new_base_pri;
-                if (self->sched_state == SCHED_STATE_RUNNING) {
+                if (self->run_state == VCPU_RUST_RUNNING) {
                     vcpu_reset_quantum(self);
                 }
                 vcpu_on_sched_param_changed(self);
                 break;
 
-            case SCHED_STATE_TERMINATING:
+            case VCPU_RUST_TERMINATING:
                 err = ESRCH;
                 break;
 
@@ -311,7 +316,7 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
 // @Entry Condition: preemption disabled
 static void _vcpu_yield(vcpu_t _Nonnull self)
 {
-    if (self->sched_state == SCHED_STATE_RUNNING) {
+    if (self->run_state == VCPU_RUST_RUNNING) {
         if (!vcpu_is_fixed_pri(self) && self->priority_penalty > 0) {
             // Half the priority penalty, if any
             self->priority_penalty /= 2;
@@ -338,10 +343,10 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     decl_try_err();
     const int sps = preempt_disable();
 
-    if (self->sched_state == SCHED_STATE_TERMINATING || self == g_sched->idle_vp || self == g_sched->boot_vp) {
+    if (self->run_state == VCPU_RUST_TERMINATING || self == g_sched->idle_vp || self == g_sched->boot_vp) {
         throw(ESRCH);
     }
-    if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->sched_state != SCHED_STATE_INITIATED && self->sched_state != SCHED_STATE_RUNNING)) {
+    if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->run_state != VCPU_RUST_INITIATED && self->run_state != VCPU_RUST_RUNNING)) {
         // no involuntary suspension of kernel owned VPs
         throw(EPERM);
     }
@@ -350,19 +355,19 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     }
 
 
-    if (self->sched_state == SCHED_STATE_SUSPENDED || (self->pending_sigs & _SIGBIT(SIGVPDS)) != 0) {
+    if (self->run_state == VCPU_RUST_SUSPENDED || (self->pending_sigs & _SIGBIT(SIGVPDS)) != 0) {
         // 'self' has at least a suspension request pending or may already have entered suspended state
         self->suspension_count++;
     }
-    else if (self->sched_state == SCHED_STATE_INITIATED) {
+    else if (self->run_state == VCPU_RUST_INITIATED) {
         // 'self' was just created. Move it to suspended state immediately
         self->suspension_count++;
-        self->sched_state = SCHED_STATE_SUSPENDED;
+        self->run_state = VCPU_RUST_SUSPENDED;
     }
     else if (vcpu_current() == self) {
         // 'self' is currently running. Move it to suspended state immediately
         self->suspension_count++;
-        self->sched_state = SCHED_STATE_SUSPENDED;
+        self->run_state = VCPU_RUST_SUSPENDED;
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
     else {
@@ -387,11 +392,11 @@ void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
     // state to suspended to ensure that there's no gap between suspension
     // request and suspension state.
     // Note that it is crucial that we check the SIGVPDS flag, consume it and
-    // change our scheduler state to SCHED_STATE_SUSPENDED in an atomic
+    // change our scheduler state to VCPU_RUST_SUSPENDED in an atomic
     // operation to ensure that vcpu_resume() can not see the transition and
     // get potentially confused by it.
     if ((self->pending_sigs & _SIGBIT(SIGVPDS)) != 0) {
-        self->sched_state = SCHED_STATE_SUSPENDED;
+        self->run_state = VCPU_RUST_SUSPENDED;
         self->pending_sigs &= ~_SIGBIT(SIGVPDS);
 
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
@@ -426,7 +431,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 
 
     // Move the vcpu out of suspended state if it is suspended
-    if (self->sched_state == SCHED_STATE_SUSPENDED) {
+    if (self->run_state == VCPU_RUST_SUSPENDED) {
         _vcpu_resume(self, force);
     }
 
@@ -440,7 +445,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
 {
     for (;;) {
-        if (self->sched_state == SCHED_STATE_SUSPENDED || (self->sched_state == SCHED_STATE_WAITING && (self->pending_sigs & _SIGBIT(SIGVPDS)) != 0)) {
+        if (self->run_state == VCPU_RUST_SUSPENDED || (self->run_state == VCPU_RUST_WAITING && (self->pending_sigs & _SIGBIT(SIGVPDS)) != 0)) {
             // Wait until the target vcpu has entered suspended state or it is
             // waiting and has a deferred suspension request pending.
             break;
@@ -600,6 +605,64 @@ errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _N
     return err;
 }
 
+// Returns a copy of the receiver's information.
+errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
+{
+    decl_try_err();
+    const bool is_running = (self == vcpu_current()) ? true : false;
+    int sps;
+
+    // Must be suspended if we are not the running vcpu
+    if (!is_running) {
+        sps = preempt_disable();
+    }
+
+    if (err == EOK) {
+        switch (flavor) {
+            case VCPU_INFO_STACK: {
+                vcpu_stack_info_t* ip = info;
+
+                if (vcpu_has_user_state(self)) {
+                    ip->base_ptr = self->user_stack.base;
+                    ip->size = self->user_stack.size;
+                }
+                else {
+                    err = ESRCH;
+                }
+                break;
+            }
+
+            case VCPU_INFO_SCHEDULING: {
+                vcpu_scheduling_info_t* ip = info;
+
+                ip->run_state = self->run_state;
+                ip->base_qos.grade = SCHED_QOS_GRADE(self->base_priority);
+                ip->base_qos.priority = SCHED_QOS_PRI(self->base_priority);
+                ip->cur_qos.grade = SCHED_QOS_GRADE(self->cur_priority);
+                ip->cur_qos.priority = SCHED_QOS_PRI(self->cur_priority);
+                ip->base_quantum_length = g_quantum_base_length[ip->base_qos.grade];
+                ip->cur_quantum_length = _vcpu_effective_quantum_length(self);
+                ip->suspend_count = self->suspension_count;
+                ip->flags = 0;
+                
+                if (self->priority_boost > 0)   ip->flags |= VCPU_HAS_PRIORITY_BOOST;
+                if (self->quantum_boost > 0)    ip->flags |= VCPU_HAS_QUANTUM_BOOST;
+                if (self->priority_penalty > 0) ip->flags |= VCPU_HAS_PRIORITY_PENALTY;
+                break;
+            }
+
+            default:
+                err = EINVAL;
+                break;
+        }
+    }
+
+    if (!is_running) {
+        preempt_restore(sps);
+    }
+
+    return err;
+}
 errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
     if ((flags != 0) || (handler->func == NULL && flags != 0)) {

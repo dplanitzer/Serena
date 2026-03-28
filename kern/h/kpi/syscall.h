@@ -84,8 +84,8 @@ enum {
     SC_vcpu_policy,         // int vcpu_policy(vcpuid_t id, int version, vcpu_policy_t* _Nonnull policy)
     SC_vcpu_setpolicy,      // int vcpu_setpolicy(vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
     SC_clock_getres,        // errno_t clock_getres(clockid_t clock, struct timespec* _Nonnull res)
-    SC_unused1,             // UNUSED
-    SC_test,                // errno_t __test(void)
+    SC_vcpu_info,           // UNUSED
+    SC_nullsys,             // errno_t __nullsys(void)
     SC_proc_schedparam,     // int proc_schedparam(pid_t pid, int type, int* _Nonnull param)
     SC_proc_setschedparam,  // int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param)
     SC_vcpu_state,          // int vcpu_state(vcpuid_t id, int flavor, vcpu_state_ref _Nonnull state)

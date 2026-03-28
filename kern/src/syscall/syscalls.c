@@ -11,7 +11,8 @@
 
 
 SYSCALL_REF(coninit);
-SYSCALL_REF(test);
+SYSCALL_REF(nosys);
+SYSCALL_REF(nullsys);
 
 SYSCALL_REF(clock_gettime);
 SYSCALL_REF(clock_nanosleep);
@@ -96,6 +97,7 @@ SYSCALL_REF(vcpu_policy);
 SYSCALL_REF(vcpu_setpolicy);
 SYSCALL_REF(vcpu_state);
 SYSCALL_REF(vcpu_setstate);
+SYSCALL_REF(vcpu_info);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -172,8 +174,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_policy, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setpolicy, SC_ERRNO),
     SYSCALL_ENTRY(clock_getres, SC_ERRNO),
-    SYSCALL_ENTRY(test, SC_ERRNO),  // UNUSED
-    SYSCALL_ENTRY(test, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_info, SC_ERRNO),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),
     SYSCALL_ENTRY(proc_schedparam, SC_ERRNO),
     SYSCALL_ENTRY(proc_setschedparam, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_state, SC_ERRNO),

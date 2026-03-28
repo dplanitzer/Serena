@@ -25,7 +25,7 @@ static int _Process_GetExactState(ProcessRef _Nonnull _Locked self)
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
             vcpu_t cvp = vcpu_from_owner_qe(it);
 
-            if (cvp->sched_state == SCHED_STATE_RUNNING) {
+            if (cvp->run_state == VCPU_RUST_RUNNING) {
                 return PROC_STATE_RUNNING;
             }
         )

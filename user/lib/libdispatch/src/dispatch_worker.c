@@ -23,8 +23,8 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     r_attr.stack_size = 0;
     r_attr.groupid = owner->groupid;
     r_attr.policy.version = sizeof(vcpu_policy_t);
-    r_attr.policy.qos_class = owner->attr.qos;
-    r_attr.policy.qos_priority = owner->attr.priority;
+    r_attr.policy.qos.grade = owner->attr.qos;
+    r_attr.policy.qos.priority = owner->attr.priority;
     r_attr.flags = 0;
 
     self->allow_relinquish = !_dispatch_is_fixed_concurrency(owner);

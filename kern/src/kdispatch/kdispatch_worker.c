@@ -21,8 +21,8 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     attr.stack_size = 0;
     attr.groupid = VCPUID_MAIN_GROUP;
     attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos_class = owner->attr.qos;
-    attr.policy.qos_priority = owner->attr.priority;
+    attr.policy.qos.grade = owner->attr.qos;
+    attr.policy.qos.priority = owner->attr.priority;
     attr.flags = 0;
     attr.data = 0;
 

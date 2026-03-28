@@ -152,7 +152,7 @@ __sched_switch_context:
 
     ; move the current vp to the ready state and queue if its state hasn't already
     ; been changed to some other non-running state like waiting or suspended
-    cmp.b   #SCHED_STATE_RUNNING, vp_sched_state(a0)
+    cmp.b   #VCPU_RUST_RUNNING, vp_run_state(a0)
     bne.s   __csw_restore
 
     move.l  _g_sched, a1

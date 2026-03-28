@@ -9,7 +9,7 @@
 #ifndef _ARCH_M68K_CPU_H
 #define _ARCH_M68K_CPU_H 1
 
-#include <arch/_null.h>
+#include <_cmndef.h>
 #include <arch/floattypes.h>
 
 // Size of a standard page in bytes
