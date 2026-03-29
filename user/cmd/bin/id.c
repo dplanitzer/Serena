@@ -21,10 +21,12 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
+    proc_creds_info_t info;
+
     clap_parse(0, params, argc, argv);
 
-    
-    printf("uid=%u, gid=%u\n", getuid(), getgid());
+    (void)proc_info(PROC_SELF_ID, PROC_INFO_CREDS, &info);
+    printf("uid=%u, gid=%u\n", info.uid, info.gid);
 
     return EXIT_SUCCESS;
 }

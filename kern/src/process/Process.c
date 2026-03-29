@@ -291,6 +291,14 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             break;
         }
 
+        case PROC_INFO_CREDS: {
+            proc_creds_info_t* ip = info;
+
+            ip->uid = FileManager_GetRealUserId(&self->fm);
+            ip->gid = FileManager_GetRealGroupId(&self->fm);
+            break;
+        }
+
         default:
             err = EINVAL;
             break;

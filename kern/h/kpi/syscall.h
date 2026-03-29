@@ -30,7 +30,7 @@ enum {
     SC_lseek,               // errno_t lseek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
     SC_getcwd,              // errno_t getcwd(char* buffer, size_t bufferSize)
     SC_chdir,               // errno_t chdir(const char* _Nonnull path)
-    SC_getuid,              // uid_t getuid(void)
+    SC_unused6,             // XXX UNUSED
     SC_umask,               // mode_t umask(mode_t mask)
     SC_mkdir,               // errno_t mkdir(const char* _Nonnull path, mode_t mode)
     SC_stat,                // errno_t stat(const char* _Nonnull path, struct stat* _Nonnull info)
@@ -48,7 +48,7 @@ enum {
     SC_clock_gettime,       // errno_t clock_gettime(clockid_t clock, struct timespec* _Nonnull ts)
     SC_mount,               // errno_t mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
     SC_unmount,             // errno_t unmount(const char* _Nonnull atDirPath, UnmountOptions options)
-    SC_getgid,              // gid_t getgid(void)
+    SC_unused7,             // XXX UNUSED
     SC_sync,                // void sync(void)
     SC_coninit,             // void ConInit(void)
     SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)

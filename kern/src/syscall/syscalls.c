@@ -54,8 +54,6 @@ SYSCALL_REF(fsgetdisk);
 
 SYSCALL_REF(exit);
 SYSCALL_REF(spawn_process);
-SYSCALL_REF(getuid);
-SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
 SYSCALL_REF(proc_timedjoin);
 SYSCALL_REF(proc_exec);
@@ -115,7 +113,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(seek, SC_ERRNO),
     SYSCALL_ENTRY(getcwd, SC_ERRNO),
     SYSCALL_ENTRY(chdir, SC_ERRNO),
-    SYSCALL_ENTRY(getuid, SC_INT),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(umask, SC_INT),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
     SYSCALL_ENTRY(stat, SC_ERRNO),
@@ -133,7 +131,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
     SYSCALL_ENTRY(mount, SC_ERRNO),
     SYSCALL_ENTRY(unmount, SC_ERRNO),
-    SYSCALL_ENTRY(getgid, SC_INT),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
@@ -170,7 +168,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_setpolicy, SC_ERRNO),
     SYSCALL_ENTRY(clock_getres, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_info, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(proc_schedparam, SC_ERRNO),
     SYSCALL_ENTRY(proc_setschedparam, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_state, SC_ERRNO),

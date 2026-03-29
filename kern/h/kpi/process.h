@@ -95,6 +95,7 @@ struct proc_status {
 typedef void* proc_info_ref;
 
 #define PROC_INFO_IDS   1
+#define PROC_INFO_CREDS 2
 
 
 typedef struct proc_ids_info {
@@ -103,5 +104,10 @@ typedef struct proc_ids_info {
     pid_t   group_id;
     pid_t   session_id;
 } proc_ids_info_t;
+
+typedef struct proc_creds_info {
+    uid_t   uid;
+    gid_t   gid;
+} proc_creds_info_t;
 
 #endif /* _KPI_PROCESS_H */

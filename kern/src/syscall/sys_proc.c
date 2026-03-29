@@ -35,16 +35,6 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
     return err;
 }
 
-SYSCALL_0(getuid)
-{
-    return FileManager_GetRealUserId(&vp->proc->fm);
-}
-
-SYSCALL_0(getgid)
-{
-    return FileManager_GetRealGroupId(&vp->proc->fm);
-}
-
 SYSCALL_0(getpargs)
 {
     return (intptr_t) vp->proc->pargs_base;
