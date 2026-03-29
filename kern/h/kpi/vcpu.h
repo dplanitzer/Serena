@@ -10,6 +10,7 @@
 #define _KPI_VCPU_H 1
 
 #include <arch/floattypes.h>
+#include <ext/timespec.h>
 #include <kpi/types.h>
 #include <stdint.h>
 
@@ -112,6 +113,7 @@ typedef void* vcpu_info_ref;
 #define VCPU_INFO_STACK         1
 #define VCPU_INFO_SCHEDULING    2
 #define VCPU_INFO_IDS           3
+#define VCPU_INFO_TIMES         4
 
 
 typedef struct vcpu_stack_info {
@@ -146,5 +148,13 @@ typedef struct vcpu_ids_info {
     vcpuid_t    id;
     vcpuid_t    group_id;
 } vcpu_ids_info_t;
+
+
+typedef struct vcpu_usage_info {
+    struct timespec user_time;          // Time the vcpu has spent running in user mode since acquisition
+    struct timespec system_time;        // Time the vcpu has spent running in system/kernel mode since acquisition
+    struct timespec wait_time;          // Time the vcpu has spent in waiting or suspended state since acquisition
+    struct timespec acquisition_time;   // Time when the process acquired this vcpu
+} vcpu_times_info_t;
 
 #endif /* _KPI_VCPU_H */

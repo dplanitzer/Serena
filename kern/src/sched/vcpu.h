@@ -147,6 +147,12 @@ struct vcpu {
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int16_t                         suspension_count;       // > 0 -> VP is suspended
 
+    // Usage stats
+    struct timespec                 acquisition_time;
+    ticks_t                         user_ticks;
+    ticks_t                         system_ticks;
+    ticks_t                         wait_ticks;             // accumulated number of ticks spent in waiting or suspended state (since acquisition)
+
     // Process
     struct Process* _Nullable _Weak proc;                   // Process owning this VP
 

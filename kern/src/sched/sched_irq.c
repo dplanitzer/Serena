@@ -29,6 +29,13 @@ void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     if (run->quantum_countdown > 0) {
         run->quantum_countdown -= SCHED_QUANTUM_SCALE;
     }
+
+    if (excpt_frame_isuser(efp)) {
+        run->user_ticks++;
+    }
+    else {
+        run->system_ticks++;
+    }
 }
 
 

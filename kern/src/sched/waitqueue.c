@@ -93,7 +93,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
 wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
-    tick_t now, deadline;
+    ticks_t now, deadline;
     bool armTimeout = false;
 
     // Put us on the timeout queue if a relevant timeout has been specified.

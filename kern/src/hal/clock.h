@@ -22,7 +22,7 @@ typedef void (*deadline_func_t)(void* _Nullable arg);
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 typedef struct clock_deadline {
     struct clock_deadline* _Nullable    next;
-    tick_t                              deadline;
+    ticks_t                              deadline;
     deadline_func_t _Nonnull            func;
     void* _Nullable                     arg;
     bool                                isArmed;
@@ -34,7 +34,7 @@ typedef struct clock_deadline {
 
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 struct clock {
-    volatile tick_t             tick_count;         // Current scheduler time in terms of ticks quantums since clock start
+    volatile ticks_t            tick_count;         // Current scheduler time in terms of ticks quantums since clock start
     clock_deadline_t* _Nullable deadline_queue;
     int32_t                     ns_per_tick;        // duration of a clock tick in terms of nanoseconds
     int16_t                     cia_cycles_per_tick;    // duration of a clock tick in terms of CIA chip cycles 
@@ -69,14 +69,14 @@ extern void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Non
 
 
 // Converts a timespec to a clock tick value, applying truncation.
-extern tick_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
+extern ticks_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
 
 // Converts a timespec to a clock tick value by rounding fractional clock ticks
 // to the next higher clock tick value.
-extern tick_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
+extern ticks_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
 
 // Converts a clock tick value to a timespec.
-extern void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* _Nonnull ts);
+extern void clock_ticks2time(clock_ref_t _Nonnull self, ticks_t ticks, struct timespec* _Nonnull ts);
 
 
 // Registers the deadline timer 'deadline' with the clock 'self'. The deadline

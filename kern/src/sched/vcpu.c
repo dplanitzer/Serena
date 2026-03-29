@@ -98,6 +98,10 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     vp->flags &= ~VP_FLAG_DID_WAIT;
     vp->flags |= VP_FLAG_ACQUIRED;
 
+    vp->user_ticks = 0;
+    vp->system_ticks = 0;
+    clock_gettime(g_mono_clock, &vp->acquisition_time);
+
     *pOutVP = vp;
     return EOK;
 
@@ -655,6 +659,16 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
 
             ip->id = self->id;
             ip->group_id = self->group_id;
+            break;
+        }
+
+        case VCPU_INFO_TIMES: {
+            vcpu_times_info_t* ip = info;
+
+            clock_ticks2time(g_mono_clock, self->user_ticks, &ip->user_time);
+            clock_ticks2time(g_mono_clock, self->system_ticks, &ip->system_time);
+            ip->wait_time = TIMESPEC_ZERO; // XXX not yet
+            ip->acquisition_time = self->acquisition_time;
             break;
         }
 
