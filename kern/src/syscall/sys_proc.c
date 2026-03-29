@@ -121,3 +121,26 @@ SYSCALL_3(proc_setschedparam, pid_t pid, int type, int* _Nonnull param)
 
     return err;
 }
+
+SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == 0 || pa->pid == pp->pid) {
+        err = Process_GetInfo(pp, pa->flavor, pa->info);
+    }
+    else {
+        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (tpp) {
+            Process_GetInfo(tpp, pa->flavor, pa->info);
+            Process_Release(tpp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
+    return err;
+}

@@ -684,6 +684,7 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
 
     return err;
 }
+
 errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
     if ((flags != 0) || (handler->func == NULL && flags != 0)) {

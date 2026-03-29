@@ -38,7 +38,7 @@ typedef struct pargs {
 #define PROC_STATE_ZOMBIE   4
 
 // Process specific information
-typedef struct proc_info {
+typedef struct proc_info_old {
     pid_t   ppid;       // Parent pid
     pid_t   pid;        // Process pid
     pid_t   pgrp;       // Process group id
@@ -47,10 +47,10 @@ typedef struct proc_info {
     size_t  virt_size;  // Size of allocated address space
     int     state;      // Current process state (PROC_STATE_XXX)
     uid_t   uid;        // User owning this process
-} proc_info_t;
+} proc_info_old_t;
 
 // Returns general information about the process.
-// get_procinfo(proc_info_t* _Nonnull pOutInfo)
+// get_procinfo(proc_info_old_t* _Nonnull pOutInfo)
 #define kProcCommand_GetInfo    IOResourceCommand(0)
 
 // Returns the name of the process.
@@ -87,5 +87,19 @@ struct proc_status {
 // Scheduling parameters that apply to a process as a whole
 #define PROC_SCHED_QUANTUM_BOOST    1       /* param range: 0..15 */
 #define PROC_SCHED_NICE             2       /* param range: 0..63 */
+
+
+// Information about a process
+typedef void* proc_info_ref;
+
+#define PROC_INFO_IDS   1
+
+
+typedef struct proc_ids_info {
+    pid_t   id;
+    pid_t   parent_id;
+    pid_t   group_id;
+    pid_t   session_id;
+} proc_ids_info_t;
 
 #endif /* _KPI_PROCESS_H */

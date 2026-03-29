@@ -28,6 +28,9 @@ MALLOC_SOURCES_DIR := $(LIBC_SOURCES_DIR)/malloc
 MALLOC_OBJS_DIR := $(LIBC_OBJS_DIR)/malloc
 MALLOC_SC_OBJS_DIR := $(LIBSC_OBJS_DIR)/malloc
 
+PROC_SOURCES_DIR := $(LIBC_SOURCES_DIR)/proc
+PROC_OBJS_DIR := $(LIBC_OBJS_DIR)/proc
+
 STDIO_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdio
 STDIO_OBJS_DIR := $(LIBC_OBJS_DIR)/stdio
 
@@ -80,6 +83,7 @@ $(LIBSC_OBJS_DIR):
 -include $(IEEEFP_SOURCES_DIR)/package.mk
 -include $(LOCALE_SOURCES_DIR)/package.mk
 -include $(MALLOC_SOURCES_DIR)/package.mk
+-include $(PROC_SOURCES_DIR)/package.mk
 -include $(STDIO_SOURCES_DIR)/package.mk
 -include $(STDLIB_SOURCES_DIR)/package.mk
 -include $(STRING_SOURCES_DIR)/package.mk
@@ -93,7 +97,7 @@ $(LIBSC_OBJS_DIR):
 $(LIBC_FILE): $(ARCH_M68K_OBJS) $(ARCH_M68K_VBCC_OBJS) $(EXT_OBJS) \
 			  $(IEEEFP_OBJS) $(LOCALE_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) \
 			  $(STDLIB_OBJS) $(STRING_OBJS) $(SYNCH_OBJS) $(SERENA_OBJS) \
-			  $(TIME_OBJS) $(VCPU_OBJS)
+			  $(TIME_OBJS) $(PROC_OBJS) $(VCPU_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 

@@ -65,6 +65,7 @@ SYSCALL_REF(proc_timedjoin);
 SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
 SYSCALL_REF(proc_setschedparam);
+SYSCALL_REF(proc_info);
 
 
 SYSCALL_REF(alloc_address_space);
@@ -150,7 +151,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(proc_info, SC_ERRNO),
     SYSCALL_ENTRY(sigroute, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_PTR),
     SYSCALL_ENTRY(vcpu_setdata, SC_INT),

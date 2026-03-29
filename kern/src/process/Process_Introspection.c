@@ -54,7 +54,7 @@ int Process_GetInexactState(ProcessRef _Nonnull self)
     return state;
 }
 
-errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
+errno_t Process_GetInfo2(ProcessRef _Nonnull self, proc_info_old_t* _Nonnull info)
 {
     mtx_lock(&self->mtx);
     info->ppid = self->ppid;
@@ -100,9 +100,9 @@ errno_t Process_vIoctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel,
 {
     switch (cmd) {
         case kProcCommand_GetInfo: {
-            proc_info_t* info = va_arg(ap, proc_info_t*);
+            proc_info_old_t* info = va_arg(ap, proc_info_old_t*);
 
-            return Process_GetInfo(self, info);
+            return Process_GetInfo2(self, info);
         }
 
         case kProcCommand_GetName: {

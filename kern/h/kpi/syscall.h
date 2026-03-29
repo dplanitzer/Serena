@@ -62,7 +62,7 @@ enum {
     SC_wq_wait,             // int wq_wait(int q)
     SC_wq_timedwait,        // int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
     SC_wq_wakeup,           // int wq_wakeup(int q, int flags)
-    SC_unused1,             // XXX UNUSED
+    SC_proc_info,           // int proc_info(pid_t id, int flavor, proc_info_ref _Nonnull info)
     SC_sigroute,            // int sigroute(int op, int signo, int scope, id_t id)
     SC_vcpu_getdata,        // intptr_t __vcpu_getdata(void)
     SC_vcpu_setdata,        // void __vcpu_setdata(intptr_t data)
@@ -84,7 +84,7 @@ enum {
     SC_vcpu_policy,         // int vcpu_policy(vcpuid_t id, int version, vcpu_policy_t* _Nonnull policy)
     SC_vcpu_setpolicy,      // int vcpu_setpolicy(vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
     SC_clock_getres,        // errno_t clock_getres(clockid_t clock, struct timespec* _Nonnull res)
-    SC_vcpu_info,           // UNUSED
+    SC_vcpu_info,           // int vcpu_info(vcpuid_t id, int flavor, vcpu_info_ref _Nonnull info)
     SC_nullsys,             // errno_t __nullsys(void)
     SC_proc_schedparam,     // int proc_schedparam(pid_t pid, int type, int* _Nonnull param)
     SC_proc_setschedparam,  // int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param)

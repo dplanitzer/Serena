@@ -91,6 +91,10 @@ extern errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _N
 extern errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _Nonnull param);
 
 
+// Returns a copy of the receiver's information.
+extern errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Nonnull info);
+
+
 //
 // Introspection
 //
@@ -98,7 +102,7 @@ extern errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const i
 extern errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 
-extern errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info);
+extern errno_t Process_GetInfo2(ProcessRef _Nonnull self, proc_info_old_t* _Nonnull info);
 extern errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
 
 extern errno_t Process_Ioctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);

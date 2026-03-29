@@ -273,6 +273,34 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
     return err;
 }
 
+// Returns a copy of the receiver's information.
+errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Nonnull info)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+
+    switch (flavor) {
+        case PROC_INFO_IDS: {
+            proc_ids_info_t* ip = info;
+
+            ip->id = self->pid;
+            ip->parent_id = self->ppid;
+            ip->group_id = self->pgrp;
+            ip->session_id = self->sid;
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

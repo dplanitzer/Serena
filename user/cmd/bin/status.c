@@ -64,7 +64,7 @@ static void fmt_mem_size(size_t msize, char* _Nonnull buf)
 
 static void show_proc(const char* _Nonnull pidStr)
 {
-    proc_info_t info;
+    proc_info_old_t info;
     const int fd = open_proc(pidStr);
 
     if (fd != -1) {
