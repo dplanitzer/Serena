@@ -1,5 +1,5 @@
 //
-//  _exit.c
+//  proc_exec.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,11 +9,6 @@
 #include <kpi/syscall.h>
 #include <serena/process.h>
 
-
-_Noreturn void _exit(int status)
-{
-    (void)_syscall(SC_exit, status);
-}
 
 int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp)
 {

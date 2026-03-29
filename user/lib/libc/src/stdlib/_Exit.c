@@ -11,5 +11,5 @@
 
 _Noreturn void _Exit(int status)
 {
-    _exit(status);
+    proc_exit(status);
 }

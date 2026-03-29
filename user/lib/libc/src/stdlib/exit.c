@@ -36,5 +36,5 @@ _Noreturn void exit(int status)
     }
 
 
-    _exit(status);
+    proc_exit(status);
 }

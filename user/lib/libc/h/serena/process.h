@@ -20,12 +20,12 @@ __CPP_BEGIN
 extern int chdir(const char* _Nonnull path);
 extern int getcwd(char* _Nonnull buffer, size_t bufferSize);
 
-extern _Noreturn void _exit(int status);
-
 extern uid_t getuid(void);
 extern gid_t getgid(void);
 
 extern pid_t proc_self(void);
+
+extern _Noreturn void proc_exit(int status);
 
 
 // Replaces the currently executing process image with the executable image stored
