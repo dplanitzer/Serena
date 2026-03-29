@@ -225,7 +225,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
     deque_for_each(&self->vcpu_queue, deque_node_t, it,
         vcpu_t cvp = vcpu_from_owner_qe(it);
 
-        if (cvp->groupid == id) {
+        if (cvp->group_id == id) {
             // This sigsend() will auto-force-resume the receiving vcpu if we're
             // sending SIGKILL
             vcpu_send_signal(cvp, signo);

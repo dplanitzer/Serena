@@ -94,7 +94,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
         vp->flags &= ~VP_FLAG_USER_OWNED;
     }
     vp->id = ac->id;
-    vp->groupid = ac->groupid;
+    vp->group_id = ac->group_id;
     vp->flags &= ~VP_FLAG_DID_WAIT;
     vp->flags |= VP_FLAG_ACQUIRED;
 
@@ -134,7 +134,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     self->proc = NULL;
     self->udata = 0;
     self->id = 0;
-    self->groupid = 0;
+    self->group_id = 0;
     self->uerrno = 0;
     self->pending_sigs = 0;
     self->excpt_handler = (excpt_handler_t){0};
@@ -617,44 +617,50 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
         sps = preempt_disable();
     }
 
-    if (err == EOK) {
-        switch (flavor) {
-            case VCPU_INFO_STACK: {
-                vcpu_stack_info_t* ip = info;
+    switch (flavor) {
+        case VCPU_INFO_STACK: {
+            vcpu_stack_info_t* ip = info;
 
-                if (vcpu_has_user_state(self)) {
-                    ip->base_ptr = self->user_stack.base;
-                    ip->size = self->user_stack.size;
-                }
-                else {
-                    err = ESRCH;
-                }
-                break;
+            if (vcpu_has_user_state(self)) {
+                ip->base_ptr = self->user_stack.base;
+                ip->size = self->user_stack.size;
             }
-
-            case VCPU_INFO_SCHEDULING: {
-                vcpu_scheduling_info_t* ip = info;
-
-                ip->run_state = self->run_state;
-                ip->base_qos.grade = SCHED_QOS_GRADE(self->base_priority);
-                ip->base_qos.priority = SCHED_QOS_PRI(self->base_priority);
-                ip->cur_qos.grade = SCHED_QOS_GRADE(self->cur_priority);
-                ip->cur_qos.priority = SCHED_QOS_PRI(self->cur_priority);
-                ip->base_quantum_length = g_quantum_base_length[ip->base_qos.grade];
-                ip->cur_quantum_length = _vcpu_effective_quantum_length(self);
-                ip->suspend_count = self->suspension_count;
-                ip->flags = 0;
-                
-                if (self->priority_boost > 0)   ip->flags |= VCPU_HAS_PRIORITY_BOOST;
-                if (self->quantum_boost > 0)    ip->flags |= VCPU_HAS_QUANTUM_BOOST;
-                if (self->priority_penalty > 0) ip->flags |= VCPU_HAS_PRIORITY_PENALTY;
-                break;
+            else {
+                err = ESRCH;
             }
-
-            default:
-                err = EINVAL;
-                break;
+            break;
         }
+
+        case VCPU_INFO_SCHEDULING: {
+            vcpu_scheduling_info_t* ip = info;
+
+            ip->run_state = self->run_state;
+            ip->base_qos.grade = SCHED_QOS_GRADE(self->base_priority);
+            ip->base_qos.priority = SCHED_QOS_PRI(self->base_priority);
+            ip->cur_qos.grade = SCHED_QOS_GRADE(self->cur_priority);
+            ip->cur_qos.priority = SCHED_QOS_PRI(self->cur_priority);
+            ip->base_quantum_length = g_quantum_base_length[ip->base_qos.grade];
+            ip->cur_quantum_length = _vcpu_effective_quantum_length(self);
+            ip->suspend_count = self->suspension_count;
+            ip->flags = 0;
+                
+            if (self->priority_boost > 0)   ip->flags |= VCPU_HAS_PRIORITY_BOOST;
+            if (self->quantum_boost > 0)    ip->flags |= VCPU_HAS_QUANTUM_BOOST;
+            if (self->priority_penalty > 0) ip->flags |= VCPU_HAS_PRIORITY_PENALTY;
+            break;
+        }
+
+        case VCPU_INFO_IDS: {
+            vcpu_ids_info_t* ip = info;
+
+            ip->id = self->id;
+            ip->group_id = self->group_id;
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
     }
 
     if (!is_running) {

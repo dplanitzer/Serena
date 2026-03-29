@@ -31,7 +31,7 @@ static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t
     mtx_init(&self->mutex);
 
     self->attr = *attr;
-    self->groupid = new_vcpu_groupid();
+    self->group_id = new_vcpu_groupid();
     self->state = _DISPATCHER_STATE_ACTIVE;
 
     cnd_init(&self->cond);

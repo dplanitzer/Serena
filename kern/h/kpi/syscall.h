@@ -62,7 +62,7 @@ enum {
     SC_wq_wait,             // int wq_wait(int q)
     SC_wq_timedwait,        // int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
     SC_wq_wakeup,           // int wq_wakeup(int q, int flags)
-    SC_vcpu_getid,          // int vcpu_getid(void)
+    SC_unused1,             // XXX UNUSED
     SC_sigroute,            // int sigroute(int op, int signo, int scope, id_t id)
     SC_vcpu_getdata,        // intptr_t __vcpu_getdata(void)
     SC_vcpu_setdata,        // void __vcpu_setdata(intptr_t data)
@@ -70,7 +70,7 @@ enum {
     SC_sigtimedwait,        // int sigtimedwait(const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
     SC_wq_wakeup_then_timedwait,    // int wq_wakeup_then_timedwait(int q, int q2, int flags, const struct timespec* _Nonnull wtp)
     SC_sigpending,          // int sigpending(sigset_t* _Nonnull set)
-    SC_vcpu_getgrp,         // int vcpu_getgrp(void)
+    SC_unused2,             // XXX UNUSED
     SC_getpgrp,             // pid_t getpgrp(void)
     SC_getsid,              // sid_t getsid(void)
     SC_vcpu_acquire,        // int vcpu_acquire(const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)

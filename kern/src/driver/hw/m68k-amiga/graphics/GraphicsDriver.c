@@ -47,7 +47,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     attr.func = (vcpu_func_t)GraphicsDriver_CopperManager;
     attr.arg = self;
     attr.stack_size = 0;
-    attr.groupid = VCPUID_MAIN_GROUP;
+    attr.group_id = VCPUID_MAIN_GROUP;
     attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos.grade = VCPU_QOS_URGENT;
     attr.policy.qos.priority = VCPU_PRI_NORMAL;

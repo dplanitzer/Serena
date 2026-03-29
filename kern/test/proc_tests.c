@@ -58,7 +58,7 @@ void proc_exit_test(int argc, char *argv[])
         attr.policy.version = sizeof(vcpu_policy_t);
         attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
         attr.policy.qos.priority = VCPU_PRI_NORMAL + i;
-        attr.groupid = 0;
+        attr.group_id = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);
         assert_not_null(gId[i]);
@@ -72,7 +72,7 @@ void proc_exit_test(int argc, char *argv[])
     attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
     attr.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr.groupid = 0;
+    attr.group_id = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     gId[CONCURRENCY] = vcpu_acquire(&attr);
     assert_not_null(gId[CONCURRENCY]);

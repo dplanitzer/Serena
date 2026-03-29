@@ -21,7 +21,7 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     r_attr.func = (vcpu_func_t)_dispatch_worker_run;
     r_attr.arg = self;
     r_attr.stack_size = 0;
-    r_attr.groupid = owner->groupid;
+    r_attr.group_id = owner->group_id;
     r_attr.policy.version = sizeof(vcpu_policy_t);
     r_attr.policy.qos.grade = owner->attr.qos;
     r_attr.policy.qos.priority = owner->attr.priority;

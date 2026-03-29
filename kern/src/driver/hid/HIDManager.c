@@ -83,7 +83,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     attr.func = (vcpu_func_t)_reports_collector_loop;
     attr.arg = self;
     attr.stack_size = 0;
-    attr.groupid = VCPUID_MAIN_GROUP;
+    attr.group_id = VCPUID_MAIN_GROUP;
     attr.policy.version = sizeof(vcpu_policy_t);
     attr.policy.qos.grade = VCPU_QOS_REALTIME;
     attr.policy.qos.priority = VCPU_PRI_HIGHEST - 1;

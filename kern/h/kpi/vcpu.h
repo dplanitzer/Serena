@@ -94,7 +94,7 @@ typedef struct _vcpu_acquire_attr {
     vcpu_func_t _Nullable   func;
     void* _Nullable         arg;
     size_t                  stack_size;
-    vcpuid_t                groupid;
+    vcpuid_t                group_id;
     vcpu_policy_t           policy;
     unsigned int            flags;
     intptr_t                data;
@@ -111,6 +111,7 @@ typedef void* vcpu_info_ref;
 
 #define VCPU_INFO_STACK         1
 #define VCPU_INFO_SCHEDULING    2
+#define VCPU_INFO_IDS           3
 
 
 typedef struct vcpu_stack_info {
@@ -139,5 +140,11 @@ typedef struct vcpu_scheduling_info {
     int             suspend_count;
     unsigned int    flags;
 } vcpu_scheduling_info_t;
+
+
+typedef struct vcpu_ids_info {
+    vcpuid_t    id;
+    vcpuid_t    group_id;
+} vcpu_ids_info_t;
 
 #endif /* _KPI_VCPU_H */

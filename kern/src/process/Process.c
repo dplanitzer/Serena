@@ -164,7 +164,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     ac.kernelStackSize = 0;
     ac.userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
     ac.id = self->next_avail_vcpuid++;
-    ac.groupid = attr->groupid;
+    ac.group_id = attr->group_id;
     ac.policy = attr->policy;
     ac.isUser = is_uproc;
 
@@ -294,7 +294,7 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     vcpu_t main_vp = vcpu_current();
     main_vp->proc = &g_kernel_proc_storage;
     main_vp->id = VCPUID_MAIN;
-    main_vp->groupid = VCPUID_MAIN_GROUP;
+    main_vp->group_id = VCPUID_MAIN_GROUP;
     deque_add_last(&g_kernel_proc_storage.vcpu_queue, &main_vp->owner_qe);
     g_kernel_proc_storage.vcpu_count++;
 

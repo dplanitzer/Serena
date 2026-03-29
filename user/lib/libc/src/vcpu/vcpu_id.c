@@ -16,5 +16,5 @@ vcpuid_t vcpu_id(vcpu_t _Nonnull self)
 
 vcpuid_t vcpu_groupid(vcpu_t _Nonnull self)
 {
-    return self->groupid;
+    return self->group_id;
 }

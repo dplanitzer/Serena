@@ -27,7 +27,7 @@ typedef struct vcpu_attr {
     vcpu_func_t _Nullable   func;
     void* _Nullable         arg;
     size_t                  stack_size;
-    vcpuid_t                groupid;
+    vcpuid_t                group_id;
     vcpu_policy_t           policy;
     unsigned int            flags;
 } vcpu_attr_t;

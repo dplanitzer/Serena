@@ -147,7 +147,7 @@ struct dispatch {
     mtx_t                           mutex;
     cnd_t                           cond;
     dispatch_attr_t                 attr;
-    vcpuid_t                        groupid;        // Constant over lifetime
+    vcpuid_t                        group_id;        // Constant over lifetime
 
     deque_t                         workers;        // Each worker has its own work item queue
     size_t                          worker_count;

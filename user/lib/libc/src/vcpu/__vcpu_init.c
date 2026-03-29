@@ -23,15 +23,23 @@ vcpu_key_t              __os_dispatch_key;
 
 void __vcpu_init(void)
 {
+    vcpu_ids_info_t ids_info;
+
     __g_lock = SPINLOCK_INIT;
     __g_all_vcpus = DEQUE_INIT;
     __g_vcpu_keys = DEQUE_INIT;
 
 
+    const int r = _syscall(SC_vcpu_info, VCPUID_SELF, VCPU_INFO_IDS, &ids_info);
+    if (r != 0) {
+        _syscall(SC_exit, 1);
+        /* NOT REACHED */
+    }
+
     // Init the user space data for the main vcpu
     __g_main_vcpu.qe = DEQUE_NODE_INIT;
-    __g_main_vcpu.id = (vcpuid_t)_syscall(SC_vcpu_getid);
-    __g_main_vcpu.groupid = VCPUID_MAIN_GROUP;
+    __g_main_vcpu.id = ids_info.id;
+    __g_main_vcpu.group_id = ids_info.group_id;
     __g_main_vcpu.func = NULL;
     __g_main_vcpu.arg = 0;
     __g_main_vcpu.specific_tab = NULL;

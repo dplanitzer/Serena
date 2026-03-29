@@ -39,7 +39,7 @@ typedef struct vcpu_specific* vcpu_specific_t;
 struct vcpu {
     deque_node_t            qe;
     vcpuid_t                id;
-    vcpuid_t                groupid;
+    vcpuid_t                group_id;
     vcpu_func_t _Nullable  func;
     void* _Nullable         arg;
     struct vcpu_specific    specific_inline[VCPU_DATA_INLINE_CAPACITY];

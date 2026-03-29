@@ -64,7 +64,7 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
     
     if (self) {
         if (_dispatch_init(self, attr)) {
-            self->groupid = new_vcpu_groupid();
+            self->group_id = new_vcpu_groupid();
 
             for (size_t i = 0; i < attr->minConcurrency; i++) {
                 if (_dispatch_acquire_worker_with_ownership(self, _DISPATCH_ACQUIRE_VCPU) != 0) {
@@ -752,7 +752,7 @@ dispatch_t _Nonnull dispatch_main_queue(void)
             abort();
         }
 
-        g_main_dispatcher_rec.groupid = vcpu_groupid(vcpu_main());
+        g_main_dispatcher_rec.group_id = vcpu_groupid(vcpu_main());
         if (_dispatch_acquire_worker_with_ownership(&g_main_dispatcher_rec, _DISPATCH_ADOPT_MAIN_VCPU) != 0) {
             abort();
         }

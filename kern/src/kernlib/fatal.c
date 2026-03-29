@@ -133,7 +133,7 @@ _Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
         (excpt_frame_isuser(efp)) ? "USTK" : "KSTK", stk->base, stk_getinitialsp(stk),
         efp,
         fa,
-        vp, vp->id, vp->groupid,
+        vp, vp->id, vp->group_id,
         vp->proc, Process_GetId(vp->proc), proc_name,
         dq, (dq) ? dq_nam : ""
     );

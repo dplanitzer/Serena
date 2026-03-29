@@ -15,16 +15,6 @@ SYSCALL_0(vcpu_errno)
     return (intptr_t)&(vp->uerrno);
 }
 
-SYSCALL_0(vcpu_getid)
-{
-    return (intptr_t)vp->id;
-}
-
-SYSCALL_0(vcpu_getgrp)
-{
-    return (intptr_t)vp->groupid;
-}
-
 SYSCALL_0(vcpu_getdata)
 {
     return vp->udata;

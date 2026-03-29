@@ -216,7 +216,7 @@ void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
 vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self)
 {
     mtx_lock(&self->mutex);
-    const id_t id = self->groupid;
+    const id_t id = self->group_id;
     mtx_unlock(&self->mutex);
 
     return id;
@@ -238,7 +238,7 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
         scope = SIG_SCOPE_VCPU;
     }
     else {
-        id = self->groupid;
+        id = self->group_id;
         scope = SIG_SCOPE_VCPU_GROUP;
     }
 

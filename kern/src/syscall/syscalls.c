@@ -84,8 +84,6 @@ SYSCALL_REF(wq_wakeup);
 SYSCALL_REF(wq_wakeup_then_timedwait);
 
 SYSCALL_REF(vcpu_errno);
-SYSCALL_REF(vcpu_getid);
-SYSCALL_REF(vcpu_getgrp);
 SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
 SYSCALL_REF(vcpu_acquire);
@@ -152,7 +150,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getid, SC_INT),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(sigroute, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_PTR),
     SYSCALL_ENTRY(vcpu_setdata, SC_INT),
@@ -160,7 +158,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup_then_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(sigpending, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getgrp, SC_INT),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(getpgrp, SC_INT),
     SYSCALL_ENTRY(getsid, SC_INT),
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),

@@ -38,7 +38,7 @@ typedef struct vcpu_acquisition {
     size_t                  kernelStackSize;
     size_t                  userStackSize;
     vcpuid_t                id;
-    vcpuid_t                groupid;
+    vcpuid_t                group_id;
     vcpu_policy_t           policy;
     bool                    isUser;
 } vcpu_acquisition_t;
@@ -111,7 +111,7 @@ struct vcpu {
     stk_t                           user_stack;
 
     vcpuid_t                        id;                     // unique VP id (>= 1; 0 is reserved to indicate the absence of a vcpuid; vcpuids are process relative and assigned at acquisition time)
-    vcpuid_t                        groupid;                // virtual processor group id. Assigned at acquisition time 
+    vcpuid_t                        group_id;                // virtual processor group id. Assigned at acquisition time 
 
     // VP owner
     deque_node_t                    owner_qe;               // VP Pool if relinquished; process if acquired

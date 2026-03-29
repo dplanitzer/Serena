@@ -215,7 +215,7 @@ void kdispatch_free_signal(kdispatch_t _Nonnull self, int signo)
 vcpuid_t kdispatch_signal_target(kdispatch_t _Nonnull self)
 {
     mtx_lock(&self->mutex);
-    const id_t id = self->groupid;
+    const id_t id = self->group_id;
     mtx_unlock(&self->mutex);
 
     return id;

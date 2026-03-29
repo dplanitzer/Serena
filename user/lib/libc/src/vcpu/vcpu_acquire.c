@@ -31,7 +31,7 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
         return NULL;
     }
 
-    self->groupid = attr->groupid;
+    self->group_id = attr->group_id;
     self->func = attr->func;
     self->arg = attr->arg;
 
@@ -39,7 +39,7 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
     r_attr.func = (vcpu_func_t)__vcpu_start;
     r_attr.arg = self;
     r_attr.stack_size = attr->stack_size;
-    r_attr.groupid = attr->groupid;
+    r_attr.group_id = attr->group_id;
     r_attr.policy = attr->policy;
     r_attr.flags = attr->flags & ~VCPU_ACQUIRE_RESUMED;
     r_attr.data = (intptr_t)self;
