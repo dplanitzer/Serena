@@ -101,10 +101,10 @@ typedef void* proc_info_ref;
 #define PROC_INFO_TIMES 4
 
 
-#define PROC_STATE_ALIVE    0
-#define PROC_STATE_STOPPED  1
-#define PROC_STATE_EXITING  2
-#define PROC_STATE_ZOMBIE   3
+#define PROC_STATE_ALIVE    0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something */
+#define PROC_STATE_STOPPED  1       /* Process is explicitly suspended */
+#define PROC_STATE_EXITING  2       /* Process has received an exit() call and is in the process of terminating */
+#define PROC_STATE_ZOMBIE   3       /* Process has terminated and parent processes hasn't reaped it yet */
 
 typedef struct proc_basic_info {
     int run_state;

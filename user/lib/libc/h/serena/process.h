@@ -68,7 +68,8 @@ extern int proc_schedparam(pid_t pid, int type, int* _Nonnull param);
 extern int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param);
 
 
-extern int proc_info(pid_t id, int flavor, proc_info_ref _Nonnull info);
+extern int proc_info(pid_t pid, int flavor, proc_info_ref _Nonnull info);
+extern int proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 

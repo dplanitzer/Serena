@@ -60,6 +60,7 @@ SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
 SYSCALL_REF(proc_setschedparam);
 SYSCALL_REF(proc_info);
+SYSCALL_REF(proc_name);
 
 
 SYSCALL_REF(alloc_address_space);
@@ -104,7 +105,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
     SYSCALL_ENTRY(exit, SC_NORETURN),
     SYSCALL_ENTRY(spawn_process, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(proc_name, SC_ERRNO),
     SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(getpargs, SC_PTR),
     SYSCALL_ENTRY(open, SC_ERRNO),

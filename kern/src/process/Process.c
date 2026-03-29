@@ -345,6 +345,31 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
     return err;
 }
 
+errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    if (bufSize < 1) {
+        return ERANGE;
+    }
+
+    mtx_lock(&self->mtx);
+    decl_try_err();
+    const pargs_t* pa = (const pargs_t*)self->pargs_base;
+    const char* arg0 = pa->argv[0];
+    const size_t arg0len = strlen(arg0);
+
+    if (bufSize >= arg0len + 1) {
+        memcpy(buf, arg0, arg0len);
+        buf[arg0len] = '\0';
+    }
+    else {
+        *buf = '\0';
+        return ERANGE;
+    }
+
+    mtx_unlock(&self->mtx);
+    return err;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

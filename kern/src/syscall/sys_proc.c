@@ -134,3 +134,27 @@ SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
 
     return err;
 }
+
+SYSCALL_3(proc_name, pid_t pid, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
+        err = Process_GetName(pp, pa->buf, pa->bufSize);
+    }
+    else {
+        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (tpp) {
+            Process_GetName(pp, pa->buf, pa->bufSize);
+            Process_Release(tpp);
+        }
+        else {
+            err = ESRCH;
+        }
+
+    }
+
+    return err;
+}
