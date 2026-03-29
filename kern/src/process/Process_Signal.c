@@ -127,7 +127,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
     mtx_lock(&self->mtx);
     switch (op) {
         case SIG_ROUTE_ADD:
-            if (self->state < PROC_STATE_EXITING_OLD) {
+            if (self->run_state < PROC_STATE_EXITING) {
                 err = _add_sigroute(self, signo, scope, id);
             }
             else {
@@ -164,13 +164,13 @@ static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int s
 // Otherwise does nothing. Nesting is not supported.
 static void _proc_stop(ProcessRef _Nonnull _Locked self)
 {
-    if (self->state == PROC_STATE_RUNNING_OLD) {
+    if (self->run_state == PROC_STATE_ALIVE) {
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
             vcpu_t cvp = vcpu_from_owner_qe(it);
 
             vcpu_suspend(cvp);
         )
-        self->state = PROC_STATE_STOPPED_OLD;
+        self->run_state = PROC_STATE_STOPPED;
     }
 }
 
@@ -178,13 +178,13 @@ static void _proc_stop(ProcessRef _Nonnull _Locked self)
 // Otherwise does nothing.
 static void _proc_cont(ProcessRef _Nonnull _Locked self)
 {
-    if (self->state == PROC_STATE_STOPPED_OLD) {
+    if (self->run_state == PROC_STATE_STOPPED) {
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
             vcpu_t cvp = vcpu_from_owner_qe(it);
 
             vcpu_resume(cvp, false);
         )
-        self->state = PROC_STATE_RUNNING_OLD;
+        self->run_state = PROC_STATE_ALIVE;
     }
 }
 
@@ -305,7 +305,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     }
 
     mtx_lock(&self->mtx);
-    if (self->state < PROC_STATE_EXITING_OLD) {
+    if (self->run_state < PROC_STATE_EXITING) {
         switch (scope) {
             case SIG_SCOPE_VCPU:
                 err = _proc_send_signal_to_vcpu(self, id, signo, true);
@@ -329,7 +329,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
                 break;
         }
     }
-    else if (self->state == PROC_STATE_EXITING_OLD && signo == SIGCHLD && self->exit_coordinator) {
+    else if (self->run_state == PROC_STATE_EXITING && signo == SIGCHLD && self->exit_coordinator) {
         // Auto-route SIGCHLD to the exit coordinator because we're in EXIT state
         vcpu_send_signal(self->exit_coordinator, signo);
     }

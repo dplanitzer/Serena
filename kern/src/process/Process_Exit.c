@@ -190,7 +190,7 @@ void _proc_zombify(ProcessRef _Nonnull self)
     AddressSpace_UnmapAll(&self->addr_space);
     FileManager_Deinit(&self->fm);
 
-    self->state = PROC_STATE_ZOMBIE_OLD;
+    self->run_state = PROC_STATE_ZOMBIE;
 }
 
 _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
@@ -202,10 +202,10 @@ _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 
 
     mtx_lock(&self->mtx);
-    const int isExitCoordinator = self->state < PROC_STATE_EXITING_OLD;
+    const int isExitCoordinator = self->run_state < PROC_STATE_EXITING;
     
     if (isExitCoordinator) {
-        self->state = PROC_STATE_EXITING_OLD;
+        self->run_state = PROC_STATE_EXITING;
         _proc_set_exit_reason(self, reason, code)
         self->exit_coordinator = vcpu_current();
 

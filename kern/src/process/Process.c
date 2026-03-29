@@ -30,7 +30,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     AddressSpace_Init(&self->addr_space);
 
     self->retainCount = RC_INIT;
-    self->state = PROC_STATE_RUNNING_OLD;
+    self->run_state = PROC_STATE_ALIVE;
     self->pid = 0;
     self->ppid = ppid;
     self->pgrp = pgrp;
@@ -177,6 +177,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     vp->udata = attr->data;
     deque_add_last(&self->vcpu_queue, &vp->owner_qe);
     self->vcpu_count++;
+    self->vcpu_lifetime_count++;
     
 catch:
     mtx_unlock(&self->mtx);
@@ -287,6 +288,17 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
     mtx_lock(&self->mtx);
 
     switch (flavor) {
+        case PROC_INFO_BASIC: {
+            proc_basic_info_t* ip = info;
+
+            ip->run_state = self->run_state;
+            ip->vcpu_count = self->vcpu_count;
+            ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
+            ip->vcpu_waiting_count = self->vcpu_waiting_count;
+            ip->vm_size = AddressSpace_GetVirtualSize(&self->addr_space);
+            break;
+        }
+
         case PROC_INFO_IDS: {
             proc_ids_info_t* ip = info;
 

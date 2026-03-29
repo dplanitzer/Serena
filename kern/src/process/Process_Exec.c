@@ -188,6 +188,7 @@ static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonn
     AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
     deque_add_last(&self->vcpu_queue, &pimg->main_vp->owner_qe);
     self->vcpu_count++;
+    self->vcpu_lifetime_count++;
     pimg->main_vp->proc = self;
     self->pargs_base = pimg->pargs;
 }

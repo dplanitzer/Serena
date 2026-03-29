@@ -19,7 +19,7 @@ errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, 
 
 static int _Process_GetExactState(ProcessRef _Nonnull _Locked self)
 {
-    if (self->state == PROC_STATE_RUNNING_OLD) {
+    if (self->run_state == PROC_STATE_ALIVE) {
         // Process is waiting if all vcpus are waiting
         // Process is suspended if all vcpus are suspended
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
@@ -33,7 +33,11 @@ static int _Process_GetExactState(ProcessRef _Nonnull _Locked self)
         return PROC_STATE_SLEEPING_OLD;
     }
 
-    return self->state;
+    switch (self->run_state) {
+        case PROC_STATE_STOPPED:    return PROC_STATE_STOPPED_OLD;
+        case PROC_STATE_EXITING:    return PROC_STATE_EXITING_OLD;
+        default:     return PROC_STATE_ZOMBIE_OLD;
+    }
 }
 
 int Process_GetExactState(ProcessRef _Nonnull self)
@@ -45,10 +49,10 @@ int Process_GetExactState(ProcessRef _Nonnull self)
     return state;
 }
 
-int Process_GetInexactState(ProcessRef _Nonnull self)
+int Process_GetState(ProcessRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    const int state = self->state;
+    const int state = self->run_state;
     mtx_unlock(&self->mtx);
 
     return state;

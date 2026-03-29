@@ -79,7 +79,7 @@ typedef struct Process {
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
 
     // Process lifecycle state
-    int                             state;
+    int                             run_state;
 
     // Process image
     AddressSpace                    addr_space;
@@ -88,6 +88,8 @@ typedef struct Process {
     // VPs
     deque_t                         vcpu_queue;     // deque_t of VPs [mtx]
     size_t                          vcpu_count;
+    size_t                          vcpu_lifetime_count;
+    size_t                          vcpu_waiting_count;
     vcpuid_t                        next_avail_vcpuid;
 
     // Scheduling parameters

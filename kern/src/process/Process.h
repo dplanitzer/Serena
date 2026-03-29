@@ -45,10 +45,8 @@ extern pid_t Process_GetId(ProcessRef _Nonnull self);
 extern void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred);
 extern errno_t Process_GetArgv0(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buflen);
 
-// Returns the current process state. The returned state is inexact in the sense
-// that the returned state will be RUNNING even if all vcpus are in waiting or
-// suspended state.
-extern int Process_GetInexactState(ProcessRef _Nonnull self);
+// Returns the current process state.
+extern int Process_GetState(ProcessRef _Nonnull self);
 
 // Terminates the calling process and stores 'reason' and 'code' as the exit
 // reason and code respectively. Note that this function never returns. It turns

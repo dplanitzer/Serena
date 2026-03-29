@@ -95,9 +95,26 @@ struct proc_status {
 // Information about a process
 typedef void* proc_info_ref;
 
-#define PROC_INFO_IDS   1
-#define PROC_INFO_CREDS 2
-#define PROC_INFO_TIMES 3
+#define PROC_INFO_BASIC 1
+#define PROC_INFO_IDS   2
+#define PROC_INFO_CREDS 3
+#define PROC_INFO_TIMES 4
+
+
+#define PROC_STATE_ALIVE    0
+#define PROC_STATE_STOPPED  1
+#define PROC_STATE_EXITING  2
+#define PROC_STATE_ZOMBIE   3
+
+typedef struct proc_basic_info {
+    int run_state;
+
+    size_t  vcpu_count;             // number of vcpus bound to process right now
+    size_t  vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
+    size_t  vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
+
+    size_t  vm_size;                // size of process address space in bytes
+} proc_basic_info_t;
 
 
 typedef struct proc_ids_info {

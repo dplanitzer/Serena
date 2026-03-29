@@ -179,7 +179,7 @@ ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnul
     if (child_p && child_p->ppid == ppid) {
         *pOutExists = true;
 
-        if (Process_GetInexactState(child_p) == PROC_STATE_ZOMBIE_OLD) {
+        if (Process_GetState(child_p) == PROC_STATE_ZOMBIE) {
             the_p = Process_Retain(child_p);
         }
     }
@@ -204,7 +204,7 @@ static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull
             if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
                 *pOutAnyExists = true;
 
-                if (Process_GetInexactState(child_p) == PROC_STATE_ZOMBIE_OLD) {
+                if (Process_GetState(child_p) == PROC_STATE_ZOMBIE) {
                     return child_p;
                 }
             }
