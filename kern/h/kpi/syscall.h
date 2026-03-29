@@ -28,8 +28,8 @@ enum {
     SC_close,               // errno_t close(int fd)
     SC_proc_join,           // int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
     SC_lseek,               // errno_t lseek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
-    SC_getcwd,              // errno_t getcwd(char* buffer, size_t bufferSize)
-    SC_chdir,               // errno_t chdir(const char* _Nonnull path)
+    SC_proc_cwd,            // errno_t proc_cwd(char* buffer, size_t bufferSize)
+    SC_proc_setcwd,         // errno_t proc_setcwd(const char* _Nonnull path)
     SC_unused6,             // XXX UNUSED
     SC_umask,               // mode_t umask(mode_t mask)
     SC_mkdir,               // errno_t mkdir(const char* _Nonnull path, mode_t mode)

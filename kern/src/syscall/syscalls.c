@@ -31,8 +31,8 @@ SYSCALL_REF(mkfile);
 SYSCALL_REF(open);
 SYSCALL_REF(opendir);
 SYSCALL_REF(mkdir);
-SYSCALL_REF(getcwd);
-SYSCALL_REF(chdir);
+SYSCALL_REF(proc_cwd);
+SYSCALL_REF(proc_setcwd);
 SYSCALL_REF(stat);
 SYSCALL_REF(fstat);
 SYSCALL_REF(truncate);
@@ -111,8 +111,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(close, SC_ERRNO),
     SYSCALL_ENTRY(proc_timedjoin, SC_ERRNO),
     SYSCALL_ENTRY(seek, SC_ERRNO),
-    SYSCALL_ENTRY(getcwd, SC_ERRNO),
-    SYSCALL_ENTRY(chdir, SC_ERRNO),
+    SYSCALL_ENTRY(proc_cwd, SC_ERRNO),
+    SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
     SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(umask, SC_INT),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),

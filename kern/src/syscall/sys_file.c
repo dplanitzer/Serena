@@ -99,7 +99,7 @@ SYSCALL_2(mkdir, const char* _Nonnull path, mode_t mode)
     return err;
 }
 
-SYSCALL_2(getcwd, char* _Nonnull buffer, size_t bufferSize)
+SYSCALL_2(proc_cwd, char* _Nonnull buffer, size_t bufferSize)
 {
     ProcessRef pp = vp->proc;
 
@@ -109,7 +109,7 @@ SYSCALL_2(getcwd, char* _Nonnull buffer, size_t bufferSize)
     return err;
 }
 
-SYSCALL_1(chdir, const char* _Nonnull path)
+SYSCALL_1(proc_setcwd, const char* _Nonnull path)
 {
     ProcessRef pp = vp->proc;
 

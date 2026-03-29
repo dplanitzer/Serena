@@ -1,5 +1,5 @@
 //
-//  getcwd.c
+//  proc_cwd.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
@@ -10,7 +10,7 @@
 #include <serena/process.h>
 
 
-int getcwd(char* _Nonnull buffer, size_t bufferSize)
+int proc_cwd(char* _Nonnull buffer, size_t bufferSize)
 {
-    return (int)_syscall(SC_getcwd, buffer, bufferSize);
+    return (int)_syscall(SC_proc_cwd, buffer, bufferSize);
 }

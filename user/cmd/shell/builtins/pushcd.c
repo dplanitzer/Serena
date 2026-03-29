@@ -31,12 +31,12 @@ static int do_pushcd(InterpreterRef _Nonnull ip, const char* path, const char* p
     CDEntry* entry = NULL;
     char* buf = malloc(PATH_MAX);
     
-    getcwd(buf, PATH_MAX);
+    proc_cwd(buf, PATH_MAX);
     entry = calloc(1, sizeof(CDEntry));
     entry->path = strdup(buf);
 
     if (*path != '\0') {
-        if (chdir(path) != 0) {
+        if (proc_setcwd(path) != 0) {
             free(entry->path);
             free(entry);
             print_error(proc_name, path, errno);

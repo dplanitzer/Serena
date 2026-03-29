@@ -1,5 +1,5 @@
 //
-//  chdir.c
+//  proc_setcwd.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/13/25.
@@ -10,7 +10,7 @@
 #include <serena/process.h>
 
 
-int chdir(const char* _Nonnull path)
+int proc_setcwd(const char* _Nonnull path)
 {
-    return (int)_syscall(SC_chdir, path);
+    return (int)_syscall(SC_proc_setcwd, path);
 }

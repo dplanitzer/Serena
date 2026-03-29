@@ -114,7 +114,7 @@ static void login_user(void)
     puts("Logging in as admin...\n");
 
     // Make the current directory the user's home directory
-    chdir(homePath);
+    proc_setcwd(homePath);
 
     if (start_shell(shellPath, homePath) != 0) {
         printf("Error: %s.\n", strerror(errno));

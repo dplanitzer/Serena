@@ -164,7 +164,7 @@ static fsid_t get_fsid(const char* _Nonnull path)
 
     if (*p == '\0') {
         p = path_buf;
-        getcwd(p, PATH_MAX);
+        proc_cwd(p, PATH_MAX);
     }
 
 

@@ -26,7 +26,7 @@ static CLAP_DECL(params,
 static int do_popcd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
 {
     if (ip->cdStackTos) {
-        if (chdir(ip->cdStackTos->path) == 0) {
+        if (proc_setcwd(ip->cdStackTos->path) == 0) {
             CDEntry* ep = ip->cdStackTos;
 
             ip->cdStackTos = ep->prev;

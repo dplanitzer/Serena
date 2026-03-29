@@ -27,7 +27,7 @@ static void do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
 {
     char* buf = malloc(PATH_MAX);
 
-    getcwd(buf, PATH_MAX);
+    proc_cwd(buf, PATH_MAX);
     OpStack_PushCString(ip->opStack, buf);
     free(buf);
 }

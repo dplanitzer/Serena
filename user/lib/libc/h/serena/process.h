@@ -17,11 +17,15 @@
 
 __CPP_BEGIN
 
-extern int chdir(const char* _Nonnull path);
-extern int getcwd(char* _Nonnull buffer, size_t bufferSize);
+// Gets/sets the current working directory of the process.
+extern int proc_cwd(char* _Nonnull buffer, size_t bufferSize);
+extern int proc_setcwd(const char* _Nonnull path);
 
+// Returns the process id of the calling process.
 extern pid_t proc_self(void);
 
+// Exits the current process. This call is different from exit() in the sense
+// that it does not invoke atexit() callbacks.
 extern _Noreturn void proc_exit(int status);
 
 

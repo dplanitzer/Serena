@@ -27,7 +27,7 @@ static CLAP_DECL(params,
 
 static int do_cd(const char* path, const char* proc_name)
 {
-    if (chdir(path) == 0) {
+    if (proc_setcwd(path) == 0) {
         return EXIT_SUCCESS;
     }
     else {
