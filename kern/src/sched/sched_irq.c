@@ -11,6 +11,7 @@
 #include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
+#include <process/ProcessPriv.h>
 
 
 // Invoked by the clock when a wait timeout expires
@@ -30,11 +31,19 @@ void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         run->quantum_countdown -= SCHED_QUANTUM_SCALE;
     }
 
-    if (excpt_frame_isuser(efp)) {
-        run->user_ticks++;
-    }
-    else {
-        run->system_ticks++;
+    if (run->run_state != VCPU_RUST_TERMINATING) {
+        if (excpt_frame_isuser(efp)) {
+            run->user_ticks++;
+            if (run->proc) {
+                run->proc->user_ticks++;
+            }
+        }
+        else {
+            run->system_ticks++;
+            if (run->proc) {
+                run->proc->system_ticks++;
+            }
+        }
     }
 }
 

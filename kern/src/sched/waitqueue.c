@@ -12,6 +12,7 @@
 #include <ext/math.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
+#include <process/ProcessPriv.h>
 
 
 void wq_init(waitqueue_t _Nonnull self)
@@ -115,8 +116,10 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
 
     
     // Update the wait time stats
-    const stop_ticks = clock_getticks(g_mono_clock);
-    vp->wait_ticks += (stop_ticks - start_ticks);
+    const ticks_t stop_ticks = clock_getticks(g_mono_clock);
+    const ticks_t wait_ticks = stop_ticks - start_ticks;
+    vp->wait_ticks += wait_ticks;
+    vp->proc->wait_ticks += wait_ticks;
 
 
     // Calculate the unslept time, if requested

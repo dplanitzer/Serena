@@ -101,6 +101,15 @@ typedef struct Process {
     // File manager
     FileManager                     fm;
 
+    // Times stats
+    struct timespec                 creation_time;
+    ticks_t                         user_ticks;         // number of clock ticks this process has spent running in user space across all vcpus (former + current)
+    ticks_t                         system_ticks;       // number of clock ticks this process has spent running in system space across all vcpus (former + current)
+    ticks_t                         wait_ticks;         // number of clock ticks this process has spent waiting or suspended across all vcpus (former + current)
+    ticks_t                         rq_user_ticks;      // number of clock ticks this process has spent running in user space across all relinquished vcpus
+    ticks_t                         rq_system_ticks;    // number of clock ticks this process has spent running in system space across all relinquished vcpus
+    ticks_t                         rq_wait_ticks;      // number of clock ticks this process has spent waiting or suspended across all relinquished vcpus
+
     // User wait queues
     deque_t/*<struct u_wait_queue>*/waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> struct u_wait_queue
     int                             nextAvailWaitQueueId;

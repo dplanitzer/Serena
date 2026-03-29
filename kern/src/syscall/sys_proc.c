@@ -11,16 +11,16 @@
 #include <process/ProcessManager.h>
 
 
+SYSCALL_0(getpargs)
+{
+    return (intptr_t) vp->proc->pargs_base;
+}
+
 SYSCALL_1(exit, int status)
 {    
     Process_Exit(vp->proc, JREASON_EXIT, pa->status);
     /* NOT REACHED */
     return 0;
-}
-
-SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
-{
-    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
 }
 
 SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
@@ -35,14 +35,34 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
     return err;
 }
 
-SYSCALL_0(getpargs)
+SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
-    return (intptr_t) vp->proc->pargs_base;
+    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
 }
 
 SYSCALL_5(proc_timedjoin, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
 {
     return Process_TimedJoin(vp->proc, pa->scope, pa->id, pa->flags, pa->wtp, pa->ps);
+}
+
+SYSCALL_2(proc_cwd, char* _Nonnull buffer, size_t bufferSize)
+{
+    ProcessRef pp = vp->proc;
+
+    mtx_lock(&pp->mtx);
+    const errno_t err = FileManager_GetWorkingDirectoryPath(&pp->fm, pa->buffer, pa->bufferSize);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_1(proc_setcwd, const char* _Nonnull path)
+{
+    ProcessRef pp = vp->proc;
+
+    mtx_lock(&pp->mtx);
+    const errno_t err = FileManager_SetWorkingDirectoryPath(&pp->fm, pa->path);
+    mtx_unlock(&pp->mtx);
+    return err;
 }
 
 SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)

@@ -10,6 +10,7 @@
 #define _KPI_PROCESS_H 1
 
 #include <_cmndef.h>
+#include <ext/timespec.h>
 #include <kpi/kei.h>
 #include <kpi/types.h>
 
@@ -96,6 +97,7 @@ typedef void* proc_info_ref;
 
 #define PROC_INFO_IDS   1
 #define PROC_INFO_CREDS 2
+#define PROC_INFO_TIMES 3
 
 
 typedef struct proc_ids_info {
@@ -105,9 +107,23 @@ typedef struct proc_ids_info {
     pid_t   session_id;
 } proc_ids_info_t;
 
+
 typedef struct proc_creds_info {
     uid_t   uid;
     gid_t   gid;
 } proc_creds_info_t;
+
+
+typedef struct proc_times_info {
+    struct timespec creation_time;      // Time when the process was created
+
+    struct timespec user_time;          // Time the process has spent running in user mode since creation. This includes currently acquired and formerly acquired vcpus
+    struct timespec system_time;        // Time the process has spent running in system/kernel mode since creation. This includes currently acquired and formerly acquired vcpus
+    struct timespec wait_time;          // Time the process has spent in waiting or suspended state since creation. This includes currently acquired and formerly acquired vcpus
+
+    struct timespec acq_user_time;      // Time the process has spent running in user mode since creation. Acquired vcpus only
+    struct timespec acq_system_time;    // Time the process has spent running in system/kernel mode since creation. Acquired vcpus only
+    struct timespec acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
+} proc_times_info_t;
 
 #endif /* _KPI_PROCESS_H */

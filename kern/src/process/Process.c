@@ -48,6 +48,8 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     }
     self->nextAvailWaitQueueId = 0;
 
+    clock_gettime(g_mono_clock, &self->creation_time);
+
     wq_init(&self->clk_wait_queue);
     wq_init(&self->siwa_queue);
     _proc_init_default_sigroutes(self);
@@ -203,8 +205,12 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
 
     mtx_lock(&self->mtx);
     deque_remove(&self->vcpu_queue, &vp->owner_qe);
-    vp->proc = NULL;
+
+    self->rq_user_ticks += vp->user_ticks;
+    self->rq_system_ticks += vp->system_ticks;
+    self->rq_wait_ticks += vp->wait_ticks;
     self->vcpu_count--;
+
     mtx_unlock(&self->mtx);
 }
 
@@ -299,6 +305,24 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             break;
         }
 
+        case PROC_INFO_TIMES: {
+            proc_times_info_t* ip = info;
+            ticks_t tt;
+
+            ip->creation_time = self->creation_time;
+            clock_ticks2time(g_mono_clock, self->user_ticks, &ip->user_time);
+            clock_ticks2time(g_mono_clock, self->system_ticks, &ip->system_time);
+            clock_ticks2time(g_mono_clock, self->wait_ticks, &ip->wait_time);
+
+            tt = self->user_ticks - self->rq_user_ticks;
+            clock_ticks2time(g_mono_clock, tt, &ip->user_time);
+            tt = self->system_ticks - self->rq_system_ticks;
+            clock_ticks2time(g_mono_clock, tt, &ip->system_time);
+            tt = self->wait_ticks - self->rq_wait_ticks;
+            clock_ticks2time(g_mono_clock, tt, &ip->wait_time);
+            break;
+        }
+        
         default:
             err = EINVAL;
             break;

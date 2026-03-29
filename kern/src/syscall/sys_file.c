@@ -99,26 +99,6 @@ SYSCALL_2(mkdir, const char* _Nonnull path, mode_t mode)
     return err;
 }
 
-SYSCALL_2(proc_cwd, char* _Nonnull buffer, size_t bufferSize)
-{
-    ProcessRef pp = vp->proc;
-
-    mtx_lock(&pp->mtx);
-    const errno_t err = FileManager_GetWorkingDirectoryPath(&pp->fm, pa->buffer, pa->bufferSize);
-    mtx_unlock(&pp->mtx);
-    return err;
-}
-
-SYSCALL_1(proc_setcwd, const char* _Nonnull path)
-{
-    ProcessRef pp = vp->proc;
-
-    mtx_lock(&pp->mtx);
-    const errno_t err = FileManager_SetWorkingDirectoryPath(&pp->fm, pa->path);
-    mtx_unlock(&pp->mtx);
-    return err;
-}
-
 SYSCALL_2(stat, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
 {
     decl_try_err();

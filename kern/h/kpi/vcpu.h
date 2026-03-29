@@ -151,10 +151,11 @@ typedef struct vcpu_ids_info {
 
 
 typedef struct vcpu_times_info {
+    struct timespec acquisition_time;   // Time when the process acquired this vcpu
+    
     struct timespec user_time;          // Time the vcpu has spent running in user mode since acquisition
     struct timespec system_time;        // Time the vcpu has spent running in system/kernel mode since acquisition
     struct timespec wait_time;          // Time the vcpu has spent in waiting or suspended state since acquisition
-    struct timespec acquisition_time;   // Time when the process acquired this vcpu
 } vcpu_times_info_t;
 
 #endif /* _KPI_VCPU_H */
