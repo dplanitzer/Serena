@@ -54,10 +54,6 @@ SYSCALL_REF(fsgetdisk);
 
 SYSCALL_REF(exit);
 SYSCALL_REF(spawn_process);
-SYSCALL_REF(getpid);
-SYSCALL_REF(getppid);
-SYSCALL_REF(getpgrp);
-SYSCALL_REF(getsid);
 SYSCALL_REF(getuid);
 SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
@@ -110,8 +106,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
     SYSCALL_ENTRY(exit, SC_NORETURN),
     SYSCALL_ENTRY(spawn_process, SC_ERRNO),
-    SYSCALL_ENTRY(getpid, SC_INT),
-    SYSCALL_ENTRY(getppid, SC_INT),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(getpargs, SC_PTR),
     SYSCALL_ENTRY(open, SC_ERRNO),
     SYSCALL_ENTRY(close, SC_ERRNO),
@@ -160,8 +156,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wakeup_then_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(sigpending, SC_ERRNO),
     SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
-    SYSCALL_ENTRY(getpgrp, SC_INT),
-    SYSCALL_ENTRY(getsid, SC_INT),
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_relinquish_self, SC_NORETURN),
     SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),

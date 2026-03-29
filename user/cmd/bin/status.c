@@ -21,11 +21,11 @@
 static char path_buf[PATH_MAX];
 static char num_buf[__LONG_MAX_BASE_10_DIGITS + 1];
 static const char* state_name[5] = {
-    "running",      // PROC_STATE_RUNNING
-    "sleeping",     // PROC_STATE_SLEEPING
-    "stopped",      // PROC_STATE_STOPPED
-    "running",      // PROC_STATE_EXITING
-    "zombie",       // PROC_STATE_ZOMBIE
+    "running",      // PROC_STATE_RUNNING_OLD
+    "sleeping",     // PROC_STATE_SLEEPING_OLD
+    "stopped",      // PROC_STATE_STOPPED_OLD
+    "running",      // PROC_STATE_EXITING_OLD
+    "zombie",       // PROC_STATE_ZOMBIE_OLD
 };
 
 

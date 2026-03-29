@@ -30,7 +30,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     AddressSpace_Init(&self->addr_space);
 
     self->retainCount = RC_INIT;
-    self->state = PROC_STATE_RUNNING;
+    self->state = PROC_STATE_RUNNING_OLD;
     self->pid = 0;
     self->ppid = ppid;
     self->pgrp = pgrp;

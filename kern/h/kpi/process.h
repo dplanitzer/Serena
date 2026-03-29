@@ -13,6 +13,8 @@
 #include <kpi/kei.h>
 #include <kpi/types.h>
 
+#define PROC_SELF_ID    0
+
 // The process arguments descriptor is stored in the process address space and
 // it contains a pointer to the base of the command line arguments and environment
 // variables tables. These tables store pointers to nul-terminated strings and
@@ -31,11 +33,11 @@ typedef struct pargs {
 } pargs_t;
 
 
-#define PROC_STATE_RUNNING  0
-#define PROC_STATE_SLEEPING 1
-#define PROC_STATE_STOPPED  2
-#define PROC_STATE_EXITING  3
-#define PROC_STATE_ZOMBIE   4
+#define PROC_STATE_RUNNING_OLD  0
+#define PROC_STATE_SLEEPING_OLD 1
+#define PROC_STATE_STOPPED_OLD  2
+#define PROC_STATE_EXITING_OLD  3
+#define PROC_STATE_ZOMBIE_OLD   4
 
 // Process specific information
 typedef struct proc_info_old {

@@ -35,26 +35,6 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
     return err;
 }
 
-SYSCALL_0(getpid)
-{
-    return vp->proc->pid;
-}
-
-SYSCALL_0(getppid)
-{
-    return vp->proc->ppid;
-}
-
-SYSCALL_0(getpgrp)
-{
-    return vp->proc->pgrp;
-}
-
-SYSCALL_0(getsid)
-{
-    return vp->proc->sid;
-}
-
 SYSCALL_0(getuid)
 {
     return FileManager_GetRealUserId(&vp->proc->fm);
@@ -80,7 +60,7 @@ SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == 0 || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
         err = Process_GetSchedParam(pp, pa->type, pa->param);
     }
     else {
@@ -103,7 +83,7 @@ SYSCALL_3(proc_setschedparam, pid_t pid, int type, int* _Nonnull param)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == 0 || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
         err = Process_SetSchedParam(pp, pa->type, pa->param);
     }
     else {
@@ -127,7 +107,7 @@ SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == 0 || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
         err = Process_GetInfo(pp, pa->flavor, pa->info);
     }
     else {

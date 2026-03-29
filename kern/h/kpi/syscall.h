@@ -21,8 +21,8 @@ enum {
     SC_vmalloc,             // errno_t vmalloc(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn void exit(int status)
     SC_spawn,               // errno_t spawn(cost char* _Nonnull path, const char* _Nullable argv[], spawn_opts_t * _Nullable options, pid_t * _Nullable rpid)
-    SC_getpid,              // pid_t getpid(void)
-    SC_getppid,             // pid_t getppid(void)
+    SC_unused2,             // XXX UNUSED
+    SC_unused3,             // XXX UNUSED
     SC_getpargs,            // pargs_t * _Nonnull getpargs(void)
     SC_open,                // errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
     SC_close,               // errno_t close(int fd)
@@ -70,9 +70,9 @@ enum {
     SC_sigtimedwait,        // int sigtimedwait(const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
     SC_wq_wakeup_then_timedwait,    // int wq_wakeup_then_timedwait(int q, int q2, int flags, const struct timespec* _Nonnull wtp)
     SC_sigpending,          // int sigpending(sigset_t* _Nonnull set)
-    SC_unused2,             // XXX UNUSED
-    SC_getpgrp,             // pid_t getpgrp(void)
-    SC_getsid,              // sid_t getsid(void)
+    SC_unused1,             // XXX UNUSED
+    SC_unused4,             // XXX UNUSED
+    SC_unused5,             // XXX UNUSED
     SC_vcpu_acquire,        // int vcpu_acquire(const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
     SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
     SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)

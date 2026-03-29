@@ -25,10 +25,7 @@ extern _Noreturn void _exit(int status);
 extern uid_t getuid(void);
 extern gid_t getgid(void);
 
-extern pid_t getpid(void);
-extern pid_t getppid(void);
-extern pid_t getpgrp(void);
-extern pid_t getsid(void);
+extern pid_t proc_self(void);
 
 
 // Replaces the currently executing process image with the executable image stored
