@@ -88,7 +88,7 @@ errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull s
     errno_t err;
 
     while (!done) {
-        if (wq_prim_wait(wq, set, false) == WRES_SIGNAL) {
+        if (wq_prim_wait(wq, set, 0, NULL, NULL) == WRES_SIGNAL) {
             const int best_signo = _consume_best_pending_sig(vp, *set);
 
             if (best_signo) {
@@ -128,7 +128,7 @@ errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonn
 
 
     while (!done) {
-        switch (wq_prim_timedwait(wq, set, flags, &deadline, NULL)) {
+        switch (wq_prim_wait(wq, set, flags, &deadline, NULL)) {
             case WRES_WAKEUP:   // Spurious wakeup
                 break;
 

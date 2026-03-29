@@ -41,16 +41,41 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 // non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bool armTimeout)
+wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const sigset_t hot_sigs = (set) ? *set : SIGSET_NONMASKABLES;
+    ticks_t deadline_ticks;
+    bool armTimeout = false;
 
     assert(vp->run_state == VCPU_RUST_RUNNING);
 
+    if (rmtp) {
+        timespec_clear(rmtp);
+    }
 
     if ((vp->pending_sigs & hot_sigs) != 0) {
         return WRES_SIGNAL;
+    }
+
+
+    // Time when the wait officially starts
+    const ticks_t start_ticks = clock_getticks(g_mono_clock);
+
+    // Put us on the timeout queue if a relevant timeout has been specified.
+    // Note that we return immediately if we're already past the deadline
+    if (wtp && timespec_lt(wtp, &TIMESPEC_INF)) {
+        deadline_ticks = clock_time2ticks_ceil(g_mono_clock, wtp);
+
+        if ((flags & WAIT_ABSTIME) == 0) {
+            deadline_ticks += start_ticks; 
+        }
+
+        if (deadline_ticks <= start_ticks) {
+            return WRES_TIMEOUT;
+        }
+
+        armTimeout = true;
     }
 
 
@@ -71,77 +96,36 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     }
 
     
-
     if (armTimeout) {
+        vp->timeout.deadline = deadline_ticks;
+        vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
+        vp->timeout.arg = vp;
+
         clock_deadline(g_mono_clock, &vp->timeout);
     }
+
 
     // Find another VP to run and context switch to it
     sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
+
     if (armTimeout) {
         clock_cancel_deadline(g_mono_clock, &vp->timeout);
     }
 
-
-    return vp->wakeup_reason;
-}
-
-// Same as wq_prim_wait() but cancels the wait once the wait deadline specified
-// by 'wtp' has arrived.
-// @Entry Condition: preemption disabled
-wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
-{
-    vcpu_t vp = (vcpu_t)g_sched->running;
-    ticks_t now, deadline;
-    bool armTimeout = false;
-
-    // Put us on the timeout queue if a relevant timeout has been specified.
-    // Note that we return immediately if we're already past the deadline
-    if (wtp && timespec_lt(wtp, &TIMESPEC_INF)) {
-        now = clock_getticks(g_mono_clock);
-        deadline = clock_time2ticks_ceil(g_mono_clock, wtp);
-
-        if ((flags & WAIT_ABSTIME) == 0) {
-            deadline += now; 
-        }
-
-        if (deadline <= now) {
-            if (rmtp) {
-                timespec_clear(rmtp);
-            }
-            return WRES_TIMEOUT;
-        }
-
-
-        vp->timeout.deadline = deadline;
-        vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
-        vp->timeout.arg = vp;
-
-        armTimeout = true;
-    }
-
-
-    // Now wait
-    const wres_t res = wq_prim_wait(self, mask, armTimeout);
+    
+    // Update the wait time stats
+    const stop_ticks = clock_getticks(g_mono_clock);
+    vp->wait_ticks += (stop_ticks - start_ticks);
 
 
     // Calculate the unslept time, if requested
-    if (wtp && rmtp) {
-        now = clock_getticks(g_mono_clock);
-
-        if (now < deadline) {
-            clock_ticks2time(g_mono_clock, deadline - now, rmtp);
-        }
-        else {
-            timespec_clear(rmtp);
-        }
+    if (wtp && rmtp && stop_ticks < deadline_ticks) {
+        clock_ticks2time(g_mono_clock, deadline_ticks - stop_ticks, rmtp);
     }
-    else if (rmtp) {
-        timespec_clear(rmtp);
-    } 
 
-    return res;
+
+    return vp->wakeup_reason;
 }
 
 
@@ -149,7 +133,7 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
 // @Entry Condition: preemption disabled
 errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 {
-    switch (wq_prim_wait(self, set, false)) {
+    switch (wq_prim_wait(self, set, 0, NULL, NULL)) {
         case WRES_WAKEUP:   return EOK;
         default:            return EINTR;
     }
@@ -158,7 +142,7 @@ errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 // @Entry Condition: preemption disabled
 errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
-    switch (wq_prim_timedwait(self, set, flags, wtp, rmtp)) {
+    switch (wq_prim_wait(self, set, flags, wtp, rmtp)) {
         case WRES_SIGNAL:   return EINTR;
         case WRES_TIMEOUT:  return ETIMEDOUT;
         default:            return EOK;

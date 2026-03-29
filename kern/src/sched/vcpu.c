@@ -100,6 +100,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
 
     vp->user_ticks = 0;
     vp->system_ticks = 0;
+    vp->wait_ticks = 0;
     clock_gettime(g_mono_clock, &vp->acquisition_time);
 
     *pOutVP = vp;
@@ -667,7 +668,7 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
 
             clock_ticks2time(g_mono_clock, self->user_ticks, &ip->user_time);
             clock_ticks2time(g_mono_clock, self->system_ticks, &ip->system_time);
-            ip->wait_time = TIMESPEC_ZERO; // XXX not yet
+            clock_ticks2time(g_mono_clock, self->wait_ticks, &ip->wait_time);
             ip->acquisition_time = self->acquisition_time;
             break;
         }
