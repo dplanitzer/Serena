@@ -102,7 +102,7 @@ _Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
     if (dq) {
         kdispatch_name(dq, dq_nam, KDISPATCH_MAX_NAME_LENGTH + 1);
     }
-    Process_GetArgv0(vp->proc, proc_name, sizeof(proc_name));
+    Process_GetName(vp->proc, proc_name, sizeof(proc_name));
 
 
     fatal(

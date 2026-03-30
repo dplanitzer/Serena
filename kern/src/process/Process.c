@@ -112,33 +112,6 @@ pid_t Process_GetId(ProcessRef _Nonnull self)
     return self->pid;
 }
 
-errno_t Process_GetArgv0(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buflen)
-{
-    decl_try_err();
-
-    mtx_lock(&self->mtx);
-    if (buflen == 0) {
-        throw(EINVAL);
-    }
-
-    const pargs_t* pa = (const pargs_t*)self->pargs_base;
-    const size_t len = (pa && pa->argc > 0) ? strlen(pa->argv[0]) : 0;
-
-    if (buflen < (len + 1)) {
-        throw(ERANGE);
-    }
-    if (len > 0) { 
-        strcpy(buf, pa->argv[0]);
-    }
-    else {
-        buf[0] = '\0';
-    }
-
-catch:
-    mtx_unlock(&self->mtx);
-    return err;
-}
-
 static void _vcpu_relinquish_self(void)
 {
     vcpu_t vp = vcpu_current();
@@ -240,7 +213,7 @@ errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonn
         out_counts->ret_count = idx;
         out_counts->all_count = self->vcpu_count;
     }
-    
+
     mtx_unlock(&self->mtx);
 
     return err;
@@ -385,8 +358,8 @@ errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buf
     mtx_lock(&self->mtx);
     decl_try_err();
     const pargs_t* pa = (const pargs_t*)self->pargs_base;
-    const char* arg0 = pa->argv[0];
-    const size_t arg0len = strlen(arg0);
+    const char* arg0 = (pa) ? pa->argv[0] : NULL;
+    const size_t arg0len = (arg0) ? strlen(arg0) : 0;
 
     if (bufSize >= arg0len + 1) {
         memcpy(buf, arg0, arg0len);
