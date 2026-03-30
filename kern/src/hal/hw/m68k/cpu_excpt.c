@@ -300,7 +300,6 @@ static bool recov_access_error_060(const excpt_frame_t* _Nonnull efp)
 // *) 0 if the assembler portion should immediately do a cpu_exception_return instead
 int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
-    void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->b.ef;
     const bool is_hw_excpt = excpt_frame_ishw(efp);
     const int ef_format = excpt_frame_getformat(efp);
@@ -339,7 +338,9 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         || (is_f7_access_err && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))
         || (is_f4_access_err && fslw_is_push_buffer_error(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_store_buffer_error(efp->u.f4_access_error.fslw))) {
-        _fatalException(ksp, vp->excpt_state.fault_addr);
+        void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
+        
+        _fatalException(ksp);
         /* NOT REACHED */
     }
 

@@ -53,7 +53,7 @@ extern _Noreturn void fatal(const char* _Nonnull format, ...);
 extern _Noreturn void vfatal(const char* _Nonnull format, va_list ap);
 extern _Noreturn void fatalError(const char* _Nonnull filename, int line, int err);
 extern _Noreturn void fatalAbort(const char* _Nonnull filename, int line);
-extern _Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa);
+extern _Noreturn void _fatalException(void* _Nonnull ksp);
 
 #define abort() fatalAbort(__func__, __LINE__)
 

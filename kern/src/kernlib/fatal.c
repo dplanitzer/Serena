@@ -87,7 +87,7 @@ _Noreturn void _Try_bang_failed0(void)
     abort();
 }
 
-_Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
+_Noreturn void _fatalException(void* _Nonnull ksp)
 {
     vcpu_t vp = vcpu_current();
     const cpu_full_state_t* sa = vp->excpt_sa;
@@ -132,7 +132,7 @@ _Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
         excpt_frame_getpc(efp), excpt_frame_getsr(efp),
         (excpt_frame_isuser(efp)) ? "USTK" : "KSTK", stk->base, stk_getinitialsp(stk),
         efp,
-        fa,
+        vp->excpt_state.fault_addr,
         vp, vp->id, vp->group_id,
         vp->proc, Process_GetId(vp->proc), proc_name,
         dq, (dq) ? dq_nam : ""
