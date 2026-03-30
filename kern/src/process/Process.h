@@ -95,7 +95,7 @@ extern errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_r
 extern errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
 
 // Returns an array of vcpuid_t's corresponding to the currently acquired vcpus.
-extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, vcpu_counts_t* _Nullable out_counts);
+extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 
 
 //

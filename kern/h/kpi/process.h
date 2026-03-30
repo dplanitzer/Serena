@@ -144,10 +144,18 @@ typedef struct proc_times_info {
 } proc_times_info_t;
 
 
-// Vcpu count information optionally returns by proc_vcpus()
-typedef struct vcpu_counts {
-    size_t  ret_count;
-    size_t  all_count;
-} vcpu_counts_t;
+typedef struct vcpu_matcher {
+    int flavor;
+    int value;
+} vcpu_matcher_t;
+
+#define _VCPU_MATCH_GROUP_ID 1
+#define _VCPU_MATCH_END      -1
+
+#define VCPU_MATCHING_GROUP_ID(__group_id) \
+(vcpu_matcher_t){_VCPU_MATCH_GROUP_ID, (int)(__group_id)}
+
+#define VCPU_MATCHING_END() \
+(vcpu_matcher_t){_VCPU_MATCH_END, 0}
 
 #endif /* _KPI_PROCESS_H */

@@ -74,9 +74,18 @@ extern int proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize);
 // Fills the buffer with an array of vcpuid_t's of all currently acquired vcpus
 // in the calling process. 'bufSize' is the size of the buffer in terms of the
 // number of vcpuid_t objects that it can hold. 'buf' will be terminated by a
-// 0 vcpuid_t. So 'bufSize' is expected to be equal to the number of vcpuid_t's
-// that should be returned plus 1.
-extern int proc_vcpus(vcpuid_t* _Nonnull buf, size_t bufSize, vcpu_counts_t* _Nullable out_counts);
+// 0 vcpuid_t. Thus 'bufSize' is expected to be equal to the number of vcpuid_t's
+// that should be returned plus 1. Returns 0 on success and if the buffer is
+// big enough to hold the vcpu ids of all acquired vcpus. Returns 1 if the
+// buffer isn't big enough to hold the ids of all acquired vcpus. However the
+// buffer is still filled with as many ids as fit. Returns -1 on an error.
+//
+// The optional 'matchers' array specifies criteria that a vcpu must match in
+// order to be included in the result. The array is a list of VCPU_MATCHING
+// macros which must be terminated by a VCPU_MATCHING_END() macro. Note that
+// currently at most one matching criteria can be specified. If 'matchers' is
+// NULL then all acquired vcpus are returned. 
+extern int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 
