@@ -71,6 +71,13 @@ extern int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param);
 extern int proc_info(pid_t pid, int flavor, proc_info_ref _Nonnull info);
 extern int proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize);
 
+// Fills the buffer with an array of vcpuid_t's of all currently acquired vcpus
+// in the calling process. 'bufSize' is the size of the buffer in terms of the
+// number of vcpuid_t objects that it can hold. 'buf' will be terminated by a
+// 0 vcpuid_t. So 'bufSize' is expected to be equal to the number of vcpuid_t's
+// that should be returned plus 1.
+extern int proc_vcpus(vcpuid_t* _Nonnull buf, size_t bufSize, vcpu_counts_t* _Nullable out_counts);
+
 __CPP_END
 
 #endif /* _SYS_PROCESS_H */

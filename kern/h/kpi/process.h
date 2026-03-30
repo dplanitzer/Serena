@@ -143,4 +143,11 @@ typedef struct proc_times_info {
     struct timespec acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
 } proc_times_info_t;
 
+
+// Vcpu count information optionally returns by proc_vcpus()
+typedef struct vcpu_counts {
+    size_t  ret_count;
+    size_t  all_count;
+} vcpu_counts_t;
+
 #endif /* _KPI_PROCESS_H */

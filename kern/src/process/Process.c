@@ -215,6 +215,37 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_unlock(&self->mtx);
 }
 
+errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, vcpu_counts_t* _Nullable out_counts)
+{
+    decl_try_err();
+    size_t idx = 0;
+
+    // Min is 2 because there must be one vcpu that is executing this code + the trailing 0
+    if (bufSize < 2) {
+        return ERANGE;
+    }
+
+    mtx_lock(&self->mtx);
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
+
+        buf[idx++] = cvp->id;
+        if (idx == bufSize-1) {
+            break;
+        }
+    )
+
+    buf[idx] = 0;
+    if (out_counts) {
+        out_counts->ret_count = idx;
+        out_counts->all_count = self->vcpu_count;
+    }
+    
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
 void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred)
 {
     cred->pid = self->pid;

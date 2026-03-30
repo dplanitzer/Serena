@@ -158,3 +158,13 @@ SYSCALL_3(proc_name, pid_t pid, char* _Nonnull buf, size_t bufSize)
 
     return err;
 }
+
+SYSCALL_3(proc_vcpus, vcpuid_t* _Nonnull buf, size_t bufSize, vcpu_counts_t* _Nullable out_count)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    err = Process_GetVirtualProcessorIds(pp, pa->buf, pa->bufSize, pa->out_count);
+
+    return err;
+}

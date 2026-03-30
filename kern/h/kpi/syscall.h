@@ -22,7 +22,7 @@ enum {
     SC_exit,                // _Noreturn void exit(int status)
     SC_spawn,               // errno_t spawn(cost char* _Nonnull path, const char* _Nullable argv[], spawn_opts_t * _Nullable options, pid_t * _Nullable rpid)
     SC_proc_name,           // errno_t proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize)
-    SC_unused3,             // XXX UNUSED
+    SC_proc_vcpus,          // errno_t proc_vcpus(vcpuid_t* _Nonnull buf, size_t bufSize, vcpu_counts_t* _Nullable out_counts)
     SC_getpargs,            // pargs_t * _Nonnull getpargs(void)
     SC_open,                // errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
     SC_close,               // errno_t close(int fd)
