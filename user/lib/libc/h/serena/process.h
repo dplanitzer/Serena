@@ -12,7 +12,6 @@
 #include <stdnoreturn.h>
 #include <kpi/_time.h>
 #include <kpi/process.h>
-#include <ext/timespec.h>
 #include <serena/types.h>
 
 __CPP_BEGIN

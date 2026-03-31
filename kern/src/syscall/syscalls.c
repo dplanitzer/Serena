@@ -20,6 +20,8 @@ SYSCALL_REF(clock_getres);
 
 SYSCALL_REF(excpt_sethandler);
 
+SYSCALL_REF(host_procs);
+
 SYSCALL_REF(close);
 SYSCALL_REF(read);
 SYSCALL_REF(write);
@@ -115,7 +117,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(seek, SC_ERRNO),
     SYSCALL_ENTRY(proc_cwd, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(host_procs, SC_ERRNO),
     SYSCALL_ENTRY(umask, SC_INT),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
     SYSCALL_ENTRY(stat, SC_ERRNO),

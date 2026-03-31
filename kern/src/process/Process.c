@@ -112,6 +112,21 @@ pid_t Process_GetId(ProcessRef _Nonnull self)
     return self->pid;
 }
 
+pid_t Process_GetParentId(ProcessRef _Nonnull self)
+{
+    return self->ppid;
+}
+
+pid_t Process_GetSessionId(ProcessRef _Nonnull self)
+{
+    return self->sid;
+}
+
+uid_t Process_GetUserId(ProcessRef _Nonnull self)
+{
+    return FileManager_GetRealUserId(&self->fm);
+}
+
 static void _vcpu_relinquish_self(void)
 {
     vcpu_t vp = vcpu_current();

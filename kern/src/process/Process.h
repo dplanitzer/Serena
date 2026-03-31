@@ -42,6 +42,10 @@ extern void Process_Release(ProcessRef _Nullable self);
 
 
 extern pid_t Process_GetId(ProcessRef _Nonnull self);
+extern pid_t Process_GetParentId(ProcessRef _Nonnull self);
+extern pid_t Process_GetSessionId(ProcessRef _Nonnull self);
+extern uid_t Process_GetUserId(ProcessRef _Nonnull self);
+
 extern void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred);
 
 // Returns the current process state.

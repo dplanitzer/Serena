@@ -30,7 +30,7 @@ enum {
     SC_lseek,               // errno_t lseek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
     SC_proc_cwd,            // errno_t proc_cwd(char* buffer, size_t bufferSize)
     SC_proc_setcwd,         // errno_t proc_setcwd(const char* _Nonnull path)
-    SC_unused6,             // XXX UNUSED
+    SC_host_procs,          // int host_procs(const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize)
     SC_umask,               // mode_t umask(mode_t mask)
     SC_mkdir,               // errno_t mkdir(const char* _Nonnull path, mode_t mode)
     SC_stat,                // errno_t stat(const char* _Nonnull path, struct stat* _Nonnull info)

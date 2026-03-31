@@ -27,9 +27,10 @@
 
 
 typedef struct ProcessManager {
-    mtx_t               mtx;
-    pid_t               nextPid;
-    queue_t/*<Process>*/  pid_table[HASH_CHAIN_COUNT];     // pid_t -> Process
+    mtx_t                   mtx;
+    pid_t                   next_pid;
+    size_t                  proc_count;
+    queue_t/*<Process>*/    pid_table[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
 
@@ -44,7 +45,7 @@ errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf)
     try(kalloc_cleared(sizeof(ProcessManager), (void**) &self));
     
     mtx_init(&self->mtx);
-    self->nextPid = 1;
+    self->next_pid = 1;
 
 catch:
     *pOutSelf = self;
@@ -60,7 +61,7 @@ FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self
 // does not exist.
 static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked self, pid_t pid)
 {
-    queue_for_each(&self->pid_table[hash_scalar(pid) & HASH_CHAIN_MASK], deque_node_t, it,
+    queue_for_each(&self->pid_table[hash_scalar(pid) & HASH_CHAIN_MASK], queue_node_t, it,
         ProcessRef cp = proc_from_pid_qe(it);
 
         if (cp->pid == pid) {
@@ -82,7 +83,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
         throw(EBUSY);
     }
 
-    pp->pid = self->nextPid++;
+    pp->pid = self->next_pid++;
     if (pp->pgrp == 0) {
         pp->pgrp = pp->pid;
     }
@@ -102,6 +103,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
 
     queue_add_first(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
     Process_Retain(pp);
+    self->proc_count++;
 
 catch:
     mtx_unlock(&self->mtx);
@@ -128,7 +130,7 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
     assert(the_parent != NULL);
 
     ProcessRef prev_child = NULL;
-    queue_for_each(&the_parent->rel.children, deque_node_t, it,
+    queue_for_each(&the_parent->rel.children, queue_node_t, it,
         ProcessRef cp = proc_from_child_qe(it);
 
         if (cp->pid == pp->pid) {
@@ -141,7 +143,7 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
     
     ProcessRef prev_p = NULL;
     queue_t* pid_chain = &self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK];
-    queue_for_each(pid_chain, deque_node_t, it,
+    queue_for_each(pid_chain, queue_node_t, it,
         ProcessRef cp = proc_from_pid_qe(it);
 
         if (cp->pid == pp->pid) {
@@ -150,6 +152,7 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
         }
         prev_p = cp;
     )
+    self->proc_count--;
 
     mtx_unlock(&self->mtx);
     Process_Release(pp);
@@ -198,7 +201,7 @@ static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull
 
     *pOutAnyExists = false;
     if (parent_p) {
-        queue_for_each(&parent_p->rel.children, deque_node_t, it,
+        queue_for_each(&parent_p->rel.children, queue_node_t, it,
             ProcessRef child_p = proc_from_child_qe(it);
 
             if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
@@ -242,6 +245,66 @@ ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Non
     return the_p;
 }
 
+static int _match_proc(const proc_matcher_t* _Nonnull mp, ProcessRef _Nonnull p)
+{
+    switch (mp->flavor) {
+        case _PROC_MATCH_PPID:
+            return (Process_GetParentId(p) == (pid_t)mp->value);
+
+        case _PROC_MATCH_SID:
+            return (Process_GetSessionId(p) == (pid_t)mp->value);
+
+        case _PROC_MATCH_UID:
+            return (Process_GetUserId(p) == (uid_t)mp->value);
+
+        default:
+            return -EINVAL;
+    }
+}
+
+errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+{
+    decl_try_err();
+    size_t idx = 0;
+
+    // Min is 2 because there must be one process that is executing this code + the trailing 0
+    if (bufSize < 2) {
+        return ERANGE;
+    }
+
+    mtx_lock(&self->mtx);
+    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
+        queue_for_each(&self->pid_table[i], queue_node_t, it,
+            ProcessRef p = proc_from_pid_qe(it);
+            int keep = 1;
+
+            if (matchers) {
+                keep = _match_proc(matchers, p);
+                if (keep < 0) {
+                    err = -keep;
+                    i = HASH_CHAIN_COUNT;
+                    break;
+                }
+            }
+
+            if (keep) {
+                buf[idx++] = Process_GetId(p);
+                if (idx == bufSize-1) {
+                    i = HASH_CHAIN_COUNT;
+                    break;
+                }
+            }
+        )
+    }
+
+    buf[idx] = 0;
+    *out_hasMore = (self->proc_count > idx) ? 1 : 0;
+
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
 
 static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
 {
@@ -273,7 +336,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
         return ESRCH;
     }
 
-    queue_for_each(&target_p->rel.children, deque_node_t, it,
+    queue_for_each(&target_p->rel.children, queue_node_t, it,
         ProcessRef child_p = proc_from_child_qe(it);
 
         hasChildren = true;
@@ -308,7 +371,7 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
     errno_t first_err = EOK;
 
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        queue_for_each(&self->pid_table[i], deque_node_t, it,
+        queue_for_each(&self->pid_table[i], queue_node_t, it,
             ProcessRef cp = proc_from_child_qe(it);
 
             if (cp->pgrp == target_id) {
@@ -347,7 +410,7 @@ static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, 
     errno_t first_err = EOK;
 
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        queue_for_each(&self->pid_table[i], deque_node_t, it,
+        queue_for_each(&self->pid_table[i], queue_node_t, it,
             ProcessRef cp = proc_from_child_qe(it);
 
             if (cp->sid == target_id) {
