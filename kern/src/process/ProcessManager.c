@@ -270,7 +270,6 @@ errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _No
 
     buf[idx] = 0;
     *out_hasMore = (self->proc_count > idx) ? 1 : 0;
-
     mtx_unlock(&self->mtx);
 
     return err;

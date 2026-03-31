@@ -12,20 +12,25 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/stdlib.h>
-#include <serena/directory.h>
-#include <serena/file.h>
-#include <serena/ioctl.h>
+#include <serena/host.h>
 #include <serena/process.h>
 
+enum {
+    kState_Running = 0,
+    kState_Sleeping,
+    kState_Stopped,
+    kState_Exiting,
+    kState_Zombie
+};
 
 static char path_buf[PATH_MAX];
 static char num_buf[__LONG_MAX_BASE_10_DIGITS + 1];
 static const char* state_name[5] = {
-    "running",      // PROC_STATE_RUNNING_OLD
-    "sleeping",     // PROC_STATE_SLEEPING_OLD
-    "stopped",      // PROC_STATE_STOPPED_OLD
-    "running",      // PROC_STATE_EXITING_OLD
-    "zombie",       // PROC_STATE_ZOMBIE_OLD
+    "running",      // kState_Running
+    "sleeping",     // kState_Sleeping
+    "stopped",      // kState_Stopped
+    "running",      // kState_Exiting
+    "zombie",       // kState_Zombie
 };
 
 
@@ -35,14 +40,6 @@ CLAP_DECL(params,
     CLAP_USAGE("status")
 );
 
-
-static int open_proc(const char* _Nonnull pidStr)
-{
-    sprintf(path_buf, "/proc/%s", pidStr);
-
-    const int fd = open(path_buf, O_RDONLY);
-    return (fd >= 0) ? fd : -1;
-}
 
 static void fmt_mem_size(size_t msize, char* _Nonnull buf)
 {
@@ -62,53 +59,72 @@ static void fmt_mem_size(size_t msize, char* _Nonnull buf)
     }
 }
 
-static void show_proc(const char* _Nonnull pidStr)
+static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
 {
-    proc_info_old_t info;
-    const int fd = open_proc(pidStr);
+    switch (ip->run_state) {
+        case PROC_STATE_ALIVE:
+            return (ip->vcpu_waiting_count == ip->vcpu_count) ? kState_Sleeping : kState_Running;
 
-    if (fd != -1) {
-        ioctl(fd, kProcCommand_GetInfo, &info);
-        ioctl(fd, kProcCommand_GetName, path_buf, sizeof(path_buf));
+        case PROC_STATE_STOPPED:
+            return kState_Stopped;
 
-        if (errno == 0) {
-            const char* lastPathComponent = strrchr(path_buf, '/');
-            const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : path_buf;
+        case PROC_STATE_EXITING:
+            return kState_Exiting;
 
-            if (info.pid > 1) {
-                fmt_mem_size(info.virt_size, num_buf);
-            }
-            else {
-                strcpy(num_buf, "-");
-            }
+        case PROC_STATE_ZOMBIE:
+            return kState_Zombie;
 
-            printf("%d  %s  %zu  %s  %s  %d  %d  %d  %d\n", info.pid, pnam, info.vcpu_count, num_buf, state_name[info.state], info.uid, info.sid, info.pgrp, info.ppid);
-        }
-
-        close(fd);
+        default:
+            return kState_Running;
     }
+}
+
+static void show_proc(pid_t pid)
+{
+    proc_basic_info_t basic;
+    proc_ids_info_t ids;
+    proc_creds_info_t creds;
+
+    errno = 0;
+
+    proc_info(pid, PROC_INFO_BASIC, &basic);
+    proc_info(pid, PROC_INFO_IDS, &ids);
+    proc_info(pid, PROC_INFO_CREDS, &creds);
+    proc_name(pid, path_buf, sizeof(path_buf));
+
+    if (errno != 0) {
+        return;
+    }
+
+
+    const char* lastPathComponent = strrchr(path_buf, '/');
+    const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : path_buf;
+
+    if (pid > 1) {
+        fmt_mem_size(basic.vm_size, num_buf);
+    }
+    else {
+        strcpy(num_buf, "-");
+    }
+
+    printf("%d  %s  %zu  %s  %s  %d  %d  %d  %d\n", pid, pnam, basic.vcpu_count, num_buf, state_name[state_from_basic_info(&basic)], creds.uid, ids.session_id, ids.group_id, ids.parent_id);
 }
 
 static int show_procs(void)
 {
-    DIR* dir;
+#define _TMP_MAX_COUNT  33
+    static pid_t g_pid_buf[_TMP_MAX_COUNT];
 
-    dir = opendir("/proc");
-    if (dir) {
-        printf("PID  Command  #VP  Memory  State  UID  SID  PGRP  PPID\n");
+    if (host_procs(g_pid_buf, _TMP_MAX_COUNT) < 0) {
+        return -1;
+    }
+    
+    printf("PID  Command  #VP  Memory  State  UID  SID  PGRP  PPID\n");
 
-        for (;;) {
-            struct dirent* dep = readdir(dir);
-            
-            if (dep == NULL) {
-                break;
-            }
-
-            if (dep->name[0] != '.') {
-                show_proc(dep->name);
-            }
-        }
-        closedir(dir);
+    size_t idx = 0;
+    while (g_pid_buf[idx] > 0) {
+        show_proc(g_pid_buf[idx]);
+        idx++;
     }
 
     return (errno == 0) ? 0 : -1;

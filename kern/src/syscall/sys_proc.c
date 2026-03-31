@@ -74,11 +74,11 @@ SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)
         err = Process_GetSchedParam(pp, pa->type, pa->param);
     }
     else {
-        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
-        if (tpp) {
-            Process_GetSchedParam(tpp, pa->type, pa->param);
-            Process_Release(tpp);
+        if (the_pp) {
+            Process_GetSchedParam(the_pp, pa->type, pa->param);
+            Process_Release(the_pp);
         }
         else {
             err = ESRCH;
@@ -97,11 +97,11 @@ SYSCALL_3(proc_setschedparam, pid_t pid, int type, int* _Nonnull param)
         err = Process_SetSchedParam(pp, pa->type, pa->param);
     }
     else {
-        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
-        if (tpp) {
-            Process_SetSchedParam(tpp, pa->type, pa->param);
-            Process_Release(tpp);
+        if (the_pp) {
+            Process_SetSchedParam(the_pp, pa->type, pa->param);
+            Process_Release(the_pp);
         }
         else {
             err = ESRCH;
@@ -121,11 +121,11 @@ SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
         err = Process_GetInfo(pp, pa->flavor, pa->info);
     }
     else {
-        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
-        if (tpp) {
-            Process_GetInfo(tpp, pa->flavor, pa->info);
-            Process_Release(tpp);
+        if (the_pp) {
+            Process_GetInfo(the_pp, pa->flavor, pa->info);
+            Process_Release(the_pp);
         }
         else {
             err = ESRCH;
@@ -144,11 +144,11 @@ SYSCALL_3(proc_name, pid_t pid, char* _Nonnull buf, size_t bufSize)
         err = Process_GetName(pp, pa->buf, pa->bufSize);
     }
     else {
-        ProcessRef tpp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
-        if (tpp) {
-            Process_GetName(pp, pa->buf, pa->bufSize);
-            Process_Release(tpp);
+        if (the_pp) {
+            Process_GetName(the_pp, pa->buf, pa->bufSize);
+            Process_Release(the_pp);
         }
         else {
             err = ESRCH;

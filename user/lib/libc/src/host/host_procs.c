@@ -14,7 +14,7 @@ int host_procs(pid_t* _Nonnull buf, size_t bufSize)
 {
     int hasMore = 0;
     
-    if (_syscall(SC_proc_vcpus, buf, bufSize, &hasMore) == 0) {
+    if (_syscall(SC_host_procs, buf, bufSize, &hasMore) == 0) {
         return hasMore;
     }
     else {
