@@ -10,11 +10,11 @@
 #include <kpi/syscall.h>
 
 
-int host_procs(const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize)
+int host_procs(pid_t* _Nonnull buf, size_t bufSize)
 {
     int hasMore = 0;
     
-    if (_syscall(SC_proc_vcpus, matchers, buf, bufSize, &hasMore) == 0) {
+    if (_syscall(SC_proc_vcpus, buf, bufSize, &hasMore) == 0) {
         return hasMore;
     }
     else {

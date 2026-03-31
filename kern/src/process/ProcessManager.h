@@ -57,7 +57,7 @@ extern ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManage
 extern ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, bool* _Nonnull pOutAnyExists);
 
 
-extern errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
+extern errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 
 
 // Send the signal 'signo' to one or multiple process(es) based on the given

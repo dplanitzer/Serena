@@ -10,9 +10,7 @@
 #define _SYS_PROCESS_H 1
 
 #include <stdnoreturn.h>
-#include <kpi/_time.h>
 #include <kpi/process.h>
-#include <serena/types.h>
 
 __CPP_BEGIN
 
@@ -78,13 +76,7 @@ extern int proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize);
 // big enough to hold the vcpu ids of all acquired vcpus. Returns 1 if the
 // buffer isn't big enough to hold the ids of all acquired vcpus. However the
 // buffer is still filled with as many ids as fit. Returns -1 on an error.
-//
-// The optional 'matchers' array specifies criteria that a vcpu must match in
-// order to be included in the result. The array is a list of VCPU_MATCHING
-// macros which must be terminated by a VCPU_MATCHING_END() macro. Note that
-// currently at most one matching criteria can be specified. If 'matchers' is
-// NULL then all acquired vcpus are returned. 
-extern int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize);
+extern int proc_vcpus(vcpuid_t* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 

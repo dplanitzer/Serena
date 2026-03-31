@@ -203,18 +203,7 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_unlock(&self->mtx);
 }
 
-static int _match_vcpu(const vcpu_matcher_t* _Nonnull mp, vcpu_t _Nonnull vp)
-{
-    switch (mp->flavor) {
-        case _VCPU_MATCH_GROUP_ID:
-            return (vp->group_id == (vcpuid_t)mp->value);
-
-        default:
-            return -EINVAL;
-    }
-}
-
-errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {
     decl_try_err();
     size_t idx = 0;
@@ -227,21 +216,10 @@ errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, const vcpu_matc
     mtx_lock(&self->mtx);
     deque_for_each(&self->vcpu_queue, deque_node_t, it,
         vcpu_t cvp = vcpu_from_owner_qe(it);
-        int keep = 1;
 
-        if (matchers) {
-            keep = _match_vcpu(matchers, cvp);
-            if (keep < 0) {
-                err = -keep;
-                break;
-            }
-        }
-
-        if (keep) {
-            buf[idx++] = cvp->id;
-            if (idx == bufSize-1) {
-                break;
-            }
+        buf[idx++] = cvp->id;
+        if (idx == bufSize-1) {
+            break;
         }
     )
 

@@ -12,7 +12,7 @@
 
 
 
-SYSCALL_4(host_procs, const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+SYSCALL_3(host_procs, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {
-    return ProcessManager_GetProcessIds(gProcessManager, pa->matchers, pa->buf, pa->bufSize, pa->out_hasMore);
+    return ProcessManager_GetProcessIds(gProcessManager, pa->buf, pa->bufSize, pa->out_hasMore);
 }

@@ -143,19 +143,4 @@ typedef struct proc_times_info {
     struct timespec acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
 } proc_times_info_t;
 
-
-typedef struct vcpu_matcher {
-    int flavor;
-    int value;
-} vcpu_matcher_t;
-
-#define _VCPU_MATCH_GROUP_ID 1
-#define _VCPU_MATCH_END      -1
-
-#define VCPU_MATCHING_GROUP_ID(__group_id) \
-(vcpu_matcher_t){_VCPU_MATCH_GROUP_ID, (int)(__group_id)}
-
-#define VCPU_MATCHING_END() \
-(vcpu_matcher_t){_VCPU_MATCH_END, 0}
-
 #endif /* _KPI_PROCESS_H */

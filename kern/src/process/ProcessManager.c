@@ -245,24 +245,7 @@ ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Non
     return the_p;
 }
 
-static int _match_proc(const proc_matcher_t* _Nonnull mp, ProcessRef _Nonnull p)
-{
-    switch (mp->flavor) {
-        case _PROC_MATCH_PPID:
-            return (Process_GetParentId(p) == (pid_t)mp->value);
-
-        case _PROC_MATCH_SID:
-            return (Process_GetSessionId(p) == (pid_t)mp->value);
-
-        case _PROC_MATCH_UID:
-            return (Process_GetUserId(p) == (uid_t)mp->value);
-
-        default:
-            return -EINVAL;
-    }
-}
-
-errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {
     decl_try_err();
     size_t idx = 0;
@@ -276,23 +259,11 @@ errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, const proc
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         queue_for_each(&self->pid_table[i], queue_node_t, it,
             ProcessRef p = proc_from_pid_qe(it);
-            int keep = 1;
 
-            if (matchers) {
-                keep = _match_proc(matchers, p);
-                if (keep < 0) {
-                    err = -keep;
-                    i = HASH_CHAIN_COUNT;
-                    break;
-                }
-            }
-
-            if (keep) {
-                buf[idx++] = Process_GetId(p);
-                if (idx == bufSize-1) {
-                    i = HASH_CHAIN_COUNT;
-                    break;
-                }
+            buf[idx++] = Process_GetId(p);
+            if (idx == bufSize-1) {
+                i = HASH_CHAIN_COUNT;
+                break;
             }
         )
     }

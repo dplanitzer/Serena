@@ -10,7 +10,6 @@
 #define _SYS_HOST_H 1
 
 #include <kpi/host.h>
-#include <serena/types.h>
 
 __CPP_BEGIN
 
@@ -23,15 +22,9 @@ __CPP_BEGIN
 // ids of all processes. However the buffer is still filled with as many ids as
 // fit. Returns -1 on an error.
 //
-// The optional 'matchers' array specifies criteria that a process must match in
-// order to be included in the result. The array is a list of PROC_MATCHING
-// macros which must be terminated by a PROC_MATCHING_END() macro. Note that
-// currently at most one matching criteria can be specified. If 'matchers' is
-// NULL then all existing processes are returned.
-//
 // Note that the list of returned processes includes processes in all possible
 // states, including the zombie state.
-extern int host_procs(const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize);
+extern int host_procs(pid_t* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 
