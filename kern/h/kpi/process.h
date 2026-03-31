@@ -34,33 +34,6 @@ typedef struct pargs {
 } pargs_t;
 
 
-#define PROC_STATE_RUNNING_OLD  0
-#define PROC_STATE_SLEEPING_OLD 1
-#define PROC_STATE_STOPPED_OLD  2
-#define PROC_STATE_EXITING_OLD  3
-#define PROC_STATE_ZOMBIE_OLD   4
-
-// Process specific information
-typedef struct proc_info_old {
-    pid_t   ppid;       // Parent pid
-    pid_t   pid;        // Process pid
-    pid_t   pgrp;       // Process group id
-    pid_t   sid;        // Session id
-    size_t  vcpu_count; // Number of vcpus currently assigned to the process
-    size_t  virt_size;  // Size of allocated address space
-    int     state;      // Current process state (PROC_STATE_XXX)
-    uid_t   uid;        // User owning this process
-} proc_info_old_t;
-
-// Returns general information about the process.
-// get_procinfo(proc_info_old_t* _Nonnull pOutInfo)
-#define kProcCommand_GetInfo    IOResourceCommand(0)
-
-// Returns the name of the process.
-// get_procname(char* _Nonnull buf, size_t bufSize)
-#define kProcCommand_GetName    IOResourceCommand(1)
-
-
 #define JOIN_PROC       0   /* Join child process with pid */
 #define JOIN_PROC_GROUP 1   /* Join any member of the child process group */
 #define JOIN_ANY        2   /* Join any child process */

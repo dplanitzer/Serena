@@ -107,6 +107,15 @@ void Process_Release(ProcessRef _Nullable self)
     }
 }
 
+int Process_GetState(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const int state = self->run_state;
+    mtx_unlock(&self->mtx);
+
+    return state;
+}
+
 pid_t Process_GetId(ProcessRef _Nonnull self)
 {
     return self->pid;

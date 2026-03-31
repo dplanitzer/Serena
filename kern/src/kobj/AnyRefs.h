@@ -61,7 +61,6 @@ class_ref(Pipe);
 class_ref(PlatformController);
 class_ref(Process);
 class_ref(ProcessManager);
-class_ref(ProcChannel);
 class_ref(RamDisk);
 class_ref(RomDisk);
 class_ref(SecurityManager);

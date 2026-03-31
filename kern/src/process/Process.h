@@ -101,17 +101,4 @@ extern errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, siz
 // Returns an array of vcpuid_t's corresponding to the currently acquired vcpus.
 extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 
-
-//
-// Introspection
-//
-
-extern errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-
-extern errno_t Process_GetInfo2(ProcessRef _Nonnull self, proc_info_old_t* _Nonnull info);
-
-extern errno_t Process_Ioctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);
-extern errno_t Process_vIoctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap);
-
 #endif /* Process_h */
