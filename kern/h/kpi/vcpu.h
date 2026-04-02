@@ -9,7 +9,7 @@
 #ifndef _KPI_VCPU_H
 #define _KPI_VCPU_H 1
 
-#include <machine/floattypes.h>
+#include <machine/vcpu_state.h>
 #include <ext/timespec.h>
 #include <kpi/types.h>
 #include <stdint.h>

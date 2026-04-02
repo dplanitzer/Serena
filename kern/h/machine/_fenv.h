@@ -1,6 +1,6 @@
 //
 //  machine/_fenv.h
-//  libc, libsc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 12/24/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
