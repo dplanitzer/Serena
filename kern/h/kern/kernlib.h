@@ -9,12 +9,12 @@
 #ifndef _KERN_KERNLIB_H
 #define _KERN_KERNLIB_H 1
 
-#include <arch/_offsetof.h>
-#include <arch/_ssize.h>
 #include <_cmndef.h>
 #include <_absdiv.h>
 #include <_imaxabsdiv.h>
+#include <_offsetof.h>
 #include <_sortsearch.h>
+#include <_ssize.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>

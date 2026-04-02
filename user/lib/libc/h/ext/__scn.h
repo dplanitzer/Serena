@@ -10,8 +10,8 @@
 #define __EXT_SCN_H
 
 #include <_cmndef.h>
-#include <arch/_ssize.h>
-#include <arch/_size.h>
+#include <_ssize.h>
+#include <_size.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <__itoa.h>

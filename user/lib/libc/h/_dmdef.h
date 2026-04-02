@@ -1,13 +1,13 @@
 //
-//  arch/_dmdef.h
+//  _dmdef.h
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/31/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ARCH_DMDEF_H
-#define __ARCH_DMDEF_H 1
+#ifndef __DMDEF_H
+#define __DMDEF_H 1
 
 #if defined(__M68K__)
 #define __ILP32__ 1
@@ -324,4 +324,4 @@ typedef long long __off_t;
     #error("__ssize_t and __size_t must have the same bit width")
 #endif
 
-#endif /* __ARCH_DMDEF_H */
+#endif /* __DMDEF_H */

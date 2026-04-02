@@ -16,8 +16,8 @@
 #include <_cmndef.h>
 #include <_absdiv.h>
 #include <_sortsearch.h>
-#include <arch/_null.h>
-#include <arch/_size.h>
+#include <_null.h>
+#include <_size.h>
 #include <malloc.h>
 #include <stdnoreturn.h>
 

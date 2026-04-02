@@ -10,8 +10,8 @@
 #define __VCPU_H 1
 
 #include <_cmndef.h>
-#include <arch/_null.h>
-#include <arch/_offsetof.h>
+#include <_null.h>
+#include <_offsetof.h>
 #include <ext/queue.h>
 #include <serena/spinlock.h>
 #include <serena/types.h>

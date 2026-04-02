@@ -10,7 +10,7 @@
 #define _SYS_SIGNAL_H 1
 
 #include <_cmndef.h>
-#include <arch/_null.h>
+#include <_null.h>
 #include <kpi/signal.h>
 #include <serena/types.h>
 

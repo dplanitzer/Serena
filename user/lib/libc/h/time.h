@@ -14,8 +14,8 @@
 #endif
 
 #include <_cmndef.h>
-#include <arch/_null.h>
-#include <arch/_size.h>
+#include <_null.h>
+#include <_size.h>
 #include <kpi/_time.h>
 
 __CPP_BEGIN

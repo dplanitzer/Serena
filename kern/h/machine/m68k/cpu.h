@@ -1,16 +1,16 @@
 //
-//  arch/m68k/cpu.h
+//  machine/m68k/cpu.h
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 12/24/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _ARCH_M68K_CPU_H
-#define _ARCH_M68K_CPU_H 1
+#ifndef _MACHINE_M68K_CPU_H
+#define _MACHINE_M68K_CPU_H 1
 
 #include <_cmndef.h>
-#include <arch/floattypes.h>
+#include <machine/floattypes.h>
 
 // Size of a standard page in bytes
 #define CPU_PAGE_SIZE   4096
@@ -56,4 +56,4 @@ typedef struct vcpu_state_m68k_float {
 #define _VCPU_STRIP_EXCPT_FLAVOR(__v) \
 ((__v) & ~_VCPU_STATE_IS_EXCPT)
 
-#endif /* _ARCH_M68K_CPU_H */
+#endif /* _MACHINE_M68K_CPU_H */

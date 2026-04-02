@@ -10,7 +10,7 @@
 #define _SYS_SPINLOCK_H 1
 
 #include <_cmndef.h>
-#include <arch/_null.h>
+#include <_null.h>
 #include <ext/atomic.h>
 
 __CPP_BEGIN

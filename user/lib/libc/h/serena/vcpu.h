@@ -12,7 +12,7 @@
 #include <_cmndef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <arch/cpu.h>
+#include <machine/cpu.h>
 #include <kpi/types.h>
 #include <kpi/vcpu.h>
 

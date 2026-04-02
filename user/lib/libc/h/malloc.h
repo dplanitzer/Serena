@@ -14,7 +14,7 @@
 #endif
 
 #include <_cmndef.h>
-#include <arch/_size.h>
+#include <_size.h>
 
 __CPP_BEGIN
 

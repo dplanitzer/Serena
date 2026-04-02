@@ -1,5 +1,5 @@
 //
-//  fenv_m68k.h
+//  fenv.h
 //  libm
 //
 //  Created by Dietmar Planitzer on 2/13/24.
@@ -10,8 +10,8 @@
 #define _FENV_H 1
 
 #include <_cmndef.h>
-#include <arch/_dmdef.h>
-#include <arch/_fenv.h>
+#include <_dmdef.h>
+#include <machine/_fenv.h>
 
 __CPP_BEGIN
 

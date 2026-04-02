@@ -9,7 +9,7 @@
 #ifndef _KERN_EXCEPTION_H
 #define _KERN_EXCEPTION_H 1
 
-#include <arch/cpu.h>
+#include <machine/cpu.h>
 #include <kpi/types.h>
 
 typedef struct excpt_info {

@@ -10,7 +10,7 @@
 #define _STDINT_H 1
 
 #include <_cmndef.h>
-#include <arch/_dmdef.h>
+#include <_dmdef.h>
 
 #define INT8_WIDTH 8
 #define INT16_WIDTH 16

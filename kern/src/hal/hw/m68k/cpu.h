@@ -10,8 +10,8 @@
 #define _CPU_M68K_H 1
 
 #include <stdint.h>
-#include <arch/cpu.h>
-#include <arch/floattypes.h>
+#include <machine/cpu.h>
+#include <machine/floattypes.h>
 
 #define STACK_ALIGNMENT  4
 

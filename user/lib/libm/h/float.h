@@ -9,7 +9,7 @@
 #ifndef _FLOAT_H
 #define _FLOAT_H 1
 
-#include <arch/_dmdef.h>
+#include <_dmdef.h>
 
 #define DECIMAL_DIG 17
 #define FLT_RADIX   2

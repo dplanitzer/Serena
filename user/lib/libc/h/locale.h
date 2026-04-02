@@ -14,7 +14,7 @@
 #endif
 
 #include <_cmndef.h>
-#include <arch/_null.h>
+#include <_null.h>
 
 __CPP_BEGIN
 

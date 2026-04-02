@@ -1,13 +1,13 @@
 //
-//  m68k/_fenv.h
+//  machine/m68k/_fenv.h
 //  libm
 //
 //  Created by Dietmar Planitzer on 2/13/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _M68K_FENV_H
-#define _M68K_FENV_H 1
+#ifndef _MACHINE_M68K_FENV_H
+#define _MACHINE_M68K_FENV_H 1
 
 #define FE_DIVBYZERO    0x04
 #define FE_INEXACT      0x02
@@ -23,4 +23,4 @@ typedef struct fenv {
     unsigned int    __fpsr;
 } fenv_t;
 
-#endif /* _M68K_FENV_H */
+#endif /* _MACHINE_M68K_FENV_H */
