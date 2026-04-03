@@ -63,15 +63,17 @@ BOOT_SERVICES_MEM_TOP       equ     RESET_STACK_BASE
 
 ; The sys_desc object
     clrso
-sd_cpu_model                    so.b    1       ; 1
-sd_fpu_model                    so.b    1       ; 1
+sd_cpu_type                     so.l    1       ; 4
+sd_cpu_subtype                  so.l    1       ; 4
 sd_cipset_version               so.b    1       ; 1
 sd_chipset_ramsey_version       so.b    1       ; 1
+sd_reserved1                    so.b    1       ; 1
+sd_reserved2                    so.b    1       ; 1
 sd_chipset_upper_dma_limit      so.l    1       ; 4
 sd_memory_desc_count            so.l    1       ; 4
 sd_memory_desc                  so.b    12*8    ; 12 * 8
-sd_SIZEOF                       so              ; 108
-    ifeq (sd_SIZEOF == 108)
+sd_SIZEOF                       so
+    ifeq (sd_SIZEOF == 116)
         fail "sys_desc structure size is incorrect."
     endif
 
@@ -83,7 +85,7 @@ mtc_deadline_queue              so.l    1       ; 4
 mtc_ns_per_tick                 so.l    1       ; 4
 mtc_cia_cycles_per_tick         so.w    1       ; 2
 mtc_ns_per_cia_cycle            so.w    1       ; 2
-mtc_SIZEOF                      so              ; 12
+mtc_SIZEOF                      so
     ifeq (mtc_SIZEOF == 16)
         fail "clock_ref_t structure size is incorrect."
     endif
@@ -178,7 +180,7 @@ vp_system_ticks                         so.l    1           ; 4
 vp_wait_ticks                           so.l    1           ; 4
 vp_proc                                 so.l    1           ; 4
 vp_dispatch_worker                      so.l    1           ; 4
-vp_SIZEOF                       so
+vp_SIZEOF                               so
     ifeq (vp_SIZEOF == 160)
         fail "vcpu structure size is incorrect."
     endif

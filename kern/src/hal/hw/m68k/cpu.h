@@ -16,22 +16,6 @@
 #define STACK_ALIGNMENT  4
 
 
-// CPU types
-#define CPU_MODEL_68000     0
-#define CPU_MODEL_68010     1
-#define CPU_MODEL_68020     2
-#define CPU_MODEL_68030     3
-#define CPU_MODEL_68040     4
-#define CPU_MODEL_68060     6
-
-// FPU types
-#define FPU_MODEL_NONE      0
-#define FPU_MODEL_68881     1
-#define FPU_MODEL_68882     2
-#define FPU_MODEL_68040     3
-#define FPU_MODEL_68060     4
-
-
 // FPU state frame sizes (fsave/frestore, see M68000PRM p. 6-12)
 #define FPU_NULL_FSAVE_SIZE         4
 #define FPU_68040_IDLE_FSAVE_SIZE   4

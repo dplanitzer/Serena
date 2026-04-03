@@ -23,15 +23,15 @@
 struct vcpu;
 
 
-extern const char* _Nonnull cpu_get_model_name(int8_t cpu_model);
-extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
+extern const char* _Nonnull cpu_get_name(cpu_subtype_t cpu_subtype);
+extern const char* _Nonnull fpu_get_name(cpu_subtype_t cpu_subtype);
 
 extern int cpu_verify_ram_4b(void* pSrc);
 
 extern int cpu_guarded_read(void* _Nonnull src, void* _Nonnull buffer, int buffer_size);
 extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, int buffer_size);
 
-extern void cpu_sleep(int cpu_type);
+extern void cpu_sleep(int cpu_family);
 extern void cpu_halt(void);
 
 extern void cpu_enable_branch_cache(int flag);

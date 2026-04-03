@@ -17,7 +17,7 @@ kei_func_t gKeiTable[KEI_Count];
 
 void kei_init(void)
 {
-    const bool is060 = (g_sys_desc->cpu_model >= CPU_MODEL_68060);
+    const bool is060 = (cpu_68k_family(g_sys_desc->cpu_subtype) >= CPU_FAMILY_68060);
 
     gKeiTable[KEI_asr64] = (kei_func_t)_rshsint64;
     gKeiTable[KEI_lsr64] = (kei_func_t)_rshuint64;

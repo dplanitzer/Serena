@@ -34,12 +34,12 @@ struct u_excpt_frame_ret {
 int8_t g_excpt_frame_size[16] = {8, 8, 12, 12, 12, 0, 0, 60, 0, 20, 32, 92, 0, 0, 0, 0};
 
 
-static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
+static int get_ecode(int cpu_family, int cpu_code, excpt_frame_t* _Nonnull efp)
 {
     switch (cpu_code) {
         case CPU_VEC_BUS_ERR:     // MC68040, MC68060: Access Fault
-            if ((cpu_code == CPU_MODEL_68040 && excpt_frame_getformat(efp) == 7 && (efp->u.f7.ssw & SSW7_MA) == SSW7_MA)
-                || (cpu_code == CPU_MODEL_68060 && excpt_frame_getformat(efp) == 4) && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw)) {
+            if ((cpu_family == CPU_FAMILY_68040 && excpt_frame_getformat(efp) == 7 && (efp->u.f7.ssw & SSW7_MA) == SSW7_MA)
+                || (cpu_family == CPU_FAMILY_68060 && excpt_frame_getformat(efp) == 4) && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw)) {
                 return EXCPT_DATA_MISALIGNED;
             }
             else {
@@ -58,7 +58,7 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
             return EXCPT_ILLEGAL_INSTRUCTION;
 
         case CPU_VEC_LINE_F:
-            if (cpu_model < 68060 || (cpu_model >= CPU_MODEL_68060 && excpt_frame_getformat(efp) == 4)) {
+            if (cpu_family < 68060 || (cpu_family >= CPU_FAMILY_68060 && excpt_frame_getformat(efp) == 4)) {
                 // Either a < 68060 CPU with no FPU present (e.g. 68LC040 or 68030 with no 68881/68882 co-proc)
                 // or a MC68060 class CPU with FPU disabled or a MC68LC060/MC68EC060 (no FPU)
                 return EXCPT_ILLEGAL_INSTRUCTION;
@@ -158,7 +158,7 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
     }
 }
 
-static uintptr_t get_fault_addr(int cpu_model, const excpt_frame_t* _Nonnull efp)
+static uintptr_t get_fault_addr(int cpu_family, const excpt_frame_t* _Nonnull efp)
 {
     // MC68020UM, p6-27 (152)ff
     switch (excpt_frame_getformat(efp)) {
@@ -173,14 +173,14 @@ static uintptr_t get_fault_addr(int cpu_model, const excpt_frame_t* _Nonnull efp
             return efp->u.f3.ea;
 
         case 0x4:
-            if (cpu_model == CPU_MODEL_68040) {
+            if (cpu_family == CPU_FAMILY_68040) {
                 // MC68LC040 (no FPU)
                 // MC68EC040 (no FPU, no MMU)
                 // We return the PC of the faulted FP instruction to align us with
                 // the standard illegal instruction exception type
                 return efp->u.f4_line_f.pcFaultedInstr;
             }
-            else if (cpu_model >= CPU_MODEL_68060) {
+            else if (cpu_family >= CPU_FAMILY_68060) {
                 return efp->u.f4_access_error.faddr;
             }
             else {
@@ -210,7 +210,9 @@ static uintptr_t get_fault_addr(int cpu_model, const excpt_frame_t* _Nonnull efp
 
 static void fp_fsave_fixup(struct vcpu* _Nonnull vp)
 {
-    if (g_sys_desc->fpu_model == FPU_MODEL_68882) {
+    const int fpu_type = cpu_68k_fpu(g_sys_desc->cpu_subtype);
+
+    if (fpu_type == CPU_FPU_68882) {
         // MC68881/MC68882 User's Manual, page 5-10 (211)
         struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->f.fsave;
 
@@ -220,7 +222,7 @@ static void fp_fsave_fixup(struct vcpu* _Nonnull vp)
         return;
     }
 
-    if (g_sys_desc->fpu_model == FPU_MODEL_68060) {
+    if (fpu_type == CPU_FPU_68060) {
         // 68060UM, page 6-37
         struct m68060_fsave_frame* fsave_p = (struct m68060_fsave_frame*)vp->excpt_sa->f.fsave;
 
@@ -303,10 +305,10 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->b.ef;
     const bool is_hw_excpt = excpt_frame_ishw(efp);
     const int ef_format = excpt_frame_getformat(efp);
-    const int cpu_model = g_sys_desc->cpu_model;
+    const int cpu_family = cpu_68k_family(g_sys_desc->cpu_subtype);
     const int cpu_code = (is_hw_excpt) ? excpt_frame_getvecnum(efp) : excpt_frame_getvecnum(efp) - CPU_VEC_SOFT_EXCPT;
-    const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 7);
-    const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 4);
+    const bool is_f7_access_err = (cpu_family == CPU_FAMILY_68040 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 7);
+    const bool is_f4_access_err = (cpu_family == CPU_FAMILY_68060 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 4);
     const bool is_nested = vcpu_is_handling_exception(vp);
     const excpt_handler_t* ehp = vcpu_excpt_handler_ref(vp);
 
@@ -318,13 +320,13 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 
     // get the exception code
-    vp->excpt_state.code = get_ecode(cpu_model, cpu_code, efp);
+    vp->excpt_state.code = get_ecode(cpu_family, cpu_code, efp);
     vp->excpt_state.cpu_code = cpu_code;
 
     // get the PC and fault address
     vp->excpt_state.sp = (void*)vp->excpt_sa->b.usp;
     vp->excpt_state.pc = (void*)efp->pc;
-    vp->excpt_state.fault_addr = (void*)get_fault_addr(cpu_model, efp);
+    vp->excpt_state.fault_addr = (void*)get_fault_addr(cpu_family, efp);
 
 
     // Halt system, if:

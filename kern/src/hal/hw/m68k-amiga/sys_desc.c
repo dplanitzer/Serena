@@ -13,7 +13,7 @@
 #include <kern/kernlib.h>
 
 
-extern int8_t fpu_get_model(void);
+extern int8_t cpu_probe_fpu(void);
 
 
 sys_desc_t* _Nonnull g_sys_desc;
@@ -218,11 +218,13 @@ static void gary_configure(void)
 // \param pSysDesc the system description memory
 // \param pBootServicesMemoryTop the end address of the memory used by the boot
 //                               services. Range is [0...pBootServicesMemoryTop]
-// \param cpu_model the detected CPU model 
-void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesMemoryTop, int cpu_model)
+// \param cpu_family the detected CPU family 
+void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesMemoryTop, int cpu_family)
 {
-    pSysDesc->cpu_model = cpu_model;
-    pSysDesc->fpu_model = fpu_get_model();
+    const int fpu = cpu_probe_fpu();
+
+    pSysDesc->cpu_type = CPU_TYPE_68K;
+    pSysDesc->cpu_subtype = _CPU_68K_DEF(cpu_family, fpu);
 
     pSysDesc->chipset_version = (int8_t)chipset_get_version();
     pSysDesc->chipset_ramsey_version = (int8_t)chipset_get_ramsey_version();
@@ -240,13 +242,13 @@ void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesM
 
 
     // Enable burst mode if possible (note 68020 doesn't support this)
-    if (pSysDesc->chipset_ramsey_version > 0 && pSysDesc->cpu_model > CPU_MODEL_68020) {
+    if (pSysDesc->chipset_ramsey_version > 0 && cpu_family > CPU_FAMILY_68020) {
         ramsey_configure(pSysDesc);
     }
 
 
     // Enable super scalar mode and branch caching on the 68060
-    if (pSysDesc->cpu_model == CPU_MODEL_68060) {
+    if (cpu_family == CPU_FAMILY_68060) {
         cpu060_set_pcr_bits(M68060_PCR_ESS);
         cpu_enable_branch_cache(1);
     }

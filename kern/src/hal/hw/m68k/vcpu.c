@@ -19,7 +19,7 @@ static char g_fpu_idle_fsave[FPU_MAX_FSAVE_SIZE];
 
 void vcpu_platform_init(void)
 {
-    if (g_sys_desc->fpu_model > FPU_MODEL_NONE) {
+    if (cpu_68k_fpu(g_sys_desc->cpu_subtype) > CPU_FPU_NONE) {
         fpu_idle_fsave(g_fpu_idle_fsave);
     }
 }

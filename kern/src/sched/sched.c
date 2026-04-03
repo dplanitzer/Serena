@@ -347,6 +347,6 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 static void idle_vcpu_run(void* _Nullable ctx)
 {
     while (true) {
-        cpu_sleep(g_sys_desc->cpu_model);
+        cpu_sleep(cpu_68k_family(g_sys_desc->cpu_subtype));
     }
 }

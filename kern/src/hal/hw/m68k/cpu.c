@@ -11,53 +11,36 @@
 
 
 // Returns the model name of the CPU
-const char* _Nonnull cpu_get_model_name(int8_t cpu_model)
+const char* _Nonnull cpu_get_name(cpu_subtype_t cpu_subtype)
 {
-    switch (cpu_model) {
-        case CPU_MODEL_68000:
-            return "68000";
-            
-        case CPU_MODEL_68010:
-            return "68010";
-            
-        case CPU_MODEL_68020:
-            return "68020";
-            
-        case CPU_MODEL_68030:
-            return "68030";
-            
-        case CPU_MODEL_68040:
-            return "68040";
-            
-        case CPU_MODEL_68060:
-            return "68060";
-            
-        default:
-            return "??";
+#define k68k_family_count 6
+    static const char* g_68k_cpu_name[k68k_family_count] = {
+        "68000", "68010", "68020", "68030", "68040", "68060"
+    };
+
+    const int family = cpu_68k_family(cpu_subtype) - 1;
+    if (family < k68k_family_count) {
+        return g_68k_cpu_name[family];
+    }
+    else {
+        return "??";
     }
 }
 
 // Returns the model name of the FPU
-const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
+const char* _Nonnull fpu_get_name(cpu_subtype_t cpu_subtype)
 {
-    switch (fpu_model) {
-        case FPU_MODEL_NONE:
-            return "none";
-            
-        case FPU_MODEL_68881:
-            return "68881";
-            
-        case FPU_MODEL_68882:
-            return "68882";
-            
-        case FPU_MODEL_68040:
-            return "68040";
-            
-        case FPU_MODEL_68060:
-            return "68060";
-            
-        default:
-            return "??";
+    #define k68k_fpu_count 5
+    static const char* g_68k_fpu_name[k68k_fpu_count] = {
+        "", "68881", "68882", "68040", "68060"
+    };
+
+    const int fpu = cpu_68k_fpu(cpu_subtype) - 1;
+    if (fpu < k68k_fpu_count) {
+        return g_68k_fpu_name[fpu];
+    }
+    else {
+        return "??";
     }
 }
 
@@ -97,7 +80,7 @@ void sp_shrink(uintptr_t sp, size_t nbytes)
 
 bool cpu_is_null_fsave(const char* _Nonnull sfp)
 {
-    if (g_sys_desc->fpu_model != FPU_MODEL_68060) {
+    if (cpu_68k_fpu(g_sys_desc->cpu_subtype) != CPU_FPU_68060) {
         return (((struct m6888x_null_frame*)sfp)->version == 0) ? true : false;
     }
     else {

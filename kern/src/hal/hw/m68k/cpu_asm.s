@@ -13,7 +13,7 @@
     xref _cpu_non_recoverable_error
     xref _g_excpt_frame_size
     
-    xdef _cpu_get_model
+    xdef _cpu_probe_family
     xdef _cpu_verify_ram_4b
     xdef _cpu_guarded_read
     xdef _cpu_guarded_write
@@ -31,12 +31,12 @@
 
 
 ;-------------------------------------------------------------------------------
-; int cpu_get_model(void)
+; int cpu_get_family(void)
 ; Returns the CPU model identifier.
-_cpu_get_model:
+_cpu_probe_family:
     inline
         movem.l d3 / a2 - a3, -(sp)
-        moveq   #CPU_MODEL_68060, d0    ; assume a 68060 by default
+        moveq   #CPU_FAMILY_68060, d0    ; assume a 68060 by default
         move.l  #16, a0     ; save the default illegal instruction handler
         move.l  (a0), -(sp)
         move.l  #44, a2     ; save the default line 1111 emulator handler
@@ -78,24 +78,24 @@ _cpu_get_model:
 
 .is_68000_cpu:
         move.l  a3, sp      ; restore the stack pointer
-        moveq   #CPU_MODEL_68000, d0
+        moveq   #CPU_FAMILY_68000, d0
         bra     .done
 
 .is_68010_cpu:
         move.l  a3, sp
-        moveq   #CPU_MODEL_68010, d0
+        moveq   #CPU_FAMILY_68010, d0
         bra     .done
 
 .is_68020_cpu:
         move.l  a3, sp
-        moveq   #CPU_MODEL_68020, d0
+        moveq   #CPU_FAMILY_68020, d0
         bra     .done
 
 .is_68020_or_68030_cpu:
         move.l  a3, sp
 
         ; check for 68030
-        moveq   #CPU_MODEL_68030, d0
+        moveq   #CPU_FAMILY_68030, d0
         lea     .is_68020_cpu(pc), a1
         move.l  a1, (a2)
         move.l  sp, a3
@@ -105,7 +105,7 @@ _cpu_get_model:
 
 .is_68040_cpu:
         move.l  a3, sp
-        moveq   #CPU_MODEL_68040, d0
+        moveq   #CPU_FAMILY_68040, d0
         bra     .done
     einline
 
@@ -321,12 +321,12 @@ _cpu68k_as_write_byte:
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_sleep(int cpu_type)
+; void cpu_sleep(int cpu_family)
 ; Moves the CPU to (a low power) sleep state until an interrupt occurs.
 _cpu_sleep:
     inline
-    cargs cslp_cpu_type.l
-        cmp.l   #CPU_MODEL_68060, cslp_cpu_type(sp)
+    cargs cslp_cpu_family.l
+        cmp.l   #CPU_FAMILY_68060, cslp_cpu_family(sp)
         beq.s   .cpu_sleep_68060
         stop    #$2000
         rts

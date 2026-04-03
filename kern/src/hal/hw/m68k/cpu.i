@@ -10,23 +10,23 @@
 CPU_I    set 1
 
 
-; CPU models
-CPU_MODEL_68000     equ 0
-CPU_MODEL_68010     equ 1
-CPU_MODEL_68020     equ 2
-CPU_MODEL_68030     equ 3
-CPU_MODEL_68040     equ 4
-CPU_MODEL_68060     equ 6
+; CPU family
+CPU_FAMILY_68000    equ 1
+CPU_FAMILY_68010    equ 2
+CPU_FAMILY_68020    equ 3
+CPU_FAMILY_68030    equ 4
+CPU_FAMILY_68040    equ 5
+CPU_FAMILY_68060    equ 6
 
 CPU_STATE_SIZE  equ 4 + 8*4 + 7*4
 
 
-; FPU models
-FPU_MODEL_NONE      equ 0
-FPU_MODEL_68881     equ 1
-FPU_MODEL_68882     equ 2
-FPU_MODEL_68040     equ 3
-FPU_MODEL_68060     equ 4
+; FPU subtypes
+CPU_FPU_NONE        equ 0
+CPU_FPU_68881       equ 1
+CPU_FPU_68882       equ 2
+CPU_FPU_68040       equ 3
+CPU_FPU_68060       equ 4
 
 FPU_USER_STATE_SIZE equ 108
 FPU_MAX_FSAVE_SIZE  equ 216

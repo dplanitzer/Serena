@@ -44,8 +44,8 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     self->run_state = VCPU_RUST_INITIATED;
 
     self->flags = 0;
-    self->flags |= (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
-    self->flags |= (g_sys_desc->cpu_model == CPU_MODEL_68060) ? VP_FLAG_HAS_BC : 0;
+    self->flags |= (cpu_68k_fpu(g_sys_desc->cpu_subtype) != CPU_FPU_NONE) ? VP_FLAG_HAS_FPU : 0;
+    self->flags |= (cpu_68k_family(g_sys_desc->cpu_subtype) == CPU_FAMILY_68060) ? VP_FLAG_HAS_BC : 0;
     self->base_priority = SCHED_PRI_FROM_QOS(policy->qos.grade, policy->qos.priority);
 
     vcpu_on_sched_param_changed(self);

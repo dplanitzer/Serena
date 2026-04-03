@@ -13,7 +13,7 @@
 
     xref _OnReset
     xref _OnBoot
-    xref _cpu_get_model
+    xref _cpu_probe_family
     xref _sys_desc_init
     xref _cpu_vector_table
 
@@ -51,8 +51,8 @@ _Reset:
         ; figure out which type of CPU this is. The required minimum is:
         ; CPU: MC68020
         ; FPU: none
-        jsr     _cpu_get_model
-        cmp.b   #CPU_MODEL_68020, d0
+        jsr     _cpu_probe_family
+        cmp.b   #CPU_FAMILY_68020, d0
         bge     .3
         move.l  #RGB_YELLOW, -(sp)
         jmp     _cpu_non_recoverable_error

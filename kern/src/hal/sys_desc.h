@@ -1,5 +1,5 @@
 //
-//  sys_desc_t.h
+//  sys_desc.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.
@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-
+#include <machine/cpu.h>
 
 // Supported max number of memory descriptors
 #define MEM_DESC_CAPACITY  8
@@ -40,11 +40,12 @@ typedef struct mem_layout {
 // The system description
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 typedef struct sys_desc {
-    int8_t          cpu_model;
-    int8_t          fpu_model;
+    cpu_type_t      cpu_type;
+    cpu_subtype_t   cpu_subtype;
 
     uint8_t         chipset_version;
     uint8_t         chipset_ramsey_version;     // RAMSEY custom chip version. 0 means no RAMSEY and thus a 16bit Amiga (A500 / A2000)
+    int8_t          reserved[2];
     char*           chipset_upper_dma_limit;    // Chipset DMA is limited to addresses below this address
     
     // These are memory regions that are accessible to the CPU without having to
