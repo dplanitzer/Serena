@@ -20,6 +20,7 @@ SYSCALL_REF(clock_getres);
 
 SYSCALL_REF(excpt_sethandler);
 
+SYSCALL_REF(host_info);
 SYSCALL_REF(host_procs);
 
 SYSCALL_REF(close);
@@ -135,7 +136,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
     SYSCALL_ENTRY(mount, SC_ERRNO),
     SYSCALL_ENTRY(unmount, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(host_info, SC_ERRNO),
     SYSCALL_ENTRY(sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),

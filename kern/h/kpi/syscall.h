@@ -48,7 +48,7 @@ enum {
     SC_clock_gettime,       // errno_t clock_gettime(clockid_t clock, struct timespec* _Nonnull ts)
     SC_mount,               // errno_t mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
     SC_unmount,             // errno_t unmount(const char* _Nonnull atDirPath, UnmountOptions options)
-    SC_unused7,             // XXX UNUSED
+    SC_host_info,           // errno_t host_info(int flavor, host_info_ref _Nonnull info)
     SC_sync,                // void sync(void)
     SC_coninit,             // void ConInit(void)
     SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)

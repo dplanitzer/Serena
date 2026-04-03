@@ -26,6 +26,15 @@ __CPP_BEGIN
 // states, including the zombie state.
 extern int host_procs(pid_t* _Nonnull buf, size_t bufSize);
 
+// Returns information about the local host. 'flavor' selects the kinds of
+// information that should be returned.
+extern int host_info(int flavor, host_info_ref _Nonnull info);
+
+//XXX NOT YET
+//extern int host_reboot();
+//extern int host_shutdown();
+//XXX
+
 __CPP_END
 
 #endif /* _SYS_HOST_H */
