@@ -12,28 +12,15 @@
 #include <kpi/types.h>
 
 // Types of mountable objects
-#define kMount_Catalog  ".catalog"
-#define kMount_SeFS     "sefs"
-
+#define FS_MOUNT_CATALOG    ".catalog"
+#define FS_MOUNT_SEFS       "sefs"
 
 // Mountable catalogs
-#define kCatalogName_Drivers    "dev"
-#define kCatalogName_Processes  "proc"
+#define FS_CATALOG_DRIVERS  "dev"
+#define FS_CATALOG_PROCS    "proc"
 
-
-enum {
-    kUnmount_Forced = 0x0001,   // Force the unmount even if there are still files open
-};
-typedef unsigned int UnmountOptions;
-
-
-
-// Filesystem properties
-enum {
-    kFSProperty_IsCatalog = 0x0001,     // Filesystem is a kernel managed catalog
-    kFSProperty_IsRemovable = 0x0002,   // Filesystem lives on a removable/ejectable media
-    kFSProperty_IsReadOnly = 0x0004,    // Filesystem was mounted read-only
-};
+// Unmount flags
+#define FS_UNMOUNT_FORCE    0x0001   /* Force the unmount even if there are still files open */
 
 
 // Filesystem specific information
@@ -50,5 +37,10 @@ typedef struct fs_basic_info {
     unsigned int    properties;     // Filesystem properties
     char            type[12];       // Filesystem type (max 11 characters C string)
 } fs_basic_info_t;
+
+// Filesystem properties
+#define FS_PROP_CATALOG     0x0001  /* Filesystem is a kernel managed catalog */
+#define FS_PROP_REMOVABLE   0x0002  /* Filesystem lives on a removable/ejectable media */
+#define FS_PROP_READ_ONLY   0x0004  /* Filesystem was mounted read-only */
 
 #endif /* _KERN_FS_H */

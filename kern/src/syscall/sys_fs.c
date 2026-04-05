@@ -28,7 +28,7 @@ SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)
     return err;
 }
 
-SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+SYSCALL_3(fs_diskpath, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -77,7 +77,7 @@ SYSCALL_2(fs_setlabel, fsid_t fsid, const char* _Nonnull label)
     return err;
 }
 
-SYSCALL_4(mount, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
+SYSCALL_4(fs_mount, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -88,18 +88,18 @@ SYSCALL_4(mount, const char* _Nonnull objectType, const char* _Nonnull objectNam
     return err;
 }
 
-SYSCALL_2(unmount, const char* _Nonnull atDirPath, UnmountOptions options)
+SYSCALL_2(fs_unmount, const char* _Nonnull atDirPath, int flags)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     mtx_lock(&pp->mtx);
-    err = FileManager_Unmount(&pp->fm, pa->atDirPath, pa->options);
+    err = FileManager_Unmount(&pp->fm, pa->atDirPath, pa->flags);
     mtx_unlock(&pp->mtx);
     return err;
 }
 
-SYSCALL_0(sync)
+SYSCALL_0(fs_sync)
 {
     FilesystemManager_Sync(gFilesystemManager);
     return EOK;

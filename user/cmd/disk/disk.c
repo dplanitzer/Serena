@@ -210,7 +210,7 @@ static void print_reg_info(const fs_basic_info_t* _Nonnull info)
     }
 
 
-    if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
+    if ((info->properties & FS_PROP_READ_ONLY) == FS_PROP_READ_ONLY) {
         status = "Read Only";
     }
     else {
@@ -229,7 +229,7 @@ static void cmd_info(const char* _Nonnull path)
     fs_basic_info_t info;
 
     if (!fs_info(fsid, FS_INFO_BASIC, &info)) {
-        if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
+        if ((info.properties & FS_PROP_CATALOG) == FS_PROP_CATALOG) {
             print_cat_info(&info);
         }
         else {
@@ -310,19 +310,19 @@ static void sense_disk(const char* _Nonnull diskPath)
 void cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 {
     sense_disk(diskPath);
-    mount(kMount_SeFS, diskPath, atPath, "");
+    fs_mount(FS_MOUNT_SEFS, diskPath, atPath, "");
 }
 
 
 void cmd_unmount(const char* _Nonnull atPath, bool doForce)
 {
-    UnmountOptions options = 0;
+    int flags = 0;
 
     if (doForce) {
-        options |= kUnmount_Forced;
+        flags |= FS_UNMOUNT_FORCE;
     }
 
-    unmount(atPath, options);
+    fs_unmount(atPath, flags);
 }
 
 

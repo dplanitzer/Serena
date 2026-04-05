@@ -30,7 +30,7 @@ static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const c
     ResolvedPath rp_disk;
 
     // SeFS only for now
-    if (strcmp(fsName, kMount_SeFS)) {
+    if (strcmp(fsName, FS_MOUNT_SEFS)) {
         throw(EINVAL);
     }
 
@@ -69,10 +69,10 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     decl_try_err();
     FilesystemRef fs = NULL;
 
-    if (!strcmp(catalogName, kCatalogName_Drivers)) {
+    if (!strcmp(catalogName, FS_CATALOG_DRIVERS)) {
         fs = DriverManager_GetCatalog(gDriverManager);
     }
-    else if (!strcmp(catalogName, kCatalogName_Processes)) {
+    else if (!strcmp(catalogName, FS_CATALOG_PROCS)) {
         fs = ProcessManager_GetCatalog(gProcessManager);
     }
     else {
@@ -106,7 +106,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull obj
     }
     
 
-    if (!strcmp(objectType, kMount_Catalog)) {
+    if (!strcmp(objectType, FS_MOUNT_CATALOG)) {
         err = lookup_catalog(self, objectName, &fs);
     }
     else {
@@ -127,11 +127,11 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull obj
 }
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
-errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options)
+errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, int flags)
 {
     decl_try_err();
     ResolvedPath rp_atDir;
-    bool forced = ((options & kUnmount_Forced) == kUnmount_Forced) ? true : false;
+    bool forced = ((flags & FS_UNMOUNT_FORCE) == FS_UNMOUNT_FORCE) ? true : false;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, atDirPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_atDir));
 
@@ -165,10 +165,10 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
         const char* name;
 
         if (DriverManager_GetCatalog(gDriverManager)->fsid == fsid) {
-            name = kCatalogName_Drivers;
+            name = FS_CATALOG_DRIVERS;
         }
         else if (ProcessManager_GetCatalog(gProcessManager)->fsid == fsid) {
-            name = kCatalogName_Processes;
+            name = FS_CATALOG_PROCS;
         }
         else {
             return EOK;

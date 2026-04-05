@@ -85,7 +85,7 @@ open_class_funcs(FSContainer, Object,
 ((FSContainerRef)__self)->properties
 
 #define FSContainer_IsReadOnly(__self)\
-((((FSContainerRef)__self)->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly ? true : false)
+((((FSContainerRef)__self)->properties & FS_PROP_READ_ONLY) == FS_PROP_READ_ONLY ? true : false)
 
 
 #define FSContainer_Disconnect(__self) \

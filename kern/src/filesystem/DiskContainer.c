@@ -22,10 +22,10 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDiskInfo, &info));
 
     if ((info.properties & kDisk_IsReadOnly) == kDisk_IsReadOnly) {
-        fsprops |= kFSProperty_IsReadOnly;
+        fsprops |= FS_PROP_READ_ONLY;
     }
     if ((info.properties & kDisk_IsRemovable) == kDisk_IsRemovable) {
-        fsprops |= kFSProperty_IsRemovable;
+        fsprops |= FS_PROP_REMOVABLE;
     }
 
     //XXX select the disk cache based on FS needs and driver sector size

@@ -139,7 +139,7 @@ errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, int flavor, fs_info_ref _Non
             ip->fsid = Filesystem_GetId(self);
             ip->properties = 0;
             if (FSContainer_IsReadOnly(fsContainer)) {
-                ip->properties |= kFSProperty_IsReadOnly;
+                ip->properties |= FS_PROP_READ_ONLY;
             }
             memcpy(ip->type, "sefs", 5);
             break;

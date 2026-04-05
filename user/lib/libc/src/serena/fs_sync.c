@@ -1,5 +1,5 @@
 //
-//  sync.c
+//  fs_sync.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
@@ -10,7 +10,7 @@
 #include <serena/process.h>
 
 
-void sync(void)
+void fs_sync(void)
 {
-    (void)_syscall(SC_sync);
+    (void)_syscall(SC_fs_sync);
 }

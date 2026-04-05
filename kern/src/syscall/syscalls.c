@@ -25,8 +25,12 @@ SYSCALL_REF(host_procs);
 SYSCALL_REF(host_filesystems);
 
 SYSCALL_REF(fs_info);
+SYSCALL_REF(fs_diskpath);
 SYSCALL_REF(fs_label);
 SYSCALL_REF(fs_setlabel);
+SYSCALL_REF(fs_mount);
+SYSCALL_REF(fs_unmount);
+SYSCALL_REF(fs_sync);
 
 SYSCALL_REF(close);
 SYSCALL_REF(read);
@@ -54,11 +58,6 @@ SYSCALL_REF(chmod);
 SYSCALL_REF(utimens);
 
 SYSCALL_REF(mkpipe);
-
-SYSCALL_REF(mount);
-SYSCALL_REF(unmount);
-SYSCALL_REF(sync);
-SYSCALL_REF(fsgetdisk);
 
 SYSCALL_REF(exit);
 SYSCALL_REF(spawn_process);
@@ -139,12 +138,12 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(mkpipe, SC_ERRNO),
     SYSCALL_ENTRY(wq_dispose, SC_ERRNO),
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
-    SYSCALL_ENTRY(mount, SC_ERRNO),
-    SYSCALL_ENTRY(unmount, SC_ERRNO),
+    SYSCALL_ENTRY(fs_mount, SC_ERRNO),
+    SYSCALL_ENTRY(fs_unmount, SC_ERRNO),
     SYSCALL_ENTRY(host_info, SC_ERRNO),
-    SYSCALL_ENTRY(sync, SC_ERRNO),
+    SYSCALL_ENTRY(fs_sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
-    SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
+    SYSCALL_ENTRY(fs_diskpath, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_errno, SC_INT),
     SYSCALL_ENTRY(chown, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),

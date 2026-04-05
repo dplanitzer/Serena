@@ -1,5 +1,5 @@
 //
-//  unmount.c
+//  fs_unmount.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,7 +9,7 @@
 #include <serena/fs.h>
 #include <kpi/syscall.h>
 
-int unmount(const char* _Nonnull atDirPath, UnmountOptions options)
+int fs_unmount(const char* _Nonnull atDirPath, int flags)
 {
-    return (int)_syscall(SC_unmount, atDirPath, options);
+    return (int)_syscall(SC_fs_unmount, atDirPath, flags);
 }

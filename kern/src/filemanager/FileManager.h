@@ -118,7 +118,7 @@ extern errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* pOld
 #ifndef __DISKIMAGE__
 extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
 
-extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options);
+extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, int flags);
 
 extern errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 #endif  /* __DISKIMAGE__ */

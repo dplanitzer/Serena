@@ -21,6 +21,7 @@ extern int fs_info(fsid_t fsid, int flavor, fs_info_ref _Nonnull info);
 // given id.
 extern int fs_diskpath(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
+
 // Returns the disk label of the filesystem with the given id.
 extern int fs_label(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
@@ -32,12 +33,13 @@ extern int fs_setlabel(fsid_t fsid, const char* _Nonnull label);
 // Mounts the object 'objectName' of type 'objectType' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
-extern int mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
+extern int fs_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
-extern int unmount(const char* _Nonnull atDirPath, UnmountOptions options);
+extern int fs_unmount(const char* _Nonnull atDirPath, int flags);
+
 
 // Synchronously writes all dirty disk blocks back to disk.
-extern void sync(void);
+extern void fs_sync(void);
 
 #endif /* _SYS_FS_H */

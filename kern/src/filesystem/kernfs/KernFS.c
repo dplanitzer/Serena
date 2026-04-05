@@ -130,7 +130,7 @@ errno_t KernFS_getInfo(KernFSRef _Nonnull self, int flavor, fs_info_ref _Nonnull
 
             memset(pOutInfo, 0, sizeof(fs_basic_info_t));
             ip->fsid = Filesystem_GetId(self);
-            ip->properties |= kFSProperty_IsCatalog;
+            ip->properties |= FS_PROP_CATALOG;
             memcpy(ip->type, "kernfs", 7);
             break;
         }
