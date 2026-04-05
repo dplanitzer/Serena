@@ -18,9 +18,6 @@ extern FilesystemManagerRef _Nonnull gFilesystemManager;
 extern errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutSelf);
 
 
-// Returns the filesystem that represents the /fs catalog.
-extern FilesystemRef _Nonnull FilesystemManager_GetCatalog(FilesystemManagerRef _Nonnull self);
-
 extern errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self);
 
 

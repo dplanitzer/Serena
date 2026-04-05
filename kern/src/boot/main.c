@@ -152,12 +152,8 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Create the various kernel object catalogs
-    try(Catalog_Create(&gFSCatalog));
     try(Catalog_Create(&gProcCatalog));
     try(Catalog_Create(&gDriverCatalog));
-    try(Filesystem_Publish(Catalog_GetFilesystem(gFSCatalog)));
-    try(Filesystem_Publish(Catalog_GetFilesystem(gProcCatalog)));
-    try(Filesystem_Publish(Catalog_GetFilesystem(gDriverCatalog)));
 
 
     // Create the HID and driver managers

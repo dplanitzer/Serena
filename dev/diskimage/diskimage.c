@@ -18,7 +18,6 @@
 #include <ext/perm.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/InodeChannel.h>
-#include <filesystem/FSChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/serenafs/SfsDirectory.h>
 #include <filesystem/serenafs/SfsRegularFile.h>
@@ -527,7 +526,6 @@ static void init(void)
 {
     _RegisterClass(class(Any));
     _RegisterClass(class(Object));
-    _RegisterClass(class(FSChannel));
     _RegisterClass(class(FSContainer));
     _RegisterClass(class(RamContainer));
     _RegisterClass(class(Filesystem));

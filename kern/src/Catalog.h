@@ -24,7 +24,6 @@ typedef uint32_t    CatalogId;
 
 
 extern CatalogRef _Nonnull  gDriverCatalog;
-extern CatalogRef _Nonnull  gFSCatalog;
 extern CatalogRef _Nonnull  gProcCatalog;
 
 
@@ -65,11 +64,6 @@ extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, C
 // 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
 extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
-
-// Publish the filesystem instance 'fs' with the name 'name' in the root
-// directory of the catalog. Returns a suitable error if another entry with the
-// same name already exists.
-extern errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId);
 
 // Publish the process 'proc' with the name 'name' in the root directory of the
 // catalog. Returns a suitable error if another entry with the same name already

@@ -65,20 +65,6 @@ void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
     FSContainer_Sync(self->fsContainer);
 }
 
-errno_t ContainerFilesystem_ioctl(struct ContainerFilesystem* _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kFSCommand_GetDiskInfo: {
-            disk_info_t* info = va_arg(ap, disk_info_t*);
-
-            return FSContainer_GetDiskInfo(Filesystem_GetContainer(self), info);
-        }
-
-        default:
-            return super_n(ioctl, Filesystem, ContainerFilesystem, self, pChannel, cmd, ap);
-    }
-}
-
 
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
@@ -86,5 +72,4 @@ override_func_def(onDisconnect, ContainerFilesystem, Filesystem)
 override_func_def(getNodeBlockSize, ContainerFilesystem, Filesystem)
 override_func_def(getInfo, ContainerFilesystem, Filesystem)
 override_func_def(sync, ContainerFilesystem, Filesystem)
-override_func_def(ioctl, ContainerFilesystem, Filesystem)
 );

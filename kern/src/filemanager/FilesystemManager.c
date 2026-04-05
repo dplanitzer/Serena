@@ -109,11 +109,6 @@ errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
 }
 
 
-FilesystemRef _Nonnull FilesystemManager_GetCatalog(FilesystemManagerRef _Nonnull self)
-{
-    return Catalog_GetFilesystem(gFSCatalog);
-}
-
 errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, InodeRef _Locked _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
@@ -152,15 +147,7 @@ errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, Fi
         return EOK;
     }
 
-    err = Filesystem_Start(fs, params);
-    if (err == EOK) {
-        err = Filesystem_Publish(fs);
-        if (err != EOK) {
-            Filesystem_Stop(fs, false);
-        }
-    }
-
-    return err;
+    return Filesystem_Start(fs, params);
 }
 
 errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool forced)
@@ -171,10 +158,7 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
         return EOK;
     }
 
-    err = Filesystem_Stop(fs, forced);
-    if (err != EBUSY || (err == EBUSY && forced)) {
-        Filesystem_Unpublish(fs);
-    }
+    return Filesystem_Stop(fs, forced);
 }
 
 static fsentry_t* _Nullable _fsentry_for_fsid(FilesystemManagerRef _Locked _Nonnull self, fsid_t fsid)

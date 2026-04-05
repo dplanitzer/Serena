@@ -9,7 +9,6 @@
 #include "Filesystem.h"
 #include "FSUtilities.h"
 #include "InodeChannel.h"
-#include "FSChannel.h"
 #include <assert.h>
 #include <ext/atomic.h>
 #include <ext/hash.h>
@@ -65,9 +64,6 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     cnd_init(&self->inCondVar);
     mtx_init(&self->inLock);
     self->state = kFilesystemState_Idle;
-#ifndef __DISKIMAGE__
-    self->catalogId = kCatalogId_None;
-#endif
 
     *pOutSelf = self;
     return EOK;
@@ -94,36 +90,6 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 
     mtx_deinit(&self->inLock);
     cnd_deinit(&self->inCondVar);
-}
-
-errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
-{
-#ifndef __DISKIMAGE__
-    if (self->catalogId == kCatalogId_None) {
-        char buf[12];
-
-        utoa(self->fsid, buf, 10);
-        return Catalog_PublishFilesystem(gFSCatalog, buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), self, &self->catalogId);
-    }
-    else {
-        return EOK;
-    }
-#else
-    return ENOTSUP;
-#endif
-}
-
-errno_t Filesystem_Unpublish(FilesystemRef _Nonnull self)
-{
-#ifndef __DISKIMAGE__
-    if (self->catalogId != kCatalogId_None) {
-        Catalog_Unpublish(gFSCatalog, kCatalogId_None, self->catalogId);
-        self->catalogId = kCatalogId_None;
-    }
-    return EOK;
-#else
-    return ENOTSUP;
-#endif
 }
 
 static errno_t _Filesystem_PrepReadingNode(FilesystemRef _Nonnull self, ino_t id, RDnode* _Nullable * _Nonnull pOutNode)
@@ -407,7 +373,7 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced)
     if (self->state != kFilesystemState_Active) {
         throw(ENXIO);
     }
-    if ((self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) && (!forced)) {
+    if ((self->inCachedCount > 0 || self->inReadingCount > 0) && (!forced)) {
         throw(EBUSY);
     }
 
@@ -460,7 +426,7 @@ bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
     if (self->state == kFilesystemState_Active) {
         ok = false;
     }
-    else if (self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) {
+    else if (self->inCachedCount > 0 || self->inReadingCount > 0) {
         ok = false;
     }
     else {
@@ -469,41 +435,6 @@ bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
     mtx_unlock(&self->inLock);
     
     return ok;
-}
-
-errno_t Filesystem_open(FilesystemRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-
-    mtx_lock(&self->inLock);
-    if (self->state == kFilesystemState_Active) {
-        err = FSChannel_Create(class(FSChannel), SEO_FT_FILESYSTEM, mode, self, pOutChannel);
-        if (err == EOK) {
-            self->openChannelsCount++;
-        }
-    }
-    else {
-        err = ENXIO;
-    }
-    mtx_unlock(&self->inLock);
-
-    return err;
-}
-
-errno_t Filesystem_close(FilesystemRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel)
-{
-    decl_try_err();
-
-    mtx_lock(&self->inLock);
-    if (self->openChannelsCount > 0) {
-        self->openChannelsCount--;
-    }
-    else {
-        err = EBADF;
-    }
-    mtx_unlock(&self->inLock);
-
-    return EOK;
 }
 
 size_t Filesystem_getNodeBlockSize(FilesystemRef _Nonnull self, InodeRef _Locked _Nonnull node)
@@ -529,52 +460,6 @@ errno_t Filesystem_getLabel(FilesystemRef _Nonnull self, char* _Nonnull buf, siz
 errno_t Filesystem_setLabel(FilesystemRef _Nonnull self, const char* _Nonnull buf)
 {
     return ENOTSUP;
-}
-
-errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kFSCommand_GetInfo: {
-            fs_info_t* info = va_arg(ap, fs_info_t*);
-
-            return Filesystem_GetInfo(self, 1, info);
-        }
-
-        case kFSCommand_GetLabel: {
-            char* buf = va_arg(ap, char*);
-            const size_t bufSize = va_arg(ap, size_t);
-
-            return Filesystem_GetLabel(self, buf, bufSize);
-        }
-
-        case kFSCommand_SetLabel: {
-            const char* buf = va_arg(ap, const char*);
-
-            return Filesystem_SetLabel(self, buf);
-        }
-
-        case kFSCommand_GetDiskInfo:
-            return ENOTSUP;
-
-        case kFSCommand_Sync:
-            Filesystem_Sync(self);
-            return EOK;
-    
-        default:
-            return ENOTIOCTLCMD;
-    }
-}
-
-errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...)
-{
-    decl_try_err();
-
-    va_list ap;
-    va_start(ap, cmd);
-    err = Filesystem_vIoctl(self, pChannel, cmd, ap);
-    va_end(ap);
-
-    return err;
 }
 
 
@@ -668,13 +553,10 @@ func_def(syncNodes, Filesystem)
 func_def(onStart, Filesystem)
 func_def(onStop, Filesystem)
 func_def(onDisconnect, Filesystem)
-func_def(open, Filesystem)
-func_def(close, Filesystem)
 func_def(getNodeBlockSize, Filesystem)
 func_def(getInfo, Filesystem)
 func_def(getLabel, Filesystem)
 func_def(setLabel, Filesystem)
-func_def(ioctl, Filesystem)
 func_def(acquireParentNode, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)

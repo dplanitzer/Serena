@@ -42,7 +42,6 @@ int main(int argc, char *argv[])
 {
     // Mount kernel object catalogs
     mount(kMount_Catalog, kCatalogName_Drivers, "/dev", "");
-    mount(kMount_Catalog, kCatalogName_Filesystems, "/fs", "");
     mount(kMount_Catalog, kCatalogName_Processes, "/proc", "");
 
 
@@ -53,6 +52,6 @@ int main(int argc, char *argv[])
         halt_machine();
     }
 
-    // Don't exit (doing it this cheepo way for now. Should keep an eye on its children though)
+    // Don't exit (doing it this cheep way for now. Should keep an eye on its children though)
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
 }

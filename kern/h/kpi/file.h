@@ -43,16 +43,14 @@ struct stat {
 #define S_IFREG     0x00000000  /* A regular file that stores data */
 #define S_IFDIR     0x01000000  /* A directory which stores information about child nodes */
 #define S_IFDEV     0x02000000  /* A driver which manages a piece of hardware */
-#define S_IFFS      0x03000000  /* A mounted filesystem instance */
-#define S_IFPROC    0x04000000  /* A process */
-#define S_IFLNK     0x05000000
-#define S_IFIFO     0x06000000
+#define S_IFPROC    0x03000000  /* A process */
+#define S_IFLNK     0x04000000
+#define S_IFIFO     0x05000000
 
 // Convenience macros to check for inode types
 #define S_ISREG(__mode)     (((__mode) & S_IFMT) == S_IFREG)
 #define S_ISDIR(__mode)     (((__mode) & S_IFMT) == S_IFDIR)
 #define S_ISDEV(__mode)     (((__mode) & S_IFMT) == S_IFDEV)
-#define S_ISFS(__mode)      (((__mode) & S_IFMT) == S_IFFS)
 #define S_ISPROC(__mode)    (((__mode) & S_IFMT) == S_IFPROC)
 #define S_ISLNK(__mode)     (((__mode) & S_IFMT) == S_IFLNK)
 #define S_ISFIFO(__mode)    (((__mode) & S_IFMT) == S_IFIFO)

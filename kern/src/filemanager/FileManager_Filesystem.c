@@ -72,9 +72,6 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     if (!strcmp(catalogName, kCatalogName_Drivers)) {
         fs = DriverManager_GetCatalog(gDriverManager);
     }
-    else if (!strcmp(catalogName, kCatalogName_Filesystems)) {
-        fs = FilesystemManager_GetCatalog(gFilesystemManager);
-    }
     else if (!strcmp(catalogName, kCatalogName_Processes)) {
         fs = ProcessManager_GetCatalog(gProcessManager);
     }
@@ -169,9 +166,6 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
 
         if (DriverManager_GetCatalog(gDriverManager)->fsid == fsid) {
             name = kCatalogName_Drivers;
-        }
-        else if (FilesystemManager_GetCatalog(gFilesystemManager)->fsid == fsid) {
-            name = kCatalogName_Filesystems;
         }
         else if (ProcessManager_GetCatalog(gProcessManager)->fsid == fsid) {
             name = kCatalogName_Processes;

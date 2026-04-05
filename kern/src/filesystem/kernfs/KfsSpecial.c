@@ -55,9 +55,6 @@ errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned i
         case S_IFDEV:
             return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
 
-        case S_IFFS:
-            return Filesystem_Open((FilesystemRef)self->instance, mode, 0, pOutChannel);
-
         default:
             return EBADF;
     }

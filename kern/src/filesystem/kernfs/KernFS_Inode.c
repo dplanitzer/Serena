@@ -25,7 +25,6 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
             break;
 
         case S_IFDEV:
-        case S_IFFS:
             try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), obj, arg, &ip));
             break;
 
@@ -66,12 +65,6 @@ catch:
 errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return _KernFS_createNode(self, dir, name, (ObjectRef)drv, arg, uid, gid, __S_MKMODE(S_IFDEV, permissions), pOutNode);
-}
-
-// Creates a new filesystem node in the file system.
-errno_t KernFS_CreateFilesystemNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, FilesystemRef _Nonnull fs, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    return _KernFS_createNode(self, dir, name, (ObjectRef)fs, 0, uid, gid, __S_MKMODE(S_IFFS, permissions), pOutNode);
 }
 
 // Creates a new process node in the file system.

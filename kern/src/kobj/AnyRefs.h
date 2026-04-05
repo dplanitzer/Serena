@@ -35,7 +35,6 @@ class_ref(Filesystem);
 class_ref(FilesystemManager);
 class_ref(FloppyController);
 class_ref(FloppyDriver);
-class_ref(FSChannel);
 class_ref(FSContainer);
 class_ref(GamePortController);
 class_ref(GraphicsDriver);

@@ -23,7 +23,6 @@ typedef struct Catalog {
 
 
 CatalogRef _Nonnull  gDriverCatalog;
-CatalogRef _Nonnull  gFSCatalog;
 CatalogRef _Nonnull  gProcCatalog;
 
 
@@ -182,32 +181,6 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
     err = _Catalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
         err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, arg, uid, gid, perms, &pNode);
-        if (err == EOK) {
-            *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
-        }
-    }
-
-    Inode_Relinquish(pNode);
-    Inode_Relinquish(pDir);
-
-    return err;
-}
-
-errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId)
-{
-    decl_try_err();
-    InodeRef pDir = NULL;
-    InodeRef pNode = NULL;
-    PathComponent pc;
-
-    *pOutCatalogId = kCatalogId_None;
-
-    pc.name = name;
-    pc.count = strlen(name);
-
-    err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
-    if (err == EOK) {
-        err = KernFS_CreateFilesystemNode((KernFSRef)self->fs, pDir, &pc, fs, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
         }

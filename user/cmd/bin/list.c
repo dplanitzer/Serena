@@ -108,7 +108,6 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
     switch (S_FTYPE(st.st_mode)) {
         case S_IFDEV:   tc = 'h'; break;
         case S_IFDIR:   tc = 'd'; break;
-        case S_IFFS:    tc = 'f'; break;
         case S_IFPROC:  tc = 'P'; break;
         case S_IFIFO:   tc = 'p'; break;
         case S_IFLNK:   tc = 'l'; break;
