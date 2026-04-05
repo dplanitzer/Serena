@@ -39,6 +39,22 @@ enum {
 
 
 // Filesystem specific information
+#define FS_INFO_BASIC   1
+#define FS_INFO_DISK    2
+
+typedef void* fs_info_ref;
+
+typedef struct fs_basic_info {
+    blkcnt_t        capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
+    blkcnt_t        count;          // Blocks or entries currently in use/allocated
+    size_t          blockSize;      // Size of a block in bytes
+    fsid_t          fsid;           // Filesystem ID
+    unsigned int    properties;     // Filesystem properties
+    char            type[12];       // Filesystem type (max 11 characters C string)
+} fs_basic_info_t;
+
+
+// Filesystem specific information
 typedef struct fs_info {
     blkcnt_t        capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
     blkcnt_t        count;          // Blocks or entries currently in use/allocated

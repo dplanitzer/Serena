@@ -511,9 +511,9 @@ size_t Filesystem_getNodeBlockSize(FilesystemRef _Nonnull self, InodeRef _Locked
     return 0;
 }
 
-errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, fs_info_t* _Nonnull pOutInfo)
+errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
-    return ENOTIOCTLCMD;
+    return ENOTSUP;
 }
 
 errno_t Filesystem_getLabel(FilesystemRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
@@ -537,7 +537,7 @@ errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pCha
         case kFSCommand_GetInfo: {
             fs_info_t* info = va_arg(ap, fs_info_t*);
 
-            return Filesystem_GetInfo(self, info);
+            return Filesystem_GetInfo(self, 1, info);
         }
 
         case kFSCommand_GetLabel: {

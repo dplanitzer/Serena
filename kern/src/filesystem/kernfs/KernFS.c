@@ -120,14 +120,27 @@ catch:
     return err;
 }
 
-errno_t KernFS_getInfo(KernFSRef _Nonnull self, fs_info_t* _Nonnull pOutInfo)
+errno_t KernFS_getInfo(KernFSRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
-    memset(pOutInfo, 0, sizeof(fs_info_t));
-    pOutInfo->fsid = Filesystem_GetId(self);
-    pOutInfo->properties |= kFSProperty_IsCatalog;
-    memcpy(pOutInfo->type, "kernfs", 7);
+    decl_try_err();
 
-    return EOK;
+    switch (flavor) {
+        case FS_INFO_BASIC: {
+            fs_basic_info_t* ip = pOutInfo;
+
+            memset(pOutInfo, 0, sizeof(fs_basic_info_t));
+            ip->fsid = Filesystem_GetId(self);
+            ip->properties |= kFSProperty_IsCatalog;
+            memcpy(ip->type, "kernfs", 7);
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    return err;
 }
 
 static errno_t KernFS_unlinkCore(KernFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)

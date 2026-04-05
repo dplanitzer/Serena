@@ -261,8 +261,8 @@ open_class_funcs(Filesystem, Object,
 
     // Returns general information about the filesystem.
     // Override: Optional
-    // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*getInfo)(void* _Nonnull self, fs_info_t* _Nonnull pOutInfo);
+    // Default Behavior: Returns ENOTSUP
+    errno_t (*getInfo)(void* _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo);
 
     // Returns the filesystem's label. A label is a string that is assigned to a
     // filesystem when it is formatted. However, it may be changed at a later
@@ -473,8 +473,8 @@ invoke_n(close, Filesystem, __self, __ch)
 #define Filesystem_GetNodeBlockSize(__self, __node) \
 invoke_n(getNodeBlockSize, Filesystem, __self, __node)
 
-#define Filesystem_GetInfo(__self, __pOutInfo) \
-invoke_n(getInfo, Filesystem, __self, __pOutInfo)
+#define Filesystem_GetInfo(__self, __flavor, __pOutInfo) \
+invoke_n(getInfo, Filesystem, __self, __flavor, __pOutInfo)
 
 #define Filesystem_GetLabel(__self, __buf, __bufSize) \
 invoke_n(getLabel, Filesystem, __self, __buf, __bufSize)

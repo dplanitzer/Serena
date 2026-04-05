@@ -39,6 +39,26 @@ size_t ContainerFilesystem_getNodeBlockSize(struct ContainerFilesystem* _Nonnull
     return FSContainer_GetBlockSize(self->fsContainer);
 }
 
+errno_t ContainerFilesystem_getInfo(struct ContainerFilesystem* _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
+{
+    decl_try_err();
+
+    switch (flavor) {
+        case FS_INFO_DISK: {
+            disk_info_t* ip = pOutInfo;
+
+            err = FSContainer_GetDiskInfo(Filesystem_GetContainer(self), ip);
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    return err;
+}
+
 void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
 {
     super_0(sync, Filesystem, ContainerFilesystem, self);
@@ -64,6 +84,7 @@ class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
 override_func_def(onDisconnect, ContainerFilesystem, Filesystem)
 override_func_def(getNodeBlockSize, ContainerFilesystem, Filesystem)
+override_func_def(getInfo, ContainerFilesystem, Filesystem)
 override_func_def(sync, ContainerFilesystem, Filesystem)
 override_func_def(ioctl, ContainerFilesystem, Filesystem)
 );

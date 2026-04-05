@@ -9,6 +9,7 @@
 #include "syscalldecls.h"
 #include <hal/sys_desc.h>
 #include <kpi/host.h>
+#include <filemanager/FilesystemManager.h>
 #include <process/ProcessManager.h>
 
 
@@ -26,7 +27,7 @@ SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
             ip->physical_max_cpu_count = 1;
             ip->logical_cpu_count = 1;
             ip->logical_max_cpu_count = 1;
-            ip->phys_mem_size = sys_desc_getramsize(&g_sys_desc);
+            ip->phys_mem_size = sys_desc_getramsize(g_sys_desc);
             break;
         }
 
@@ -39,6 +40,11 @@ SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
 }
 
 SYSCALL_3(host_procs, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+{
+    return ProcessManager_GetProcessIds(gProcessManager, pa->buf, pa->bufSize, pa->out_hasMore);
+}
+
+SYSCALL_3(host_filesystems, fsid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {
     return ProcessManager_GetProcessIds(gProcessManager, pa->buf, pa->bufSize, pa->out_hasMore);
 }

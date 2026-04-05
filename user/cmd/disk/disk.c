@@ -186,7 +186,7 @@ void cmd_fsid(const char* _Nonnull path)
 }
 
 
-static void print_cat_info(const fs_info_t* _Nonnull info, int fd)
+static void print_cat_info(const fs_info_t* _Nonnull info)
 {
     char diskName[32];
 
@@ -196,7 +196,7 @@ static void print_cat_info(const fs_info_t* _Nonnull info, int fd)
     printf("%s       %u\n", diskName, info->fsid);
 }
 
-static void print_reg_info(const fs_info_t* _Nonnull info, int fd)
+static void print_reg_info(const fs_info_t* _Nonnull info)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const unsigned fullPerc = info->count * 100 / info->capacity;   // XXX round up to the next %
@@ -205,7 +205,7 @@ static void print_reg_info(const fs_info_t* _Nonnull info, int fd)
     char volLabel[64];
 
     fs_getdisk(info->fsid, diskName, sizeof(diskName));
-    if (ioctl(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)) != 0) {
+    if (fs_label(info->fsid, volLabel, sizeof(volLabel))) {
         return;
     }
 
@@ -223,38 +223,19 @@ static void print_reg_info(const fs_info_t* _Nonnull info, int fd)
     printf("%s %u %lluK %u %u %u%% %s %s %s\n", diskName, info->fsid, size / 1024ull, info->count, info->capacity - info->count, fullPerc, status, info->type, volLabel);
 }
 
-static int open_fs(const char* _Nonnull path, fsid_t* _Nullable pfsid)
-{
-    const fsid_t fsid = get_fsid(path);
-    char buf[32];
-
-    if (fsid != -1) {
-        sprintf(buf, "/fs/%u", fsid);
-        
-        const int fd = open(buf, O_RDONLY);
-        if (fd >= 0) {
-            if (pfsid) *pfsid = fsid;
-            return fd;
-        }
-    }
-
-    return -1;
-}
-
 static void cmd_info(const char* _Nonnull path)
 {
-    const int fd = open_fs(path, NULL);
-    fs_info_t info;
+    const fsid_t fsid = get_fsid(path);
+    fs_basic_info_t info;
 
-    if (ioctl(fd, kFSCommand_GetInfo, &info) == 0) {
+    if (!fs_info(fsid, FS_INFO_BASIC, &info)) {
         if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
-            print_cat_info(&info, fd);
+            print_cat_info(&info);
         }
         else {
-            print_reg_info(&info, fd);
+            print_reg_info(&info);
         }
     }
-    close(fd);
 }
 
 
@@ -275,21 +256,25 @@ static void cmd_geometry(const char* _Nonnull path)
     }
 
     if (S_ISDEV(st.st_mode)) {
+        // raw disk
         fd = open(path, O_RDONLY);
         if (fd < 0) {
             return;
         }
         ioctl(fd, kDiskCommand_GetDiskInfo, &di);
+        close(fd);
     }
     else {
-        if ((fd = open_fs(path, &fsid)) >= 0) {
-            ioctl(fd, kFSCommand_GetDiskInfo, &di);
+        // filesystem
+        const fsid_t fsid = get_fsid(path);
+
+        if (fs_info(fsid, FS_INFO_DISK, &di)) {
+            return;
         }
 
         fs_getdisk(fsid, buf, sizeof(buf));
         path = buf;
     }
-    close(fd);
 
 
     if (errno == ENOMEDIUM) {

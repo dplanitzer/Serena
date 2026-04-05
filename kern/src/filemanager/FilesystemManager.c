@@ -66,11 +66,12 @@ catch:
 // If a filesystem is forced unmounted then its FS entry is moved over to the
 // reaper queue.
 typedef struct FilesystemManager {
-    kdispatch_t _Nonnull dq;
-    mtx_t               mtx;
-    deque_t                filesystems;    // deque_t<FSEntry>
-    deque_t                reaperQueue;    // deque_t<FSEntry>
-    struct timespec     bgInterval;
+    kdispatch_t _Nonnull    dq;
+    mtx_t                   mtx;
+    deque_t                 filesystems;    // deque_t<FSEntry>
+    size_t                  fs_count;       // number of filesystems in 'filesystems'
+    deque_t                 reaperQueue;    // deque_t<FSEntry>
+    struct timespec         bgInterval;
 } FilesystemManager;
 
 
@@ -130,6 +131,7 @@ errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self
 
     mtx_lock(&self->mtx);
     deque_add_last(&self->filesystems, &entry->node);
+    self->fs_count++;
     mtx_unlock(&self->mtx);
     *pOutFs = fs;
     return EOK;
@@ -200,6 +202,7 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
         fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
         deque_remove(&self->filesystems, &ep->node);
+        self->fs_count--;
         mtx_unlock(&self->mtx);
         fsentry_destroy(ep);
     }
@@ -210,6 +213,7 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
 
         deque_remove(&self->filesystems, &ep->node);
         deque_add_last(&self->reaperQueue, &ep->node);
+        self->fs_count--;
         mtx_unlock(&self->mtx);
     }
 }
@@ -231,6 +235,45 @@ errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull
     }
     mtx_unlock(&self->mtx);
     
+    return err;
+}
+
+FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerRef _Nonnull self, fsid_t id)
+{
+    FilesystemRef fs = NULL;
+
+    mtx_lock(&self->mtx);
+    fsentry_t* ep = _fsentry_for_fsid(self, id);
+
+    if (ep) {
+        fs = Object_Retain(ep->fs);
+    }
+    mtx_unlock(&self->mtx);
+    
+    return fs;
+}
+
+errno_t FilesystemManager_GetFilesystemIds(FilesystemManagerRef _Nonnull self, fsid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+{
+    decl_try_err();
+    size_t idx = 0;
+
+    if (bufSize < 1) {
+        return ERANGE;
+    }
+
+    mtx_lock(&self->mtx);
+    deque_for_each(&self->filesystems, fsentry_t, it,
+        buf[idx++] = Filesystem_GetId(it->fs);
+        if (idx >= bufSize-1) {
+            break;
+        }
+    )
+
+    buf[idx] = 0;
+    *out_hasMore = (self->fs_count > idx) ? 1 : 0;
+    mtx_unlock(&self->mtx);
+
     return err;
 }
 

@@ -124,21 +124,40 @@ errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
     return EOK;
 }
 
-errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, fs_info_t* _Nonnull pOutInfo)
+errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
+    decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
-    pOutInfo->capacity = FSContainer_GetBlockCount(fsContainer);
-    pOutInfo->count = SfsAllocator_GetAllocatedBlockCount(&self->blockAllocator);
-    pOutInfo->blockSize = FSContainer_GetBlockSize(fsContainer);
-    pOutInfo->fsid = Filesystem_GetId(self);
-    pOutInfo->properties = 0;
-    if (FSContainer_IsReadOnly(fsContainer)) {
-        pOutInfo->properties |= kFSProperty_IsReadOnly;
-    }
-    memcpy(pOutInfo->type, "sefs", 5);
+    switch (flavor) {
+        case FS_INFO_BASIC: {
+            fs_basic_info_t* ip = pOutInfo;
 
-    return EOK;
+            ip->capacity = FSContainer_GetBlockCount(fsContainer);
+            ip->count = SfsAllocator_GetAllocatedBlockCount(&self->blockAllocator);
+            ip->blockSize = FSContainer_GetBlockSize(fsContainer);
+            ip->fsid = Filesystem_GetId(self);
+            ip->properties = 0;
+            if (FSContainer_IsReadOnly(fsContainer)) {
+                ip->properties |= kFSProperty_IsReadOnly;
+            }
+            memcpy(ip->type, "sefs", 5);
+            break;
+        }
+
+        case FS_INFO_DISK: {
+            disk_info_t* ip = pOutInfo;
+
+            err = FSContainer_GetDiskInfo(fsContainer, ip);
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    return err;
 }
 
 errno_t SerenaFS_getLabel(SerenaFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)

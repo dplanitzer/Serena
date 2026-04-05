@@ -49,6 +49,13 @@ extern void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull se
 // Returns the inode of the disk driver that underpins the filesystem for 'fsid'.
 extern errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull self, fsid_t fsid, InodeRef _Nullable * _Nonnull pOutNode);
 
+// Returns a strong reference to the filesystem with the given id; NULL if no
+// such filesystem exists.
+extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerRef _Nonnull self, fsid_t id);
+
+// Returns the ids of all currently mounted filesystems.
+extern errno_t FilesystemManager_GetFilesystemIds(FilesystemManagerRef _Nonnull self, fsid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
+
 // Syncs all filesystems and modified blocks to disk. Blocks until the sync is
 // complete.
 extern void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self);

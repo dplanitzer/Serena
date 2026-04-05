@@ -70,9 +70,9 @@ enum {
     SC_sigtimedwait,        // int sigtimedwait(const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
     SC_wq_wakeup_then_timedwait,    // int wq_wakeup_then_timedwait(int q, int q2, int flags, const struct timespec* _Nonnull wtp)
     SC_sigpending,          // int sigpending(sigset_t* _Nonnull set)
-    SC_unused1,             // XXX UNUSED
-    SC_unused4,             // XXX UNUSED
-    SC_unused5,             // XXX UNUSED
+    SC_host_filesystems,    // errno_t host_filesystems(fsid_t* _Nonnull buf, size_t bufSize)
+    SC_fs_info,             // errno_t fs_info(int flavor, fs_info_ref _Nonnull info)
+    SC_fs_label,            // errno_t fs_label(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
     SC_vcpu_acquire,        // int vcpu_acquire(const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
     SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
     SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)
@@ -90,6 +90,7 @@ enum {
     SC_proc_setschedparam,  // int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param)
     SC_vcpu_state,          // int vcpu_state(vcpuid_t id, int flavor, vcpu_state_ref _Nonnull state)
     SC_vcpu_setstate,       // int vcpu_setstate(vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull state)
+    SC_fs_setlabel,         // errno_t fs_setlabel(fsid_t fsid, const char* _Nonnull label)
 };
 
 

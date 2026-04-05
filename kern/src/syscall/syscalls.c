@@ -22,6 +22,11 @@ SYSCALL_REF(excpt_sethandler);
 
 SYSCALL_REF(host_info);
 SYSCALL_REF(host_procs);
+SYSCALL_REF(host_filesystems);
+
+SYSCALL_REF(fs_info);
+SYSCALL_REF(fs_label);
+SYSCALL_REF(fs_setlabel);
 
 SYSCALL_REF(close);
 SYSCALL_REF(read);
@@ -100,7 +105,7 @@ SYSCALL_REF(vcpu_info);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   75
+#define SYSCALL_COUNT   76
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -158,9 +163,9 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup_then_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(sigpending, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(host_filesystems, SC_ERRNO),
+    SYSCALL_ENTRY(fs_info, SC_ERRNO),
+    SYSCALL_ENTRY(fs_label, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_relinquish_self, SC_NORETURN),
     SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),
@@ -173,11 +178,12 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_setpolicy, SC_ERRNO),
     SYSCALL_ENTRY(clock_getres, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_info, SC_ERRNO),
-    SYSCALL_ENTRY(nullsys, SC_ERRNO),       // UNUSED
+    SYSCALL_ENTRY(nullsys, SC_ERRNO),
     SYSCALL_ENTRY(proc_schedparam, SC_ERRNO),
     SYSCALL_ENTRY(proc_setschedparam, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_state, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setstate, SC_ERRNO),
+    SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
