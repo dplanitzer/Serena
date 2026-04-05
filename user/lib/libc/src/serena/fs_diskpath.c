@@ -1,5 +1,5 @@
 //
-//  fs_getdisk.c
+//  fs_diskpath.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,7 +9,7 @@
 #include <serena/fs.h>
 #include <kpi/syscall.h>
 
-int fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+int fs_diskpath(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {
-    return (int)_syscall(SC_fsgetdisk, fsid, buf, bufSize);
+    return (int)_syscall(SC_fs_diskpath, fsid, buf, bufSize);
 }

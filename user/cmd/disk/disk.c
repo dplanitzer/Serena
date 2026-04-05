@@ -186,17 +186,17 @@ void cmd_fsid(const char* _Nonnull path)
 }
 
 
-static void print_cat_info(const fs_info_t* _Nonnull info)
+static void print_cat_info(const fs_basic_info_t* _Nonnull info)
 {
     char diskName[32];
 
-    fs_getdisk(info->fsid, diskName, sizeof(diskName));
+    fs_diskpath(info->fsid, diskName, sizeof(diskName));
 
     puts("Catalog ID");
     printf("%s       %u\n", diskName, info->fsid);
 }
 
-static void print_reg_info(const fs_info_t* _Nonnull info)
+static void print_reg_info(const fs_basic_info_t* _Nonnull info)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const unsigned fullPerc = info->count * 100 / info->capacity;   // XXX round up to the next %
@@ -204,7 +204,7 @@ static void print_reg_info(const fs_info_t* _Nonnull info)
     char diskName[32];
     char volLabel[64];
 
-    fs_getdisk(info->fsid, diskName, sizeof(diskName));
+    fs_diskpath(info->fsid, diskName, sizeof(diskName));
     if (fs_label(info->fsid, volLabel, sizeof(volLabel))) {
         return;
     }
@@ -243,7 +243,6 @@ static void cmd_geometry(const char* _Nonnull path)
 {
     struct stat st;
     fsid_t fsid;
-    fs_info_t fsinf;
     char buf[32];
     disk_info_t di;
     int fd = -1;
@@ -272,7 +271,7 @@ static void cmd_geometry(const char* _Nonnull path)
             return;
         }
 
-        fs_getdisk(fsid, buf, sizeof(buf));
+        fs_diskpath(fsid, buf, sizeof(buf));
         path = buf;
     }
 

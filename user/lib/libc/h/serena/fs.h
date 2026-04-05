@@ -19,7 +19,7 @@ extern int fs_info(fsid_t fsid, int flavor, fs_info_ref _Nonnull info);
 
 // Returns the path to the disk driver that underpins the filesystem with the
 // given id.
-extern int fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
+extern int fs_diskpath(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
 // Returns the disk label of the filesystem with the given id.
 extern int fs_label(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
