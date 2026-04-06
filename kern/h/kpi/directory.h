@@ -12,9 +12,9 @@
 #include <kpi/syslimits.h>
 #include <kpi/types.h>
 
-struct dirent {
+typedef struct dir_entry {
     ino_t   inid;
     char    name[NAME_MAX];
-};
+} dir_entry_t;
 
 #endif /* _KPI_DIRECTORY_H */

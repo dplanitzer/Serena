@@ -41,7 +41,7 @@ SYSCALL_REF(ioctl);
 
 SYSCALL_REF(mkfile);
 SYSCALL_REF(open);
-SYSCALL_REF(opendir);
+SYSCALL_REF(dir_open);
 SYSCALL_REF(mkdir);
 SYSCALL_REF(proc_cwd);
 SYSCALL_REF(proc_setcwd);
@@ -126,7 +126,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(umask, SC_INT),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
     SYSCALL_ENTRY(stat, SC_ERRNO),
-    SYSCALL_ENTRY(opendir, SC_ERRNO),
+    SYSCALL_ENTRY(dir_open, SC_ERRNO),
     SYSCALL_ENTRY(access, SC_ERRNO),
     SYSCALL_ENTRY(fstat, SC_ERRNO),
     SYSCALL_ENTRY(unlink, SC_ERRNO),

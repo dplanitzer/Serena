@@ -11,4 +11,8 @@
 
 #include <kpi/types.h>
 
+// Opaque directory object
+struct _DIR;
+typedef struct _DIR dir_t;
+
 #endif /* _SERENA_TYPES_H */

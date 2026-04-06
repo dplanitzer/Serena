@@ -15,31 +15,27 @@
 
 __CPP_BEGIN
 
-struct _DIR;
-typedef struct _DIR DIR;
-
-
-// DIR  API and concurrency:
+// Directory API and concurrency:
 // These calls are not internally protected by a mutex. Thus application code is
 // responsible for providing its own locking if more than one thread of execution
-// is going to call functions on the same DIR object.
+// is going to call functions on the same dir_t object.
 //
-// Rational: adding locking to the DIR calls would not be sufficient to make them
-// concurrency safe. Eg an app creates a DIR and then has 8 threads of execution
-// reading the contents of the DIR in parallel until EOF is encountered. The
-// problem is that the first thread that encounters EOF can not call closedir()
+// Rational: adding locking to the calls would not be sufficient to make them
+// concurrency safe. Eg an app creates a dir_t and then has 8 threads of execution
+// reading the contents of the dir_t in parallel until EOF is encountered. The
+// problem is that the first thread that encounters EOF can not call dir_close()
 // because the 7 other threads may currently be busy doing something else (not
-// calling readdir() because they are processing data read previously). The guy
-// who is calling closedir() would execute the closedir() atomically, however
-// the DIR pointer becomes stale after closedir() returns. If now the other 7
-// guys try to call readdir(), then they will cause a crash because they are
-// trying to use a stale DIR pointer.
+// calling dir_read() because they are processing data read previously). The guy
+// who is calling dir_close() would execute the dir_close() atomically, however
+// the dir_t pointer becomes stale after dir_close() returns. If now the other 7
+// guys try to call dir_read(), then they will cause a crash because they are
+// trying to use a stale dir_t pointer.
 // The only way to fix this is by making sure that the application code itself
 // introduces proper coordination between the 8 threads of execution. To do this
-// it has to introduce a lock of its own that protects that DIR. Thus we would
-// end up with two nested locks per DIR.
+// it has to introduce a lock of its own that protects that dir_t. Thus we would
+// end up with two nested locks per dir_t.
 //
-// Thus the DIR calls do not provide built-in concurrency protection. However the
+// Thus the dir_t calls do not provide built-in concurrency protection. However the
 // underlying filesystem layer does with respect to other processes.
 
 
@@ -47,25 +43,24 @@ typedef struct _DIR DIR;
 // function to obtain an I/O channel suitable for reading the content of the
 // directory. Call IOChannel_Close() once you are done with the directory.
 // @Concurrency: Not Safe
-extern DIR* _Nullable opendir(const char* _Nonnull path);
+extern dir_t* _Nullable dir_open(const char* _Nonnull path);
 
 // Closes the given directory descriptor.
 // @Concurrency: Not Safe
-extern int closedir(DIR* _Nullable dir);
+extern int dir_close(dir_t* _Nullable dir);
 
-// Reads one or more directory entries from the directory identified by 'ioc'.
-// Returns the number of bytes actually read and returns 0 once all directory
-// entries have been read.
+// Reads the next directory entry and returns a pointer to it if it exists.
+// Returns NULL if no more entry exists in the directory.
 // You can rewind to the beginning of the directory listing by calling
-// rewinddir().
+// dir_rewind().
 // @Concurrency: Not Safe
-extern struct dirent* _Nullable readdir(DIR* _Nonnull dir);
+extern const dir_entry_t* _Nullable dir_read(dir_t* _Nonnull dir);
 
 // Resets the read position of the directory identified by 'ioc' to the beginning.
-// The next readdir() call will start reading directory entries from the
+// The next dir_read() call will start reading directory entries from the
 // beginning of the directory.
 // @Concurrency: Not Safe
-extern void rewinddir(DIR* _Nonnull dir);
+extern void dir_rewind(dir_t* _Nonnull dir);
 
 
 // Creates an empty directory with the name and at the filesystem location specified

@@ -34,7 +34,7 @@ enum {
     SC_umask,               // mode_t umask(mode_t mask)
     SC_mkdir,               // errno_t mkdir(const char* _Nonnull path, mode_t mode)
     SC_stat,                // errno_t stat(const char* _Nonnull path, struct stat* _Nonnull info)
-    SC_opendir,             // errno_t opendir(const char* _Nonnull path, int* _Nonnull fd)
+    SC_dir_open,            // errno_t dir_open(const char* _Nonnull path, int* _Nonnull fd)
     SC_access,              // errno_t access(const char* _Nonnull path, int mode)
     SC_fstat,               // errno_t fstat(int fd, struct stat* _Nonnull info)
     SC_unlink,              // errno_t __unlink(const char* path, int mode)

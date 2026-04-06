@@ -171,12 +171,12 @@ static int print_dir_entry(const char* _Nonnull dirPath, const char* _Nonnull en
     return print_inode(path_buf, entryName);
 }
 
-static int iterate_dir(DIR* _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static int iterate_dir(dir_t* _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     errno = 0;
 
     for (;;) {
-        struct dirent* dep = readdir(dir);
+        dir_entry_t* dep = dir_read(dir);
         
         if (dep == NULL) {
             break;
@@ -194,15 +194,15 @@ static int iterate_dir(DIR* _Nonnull dir, const char* _Nonnull path, dir_iter_t 
 
 static void list_dir(const char* _Nonnull path)
 {
-    DIR* dir = opendir(path);
+    dir_t* dir = dir_open(path);
 
     if (dir) {
         if (iterate_dir(dir, path, format_dir_entry) == 0) {
-            rewinddir(dir);
+            dir_rewind(dir);
             iterate_dir(dir, path, print_dir_entry);
         }
     
-        closedir(dir);
+        dir_close(dir);
     }
 }
 

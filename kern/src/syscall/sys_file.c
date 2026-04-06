@@ -69,7 +69,7 @@ SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
     return _kioctl(vp->proc, pa->fd, pa->cmd, pa->ap);
 }
 
-SYSCALL_2(opendir, const char* _Nonnull path, int* _Nonnull pOutIoc)
+SYSCALL_2(dir_open, const char* _Nonnull path, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

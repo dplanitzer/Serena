@@ -1,5 +1,5 @@
 //
-//  opendir.c
+//  readdir.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -19,20 +19,20 @@
 struct _DIR {
     // Read next set of entries if:
     // nextEntryToRead >= endOfBuffer
-    struct dirent* _Nonnull nextEntryToRead;
-    struct dirent* _Nonnull endOfBuffer;
+    dir_entry_t* _Nonnull nextEntryToRead;
+    dir_entry_t* _Nonnull endOfBuffer;
     int                     fd;
     
-    struct dirent           entbuf[DIRENT_COUNT];
+    dir_entry_t           entbuf[DIRENT_COUNT];
 };
 
 
-DIR* _Nullable opendir(const char* _Nonnull path)
+dir_t* _Nullable dir_open(const char* _Nonnull path)
 {
-    DIR* dir = malloc(sizeof(DIR));
+    dir_t* dir = malloc(sizeof(dir_t));
 
     if (dir) {
-        if ((errno_t)_syscall(SC_opendir, path, &dir->fd) != EOK) {
+        if ((errno_t)_syscall(SC_dir_open, path, &dir->fd) != EOK) {
             free(dir);
             return NULL;
         }
@@ -43,7 +43,7 @@ DIR* _Nullable opendir(const char* _Nonnull path)
     return dir;
 }
 
-int closedir(DIR* _Nullable dir)
+int dir_close(dir_t* _Nullable dir)
 {
     if (dir) {
         const errno_t err = (errno_t)_syscall(SC_close, dir->fd);
@@ -57,28 +57,28 @@ int closedir(DIR* _Nullable dir)
     }
 }
 
-void rewinddir(DIR* _Nonnull dir)
+void dir_rewind(dir_t* _Nonnull dir)
 {
     (void)_syscall(SC_lseek, dir->fd, (off_t)0ll, NULL, SEEK_SET);
     dir->nextEntryToRead = dir->entbuf;
     dir->endOfBuffer = dir->entbuf;
 }
 
-struct dirent* _Nullable readdir(DIR* _Nonnull dir)
+const dir_entry_t* _Nullable dir_read(dir_t* _Nonnull dir)
 {
     if (dir->nextEntryToRead >= dir->endOfBuffer) {
         ssize_t nBytesRead;
-        const errno_t err = (errno_t)_syscall(SC_read, dir->fd, dir->entbuf, sizeof(struct dirent) * DIRENT_COUNT, &nBytesRead);
+        const errno_t err = (errno_t)_syscall(SC_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * DIRENT_COUNT, &nBytesRead);
 
         if (err != EOK || nBytesRead == 0) {
             return NULL;
         }
 
         dir->nextEntryToRead = dir->entbuf;
-        dir->endOfBuffer = (struct dirent*) (((char*)dir->entbuf) + nBytesRead);
+        dir->endOfBuffer = (dir_entry_t*) (((char*)dir->entbuf) + nBytesRead);
     }
 
-    struct dirent* dp = dir->nextEntryToRead;
+    dir_entry_t* dp = dir->nextEntryToRead;
     dir->nextEntryToRead++;
 
     return dp;
