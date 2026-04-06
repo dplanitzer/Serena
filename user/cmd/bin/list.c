@@ -176,7 +176,7 @@ static int iterate_dir(dir_t* _Nonnull dir, const char* _Nonnull path, dir_iter_
     errno = 0;
 
     for (;;) {
-        dir_entry_t* dep = dir_read(dir);
+        const dir_entry_t* dep = dir_read(dir);
         
         if (dep == NULL) {
             break;

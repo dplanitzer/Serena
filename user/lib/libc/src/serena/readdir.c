@@ -10,22 +10,8 @@
 #include <stdlib.h>
 #include <ext/errno.h>
 #include <kpi/syscall.h>
-#include <serena/directory.h>
 #include <serena/fd.h>
-
-// 2kb
-#define DIRENT_COUNT 8
-
-struct _DIR {
-    // Read next set of entries if:
-    // nextEntryToRead >= endOfBuffer
-    dir_entry_t* _Nonnull nextEntryToRead;
-    dir_entry_t* _Nonnull endOfBuffer;
-    int                     fd;
-    
-    dir_entry_t           entbuf[DIRENT_COUNT];
-};
-
+#include "__readdir.h"
 
 dir_t* _Nullable dir_open(const char* _Nonnull path)
 {
@@ -68,7 +54,7 @@ const dir_entry_t* _Nullable dir_read(dir_t* _Nonnull dir)
 {
     if (dir->nextEntryToRead >= dir->endOfBuffer) {
         ssize_t nBytesRead;
-        const errno_t err = (errno_t)_syscall(SC_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * DIRENT_COUNT, &nBytesRead);
+        const errno_t err = (errno_t)_syscall(SC_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * __DIRENT_COUNT, &nBytesRead);
 
         if (err != EOK || nBytesRead == 0) {
             return NULL;

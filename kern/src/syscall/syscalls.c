@@ -42,19 +42,19 @@ SYSCALL_REF(ioctl);
 SYSCALL_REF(mkfile);
 SYSCALL_REF(open);
 SYSCALL_REF(dir_open);
-SYSCALL_REF(mkdir);
+SYSCALL_REF(fs_create_directory);
 SYSCALL_REF(proc_cwd);
 SYSCALL_REF(proc_setcwd);
 SYSCALL_REF(stat);
 SYSCALL_REF(fstat);
-SYSCALL_REF(truncate);
+SYSCALL_REF(fs_truncate);
 SYSCALL_REF(ftruncate);
-SYSCALL_REF(access);
-SYSCALL_REF(unlink);
+SYSCALL_REF(fs_access);
+SYSCALL_REF(fs_unlink);
 SYSCALL_REF(rename);
 SYSCALL_REF(umask);
-SYSCALL_REF(chown);
-SYSCALL_REF(chmod);
+SYSCALL_REF(fs_setowner);
+SYSCALL_REF(fs_setperms);
 SYSCALL_REF(utimens);
 
 SYSCALL_REF(mkpipe);
@@ -124,15 +124,15 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
     SYSCALL_ENTRY(host_procs, SC_ERRNO),
     SYSCALL_ENTRY(umask, SC_INT),
-    SYSCALL_ENTRY(mkdir, SC_ERRNO),
+    SYSCALL_ENTRY(fs_create_directory, SC_ERRNO),
     SYSCALL_ENTRY(stat, SC_ERRNO),
     SYSCALL_ENTRY(dir_open, SC_ERRNO),
-    SYSCALL_ENTRY(access, SC_ERRNO),
+    SYSCALL_ENTRY(fs_access, SC_ERRNO),
     SYSCALL_ENTRY(fstat, SC_ERRNO),
-    SYSCALL_ENTRY(unlink, SC_ERRNO),
+    SYSCALL_ENTRY(fs_unlink, SC_ERRNO),
     SYSCALL_ENTRY(rename, SC_ERRNO),
     SYSCALL_ENTRY(ioctl, SC_ERRNO),
-    SYSCALL_ENTRY(truncate, SC_ERRNO),
+    SYSCALL_ENTRY(fs_truncate, SC_ERRNO),
     SYSCALL_ENTRY(ftruncate, SC_ERRNO),
     SYSCALL_ENTRY(mkfile, SC_ERRNO),
     SYSCALL_ENTRY(mkpipe, SC_ERRNO),
@@ -145,9 +145,9 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fs_diskpath, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_errno, SC_INT),
-    SYSCALL_ENTRY(chown, SC_ERRNO),
+    SYSCALL_ENTRY(fs_setowner, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
-    SYSCALL_ENTRY(chmod, SC_ERRNO),
+    SYSCALL_ENTRY(fs_setperms, SC_ERRNO),
     SYSCALL_ENTRY(utimens, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_yield, SC_VOID),
     SYSCALL_ENTRY(wq_create, SC_ERRNO),

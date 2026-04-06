@@ -65,7 +65,7 @@ typedef unsigned long   cpu_subtype_t;
 #define CPU_FPU_68040   3
 #define CPU_FPU_68060   4
 
-#ifdef KERNEL
+#ifdef __KERNEL__
 #define CPU_MMU_NONE    0
 #define CPU_MMU_68451   1
 #define CPU_MMU_68851   2

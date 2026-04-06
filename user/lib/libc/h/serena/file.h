@@ -32,7 +32,7 @@ extern int fstat(int ioc, struct stat* _Nonnull info);
 // Checks whether the file at the filesystem location 'path' exists and whether
 // it is accessible according to 'mode'. A suitable error is returned otherwise.
 // @Concurrency: Safe
-extern int access(const char* _Nonnull path, int mode);
+extern int fs_access(dir_t* _Nullable wd, const char* _Nonnull path, int mode);
 
 // Truncates the file at the filesystem location 'path'. If the new length is
 // greater than the size of the existing file, then the file is expanded and the
@@ -40,24 +40,29 @@ extern int access(const char* _Nonnull path, int mode);
 // size of the existing file, then the excess data is removed and the size of
 // the file is set to the new length.
 // @Concurrency: Safe
-extern int truncate(const char* _Nonnull path, off_t length);
+extern int fs_truncate(dir_t* _Nullable wd, const char* _Nonnull path, off_t length);
 
 // Similar to truncate() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
 extern int ftruncate(int fd, off_t length);
 
 
-// Deletes the file located at the filesystem location 'path'.
+// Removes the directory entry at 'path' from its containing directory. The
+// object referenced by this directory entry is only deleted from the filesystem
+// if this was the last directory entry referencing it. Note that filesystem
+// objects are reference counted.
+// If the object is a directory, then the directory must be empty before it can
+// be deleted.
 // @Concurrency: Safe
-extern int unlink(const char* _Nonnull path);
+extern int fs_remove(dir_t* _Nullable wd, const char* _Nonnull path);
 
 
 // Changes the file permission bits of the file or directory at 'path' to the
 // file permissions encoded in 'mode'.
 // @Concurrency: Safe
-extern int chmod(const char* _Nonnull path, mode_t mode);
+extern int fs_setperms(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode);
 
-extern int chown(const char* _Nonnull path, uid_t uid, gid_t gid);
+extern int fs_setowner(dir_t* _Nullable wd, const char* _Nonnull path, uid_t uid, gid_t gid);
 
 
 // Sets the access and modification date of the file at 'path'. The dates are

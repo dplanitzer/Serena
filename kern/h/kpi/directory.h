@@ -17,4 +17,8 @@ typedef struct dir_entry {
     char    name[NAME_MAX];
 } dir_entry_t;
 
+
+// Indicates that a system call should use the current working directory
+#define FD_CWD -1
+
 #endif /* _KPI_DIRECTORY_H */

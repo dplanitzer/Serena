@@ -11,6 +11,7 @@
 
 #include <_cmndef.h>
 #include <kpi/directory.h>
+#include <serena/file.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
@@ -63,16 +64,11 @@ extern const dir_entry_t* _Nullable dir_read(dir_t* _Nonnull dir);
 extern void dir_rewind(dir_t* _Nonnull dir);
 
 
-// Creates an empty directory with the name and at the filesystem location specified
-// by 'path'. 'mode' specifies the permissions that should be assigned to the
-// directory.
+// Creates an empty directory with the name and at the filesystem location
+// specified by 'path', relative to the working directory 'wd'. 'mode'
+// specifies the permissions that should be assigned to the directory.
 // @Concurrency: Safe
-extern int mkdir(const char* _Nonnull path, mode_t mode);
-
-// Deletes the empty directory located at the filesystem location 'path'.
-// Note that this function deletes empty directories only.
-// @Concurrency: Safe
-extern int rmdir(const char* _Nonnull path);
+extern int fs_create_directory(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode);
 
 __CPP_END
 

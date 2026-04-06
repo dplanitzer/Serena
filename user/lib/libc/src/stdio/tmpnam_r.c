@@ -71,7 +71,7 @@ char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _
 
 
     // Verify that the directory exists
-    if (access(dir, R_OK | X_OK) != 0) {
+    if (fs_access(NULL, dir, R_OK | X_OK) != 0) {
         return NULL;
     }
 
@@ -123,7 +123,7 @@ char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _
             }
         }
         else {
-            if (access(filename, F_OK) != 0 && errno == ENOENT) {
+            if (fs_access(NULL, filename, F_OK) != 0 && errno == ENOENT) {
                 return filename;
             }
         }

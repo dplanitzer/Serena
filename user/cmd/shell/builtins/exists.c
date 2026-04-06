@@ -33,7 +33,7 @@ int cmd_exists(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode = EXIT_SUCCESS;
 
     if (!clap_should_exit(status)) {
-        OpStack_PushBool(ip->opStack, (access(path, F_OK) == 0) ? true : false);
+        OpStack_PushBool(ip->opStack, (fs_access(NULL, path, F_OK) == 0) ? true : false);
     }
     else {
         exitCode = clap_exit_code(status);

@@ -27,7 +27,7 @@ FILE * _Nullable tmpfile(void)
     }
 
     //XXX tmp - replace with kOpen_Private once the kernel supports this option
-    unlink(path);
+    fs_remove(NULL, path);
 
     return fp;
 }

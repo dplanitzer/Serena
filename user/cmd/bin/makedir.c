@@ -28,7 +28,7 @@ static int _create_directory_recursively(char* _Nonnull path, mode_t permissions
 
         if (ps) { *ps = '\0'; }
 
-        const int r = mkdir(path, permissions);
+        const int r = fs_create_directory(NULL, path, permissions);
         if (ps) { *ps = '/'; }
 
         if (r != 0 && errno != EEXIST) {
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < paths.count; i++) {
         char* path = (char*)paths.strings[i];
 
-        r = mkdir(path, permissions);
+        r = fs_create_directory(NULL, path, permissions);
         if (r != 0) {
             if (errno == ENOENT && should_create_parents) {
                 r = create_directory_recursively(path, permissions);

@@ -70,7 +70,7 @@ static int copy_file(const char* _Nonnull srcPath, const struct stat* _Nonnull s
     if (sfd != -1 && dfd != -1) {
         if (copy_file_contents(sfd, dfd) != 0) {
             //XXX a funlink() would be nice here...
-            unlink(dstPath);
+            fs_remove(NULL, dstPath);
             close(dfd);
             dfd = -1;
         }
@@ -81,7 +81,7 @@ static int copy_file(const char* _Nonnull srcPath, const struct stat* _Nonnull s
     // write rights
     if (dfd != -1 && !perm_has(srcStat->st_mode, S_ICUSR, S_IWRITE)) {
         //XXX use fchmod() instead once it exists
-        chmod(dstPath, srcStat->st_mode);
+        fs_setperms(NULL, dstPath, srcStat->st_mode);
     }
 
 

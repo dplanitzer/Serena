@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <ext/timespec.h>
 #include <filesystem/IOChannel.h>
+#include <kpi/directory.h>
 #include <kpi/uid.h>
 #include <process/kio.h>
 
@@ -89,9 +90,14 @@ SYSCALL_2(dir_open, const char* _Nonnull path, int* _Nonnull pOutIoc)
     return err;
 }
 
-SYSCALL_2(mkdir, const char* _Nonnull path, mode_t mode)
+SYSCALL_3(fs_create_directory, int wd, const char* _Nonnull path, mode_t mode)
 {
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     const errno_t err = FileManager_CreateDirectory(&pp->fm, pa->path, pa->mode);
@@ -115,10 +121,15 @@ SYSCALL_2(fstat, int fd, struct stat* _Nonnull pOutInfo)
     return _kfstat(vp->proc, pa->fd, pa->pOutInfo);
 }
 
-SYSCALL_2(truncate, const char* _Nonnull path, off_t length)
+SYSCALL_3(fs_truncate, int wd, const char* _Nonnull path, off_t length)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_TruncateFile(&pp->fm, pa->path, pa->length);
@@ -131,10 +142,15 @@ SYSCALL_2(ftruncate, int fd, off_t length)
     return _kftruncate(vp->proc, pa->fd, pa->length);
 }
 
-SYSCALL_2(access, const char* _Nonnull path, int mode)
+SYSCALL_3(fs_access, int wd, const char* _Nonnull path, int mode)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_CheckAccess(&pp->fm, pa->path, pa->mode);
@@ -142,10 +158,15 @@ SYSCALL_2(access, const char* _Nonnull path, int mode)
     return err;
 }
 
-SYSCALL_2(unlink, const char* _Nonnull path, int mode)
+SYSCALL_3(fs_unlink, int wd, const char* _Nonnull path, int mode)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_Unlink(&pp->fm, pa->path, pa->mode);
@@ -181,10 +202,15 @@ SYSCALL_1(umask, mode_t mask)
     return (intptr_t)omask;
 }
 
-SYSCALL_3(chown, const char* _Nonnull path, uid_t uid, gid_t gid)
+SYSCALL_4(fs_setowner, int wd, const char* _Nonnull path, uid_t uid, gid_t gid)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_SetFileOwner(&pp->fm, pa->path, pa->uid, pa->gid);
@@ -192,10 +218,15 @@ SYSCALL_3(chown, const char* _Nonnull path, uid_t uid, gid_t gid)
     return err;
 }
 
-SYSCALL_2(chmod, const char* _Nonnull path, mode_t mode)
+SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, mode_t mode)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_SetFileMode(&pp->fm, pa->path, pa->mode);
