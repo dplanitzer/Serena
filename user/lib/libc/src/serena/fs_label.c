@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/fs.h>
+#include <serena/filesystem.h>
 #include <kpi/syscall.h>
 
 

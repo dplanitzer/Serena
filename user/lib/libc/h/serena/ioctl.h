@@ -1,13 +1,13 @@
 //
-//  sys/ioctl.h
+//  serena/ioctl.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_IOCTL_H
-#define _SYS_IOCTL_H 1
+#ifndef _SERENA_IOCTL_H
+#define _SERENA_IOCTL_H 1
 
 #include <_cmndef.h>
 #include <kpi/ioctl.h>
@@ -20,4 +20,4 @@ extern int ioctl(int fd, int cmd, ...);
 
 __CPP_END
 
-#endif /* _SYS_IOCTL_H */
+#endif /* _SERENA_IOCTL_H */

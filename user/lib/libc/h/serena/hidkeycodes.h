@@ -9,9 +9,9 @@
  * https://source.android.com/devices/input/keyboard-devices.html
  */
 
-#ifndef _SYS_HID_KEYCODES_H
-#define _SYS_HID_KEYCODES_H 1
+#ifndef _SERENA_HID_KEYCODES_H
+#define _SERENA_HID_KEYCODES_H 1
 
 #include <kpi/hidkeycodes.h>
 
-#endif /* _SYS_HID_KEYCODES_H */
+#endif /* _SERENA_HID_KEYCODES_H */

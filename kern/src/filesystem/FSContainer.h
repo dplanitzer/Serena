@@ -12,7 +12,7 @@
 #include <kobj/Object.h>
 #include <filesystem/FSBlock.h>
 #include <kpi/disk.h>
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 
 
 // A filesystem container provides access to the data on a mass storage device

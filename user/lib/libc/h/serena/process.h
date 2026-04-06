@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_PROCESS_H
-#define _SYS_PROCESS_H 1
+#ifndef _SERENA_PROCESS_H
+#define _SERENA_PROCESS_H 1
 
 #include <stdnoreturn.h>
 #include <kpi/process.h>
@@ -80,4 +80,4 @@ extern int proc_vcpus(vcpuid_t* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 
-#endif /* _SYS_PROCESS_H */
+#endif /* _SERENA_PROCESS_H */

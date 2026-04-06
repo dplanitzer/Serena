@@ -19,7 +19,7 @@
 #include <hal/sched.h>
 #include <kei/kei.h>
 #include <kern/log.h>
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>

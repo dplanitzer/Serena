@@ -11,7 +11,7 @@
 
 #include <ext/try.h>
 #include <kobj/Object.h>
-#include <kpi/fb.h>
+#include <kpi/framebuffer.h>
 #include <kpi/hid.h>
 #include <kpi/hidevent.h>
 

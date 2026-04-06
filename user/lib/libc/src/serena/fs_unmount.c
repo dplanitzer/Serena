@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/fs.h>
+#include <serena/filesystem.h>
 #include <kpi/syscall.h>
 
 int fs_unmount(const char* _Nonnull atDirPath, int flags)

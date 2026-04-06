@@ -17,7 +17,7 @@
 #include <sched/mtx.h>
 #include "Inode.h"
 #include "PathComponent.h"
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 #include <kpi/uid.h>
 
 

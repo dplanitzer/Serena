@@ -6,8 +6,8 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_HOST_H
-#define _SYS_HOST_H 1
+#ifndef _SERENA_HOST_H
+#define _SERENA_HOST_H 1
 
 #include <kpi/host.h>
 
@@ -49,4 +49,4 @@ extern int host_info(int flavor, host_info_ref _Nonnull info);
 
 __CPP_END
 
-#endif /* _SYS_HOST_H */
+#endif /* _SERENA_HOST_H */

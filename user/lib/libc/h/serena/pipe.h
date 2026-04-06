@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_PIPE_H
-#define _SYS_PIPE_H 1
+#ifndef _SERENA_PIPE_H
+#define _SERENA_PIPE_H 1
 
 #include <serena/fd.h>
 
@@ -25,4 +25,4 @@ extern int pipe(int fds[2]);
 
 __CPP_END
 
-#endif /* _SYS_PIPE_H */
+#endif /* _SERENA_PIPE_H */

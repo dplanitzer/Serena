@@ -6,8 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_DIRECTORY_H
-#define _SYS_DIRECTORY_H 1
+#ifndef _SERENA_DIRECTORY_H
+#define _SERENA_DIRECTORY_H 1
 
 #include <_cmndef.h>
 #include <kpi/directory.h>
@@ -81,4 +81,4 @@ extern int rmdir(const char* _Nonnull path);
 
 __CPP_END
 
-#endif /* _SYS_DIRECTORY_H */
+#endif /* _SERENA_DIRECTORY_H */

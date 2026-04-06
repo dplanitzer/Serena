@@ -8,7 +8,7 @@
 
 #include <clap.h>
 #include <stdio.h>
-#include <serena/fs.h>
+#include <serena/filesystem.h>
 
 
 CLAP_DECL(params,

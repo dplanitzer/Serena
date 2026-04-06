@@ -1,13 +1,13 @@
 //
-//  kpi/fb.h
+//  kpi/framebuffer.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 2/2/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_FB_H
-#define _KPI_FB_H 1
+#ifndef _KPI_FRAMEBUFFER_H
+#define _KPI_FRAMEBUFFER_H 1
 
 #include <_cmndef.h>
 #include <kpi/ioctl.h>
@@ -245,4 +245,4 @@ typedef struct SpriteCaps {
 // set_screen_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 #define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 17)
 
-#endif /* _KPI_FB_H */
+#endif /* _KPI_FRAMEBUFFER_H */

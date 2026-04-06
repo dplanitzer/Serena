@@ -1,16 +1,16 @@
 //
-//  sys/fs.h
+//  serena/filesystem.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 12/15/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FS_H
-#define _SYS_FS_H 1
+#ifndef _SERENA_FILESYSTEM_H
+#define _SERENA_FILESYSTEM_H 1
 
 #include <_cmndef.h>
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 
 
 // Returns information about the filesystem with id 'fsid'. 'flavor' selects the
@@ -42,4 +42,4 @@ extern int fs_unmount(const char* _Nonnull atDirPath, int flags);
 // Synchronously writes all dirty disk blocks back to disk.
 extern void fs_sync(void);
 
-#endif /* _SYS_FS_H */
+#endif /* _SERENA_FILESYSTEM_H */

@@ -11,7 +11,7 @@
 
 #include <kobj/Object.h>
 #include <kpi/file.h>
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 #include <kpi/uid.h>
 
 

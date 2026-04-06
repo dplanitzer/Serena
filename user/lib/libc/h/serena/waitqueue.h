@@ -1,13 +1,13 @@
 //
-//  sys/waitqueue.h
+//  serena/waitqueue.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/26/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_WAITQUEUE_H
-#define _SYS_WAITQUEUE_H 1
+#ifndef _SERENA_WAITQUEUE_H
+#define _SERENA_WAITQUEUE_H 1
 
 #include <_cmndef.h>
 #include <_null.h>
@@ -56,4 +56,4 @@ extern int wq_wakeup(int q, int flags);
 
 __CPP_END
 
-#endif /* _SYS_WAITQUEUE_H */
+#endif /* _SERENA_WAITQUEUE_H */

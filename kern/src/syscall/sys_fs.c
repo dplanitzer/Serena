@@ -9,7 +9,7 @@
 #include "syscalldecls.h"
 #include <filemanager/FilesystemManager.h>
 #include <kpi/disk.h>
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 
 
 SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)

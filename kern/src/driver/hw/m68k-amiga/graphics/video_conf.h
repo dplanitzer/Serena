@@ -11,7 +11,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <kpi/fb.h>
+#include <kpi/framebuffer.h>
 
 
 #define VCFLAG_HIRES   1

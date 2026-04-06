@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FILE_H
-#define _SYS_FILE_H 1
+#ifndef _SERENA_FILE_H
+#define _SERENA_FILE_H 1
 
 #include <kpi/_access.h>
 #include <kpi/file.h>
@@ -74,4 +74,4 @@ extern int utime(const char* _Nonnull path, const struct utimbuf* _Nullable time
 
 __CPP_END
 
-#endif /* _SYS_FILE_H */
+#endif /* _SERENA_FILE_H */

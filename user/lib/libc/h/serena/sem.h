@@ -6,8 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_SEM_H
-#define _SYS_SEM_H 1
+#ifndef _SERENA_SEM_H
+#define _SERENA_SEM_H 1
 
 #include <_cmndef.h>
 #include <time.h>
@@ -55,4 +55,4 @@ extern int sem_trywait(sem_t* _Nonnull sema, int npermits);
 
 __CPP_END
 
-#endif /* _SYS_SEM_H */
+#endif /* _SERENA_SEM_H */

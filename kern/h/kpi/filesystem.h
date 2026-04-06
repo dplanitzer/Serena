@@ -1,13 +1,13 @@
 //
-//  kpi/fs.h
+//  kpi/filesystem.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 12/15/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_FS_H
-#define _KERN_FS_H 1
+#ifndef _KERN_FILESYSTEM_H
+#define _KERN_FILESYSTEM_H 1
 
 #include <kpi/types.h>
 
@@ -43,4 +43,4 @@ typedef struct fs_basic_info {
 #define FS_PROP_REMOVABLE   0x0002  /* Filesystem lives on a removable/ejectable media */
 #define FS_PROP_READ_ONLY   0x0004  /* Filesystem was mounted read-only */
 
-#endif /* _KERN_FS_H */
+#endif /* _KERN_FILESYSTEM_H */

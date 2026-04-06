@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <kpi/fb.h>
+#include <kpi/framebuffer.h>
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {

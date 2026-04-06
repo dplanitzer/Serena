@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FD_H
-#define _SYS_FD_H 1
+#ifndef _SERENA_FD_H
+#define _SERENA_FD_H 1
 
 #include <kpi/fd.h>
 #include <kpi/_seek.h>
@@ -84,4 +84,4 @@ extern ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes);
 
 __CPP_END
 
-#endif /* _SYS_FD_H */
+#endif /* _SERENA_FD_H */

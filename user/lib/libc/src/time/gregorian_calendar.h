@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_GREGORIAN_CALENDAR_H
-#define _SYS_GREGORIAN_CALENDAR_H 1
+#ifndef _GREGORIAN_CALENDAR_H
+#define _GREGORIAN_CALENDAR_H 1
 
 #include <_cmndef.h>
 #include <_size.h>
@@ -34,4 +34,4 @@ extern const char* __gc_abbrev_ymon(unsigned m);
 
 __CPP_END
 
-#endif /* _SYS_GREGORIAN_CALENDAR_H */
+#endif /* _GREGORIAN_CALENDAR_H */

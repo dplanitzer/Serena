@@ -14,7 +14,7 @@
 #include <time.h>
 #include <ext/timespec.h>
 #include <serena/clock.h>
-#include <serena/fs.h>
+#include <serena/filesystem.h>
 #include <serena/spawn.h>
 
 

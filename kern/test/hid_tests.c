@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/timespec.h>
-#include <serena/fb.h>
+#include <serena/framebuffer.h>
 #include <serena/file.h>
 #include <serena/hid.h>
 #include <serena/hidevent.h>

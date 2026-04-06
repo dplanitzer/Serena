@@ -1,13 +1,13 @@
 //
-//  sys/spawn.h
+//  serena/spawn.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_SPAWN_H
-#define _SYS_SPAWN_H 1
+#ifndef _SERENA_SPAWN_H
+#define _SERENA_SPAWN_H 1
 
 #include <_cmndef.h>
 #include <kpi/spawn.h>
@@ -18,4 +18,4 @@ extern int os_spawn(const char* _Nonnull path, const char* _Nullable argv[], con
 
 __CPP_END
 
-#endif /* _SYS_SPAWN_H */
+#endif /* _SERENA_SPAWN_H */

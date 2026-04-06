@@ -1,13 +1,13 @@
 //
-//  sys/mtx.h
+//  serena/mtx.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_MTX_H
-#define _SYS_MTX_H 1
+#ifndef _SERENA_MTX_H
+#define _SERENA_MTX_H 1
 
 #include <_cmndef.h>
 #include <serena/spinlock.h>
@@ -51,4 +51,4 @@ extern int mtx_unlock(mtx_t* _Nonnull mutex);
 
 __CPP_END
 
-#endif /* _SYS_MTX_H */
+#endif /* _SERENA_MTX_H */

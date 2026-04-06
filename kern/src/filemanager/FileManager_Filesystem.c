@@ -15,7 +15,7 @@
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
 #include <kpi/file.h>
-#include <kpi/fs.h>
+#include <kpi/filesystem.h>
 #include <process/ProcessManager.h>
 #include <Catalog.h>
 

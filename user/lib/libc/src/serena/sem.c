@@ -1,5 +1,5 @@
 //
-//  sys/sem.c
+//  serena/sem.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.

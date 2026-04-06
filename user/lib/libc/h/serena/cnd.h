@@ -1,13 +1,13 @@
 //
-//  sys/cnd.h
+//  serena/cnd.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_CND_H
-#define _SYS_CND_H 1
+#ifndef _SERENA_CND_H
+#define _SERENA_CND_H 1
 
 #include <time.h>
 #include <serena/mtx.h>
@@ -56,4 +56,4 @@ extern int cnd_timedwait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex, int flags, 
 
 __CPP_END
 
-#endif /* _SYS_CND_H */
+#endif /* _SERENA_CND_H */

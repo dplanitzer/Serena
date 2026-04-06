@@ -11,7 +11,7 @@
 
 #include "GObject.h"
 #include <ext/try.h>
-#include <kpi/fb.h>
+#include <kpi/framebuffer.h>
 
 
 typedef struct CLUTEntry {

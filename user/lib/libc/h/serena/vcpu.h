@@ -1,13 +1,13 @@
 //
-//  sys/vcpu.h
+//  serena/vcpu.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/29/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_VCPU_H
-#define _SYS_VCPU_H 1
+#ifndef _SERENA_VCPU_H
+#define _SERENA_VCPU_H 1
 
 #include <_cmndef.h>
 #include <stdint.h>
@@ -91,4 +91,4 @@ extern int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value
 
 __CPP_END
 
-#endif /* _SYS_VCPU_H */
+#endif /* _SERENA_VCPU_H */

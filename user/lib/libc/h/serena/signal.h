@@ -1,13 +1,13 @@
 //
-//  sys/signal.h
+//  serena/signal.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/30/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_SIGNAL_H
-#define _SYS_SIGNAL_H 1
+#ifndef _SERENA_SIGNAL_H
+#define _SERENA_SIGNAL_H 1
 
 #include <_cmndef.h>
 #include <_null.h>
@@ -59,4 +59,4 @@ extern int sigsend(int scope, id_t id, int signo);
 
 __CPP_END
 
-#endif /* _SYS_SIGNAL_H */
+#endif /* _SERENA_SIGNAL_H */

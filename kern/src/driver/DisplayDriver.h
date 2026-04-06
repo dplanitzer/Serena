@@ -10,7 +10,7 @@
 #define DisplayDriver_h
 
 #include <driver/Driver.h>
-#include <kpi/fb.h>
+#include <kpi/framebuffer.h>
 #include <sched/vcpu.h>
 
 

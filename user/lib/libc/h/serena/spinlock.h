@@ -1,13 +1,13 @@
 //
-//  sys/spinlock.h
+//  serena/spinlock.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/25/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_SPINLOCK_H
-#define _SYS_SPINLOCK_H 1
+#ifndef _SERENA_SPINLOCK_H
+#define _SERENA_SPINLOCK_H 1
 
 #include <_cmndef.h>
 #include <_null.h>
@@ -35,4 +35,4 @@ extern void spin_unlock(volatile spinlock_t* _Nonnull l);
 
 __CPP_END
 
-#endif /* _SYS_SPINLOCK_H */
+#endif /* _SERENA_SPINLOCK_H */

@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_CLOCK_H
-#define _SYS_CLOCK_H 1
+#ifndef _SERENA_CLOCK_H
+#define _SERENA_CLOCK_H 1
 
 #include <_cmndef.h>
 #include <_null.h>
@@ -34,4 +34,4 @@ extern int clock_nanosleep(clockid_t clockid, int flags, const struct timespec* 
 
 __CPP_END
 
-#endif /* _SYS_CLOCK_H */
+#endif /* _SERENA_CLOCK_H */
