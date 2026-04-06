@@ -33,20 +33,20 @@ static int touch(const char* _Nonnull path)
 {
     struct timespec times[2];
 
-    times[UTIME_ACCESS].tv_sec = 0;
-    times[UTIME_ACCESS].tv_nsec = UTIME_NOW;
-    times[UTIME_MODIFICATION].tv_sec = 0;
-    times[UTIME_MODIFICATION].tv_nsec = UTIME_NOW;
+    times[FS_TIMFLD_ACC].tv_sec = 0;
+    times[FS_TIMFLD_ACC].tv_nsec = FS_TIME_NOW;
+    times[FS_TIMFLD_MOD].tv_sec = 0;
+    times[FS_TIMFLD_MOD].tv_nsec = FS_TIME_NOW;
 
     if (touch_atim && !touch_mtim) {
-        times[UTIME_MODIFICATION].tv_nsec = UTIME_OMIT;
+        times[FS_TIMFLD_MOD].tv_nsec = FS_TIME_OMIT;
     }
     if (!touch_atim && touch_mtim) {
-        times[UTIME_ACCESS].tv_nsec = UTIME_OMIT;
+        times[FS_TIMFLD_ACC].tv_nsec = FS_TIME_OMIT;
     }
 
 
-    if (utimens(path, times) == 0) {
+    if (fs_settimes(NULL, path, times) == 0) {
         // File existed and we successfully update its timestamp(s)
         return 0;
     }

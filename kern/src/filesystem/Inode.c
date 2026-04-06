@@ -201,20 +201,20 @@ void Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
 
 void Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[_Nullable 2])
 {
-    const long acc_ns = (times) ? times[UTIME_ACCESS].tv_nsec : UTIME_NOW;
-    const long mod_ns = (times) ? times[UTIME_MODIFICATION].tv_nsec : UTIME_NOW;
+    const long acc_ns = (times) ? times[FS_TIMFLD_ACC].tv_nsec : FS_TIME_NOW;
+    const long mod_ns = (times) ? times[FS_TIMFLD_MOD].tv_nsec : FS_TIME_NOW;
 
-    if (acc_ns != UTIME_OMIT) {
-        if (acc_ns != UTIME_NOW) {
-            self->accessTime = times[UTIME_ACCESS];
+    if (acc_ns != FS_TIME_OMIT) {
+        if (acc_ns != FS_TIME_NOW) {
+            self->accessTime = times[FS_TIMFLD_ACC];
         }
         else {
             FSGetCurrentTime(&self->accessTime);
         }
     }
-    if (mod_ns != UTIME_OMIT) {
-        if (mod_ns != UTIME_NOW) {
-            self->modificationTime = times[UTIME_MODIFICATION];
+    if (mod_ns != FS_TIME_OMIT) {
+        if (mod_ns != FS_TIME_NOW) {
+            self->modificationTime = times[FS_TIMFLD_MOD];
         }
         else {
             FSGetCurrentTime(&self->modificationTime);

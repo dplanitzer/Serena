@@ -234,10 +234,15 @@ SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, mode_t mode)
     return err;
 }
 
-SYSCALL_2(utimens, const char* _Nonnull path, const struct timespec times[_Nullable 2])
+SYSCALL_3(fs_settimes, int wd, const char* _Nonnull path, const struct timespec times[_Nullable 2])
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_SetFileTimestamps(&pp->fm, pa->path, pa->times);

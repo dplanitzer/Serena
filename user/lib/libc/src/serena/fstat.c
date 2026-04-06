@@ -1,5 +1,5 @@
 //
-//  stat.c
+//  fstat.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,7 +9,7 @@
 #include <serena/file.h>
 #include <kpi/syscall.h>
 
-int stat(const char* _Nonnull path, struct stat* _Nonnull info)
+int fstat(int fd, struct stat* _Nonnull info)
 {
-    return (int)_syscall(SC_stat, path, info);
+    return (int)_syscall(SC_fstat, fd, info);
 }

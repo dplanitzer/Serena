@@ -55,7 +55,7 @@ SYSCALL_REF(rename);
 SYSCALL_REF(umask);
 SYSCALL_REF(fs_setowner);
 SYSCALL_REF(fs_setperms);
-SYSCALL_REF(utimens);
+SYSCALL_REF(fs_settimes);
 
 SYSCALL_REF(mkpipe);
 
@@ -148,7 +148,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_setowner, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
     SYSCALL_ENTRY(fs_setperms, SC_ERRNO),
-    SYSCALL_ENTRY(utimens, SC_ERRNO),
+    SYSCALL_ENTRY(fs_settimes, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_yield, SC_VOID),
     SYSCALL_ENTRY(wq_create, SC_ERRNO),
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),

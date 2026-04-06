@@ -20,7 +20,7 @@ errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath)
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
     
-    try(FileManager_Unlink(&m->fm, path, __ULNK_ANY));
+    try(FileManager_Unlink(&m->fm, path, __FS_ULNK_ANY));
 
 catch:
     FSManager_Destroy(m);

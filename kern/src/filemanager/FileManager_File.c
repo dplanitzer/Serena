@@ -234,7 +234,7 @@ errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* 
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         // Only the owner of a file may change its metadata.
-        const int isTotalOmit = (times && times[0].tv_nsec == UTIME_OMIT && times[1].tv_nsec == UTIME_OMIT);
+        const int isTotalOmit = (times && times[0].tv_nsec == FS_TIME_OMIT && times[1].tv_nsec == FS_TIME_OMIT);
         
         if (!isTotalOmit) {
            Inode_Lock(r.inode);
@@ -333,16 +333,16 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
 
 
     switch (mode) {
-        case __ULNK_ANY:
+        case __FS_ULNK_ANY:
             break;
 
-        case __ULNK_FIL_ONLY:
+        case __FS_ULNK_FIL_ONLY:
             if (S_ISDIR(tmod)) {
                 throw(EISDIR);
             }
             break;
 
-        case __ULNK_DIR_ONLY:
+        case __FS_ULNK_DIR_ONLY:
             if (!S_ISDIR(tmod)) {
                 throw(ENOTDIR);
             }

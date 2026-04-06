@@ -14,13 +14,6 @@
 #include <kpi/_time.h>
 #include <kpi/types.h>
 
-
-// __unlink() mode
-#define __ULNK_ANY      0
-#define __ULNK_FIL_ONLY 1
-#define __ULNK_DIR_ONLY 2
-
-
 struct stat {
     struct timespec st_atim;    // Last data access time
     struct timespec st_mtim;    // Last data modification time
@@ -62,17 +55,23 @@ struct stat {
 #define S_FTYPE(__mode) ((__mode) & S_IFMT)
 
 
-// Tells utimens() to set the file timestamp to the current time. Assign to the
-// tv_nsec field.
-#define UTIME_NOW   -1
+// Tells fs_settimes() to set the file timestamp to the current time. Assign to
+// the tv_nsec field.
+#define FS_TIME_NOW   -1
 
-// Tells utimens() to set the file timestamp to leave the file timestamp
+// Tells fs_settimes() to set the file timestamp to leave the file timestamp
 // unchanged. Assign to the tv_nsec field.
-#define UTIME_OMIT  -2
+#define FS_TIME_OMIT  -2
 
 
-// Order of the utimesns() timestamp
-#define UTIME_ACCESS        0
-#define UTIME_MODIFICATION  1
+// Order of the fs_settimes() timestamps
+#define FS_TIMFLD_ACC   0   /* Access time */
+#define FS_TIMFLD_MOD   1   /* Modification time */
+
+
+// __fs_unlink() system call mode
+#define __FS_ULNK_ANY       0
+#define __FS_ULNK_FIL_ONLY  1
+#define __FS_ULNK_DIR_ONLY  2
 
 #endif /* _KPI_FILE_H */

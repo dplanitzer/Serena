@@ -12,5 +12,5 @@
 
 int remove(const char* _Nonnull path)
 {
-    return (int)_syscall(SC_fs_unlink, -1, path, __ULNK_ANY);
+    return (int)_syscall(SC_fs_unlink, -1, path, __FS_ULNK_ANY);
 }

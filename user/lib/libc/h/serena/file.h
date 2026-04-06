@@ -24,9 +24,9 @@ extern int creat(const char* _Nonnull path, mode_t mode);
 // @Concurrency: Safe
 extern int stat(const char* _Nonnull path, struct stat* _Nonnull info);
 
-// Similar to stat() but operates on the open file identified by 'ioc'.
+// Similar to stat() but operates on the open file identified by 'fd'.
 // @Concurrency: Safe
-extern int fstat(int ioc, struct stat* _Nonnull info);
+extern int fstat(int fd, struct stat* _Nonnull info);
 
 
 // Checks whether the file at the filesystem location 'path' exists and whether
@@ -42,7 +42,7 @@ extern int fs_access(dir_t* _Nullable wd, const char* _Nonnull path, int mode);
 // @Concurrency: Safe
 extern int fs_truncate(dir_t* _Nullable wd, const char* _Nonnull path, off_t length);
 
-// Similar to truncate() but operates on the open file identified by 'ioc'.
+// Similar to fs_truncate() but operates on the open file identified by 'fd'.
 // @Concurrency: Safe
 extern int ftruncate(int fd, off_t length);
 
@@ -68,14 +68,7 @@ extern int fs_setowner(dir_t* _Nullable wd, const char* _Nonnull path, uid_t uid
 // Sets the access and modification date of the file at 'path'. The dates are
 // set to the current time if 'times' is NULL.
 // @Concurrency: Safe
-extern int utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2]);
-
-struct utimbuf {
-    time_t  actime;
-    time_t  modtime;
-};
-
-extern int utime(const char* _Nonnull path, const struct utimbuf* _Nullable times);
+extern int fs_settimes(dir_t* _Nullable wd, const char* _Nonnull path, const struct timespec times[_Nullable 2]);
 
 __CPP_END
 

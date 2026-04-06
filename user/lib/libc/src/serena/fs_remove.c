@@ -12,5 +12,5 @@
 
 int fs_remove(dir_t* _Nullable wd, const char* _Nonnull path)
 {
-    return (int)_syscall(SC_fs_unlink, (wd) ? _dir_fd(wd) : FD_CWD, path, __ULNK_ANY);
+    return (int)_syscall(SC_fs_unlink, (wd) ? _dir_fd(wd) : FD_CWD, path, __FS_ULNK_ANY);
 }
