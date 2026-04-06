@@ -57,7 +57,7 @@ SYSCALL_REF(ioctl);
 
 SYSCALL_REF(mkpipe);
 
-SYSCALL_REF(exit);
+SYSCALL_REF(proc_exit);
 SYSCALL_REF(spawn_process);
 SYSCALL_REF(getpargs);
 SYSCALL_REF(proc_cwd);
@@ -71,7 +71,7 @@ SYSCALL_REF(proc_name);
 SYSCALL_REF(proc_vcpus);
 
 
-SYSCALL_REF(alloc_address_space);
+SYSCALL_REF(vm_allocate);
 
 SYSCALL_REF(sigwait);
 SYSCALL_REF(sigtimedwait);
@@ -110,8 +110,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
     SYSCALL_ENTRY(write, SC_ERRNO),
     SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
-    SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
-    SYSCALL_ENTRY(exit, SC_NORETURN),
+    SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
+    SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(spawn_process, SC_ERRNO),
     SYSCALL_ENTRY(proc_name, SC_ERRNO),
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),

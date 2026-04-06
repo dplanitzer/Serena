@@ -11,7 +11,7 @@
 #include <vm/AddressSpace.h>
 
 
-SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
+SYSCALL_2(vm_allocate, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
 {
     if (pa->nbytes > SSIZE_MAX) {
         return E2BIG;

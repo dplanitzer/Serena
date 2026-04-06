@@ -18,6 +18,6 @@ void vcpu_uret_relinquish_self(void)
 
 void vcpu_uret_exit(void)
 {
-    _syscall(SC_exit, 0);
+    _syscall(SC_proc_exit, 0);
     /* NOT REACHED */
 }

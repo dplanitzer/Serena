@@ -16,7 +16,7 @@ SYSCALL_0(getpargs)
     return (intptr_t) vp->proc->pargs_base;
 }
 
-SYSCALL_1(exit, int status)
+SYSCALL_1(proc_exit, int status)
 {    
     Process_Exit(vp->proc, JREASON_EXIT, pa->status);
     /* NOT REACHED */

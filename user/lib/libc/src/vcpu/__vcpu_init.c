@@ -32,7 +32,7 @@ void __vcpu_init(void)
 
     const int r = _syscall(SC_vcpu_info, VCPUID_SELF, VCPU_INFO_IDS, &ids_info);
     if (r != 0) {
-        _syscall(SC_exit, 1);
+        _syscall(SC_proc_exit, 1);
         /* NOT REACHED */
     }
 

@@ -12,5 +12,5 @@
 
 _Noreturn void proc_exit(int status)
 {
-    (void)_syscall(SC_exit, status);
+    (void)_syscall(SC_proc_exit, status);
 }
