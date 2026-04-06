@@ -25,7 +25,7 @@ extern errno_t _kseek(ProcessRef _Nonnull pp, int fd, off_t offset, off_t* _Null
 extern errno_t _kfcntl(ProcessRef _Nonnull pp, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap);
 extern errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap);
 
-extern errno_t _kfstat(ProcessRef _Nonnull pp, int fd, struct stat* _Nonnull pOutInfo);
+extern errno_t _kfstat(ProcessRef _Nonnull pp, int fd, fs_attr_t* _Nonnull pOutInfo);
 extern errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length);
 
 

@@ -14,7 +14,7 @@
 #include <kpi/_time.h>
 #include <kpi/types.h>
 
-struct stat {
+typedef struct fs_attr {
     struct timespec st_atim;    // Last data access time
     struct timespec st_mtim;    // Last data modification time
     struct timespec st_ctim;    // Last file status change time
@@ -29,10 +29,10 @@ struct stat {
     blkcnt_t        st_blocks;
     dev_t           st_dev;     // Always 0
     dev_t           st_rdev;    // Always 0
-};
+} fs_attr_t;
 
 
-// The Inode type.
+// Inode type.
 #define S_IFREG     0x00000000  /* A regular file that stores data */
 #define S_IFDIR     0x01000000  /* A directory which stores information about child nodes */
 #define S_IFDEV     0x02000000  /* A driver which manages a piece of hardware */
@@ -48,10 +48,10 @@ struct stat {
 #define S_ISLNK(__mode)     (((__mode) & S_IFMT) == S_IFLNK)
 #define S_ISFIFO(__mode)    (((__mode) & S_IFMT) == S_IFIFO)
 
-// Returns the file permission bits from a struct stat
+// Returns the file permission bits from a fs_attr_t
 #define S_FPERM(__mode) ((__mode) & S_IFMP)
 
-// Returns the file type bits from a struct stat
+// Returns the file type bits from a fs_attr_t
 #define S_FTYPE(__mode) ((__mode) & S_IFMT)
 
 

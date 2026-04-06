@@ -31,22 +31,11 @@ SYSCALL_REF(fs_setlabel);
 SYSCALL_REF(fs_mount);
 SYSCALL_REF(fs_unmount);
 SYSCALL_REF(fs_sync);
-
-SYSCALL_REF(close);
-SYSCALL_REF(read);
-SYSCALL_REF(write);
-SYSCALL_REF(seek);
-SYSCALL_REF(fcntl);
-SYSCALL_REF(ioctl);
-
 SYSCALL_REF(mkfile);
 SYSCALL_REF(open);
 SYSCALL_REF(dir_open);
 SYSCALL_REF(fs_create_directory);
-SYSCALL_REF(proc_cwd);
-SYSCALL_REF(proc_setcwd);
-SYSCALL_REF(stat);
-SYSCALL_REF(fstat);
+SYSCALL_REF(fs_attr);
 SYSCALL_REF(fs_truncate);
 SYSCALL_REF(ftruncate);
 SYSCALL_REF(fs_access);
@@ -57,11 +46,22 @@ SYSCALL_REF(fs_setowner);
 SYSCALL_REF(fs_setperms);
 SYSCALL_REF(fs_settimes);
 
+SYSCALL_REF(fd_attr);
+
+SYSCALL_REF(close);
+SYSCALL_REF(read);
+SYSCALL_REF(write);
+SYSCALL_REF(seek);
+SYSCALL_REF(fcntl);
+SYSCALL_REF(ioctl);
+
 SYSCALL_REF(mkpipe);
 
 SYSCALL_REF(exit);
 SYSCALL_REF(spawn_process);
 SYSCALL_REF(getpargs);
+SYSCALL_REF(proc_cwd);
+SYSCALL_REF(proc_setcwd);
 SYSCALL_REF(proc_timedjoin);
 SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
@@ -125,10 +125,10 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(host_procs, SC_ERRNO),
     SYSCALL_ENTRY(umask, SC_INT),
     SYSCALL_ENTRY(fs_create_directory, SC_ERRNO),
-    SYSCALL_ENTRY(stat, SC_ERRNO),
+    SYSCALL_ENTRY(fs_attr, SC_ERRNO),
     SYSCALL_ENTRY(dir_open, SC_ERRNO),
     SYSCALL_ENTRY(fs_access, SC_ERRNO),
-    SYSCALL_ENTRY(fstat, SC_ERRNO),
+    SYSCALL_ENTRY(fd_attr, SC_ERRNO),
     SYSCALL_ENTRY(fs_unlink, SC_ERRNO),
     SYSCALL_ENTRY(rename, SC_ERRNO),
     SYSCALL_ENTRY(ioctl, SC_ERRNO),

@@ -21,9 +21,9 @@ static const char* __shellPath = "/System/Commands/shell";
 
 static int __has_shell(void)
 {
-    struct stat st;
+    fs_attr_t st;
 
-    if (stat(__shellPath, &st) == 0) {
+    if (fs_attr(NULL, __shellPath, &st) == 0) {
         if (S_ISREG(st.st_mode) && (st.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)) != 0) {
             return -1;
         }

@@ -52,7 +52,7 @@ static int copy_file_contents(int sfd, int dfd)
     return 0;
 }
 
-static int copy_file(const char* _Nonnull srcPath, const struct stat* _Nonnull srcStat, const char* _Nonnull dstPath)
+static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull srcStat, const char* _Nonnull dstPath)
 {
     int sfd = -1, dfd = -1;
     mode_t perms = S_FPERM(srcStat->st_mode);
@@ -120,13 +120,13 @@ static const char* _Nullable make_path(const char* _Nonnull dirPath, const char*
 
 static int copy_obj(const char* _Nonnull srcPath, const char* _Nonnull dstPath)
 {
-    struct stat srcstat, dststat;
+    fs_attr_t srcstat, dststat;
     bool hasSrc = false, hasDst = false;
 
-    if (stat(srcPath, &srcstat) == 0) {
+    if (fs_attr(NULL, srcPath, &srcstat) == 0) {
         hasSrc = true;
     }
-    if (stat(dstPath, &dststat) == 0) {
+    if (fs_attr(NULL, dstPath, &dststat) == 0) {
         hasDst = true;
     }
 

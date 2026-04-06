@@ -88,7 +88,7 @@ extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const c
 extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Nonnull pPath, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Returns information about the file at the given path.
-extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, struct stat* _Nonnull pOutInfo);
+extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fs_attr_t* _Nonnull pOutInfo);
 
 extern errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode);
 

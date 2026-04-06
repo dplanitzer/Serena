@@ -50,7 +50,7 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
 {
     decl_try_err();
     off_t fileOffset;
-    struct stat inf;
+    fs_attr_t inf;
     gemdos_hdr_t hdr;
     ssize_t nBytesRead;
 

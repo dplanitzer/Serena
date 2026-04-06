@@ -105,20 +105,25 @@ SYSCALL_3(fs_create_directory, int wd, const char* _Nonnull path, mode_t mode)
     return err;
 }
 
-SYSCALL_2(stat, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
+SYSCALL_3(fs_attr, int wd, const char* _Nonnull path, fs_attr_t* _Nonnull attr)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
     mtx_lock(&pp->mtx);
-    err = FileManager_GetFileInfo(&pp->fm, pa->path, pa->pOutInfo);
+    err = FileManager_GetFileInfo(&pp->fm, pa->path, pa->attr);
     mtx_unlock(&pp->mtx);    
     return err;
 }
 
-SYSCALL_2(fstat, int fd, struct stat* _Nonnull pOutInfo)
+SYSCALL_2(fd_attr, int fd, fs_attr_t* _Nonnull attr)
 {
-    return _kfstat(vp->proc, pa->fd, pa->pOutInfo);
+    return _kfstat(vp->proc, pa->fd, pa->attr);
 }
 
 SYSCALL_3(fs_truncate, int wd, const char* _Nonnull path, off_t length)

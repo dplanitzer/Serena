@@ -14,7 +14,7 @@
 #include <kobj/Any.h>
 #include <kern/kernlib.h>
 #include <kpi/fd.h>
-#include <kpi/types.h>
+#include <kpi/file.h>
 #include <sched/mtx.h>
 
 
@@ -152,7 +152,7 @@ any_subclass_funcs(IOChannel,
     // the channel is an Inode channel. Returns EBADF otherwise.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*getFileInfo)(void* _Nonnull self, struct stat* _Nonnull pOutInfo);
+    errno_t (*getFileInfo)(void* _Nonnull self, fs_attr_t* _Nonnull pOutInfo);
 
     // Reduces or increases the size of a regular file if the channel is connected
     // to an Inode. Returns EBADF otherwise

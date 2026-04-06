@@ -86,7 +86,7 @@ off_t InodeChannel_getSeekableRange(InodeChannelRef _Nonnull _Locked self)
     return Inode_GetFileSize(_get_inode());
 }
 
-errno_t InodeChannel_getFileInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
+errno_t InodeChannel_getFileInfo(InodeChannelRef _Nonnull self, fs_attr_t* _Nonnull pOutInfo)
 {
     InodeRef pn = _get_inode();
 

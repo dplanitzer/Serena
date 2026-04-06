@@ -46,14 +46,14 @@ const char* char_to_ascii(char ch, char buf[3])
 
 int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
 {
-    struct stat st;
+    fs_attr_t st;
     
     const int fd = open(path, O_RDONLY);
     if (fd < 0) {
         return EOF;
     }
 
-    if (fstat(fd, &st) < 0) {
+    if (fd_attr(fd, &st) < 0) {
         close(fd);
         return EOF;
     }

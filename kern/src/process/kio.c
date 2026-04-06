@@ -99,7 +99,7 @@ errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap)
 }
 
 
-errno_t _kfstat(ProcessRef _Nonnull pp, int fd, struct stat* _Nonnull pOutInfo)
+errno_t _kfstat(ProcessRef _Nonnull pp, int fd, fs_attr_t* _Nonnull pOutInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;

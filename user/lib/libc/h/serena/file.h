@@ -20,13 +20,13 @@ __CPP_BEGIN
 extern int creat(const char* _Nonnull path, mode_t mode);
 
 
-// Returns meta-information about the file located at the filesystem location 'path'.
+// Returns the attributes of the filesystem object located at 'path'.
 // @Concurrency: Safe
-extern int stat(const char* _Nonnull path, struct stat* _Nonnull info);
+extern int fs_attr(dir_t* _Nullable wd, const char* _Nonnull path, fs_attr_t* _Nonnull attr);
 
-// Similar to stat() but operates on the open file identified by 'fd'.
+// Similar to fs_attr() but operates on the file descriptor 'fd'.
 // @Concurrency: Safe
-extern int fstat(int fd, struct stat* _Nonnull info);
+extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 
 
 // Checks whether the file at the filesystem location 'path' exists and whether

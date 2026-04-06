@@ -256,7 +256,7 @@ errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
 }
 
 
-errno_t IOChannel_getFileInfo(IOChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
+errno_t IOChannel_getFileInfo(IOChannelRef _Nonnull self, fs_attr_t* _Nonnull pOutInfo)
 {
     return EBADF;
 }

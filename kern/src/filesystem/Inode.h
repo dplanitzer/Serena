@@ -81,7 +81,7 @@ any_subclass_funcs(Inode,
     // type.
     // Override: Optional
     // Default Behavior: Returns the node's file info
-    void (*getInfo)(void* _Nonnull _Locked self, struct stat* _Nonnull pOutInfo);
+    void (*getInfo)(void* _Nonnull _Locked self, fs_attr_t* _Nonnull pOutInfo);
 
     // Sets the mode of the inode.
     // Override: Optional

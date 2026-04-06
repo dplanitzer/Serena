@@ -168,7 +168,7 @@ catch:
 }
 
 // Returns information about the file at the given path.
-errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
+errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_attr_t* _Nonnull pOutInfo)
 {
     decl_try_err();
     ResolvedPath r;

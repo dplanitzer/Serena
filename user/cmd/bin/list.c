@@ -69,9 +69,9 @@ static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
 
 static int format_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    struct stat st;
+    fs_attr_t st;
     
-    if (stat(path, &st) != 0) {
+    if (fs_attr(NULL, path, &st) != 0) {
         return -1;
     }
     
@@ -98,10 +98,10 @@ static int format_inode(const char* _Nonnull path, const char* _Nonnull entryNam
 
 static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    struct stat st;
+    fs_attr_t st;
     char tc;
 
-    if (stat(path, &st) != 0) {
+    if (fs_attr(NULL, path, &st) != 0) {
         return -1;
     }
     
@@ -215,9 +215,9 @@ static void list_file(const char* _Nonnull path)
 
 static bool is_dir(const char* _Nonnull path)
 {
-    struct stat st;
+    fs_attr_t st;
 
-    return (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) ? true : false;
+    return (fs_attr(NULL, path, &st) == 0 && S_ISDIR(st.st_mode)) ? true : false;
 }
 
 

@@ -145,7 +145,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
     }
 }
 
-void Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pi)
+void Inode_getInfo(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull pi)
 {
     struct timespec now;
 

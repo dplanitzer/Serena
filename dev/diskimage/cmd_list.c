@@ -70,7 +70,7 @@ static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
 
 static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    struct stat info;
+    fs_attr_t info;
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
     
     if (err == EOK) {
@@ -90,7 +90,7 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
 
 static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    struct stat info;
+    fs_attr_t info;
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
     
     if (err == EOK) {
@@ -207,7 +207,7 @@ static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    struct stat info;
+    fs_attr_t info;
 
     return (FileManager_GetFileInfo(self->fm, path, &info) == EOK && S_ISDIR(info.st_mode)) ? true : false;
 }
