@@ -221,7 +221,7 @@ void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, PixelFormat format, int hotSpotX, int hotSpotY)
+errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, pixfmt_t format, int hotSpotX, int hotSpotY)
 {
     decl_try_err();
 
@@ -242,7 +242,7 @@ errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable 
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, width, height, kPixelFormat_RGB_Sprite2, &newId));
+        try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 

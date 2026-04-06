@@ -29,8 +29,8 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
     DriverEntry de;
 
     de.name = "hid";
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
@@ -110,7 +110,7 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
             const size_t bytesPerRow = va_arg(ap, size_t);
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
-            const PixelFormat format = va_arg(ap, PixelFormat);
+            const pixfmt_t format = va_arg(ap, pixfmt_t);
             const int hotSpotX = va_arg(ap, int);
             const int hotSpotY = va_arg(ap, int);
 

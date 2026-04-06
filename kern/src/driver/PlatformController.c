@@ -24,8 +24,8 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
 
     DirEntry be;
     be.name = "hw";
-    be.uid = kUserId_Root;
-    be.gid = kGroupId_Root;
+    be.uid = UID_ROOT;
+    be.gid = GID_ROOT;
     be.perms = perm_from_octal(0755);
 
     try(Driver_PublishBus((DriverRef)self, &be, NULL));

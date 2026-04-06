@@ -9,10 +9,10 @@
 #include "ColorTable.h"
 #include <kern/kalloc.h>
 
-static uint16_t _convert_color(RGBColor32 color);
+static uint16_t _convert_color(color_rgb32_t color);
 
 
-errno_t ColorTable_Create(int id, size_t entryCount, RGBColor32 defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf)
+errno_t ColorTable_Create(int id, size_t entryCount, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ColorTable* self;
@@ -55,7 +55,7 @@ void ColorTable_Destroy(ColorTable* _Nullable self)
     kfree(self);
 }
 
-static uint16_t _convert_color(RGBColor32 color)
+static uint16_t _convert_color(color_rgb32_t color)
 {
     const uint16_t r = RGBColor32_GetRed(color);
     const uint16_t g = RGBColor32_GetGreen(color);
@@ -65,7 +65,7 @@ static uint16_t _convert_color(RGBColor32 color)
 }
 
 // Writes the given RGB color to the color register at index idx
-errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, RGBColor32 color)
+errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, color_rgb32_t color)
 {
     if (idx < self->entryCount) {
         self->entry[idx] = _convert_color(color);
@@ -76,7 +76,7 @@ errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, RGBColor32 co
     }
 }
 
-errno_t ColorTable_SetEntries(ColorTable* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+errno_t ColorTable_SetEntries(ColorTable* _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
 {
     if (idx + count > self->entryCount) {
         return EINVAL;

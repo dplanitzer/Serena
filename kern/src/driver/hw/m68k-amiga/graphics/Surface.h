@@ -25,13 +25,13 @@ typedef struct Surface {
     int                 width;
     int                 height;
     size_t              bytesPerRow;
-    PixelFormat         pixelFormat;
+    pixfmt_t         pixelFormat;
     int8_t              planeCount;
     uint8_t             flags;
 } Surface;
 
 
-extern errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern errno_t Surface_Create(int id, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
 
 // Create a surface that represents a null sprite.
 extern errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf);
@@ -67,7 +67,7 @@ extern void Surface_Destroy(Surface* _Nullable self);
 #define Surface_IsMapped(__self) \
 (((__self)->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped)
 
-extern errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format);
+extern errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format);
 extern errno_t Surface_ClearPixels(Surface* _Nonnull self);
 
 #endif /* Surface_h */

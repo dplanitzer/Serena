@@ -110,7 +110,7 @@ errno_t KernFS_onStart(KernFSRef _Nonnull self, const char* _Nonnull params, FSP
     const mode_t rootDirPerms = perm_from(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
     const ino_t rootDirInodeId = KernFS_GetNextAvailableInodeId(self);
 
-    try(KfsDirectory_Create(self, rootDirInodeId, rootDirPerms, kUserId_Root, kGroupId_Root, rootDirInodeId, &rootDir));
+    try(KfsDirectory_Create(self, rootDirInodeId, rootDirPerms, UID_ROOT, GID_ROOT, rootDirInodeId, &rootDir));
     _KernFS_AddInode(self, rootDir);
     
     pOutProps->rootDirectoryId = rootDirInodeId;

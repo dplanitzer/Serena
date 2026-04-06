@@ -202,7 +202,7 @@ catch:
     return err;
 }
 
-errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
 {
     decl_try_err();
 

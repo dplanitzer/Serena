@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 
     clap_parse(0, params, argc, argv);
 
-    (void)proc_info(PROC_SELF_ID, PROC_INFO_CREDS, &info);
+    (void)proc_info(PROC_SELF, PROC_INFO_CREDS, &info);
     printf("uid=%u, gid=%u\n", info.uid, info.gid);
 
     return EXIT_SUCCESS;

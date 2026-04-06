@@ -36,8 +36,8 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     }
 
     drive_info_t drvi;
-    drvi.platter = kPlatter_None;
-    drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
+    drvi.platter = DISK_DIAM_UNKNOWN;
+    drvi.properties = DRIVE_PROP_READ_ONLY | DRIVE_PROP_FIXED;
 
     try(DiskDriver_Create(class(RomDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
@@ -69,14 +69,14 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     info.cylinders = 1;
     info.sectorSize = self->sectorSize;
     info.sectorsPerRdwr = 1;
-    info.properties = kDisk_IsReadOnly;
+    info.properties = DISK_PROP_READ_ONLY;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
     DriverEntry de;
     de.name = self->name;
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 

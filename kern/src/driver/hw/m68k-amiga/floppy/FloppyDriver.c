@@ -28,7 +28,7 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnul
     FloppyDriverRef self;
     drive_info_t dinf;
 
-    dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
+    dinf.platter = (params->driveType == kDriveType_3_5) ? DISK_DIAM_3_5 : DISK_DIAM_5_25;
     dinf.properties = 0;
     try(DiskDriver_Create(class(FloppyDriver), 0, g_cats, &dinf, (DriverRef*)&self));
 
@@ -82,9 +82,9 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
         if (hasDisk) {
             SensedDisk info;
     
-            info.properties = kDisk_IsRemovable;
+            info.properties = DISK_PROP_REMOVABLE;
             if ((status & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
-                info.properties |= kDisk_IsReadOnly;
+                info.properties |= DISK_PROP_READ_ONLY;
             }
             info.sectorSize = ADF_SECTOR_DATA_SIZE;
             info.heads = ADF_HEADS_PER_CYL;
@@ -152,8 +152,8 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = name;
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 

@@ -14,21 +14,18 @@
 #include <stdint.h>
 
 
-// Platter diameter
-enum {
-    kPlatter_None = 0,
-    kPlatter_2_5 = 250,
-    kPlatter_3 = 300,
-    kPlatter_3_5 = 350,
-    kPlatter_5_25 = 525,
-    kPlatter_8 = 800
-};
+// Disk platter diameters
+#define DISK_DIAM_UNKNOWN   0
+#define DISK_DIAM_2_5       250
+#define DISK_DIAM_3         300
+#define DISK_DIAM_3_5       350
+#define DISK_DIAM_5_25      525
+#define DISK_DIAM_8         800
+
 
 // Drive properties
-enum {
-    kDrive_Fixed = 0x0001,
-    kDrive_IsReadOnly = 0x0002,
-};
+#define DRIVE_PROP_FIXED        0x0001
+#define DRIVE_PROP_READ_ONLY    0x0002
 
 // Information about the disk drive
 typedef struct drive_info {
@@ -44,10 +41,8 @@ typedef struct drive_info {
 
 
 // Disk properties
-enum {
-    kDisk_IsRemovable = 0x0001,
-    kDisk_IsReadOnly = 0x0002,
-};
+#define DISK_PROP_REMOVABLE 0x0001
+#define DISK_PROP_READ_ONLY 0x0002
 
 // Disk information
 typedef struct disk_info {

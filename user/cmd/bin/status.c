@@ -65,13 +65,13 @@ static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
         case PROC_STATE_ALIVE:
             return (ip->vcpu_waiting_count == ip->vcpu_count) ? kState_Sleeping : kState_Running;
 
-        case PROC_STATE_STOPPED:
+        case PROC_STATE_SUSPENDED:
             return kState_Stopped;
 
-        case PROC_STATE_EXITING:
+        case PROC_STATE_TERMINATING:
             return kState_Exiting;
 
-        case PROC_STATE_ZOMBIE:
+        case PROC_STATE_TERMINATED:
             return kState_Zombie;
 
         default:

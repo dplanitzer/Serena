@@ -414,7 +414,7 @@ static void assert_has_slice_type(const di_slice_t* _Nonnull slice)
 
 
 static di_permissions_spec_t permissions = {0, false};
-static di_owner_spec_t owner = {kUserId_Root, kGroupId_Root, false};
+static di_owner_spec_t owner = {UID_ROOT, GID_ROOT, false};
 static clap_string_array_t paths = {NULL, 0};
 static const char* cmd_id = "";
 
@@ -601,8 +601,8 @@ int main(int argc, const char* argv[])
             permissions.p = perm_from_octal(0755);
         }
         if (!owner.isValid) {
-            owner.uid = kUserId_Root;
-            owner.gid = kGroupId_Root;
+            owner.uid = UID_ROOT;
+            owner.gid = GID_ROOT;
             owner.isValid = true;
         }
         try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, dmg_path));
@@ -617,8 +617,8 @@ int main(int argc, const char* argv[])
             permissions.p = perm_from_octal(0755);
         }
         if (!owner.isValid) {
-            owner.uid = kUserId_Root;
-            owner.gid = kGroupId_Root;
+            owner.uid = UID_ROOT;
+            owner.gid = GID_ROOT;
             owner.isValid = true;
         }
         try(cmd_makedir(should_create_parents, permissions.p, owner.uid, owner.gid, path, dmg_path));
@@ -633,8 +633,8 @@ int main(int argc, const char* argv[])
             permissions.p = perm_from_octal(0644);
         }
         if (!owner.isValid) {
-            owner.uid = kUserId_Root;
-            owner.gid = kGroupId_Root;
+            owner.uid = UID_ROOT;
+            owner.gid = GID_ROOT;
             owner.isValid = true;
         }
         try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, dmg_path));

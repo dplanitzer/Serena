@@ -93,7 +93,7 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->sectorCount = 0;
         self->sectorSize = 0;
     
-        self->diskProperties = kDisk_IsReadOnly;
+        self->diskProperties = DISK_PROP_READ_ONLY;
         self->flags.hasDisk = 0;
         self->flags.isDiskChangeActive = 0;
     }

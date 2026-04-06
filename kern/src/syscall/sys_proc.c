@@ -70,7 +70,7 @@ SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
         err = Process_GetSchedParam(pp, pa->type, pa->param);
     }
     else {
@@ -93,7 +93,7 @@ SYSCALL_3(proc_setschedparam, pid_t pid, int type, int* _Nonnull param)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
         err = Process_SetSchedParam(pp, pa->type, pa->param);
     }
     else {
@@ -117,7 +117,7 @@ SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
         err = Process_GetInfo(pp, pa->flavor, pa->info);
     }
     else {
@@ -140,7 +140,7 @@ SYSCALL_3(proc_name, pid_t pid, char* _Nonnull buf, size_t bufSize)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->pid == PROC_SELF_ID || pa->pid == pp->pid) {
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
         err = Process_GetName(pp, pa->buf, pa->bufSize);
     }
     else {

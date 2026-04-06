@@ -14,68 +14,61 @@
 #include <kpi/types.h>
 
 // Surface pixel formats
-enum {
-    kPixelFormat_RGB_Indexed1 = 1,  // planar indexed RGB with 1 plane
-    kPixelFormat_RGB_Indexed2,      // planar indexed RGB with 2 planes
-    kPixelFormat_RGB_Indexed3,      // planar indexed RGB with 3 planes
-    kPixelFormat_RGB_Indexed4,      // planar indexed RGB with 4 planes
-    kPixelFormat_RGB_Indexed5,      // planar indexed RGB with 5 planes
-    kPixelFormat_RGB_Indexed6,      // planar indexed RGB with 6 planes
-    kPixelFormat_RGB_Indexed7,      // planar indexed RGB with 7 planes
-    kPixelFormat_RGB_Indexed8,      // planar indexed RGB with 8 planes
+#define PIXFMT_RGB_IND_1    1  // planar indexed RGB with 1 plane
+#define PIXFMT_RGB_IND_2    2  // planar indexed RGB with 2 planes
+#define PIXFMT_RGB_IND_3    3  // planar indexed RGB with 3 planes
+#define PIXFMT_RGB_IND_4    4  // planar indexed RGB with 4 planes
+#define PIXFMT_RGB_IND_5    5  // planar indexed RGB with 5 planes
+#define PIXFMT_RGB_IND_6    6  // planar indexed RGB with 6 planes
+#define PIXFMT_RGB_IND_7    7  // planar indexed RGB with 7 planes
+#define PIXFMT_RGB_IND_8    8  // planar indexed RGB with 8 planes
 
 #ifdef MACHINE_AMIGA
-    kPixelFormat_RGB_HAM5,          // planar RGB Hold-And-Modify mode with 5 planes
-    kPixelFormat_RGB_HAM6,          // planar RGB Hold-And-Modify mode with 6 planes
-    kPixelFormat_RGB_EHB6,          // planar RGB Extra-Half-Bright mode with 6 planes
-    kPixelFormat_RGB_Sprite2,       // interleaved planar indexed RGB with 2 planes
+#define PIXFMT_RGB_HAM_5    9   // planar RGB Hold-And-Modify mode with 5 planes
+#define PIXFMT_RGB_HAM_6    10  // planar RGB Hold-And-Modify mode with 6 planes
+#define PIXFMT_RGB_EHB_6    11  // planar RGB Extra-Half-Bright mode with 6 planes
+#define PIXFMT_RGB_SPRITE_2 12  // interleaved planar indexed RGB with 2 planes
 #endif
-};
-typedef int PixelFormat;
+typedef int pixfmt_t;
 
 
 // Surface binding targets
-enum {
-    //kTarget_Framebuffer = 0x10000,
-    kTarget_Sprite0 = 0x20000,
-    kTarget_Sprite1 = 0x20001,
-    kTarget_Sprite2 = 0x20002,
-    kTarget_Sprite3 = 0x20003,
-    kTarget_Sprite4 = 0x20004,
-    kTarget_Sprite5 = 0x20005,
-    kTarget_Sprite6 = 0x20006,
-    kTarget_Sprite7 = 0x20007,
-};
+    //#define TARGET_FRAMEBUFFER    0x10000
+#define TARGET_SPRITE_0 0x20000
+#define TARGET_SPRITE_1 0x20001
+#define TARGET_SPRITE_2 0x20002
+#define TARGET_SPRITE_3 0x20003
+#define TARGET_SPRITE_4 0x20004
+#define TARGET_SPRITE_5 0x20005
+#define TARGET_SPRITE_6 0x20006
+#define TARGET_SPRITE_7 0x20007
 
 
 // Geometry and pixel encoding of a surface
-typedef struct SurfaceInfo {
+typedef struct surface_info {
     int         width;
     int         height;
-    PixelFormat pixelFormat;
-} SurfaceInfo;
+    pixfmt_t    pixelFormat;
+} surface_info_t;
 
 
 // Specifies what you want to do with the pixels when you call map_surface()
-enum {
-    kMapPixels_Read,
-    kMapPixels_ReadWrite
-};
-typedef int MapPixels;
+#define SURFACE_MAP_R   0
+#define SURFACE_MAP_RW  1
 
 
 // Provides access to the pixel data of a surface
-typedef struct SurfaceMapping {
+typedef struct surface_mapping {
     void* _Nonnull  plane[8];
     size_t          planeCount;
     size_t          bytesPerRow;
-} SurfaceMapping;
+} surface_mapping_t;
 
 
 // CLUT information
-typedef struct CLUTInfo {
+typedef struct clut_info {
     size_t  entryCount;
-} CLUTInfo;
+} clut_info_t;
 
 
 //
@@ -83,7 +76,7 @@ typedef struct CLUTInfo {
 //
 
 // 32bit opaque RGB color
-typedef unsigned int RGBColor32;
+typedef unsigned int color_rgb32_t;
 
 
 // Returns a packed 32bit RGB color value
@@ -116,7 +109,7 @@ typedef unsigned int RGBColor32;
 // surface width and height have to be > 1. The surface may be used to create a
 // screen and it may be directly mapped into the address space of the owning
 // process or manipulated with the Blitter.
-// create_surface(int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
+// create_surface(int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
 #define kFBCommand_CreateSurface2d  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 // Destroys the surface with id 'id'. Returns EBUSY if the surface is currently
@@ -133,14 +126,14 @@ typedef unsigned int RGBColor32;
 #define kFBCommand_BindSurface  IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 // Returns information about the surface 'id'.
-// get_surface_info(int id, SurfaceInfo* _Nonnull pOutInfo)
+// get_surface_info(int id, surface_info_t* _Nonnull pOutInfo)
 #define kFBCommand_GetSurfaceInfo   IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 // Maps the backing store of the surface 'id' into the address space of the
 // calling process to allow direct access to the pixel data. 'mode' specifies
 // whether the pixel data should be mapped for reading only or reading and
 // writing. Returns with 'pOutMapping' filled in.
-// map_surface(int id, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
+// map_surface(int id, int mode, surface_mapping_t* _Nonnull pOutMapping)
 #define kFBCommand_MapSurface       IOResourceCommand(kDriverCommand_SubclassBase + 4)
 
 // Unmaps the backing store of the surface 'id' and revokes access to the pixels.
@@ -150,7 +143,7 @@ typedef unsigned int RGBColor32;
 // Writes pixels to the surface 'id'. The provided source pixel buffer must be
 // of the same width and height as the surface. Returns ENOTSUP if the source
 // pixels can not be converted to the surface pixel format.
-// write_pixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format)
+// write_pixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format)
 #define kFBCommand_WritePixels      IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
 // Clears all pixels of the surface 'id'. Clearing pixels means that all bits in
@@ -172,12 +165,12 @@ typedef unsigned int RGBColor32;
 #define kFBCommand_DestroyCLUT      IOResourceCommand(kDriverCommand_SubclassBase + 9)
 
 // Returns information about the CLUT 'id'.
-// get_clut_info(int id, CLUTInfo* _Nonnull pOutInfo)
+// get_clut_info(int id, clut_info_t* _Nonnull pOutInfo)
 #define kFBCommand_GetCLUTInfo      IOResourceCommand(kDriverCommand_SubclassBase + 10)
 
 // Updates the color entries if the CLUT 'id'. 'count' entries starting at index
 // 'idx' are replaced with the color values stored in the array 'entries'.
-// set_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+// set_clut_entries(int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
 #define kFBCommand_SetCLUTEntries  IOResourceCommand(kDriverCommand_SubclassBase + 11)
 
 
@@ -185,17 +178,17 @@ typedef unsigned int RGBColor32;
 // Sprites
 //
 
-typedef struct SpriteCaps {
-    int     minWidth, maxWidth;
-    int     minHeight, maxHeight;
-    int     lowSpriteNum, highSpriteNum;
-    int     xScale;     // One sprite pixel corresponds to 'xScale' screen pixels along the horizontal axis
-    int     yScale;
-} SpriteCaps;
+typedef struct sprite_caps {
+    int minWidth, maxWidth;
+    int minHeight, maxHeight;
+    int lowSpriteNum, highSpriteNum;
+    int xScale;     // One sprite pixel corresponds to 'xScale' screen pixels along the horizontal axis
+    int yScale;
+} sprite_caps_t;
 
 // Returns information about the limits of the sprite sub-system based on the
 // currently active screen and mouse cursor configuration.
-// get_sprite_info(SpriteInfo* _Nonnull info)
+// get_sprite_info(sprite_info_t* _Nonnull info)
 #define kFBCommand_GetSpriteCaps        IOResourceCommand(kDriverCommand_SubclassBase + 12)
 
 // Sets the position of a sprite. Note that sprites are only visible inside the
@@ -242,7 +235,7 @@ typedef struct SpriteCaps {
 
 // Updates the color entries if the current screen CLUT. 'count' entries starting
 // at index 'idx' are replaced with the color values stored in the array 'entries'.
-// set_screen_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+// set_screen_clut_entries(int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
 #define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 17)
 
 #endif /* _KPI_FRAMEBUFFER_H */

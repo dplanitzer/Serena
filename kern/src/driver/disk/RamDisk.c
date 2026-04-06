@@ -45,8 +45,8 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     }
 
     drive_info_t drvi;
-    drvi.platter = kPlatter_None;
-    drvi.properties = kDrive_Fixed;
+    drvi.platter = DISK_DIAM_UNKNOWN;
+    drvi.properties = DRIVE_PROP_FIXED;
 
     try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
@@ -82,8 +82,8 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 
     DriverEntry de;
     de.name = self->name;
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 

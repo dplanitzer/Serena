@@ -25,7 +25,7 @@ FILE *fdopen(int ioc, const char * _Nonnull mode)
             int bufmod;
             size_t bufsiz;
 
-            if (fcntl(fileno((FILE*)self), F_GETTYPE) == SEO_FT_TERMINAL) {
+            if (fcntl(fileno((FILE*)self), F_GETTYPE) == FD_TYPE_TERMINAL) {
                 bufmod = _IOLBF;
                 bufsiz = 256;
             }

@@ -11,5 +11,5 @@
 
 int isatty(int fd)
 {
-    return (fcntl(fd, F_GETTYPE) == SEO_FT_TERMINAL) ? 1 : 0;
+    return (fcntl(fd, F_GETTYPE) == FD_TYPE_TERMINAL) ? 1 : 0;
 }

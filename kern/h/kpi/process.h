@@ -14,7 +14,7 @@
 #include <kpi/kei.h>
 #include <kpi/types.h>
 
-#define PROC_SELF_ID    0
+#define PROC_SELF    0
 
 // The process arguments descriptor is stored in the process address space and
 // it contains a pointer to the base of the command line arguments and environment
@@ -74,10 +74,10 @@ typedef void* proc_info_ref;
 #define PROC_INFO_TIMES 4
 
 
-#define PROC_STATE_ALIVE    0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something */
-#define PROC_STATE_STOPPED  1       /* Process is explicitly suspended */
-#define PROC_STATE_EXITING  2       /* Process has received an exit() call and is in the process of terminating */
-#define PROC_STATE_ZOMBIE   3       /* Process has terminated and parent processes hasn't reaped it yet */
+#define PROC_STATE_ALIVE        0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something */
+#define PROC_STATE_SUSPENDED    1       /* Process is explicitly suspended */
+#define PROC_STATE_TERMINATING  2       /* Process has received an exit() call and is in the process of terminating */
+#define PROC_STATE_TERMINATED   3       /* Process has terminated and parent processes hasn't reaped it yet */
 
 typedef struct proc_basic_info {
     int run_state;

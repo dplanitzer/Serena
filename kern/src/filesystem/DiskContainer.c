@@ -21,10 +21,10 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
 
     try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDiskInfo, &info));
 
-    if ((info.properties & kDisk_IsReadOnly) == kDisk_IsReadOnly) {
+    if ((info.properties & DISK_PROP_READ_ONLY) == DISK_PROP_READ_ONLY) {
         fsprops |= FS_PROP_READ_ONLY;
     }
-    if ((info.properties & kDisk_IsRemovable) == kDisk_IsRemovable) {
+    if ((info.properties & DISK_PROP_REMOVABLE) == DISK_PROP_REMOVABLE) {
         fsprops |= FS_PROP_REMOVABLE;
     }
 

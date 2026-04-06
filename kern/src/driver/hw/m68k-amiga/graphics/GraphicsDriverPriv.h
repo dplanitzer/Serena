@@ -58,8 +58,8 @@ final_class_ivars(GraphicsDriver, DisplayDriver,
 
 extern int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self);
 
-extern errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
-extern errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size_t colorDepth, RGBColor32 defaultColor, ColorTable* _Nullable * _Nonnull pOutClut);
+extern errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
+extern errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size_t colorDepth, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutClut);
 
 
 extern void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self);

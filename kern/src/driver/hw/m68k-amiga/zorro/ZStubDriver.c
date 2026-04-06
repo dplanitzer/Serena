@@ -32,8 +32,8 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = name;
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0);
     de.arg = 0;
 

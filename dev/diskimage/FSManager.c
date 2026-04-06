@@ -30,7 +30,7 @@ errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nul
 
     try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
-    FileManager_Init(&self->fm, fh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0));
+    FileManager_Init(&self->fm, fh, UID_ROOT, GID_ROOT, rootDir, rootDir, perm_from_octal(0));
     self->isFmUp = true;
 
     Inode_Relinquish(rootDir);

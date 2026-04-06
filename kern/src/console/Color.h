@@ -22,7 +22,7 @@ typedef enum ColorType {
 typedef struct Color {
     ColorType   tag;
     union {
-        RGBColor32  rgb32;
+        color_rgb32_t  rgb32;
         int         index;
     }           u;
 } Color;

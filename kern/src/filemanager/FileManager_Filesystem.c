@@ -152,7 +152,7 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
     err = FilesystemManager_AcquireDriverNodeForFsid(gFilesystemManager, fsid, &ip);
     if (err == EOK) {
         //XXX getting insufficient permissions if using the user credentials 
-        err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, kUserId_Root, kGroupId_Root /*self->ruid, self->rgid*/, buf, bufSize);
+        err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize);
         Inode_Relinquish(ip);
     }
     else {

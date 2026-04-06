@@ -74,8 +74,8 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "fb";
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
@@ -93,7 +93,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
         case kFBCommand_CreateSurface2d: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
-            const PixelFormat fmt = va_arg(ap, PixelFormat);
+            const pixfmt_t fmt = va_arg(ap, pixfmt_t);
             int* hnd = va_arg(ap, int*);
 
             return GraphicsDriver_CreateSurface2d(self, width, height, fmt, hnd);
@@ -107,15 +107,15 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
         case kFBCommand_GetSurfaceInfo: {
             int hnd = va_arg(ap, int);
-            SurfaceInfo* si = va_arg(ap, SurfaceInfo*);
+            surface_info_t* si = va_arg(ap, surface_info_t*);
 
             return GraphicsDriver_GetSurfaceInfo(self, hnd, si);
         }
 
         case kFBCommand_MapSurface: {
             int hnd = va_arg(ap, int);
-            MapPixels mode = va_arg(ap, MapPixels);
-            SurfaceMapping* sm = va_arg(ap, SurfaceMapping*);
+            int mode = va_arg(ap, int);
+            surface_mapping_t* sm = va_arg(ap, surface_mapping_t*);
 
             return GraphicsDriver_MapSurface(self, hnd, mode, sm);
         }
@@ -130,7 +130,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             int hnd = va_arg(ap, int);
             const void* planes = va_arg(ap, const void*);
             size_t bytesPerRow = va_arg(ap, size_t);
-            PixelFormat format = va_arg(ap, PixelFormat);
+            pixfmt_t format = va_arg(ap, pixfmt_t);
 
             return GraphicsDriver_WritePixels(self, hnd, planes, bytesPerRow, format);
         }
@@ -164,7 +164,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
         case kFBCommand_GetCLUTInfo: {
             int hnd = va_arg(ap, int);
-            CLUTInfo* ci = va_arg(ap, CLUTInfo*);
+            clut_info_t* ci = va_arg(ap, clut_info_t*);
 
             return GraphicsDriver_GetCLUTInfo(self, hnd, ci);
         }
@@ -173,14 +173,14 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             const int hnd = va_arg(ap, int);
             const size_t idx = va_arg(ap, size_t);
             const size_t count = va_arg(ap, size_t);
-            const RGBColor32* colors = va_arg(ap, const RGBColor32*);
+            const color_rgb32_t* colors = va_arg(ap, const color_rgb32_t*);
 
             return GraphicsDriver_SetCLUTEntries(self, hnd, idx, count, colors);
         }
 
 
         case kFBCommand_GetSpriteCaps: {
-            SpriteCaps* cp = va_arg(ap, SpriteCaps*);
+            sprite_caps_t* cp = va_arg(ap, sprite_caps_t*);
 
             GraphicsDriver_GetSpriteCaps(self, cp);
             return EOK;
@@ -218,7 +218,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
         case kFBCommand_SetScreenCLUTEntries: {
             const size_t idx = va_arg(ap, size_t);
             const size_t count = va_arg(ap, size_t);
-            const RGBColor32* colors = va_arg(ap, const RGBColor32*);
+            const color_rgb32_t* colors = va_arg(ap, const color_rgb32_t*);
 
             return GraphicsDriver_SetScreenCLUTEntries(self, idx, count, colors);
         }

@@ -45,7 +45,7 @@ void __stdio_init(void)
     if (fcntl(STDIN_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StdinObj, STDIN_FILENO, __kStreamMode_Read);
 
-        if (fcntl(STDIN_FILENO, F_GETTYPE) == SEO_FT_TERMINAL) {
+        if (fcntl(STDIN_FILENO, F_GETTYPE) == FD_TYPE_TERMINAL) {
             bufmod = _IOLBF;
             bufsiz = 256;
         }
@@ -63,7 +63,7 @@ void __stdio_init(void)
     if (fcntl(STDOUT_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StdoutObj, STDOUT_FILENO, __kStreamMode_Write);
 
-        if (fcntl(STDOUT_FILENO, F_GETTYPE) == SEO_FT_TERMINAL) {
+        if (fcntl(STDOUT_FILENO, F_GETTYPE) == FD_TYPE_TERMINAL) {
             bufmod = _IOLBF;
             bufsiz = 256;
         }

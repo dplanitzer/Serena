@@ -26,10 +26,10 @@
 
 
 // Descriptor types.
-#define SEO_FT_TERMINAL     0
-#define SEO_FT_INODE        1
-#define SEO_FT_DRIVER       2
-#define SEO_FT_PROCESS      3
+#define FD_TYPE_TERMINAL    0
+#define FD_TYPE_INODE       1
+#define FD_TYPE_DRIVER      2
+#define FD_TYPE_PROCESS     3
 
 
 // Returns the descriptor flags (int)

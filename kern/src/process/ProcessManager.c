@@ -92,7 +92,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     }
     
     utoa(pp->pid, g_pid_buf, 10);
-    try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), pp, &pp->rel.cat_id));
+    try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, UID_ROOT, GID_ROOT, perm_from_octal(0444), pp, &pp->rel.cat_id));
     
     if (pp->pid != pp->ppid) {
         ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
@@ -182,7 +182,7 @@ ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnul
     if (child_p && child_p->ppid == ppid) {
         *pOutExists = true;
 
-        if (Process_GetState(child_p) == PROC_STATE_ZOMBIE) {
+        if (Process_GetState(child_p) == PROC_STATE_TERMINATED) {
             the_p = Process_Retain(child_p);
         }
     }
@@ -207,7 +207,7 @@ static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull
             if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
                 *pOutAnyExists = true;
 
-                if (Process_GetState(child_p) == PROC_STATE_ZOMBIE) {
+                if (Process_GetState(child_p) == PROC_STATE_TERMINATED) {
                     return child_p;
                 }
             }

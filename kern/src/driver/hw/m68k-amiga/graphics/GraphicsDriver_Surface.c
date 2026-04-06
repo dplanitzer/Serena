@@ -9,7 +9,7 @@
 #include "GraphicsDriverPriv.h"
 
 
-errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
+errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
 {
     Surface* srf;
 
@@ -22,7 +22,7 @@ errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self,
     return err;
 }
 
-errno_t GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
+errno_t GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     Surface* srf;
 
@@ -74,7 +74,7 @@ errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, 
     Surface* srf = (id != 0) ? _GraphicsDriver_GetSurfaceForId(self, id) : NULL;
     if (srf || id == 0) {
         switch (target & 0xffff0000) {
-            case kTarget_Sprite0:
+            case TARGET_SPRITE_0:
                 err = _GraphicsDriver_BindSprite(self, target & 0x0000ffff, srf);
                 break;
 
@@ -90,7 +90,7 @@ errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, 
     return err;
 }
 
-errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, SurfaceInfo* _Nonnull pOutInfo)
+errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, surface_info_t* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -109,7 +109,7 @@ errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, S
     return EOK;
 }
 
-errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
+errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, int mode, surface_mapping_t* _Nonnull pOutMapping)
 {
     decl_try_err();
 
@@ -122,7 +122,7 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
     if (Surface_IsMapped(srf)) {
         throw(EBUSY);
     }
-    if (Surface_GetPixelFormat(srf) == kPixelFormat_RGB_Sprite2) {
+    if (Surface_GetPixelFormat(srf) == PIXFMT_RGB_SPRITE_2) {
         // Disallow mapping sprite surfaces for now
         throw(ENOTSUP);
     }
@@ -161,7 +161,7 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t GraphicsDriver_WritePixels(GraphicsDriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format)
+errno_t GraphicsDriver_WritePixels(GraphicsDriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format)
 {
     decl_try_err();
 

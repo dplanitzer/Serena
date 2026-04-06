@@ -441,7 +441,7 @@ static char* disk_path = "";
 static char* fs_type = "";
 static char* vol_label = "";
 static di_permissions_spec_t permissions = {0, false};
-static di_owner_spec_t owner = {kUserId_Root, kGroupId_Root, false};
+static di_owner_spec_t owner = {UID_ROOT, GID_ROOT, false};
 
 // disk fsid
 static char* fs_path = "";
@@ -493,8 +493,8 @@ int main(int argc, char* argv[])
             permissions.p = perm_from_octal(0777);
         }
         if (!owner.isValid) {
-            owner.uid = kUserId_Root;
-            owner.gid = kGroupId_Root;
+            owner.uid = UID_ROOT;
+            owner.gid = GID_ROOT;
             owner.isValid = true;
         }
         cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path);

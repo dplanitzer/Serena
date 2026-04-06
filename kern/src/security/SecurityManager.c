@@ -40,7 +40,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     mode_t reqPerms = 0;
 
     // XXX probably temporary until we're getting around to designing a full permission model
-    if (uid == kUserId_Root) {
+    if (uid == UID_ROOT) {
         return EOK;
     }
     // XXX
@@ -85,7 +85,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
 errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid)
 {
     // XXX probably temporary until we're getting around to designing a full permission model
-    if (uid == kUserId_Root) {
+    if (uid == UID_ROOT) {
         return EOK;
     }
     // XXX
@@ -100,7 +100,7 @@ errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonn
 
 bool SecurityManager_CanSendSignal(SecurityManagerRef _Nonnull self, const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
 {
-    if (sndr->uid == kUserId_Root) {
+    if (sndr->uid == UID_ROOT) {
         return true;
     }
     if (sndr->uid == rcv->uid) {
@@ -115,5 +115,5 @@ bool SecurityManager_CanSendSignal(SecurityManagerRef _Nonnull self, const sigcr
 
 bool SecurityManager_IsSuperuser(SecurityManagerRef _Nonnull self, uid_t uid)
 {
-    return uid == kUserId_Root;
+    return uid == UID_ROOT;
 }

@@ -9,13 +9,10 @@
 #ifndef _KPI_UID_H
 #define _KPI_UID_H 1
 
-enum {
-    kUserId_Root = 0,
-};
+// Well known user identities
+#define UID_ROOT    0
 
-
-enum {
-    kGroupId_Root = 0
-};
+// Well known group identities
+#define GID_ROOT    0
 
 #endif /* _KPI_UID_H */

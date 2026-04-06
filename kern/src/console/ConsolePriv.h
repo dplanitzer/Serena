@@ -166,7 +166,7 @@ final_class_ivars(Console, PseudoDriver,
     IOChannelRef _Nonnull       fbChannel;
     int                         clutId;
     int                         surfaceId;
-    SurfaceMapping              pixels;
+    surface_mapping_t              pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
     int                         textCursorSurface;

@@ -14,6 +14,6 @@ pid_t proc_self(void)
 {
     proc_ids_info_t info;
 
-    (void)_syscall(SC_proc_info, PROC_SELF_ID, PROC_INFO_IDS, &info);
+    (void)_syscall(SC_proc_info, PROC_SELF, PROC_INFO_IDS, &info);
     return info.id;
 }

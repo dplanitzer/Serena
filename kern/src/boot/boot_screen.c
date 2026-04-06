@@ -40,12 +40,12 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
-        IOChannel_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, kPixelFormat_RGB_Indexed1, &srf);
+        IOChannel_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
         IOChannel_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
 
 
         // Define the screen colors
-        static const RGBColor32 clrs[2] = {
+        static const color_rgb32_t clrs[2] = {
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
@@ -58,7 +58,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         bscr->height = height;
 
         IOChannel_Ioctl(chan, kFBCommand_ClearPixels, bscr->srf);
-        IOChannel_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, kMapPixels_ReadWrite, &bscr->mp);
+        IOChannel_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo

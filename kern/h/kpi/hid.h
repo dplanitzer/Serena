@@ -14,7 +14,7 @@
 
 #define kCursor_Width  16
 #define kCursor_Height 16
-#define kCursor_PixelFormat    kPixelFormat_RGB_Indexed2
+#define kCursor_PixelFormat    PIXFMT_RGB_IND_2
 
 
 //
@@ -60,9 +60,9 @@
 
 // Sets the mouse cursor image to the provided pixels. Note that only some pixel
 // format are supported:
-// kPixelFormat_RGB_Indexed2
+// PIXFMT_RGB_IND_2
 // Color index #0 is interpreted as transparent for all indexed pixel formats.
-// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, PixelFormat format, int hotSpotX, int hotSpotY)
+// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, pixfmt_t format, int hotSpotX, int hotSpotY)
 #define kHIDCommand_SetCursor   IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
 // Decrements the cursor hidden count and shows the cursor when the count hits 0.

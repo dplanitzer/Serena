@@ -56,7 +56,7 @@ errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
     decl_try_err();
     ResolvedPath rp;
 
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, &rp);
     ResolvedPath_Deinit(&rp);
 
     return err;
@@ -64,7 +64,7 @@ errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
 
 errno_t Catalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
 {
-    return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, rp);
+    return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, rp);
 }
 
 errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
@@ -72,7 +72,7 @@ errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsign
     decl_try_err();
     ResolvedPath rp;
 
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, &rp);
     if (err == EOK) {
         Inode_Lock(rp.inode);
         if (!S_ISDIR(Inode_GetMode(rp.inode))) {

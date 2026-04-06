@@ -404,7 +404,7 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
 {
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
     
-    Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022));
+    Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, pRootFh, UID_ROOT, GID_ROOT, rootDir, rootDir, perm_from_octal(0022));
     Inode_Relinquish(rootDir);
 
     g_kernel_pargs.version = sizeof(pargs_t);

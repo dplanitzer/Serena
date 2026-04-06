@@ -53,7 +53,7 @@ static errno_t _bind_sprite(GraphicsDriverRef _Nonnull _Locked self, int unit, S
         if (Surface_GetWidth(srf) != SPRITE_WIDTH || Surface_GetHeight(srf) > MAX_SPRITE_HEIGHT) {
             return ENOTSUP;
         }
-        if (Surface_GetPixelFormat(srf) != kPixelFormat_RGB_Sprite2) {
+        if (Surface_GetPixelFormat(srf) != PIXFMT_RGB_SPRITE_2) {
             return ENOTSUP;
         }
     }
@@ -203,7 +203,7 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
     return err;
 }
 
-void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, SpriteCaps* _Nonnull cp)
+void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, sprite_caps_t* _Nonnull cp)
 {
     mtx_lock(&self->io_mtx);
     const video_conf_t* vcp = g_copper_running_prog->video_conf;

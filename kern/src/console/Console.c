@@ -109,8 +109,8 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "console";
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
@@ -519,7 +519,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 
 errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return DriverChannel_Create((DriverRef)self, SEO_FT_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
+    return DriverChannel_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
 }
 
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

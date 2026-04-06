@@ -10,7 +10,7 @@
 #include "copper.h"
 
 
-errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size_t colorDepth, RGBColor32 defaultColor, ColorTable* _Nullable * _Nonnull pOutClut)
+errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size_t colorDepth, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutClut)
 {
     ColorTable* clut;
 
@@ -58,7 +58,7 @@ errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t GraphicsDriver_GetCLUTInfo(GraphicsDriverRef _Nonnull self, int id, CLUTInfo* _Nonnull pOutInfo)
+errno_t GraphicsDriver_GetCLUTInfo(GraphicsDriverRef _Nonnull self, int id, clut_info_t* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -77,7 +77,7 @@ errno_t GraphicsDriver_GetCLUTInfo(GraphicsDriverRef _Nonnull self, int id, CLUT
 
 // Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
 // to the colors in the array 'entries'.
-errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
 {
     decl_try_err();
 
