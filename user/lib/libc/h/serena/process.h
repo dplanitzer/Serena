@@ -14,12 +14,9 @@
 
 __CPP_BEGIN
 
-// Gets/sets the current working directory of the process.
-extern int proc_cwd(char* _Nonnull buffer, size_t bufferSize);
-extern int proc_setcwd(const char* _Nonnull path);
-
 // Returns the process id of the calling process.
 extern pid_t proc_self(void);
+
 
 // Exits the current process. This call is different from exit() in the sense
 // that it does not invoke atexit() callbacks.
@@ -29,9 +26,6 @@ extern _Noreturn void proc_exit(int status);
 // Replaces the currently executing process image with the executable image stored
 // at 'path'. All open I/O channels except channels 0, 1 and 2 are closed.
 extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp);
-
-extern pargs_t* _Nonnull getpargs(void);
-
 
 // Checks whether the specified child process or a member of the specified child
 // process group has terminated and is available for joining/reaping. If so,
@@ -53,12 +47,20 @@ extern int proc_join(int scope, pid_t id, struct proc_status* _Nonnull ps);
 extern int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps);
 
 
+// Gets/sets the current working directory of the process.
+extern int proc_cwd(char* _Nonnull buffer, size_t bufferSize);
+extern int proc_setcwd(const char* _Nonnull path);
+
+
+extern pargs_t* _Nonnull getpargs(void);
+
+
 // Sets the process' umask. Bits set in this mask are cleared in the permissions
 // that are used to create a file. Returns the old umask. Note that calling this
-// function with SEO_UMASK_NO_CHANGE as the argument causes umask() to simply
-// return the current umask without chaning it as a side-effect.
+// function with SEO_UMASK_NO_CHANGE as the argument causes proc_umask() to
+// simply return the current umask without chaning it as a side-effect.
 // @Concurrency: Safe
-extern mode_t umask(mode_t mask);
+extern mode_t proc_umask(mode_t mask);
 
 
 extern int proc_schedparam(pid_t pid, int type, int* _Nonnull param);

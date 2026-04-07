@@ -12,5 +12,5 @@
 
 int rename(const char* _Nonnull oldpath, const char* _Nonnull newpath)
 {
-    return (int)_syscall(SC_rename, oldpath, newpath);
+    return (int)_syscall(SC_fs_rename, -1, oldpath, -1, newpath);
 }

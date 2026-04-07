@@ -179,32 +179,24 @@ SYSCALL_3(fs_unlink, int wd, const char* _Nonnull path, int mode)
     return err;
 }
 
-SYSCALL_2(rename, const char* _Nonnull oldPath, const char* _Nonnull newPath)
+SYSCALL_4(fs_rename, int owd, const char* _Nonnull oldPath, int nwd,  const char* _Nonnull newPath)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
+
+    if (pa->owd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+    if (pa->nwd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_Rename(&pp->fm, pa->oldPath, pa->newPath);
     mtx_unlock(&pp->mtx);
     return err;
-}
-
-SYSCALL_1(umask, mode_t mask)
-{
-    ProcessRef pp = vp->proc;
-    mode_t omask;
-
-    mtx_lock(&pp->mtx);
-    if (pa->mask != SEO_UMASK_NO_CHANGE) {
-        omask = FileManager_UMask(&pp->fm, pa->mask);
-    }
-    else {
-        omask = FileManager_GetUMask(&pp->fm);
-    }
-    mtx_unlock(&pp->mtx);
-    
-    return (intptr_t)omask;
 }
 
 SYSCALL_4(fs_setowner, int wd, const char* _Nonnull path, uid_t uid, gid_t gid)

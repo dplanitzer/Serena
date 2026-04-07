@@ -29,10 +29,19 @@ extern int fs_attr(dir_t* _Nullable wd, const char* _Nonnull path, fs_attr_t* _N
 extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 
 
-// Checks whether the file at the filesystem location 'path' exists and whether
-// it is accessible according to 'mode'. A suitable error is returned otherwise.
+// Changes the file permission bits of the file or directory at 'path' to the
+// file permissions encoded in 'mode'.
 // @Concurrency: Safe
-extern int fs_access(dir_t* _Nullable wd, const char* _Nonnull path, int mode);
+extern int fs_setperms(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode);
+
+extern int fs_setowner(dir_t* _Nullable wd, const char* _Nonnull path, uid_t uid, gid_t gid);
+
+
+// Sets the access and modification date of the file at 'path'. The dates are
+// set to the current time if 'times' is NULL.
+// @Concurrency: Safe
+extern int fs_settimes(dir_t* _Nullable wd, const char* _Nonnull path, const struct timespec times[_Nullable 2]);
+
 
 // Truncates the file at the filesystem location 'path'. If the new length is
 // greater than the size of the existing file, then the file is expanded and the
@@ -56,19 +65,13 @@ extern int ftruncate(int fd, off_t length);
 // @Concurrency: Safe
 extern int fs_remove(dir_t* _Nullable wd, const char* _Nonnull path);
 
-
-// Changes the file permission bits of the file or directory at 'path' to the
-// file permissions encoded in 'mode'.
 // @Concurrency: Safe
-extern int fs_setperms(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode);
+extern int fs_rename(dir_t* _Nullable owd, const char* _Nonnull oldpath, dir_t* _Nullable nwd, const char* _Nonnull newpath);
 
-extern int fs_setowner(dir_t* _Nullable wd, const char* _Nonnull path, uid_t uid, gid_t gid);
-
-
-// Sets the access and modification date of the file at 'path'. The dates are
-// set to the current time if 'times' is NULL.
+// Checks whether the file at the filesystem location 'path' exists and whether
+// it is accessible according to 'mode'. A suitable error is returned otherwise.
 // @Concurrency: Safe
-extern int fs_settimes(dir_t* _Nullable wd, const char* _Nonnull path, const struct timespec times[_Nullable 2]);
+extern int fs_access(dir_t* _Nullable wd, const char* _Nonnull path, int mode);
 
 __CPP_END
 

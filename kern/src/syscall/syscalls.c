@@ -40,8 +40,7 @@ SYSCALL_REF(fs_truncate);
 SYSCALL_REF(ftruncate);
 SYSCALL_REF(fs_access);
 SYSCALL_REF(fs_unlink);
-SYSCALL_REF(rename);
-SYSCALL_REF(umask);
+SYSCALL_REF(fs_rename);
 SYSCALL_REF(fs_setowner);
 SYSCALL_REF(fs_setperms);
 SYSCALL_REF(fs_settimes);
@@ -69,6 +68,7 @@ SYSCALL_REF(proc_setschedparam);
 SYSCALL_REF(proc_info);
 SYSCALL_REF(proc_name);
 SYSCALL_REF(proc_vcpus);
+SYSCALL_REF(proc_umask);
 
 
 SYSCALL_REF(vm_allocate);
@@ -123,14 +123,14 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_cwd, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
     SYSCALL_ENTRY(host_procs, SC_ERRNO),
-    SYSCALL_ENTRY(umask, SC_INT),
+    SYSCALL_ENTRY(proc_umask, SC_INT),
     SYSCALL_ENTRY(fs_create_directory, SC_ERRNO),
     SYSCALL_ENTRY(fs_attr, SC_ERRNO),
     SYSCALL_ENTRY(dir_open, SC_ERRNO),
     SYSCALL_ENTRY(fs_access, SC_ERRNO),
     SYSCALL_ENTRY(fd_attr, SC_ERRNO),
     SYSCALL_ENTRY(fs_unlink, SC_ERRNO),
-    SYSCALL_ENTRY(rename, SC_ERRNO),
+    SYSCALL_ENTRY(fs_rename, SC_ERRNO),
     SYSCALL_ENTRY(ioctl, SC_ERRNO),
     SYSCALL_ENTRY(fs_truncate, SC_ERRNO),
     SYSCALL_ENTRY(ftruncate, SC_ERRNO),

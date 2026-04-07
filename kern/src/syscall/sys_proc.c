@@ -65,6 +65,23 @@ SYSCALL_1(proc_setcwd, const char* _Nonnull path)
     return err;
 }
 
+SYSCALL_1(proc_umask, mode_t mask)
+{
+    ProcessRef pp = vp->proc;
+    mode_t omask;
+
+    mtx_lock(&pp->mtx);
+    if (pa->mask != SEO_UMASK_NO_CHANGE) {
+        omask = FileManager_UMask(&pp->fm, pa->mask);
+    }
+    else {
+        omask = FileManager_GetUMask(&pp->fm);
+    }
+    mtx_unlock(&pp->mtx);
+    
+    return (intptr_t)omask;
+}
+
 SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)
 {
     decl_try_err();
