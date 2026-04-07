@@ -12,6 +12,7 @@
 #include <kpi/fd.h>
 #include <kpi/_seek.h>
 #include <kpi/_time.h>
+#include <kpi/attr.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
@@ -81,6 +82,11 @@ extern ssize_t fd_write(int fd, const void* _Nonnull buf, size_t nbytes);
 // end of file and the new end of file is automatically filled with zero bytes.
 // @Concurrency: Safe
 extern off_t fd_seek(int fd, off_t offset, int whence);
+
+
+// Similar to fs_attr() but operates on the file descriptor 'fd'.
+// @Concurrency: Safe
+extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 
 
 // Similar to fs_truncate() but operates on the open file identified by 'fd'.

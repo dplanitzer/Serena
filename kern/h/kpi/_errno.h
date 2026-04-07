@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_ERRNO_H
-#define _KPI_ERRNO_H 1
+#ifndef __KPI_ERRNO_H
+#define __KPI_ERRNO_H 1
 
 #define EOK             0
 
@@ -58,7 +58,7 @@
 #define __EFIRST    1
 #define __ELAST     43
 
-#endif /* _KPI_ERRNO_H */
+#endif /* __KPI_ERRNO_H */
 
 
 #if __ERRNO_T_WANTED == 1 && __ERRNO_T_DEFINED != 1

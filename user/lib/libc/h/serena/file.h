@@ -10,6 +10,7 @@
 #define _SERENA_FILE_H 1
 
 #include <kpi/_access.h>
+#include <kpi/attr.h>
 #include <kpi/file.h>
 #include <serena/fd.h>
 
@@ -23,10 +24,6 @@ extern int creat(const char* _Nonnull path, mode_t mode);
 // Returns the attributes of the filesystem object located at 'path'.
 // @Concurrency: Safe
 extern int fs_attr(dir_t* _Nullable wd, const char* _Nonnull path, fs_attr_t* _Nonnull attr);
-
-// Similar to fs_attr() but operates on the file descriptor 'fd'.
-// @Concurrency: Safe
-extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 
 
 // Changes the file permission bits of the file or directory at 'path' to the

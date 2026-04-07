@@ -9,7 +9,7 @@
 #ifndef _KPI_PERM_H
 #define _KPI_PERM_H 1
 
-#include <kpi/_file.h>
+#include <kpi/_attr.h>
 
 // File permissions. Every file and directory has 3 sets of permissions associated
 // with it (also knows as "permission classes"):

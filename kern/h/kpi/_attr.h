@@ -1,13 +1,13 @@
 //
-//  kpi/_file.h
+//  kpi/_attr.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 5/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_PRIV_FILE_H
-#define _KPI_PRIV_FILE_H 1
+#ifndef __KPI_ATTR_H
+#define __KPI_ATTR_H 1
 
 #define S_IRWXU 0700
 #define S_IRUSR 0400
@@ -38,4 +38,4 @@
 // Make a st_mode from a file type and file permissions
 #define __S_MKMODE(__ftype, __fperm) ((__ftype) | ((__fperm) & S_IFMP))
 
-#endif /* _KPI_PRIV_FILE_H */
+#endif /* __KPI_ATTR_H */

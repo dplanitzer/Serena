@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include <ext/try.h>
 #include <kpi/file.h>
+#include <kpi/types.h>
 #include <kpi/uid.h>
 #include "DiskImageFormat.h"
 

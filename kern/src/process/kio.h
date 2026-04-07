@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <ext/try.h>
 #include <kobj/AnyRefs.h>
+#include <kpi/attr.h>
 #include <kpi/file.h>
 #include <kpi/types.h>
 

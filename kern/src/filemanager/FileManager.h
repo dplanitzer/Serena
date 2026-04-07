@@ -10,7 +10,7 @@
 #define FileManager_h
 
 #include <kobj/Object.h>
-#include <kpi/file.h>
+#include <kpi/attr.h>
 #include <kpi/filesystem.h>
 #include <kpi/uid.h>
 

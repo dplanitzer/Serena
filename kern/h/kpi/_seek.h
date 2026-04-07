@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_SEEK_H
-#define _KPI_SEEK_H 1
+#ifndef __KPI_SEEK_H
+#define __KPI_SEEK_H 1
 
 // Specifies how a seek() call should apply 'offset' to the current file
 // position.
@@ -15,4 +15,4 @@
 #define SEEK_CUR    1   /* Add 'offset' to the current file position */
 #define SEEK_END    2   /* Add 'offset' to the end of the file */
 
-#endif /* _KPI_SEEK_H */
+#endif /* __KPI_SEEK_H */
