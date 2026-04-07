@@ -54,18 +54,18 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
     }
 
     if (fd_attr(fd, &st) < 0) {
-        close(fd);
+        fd_close(fd);
         return EOF;
     }
 
     if (!S_ISREG(st.st_mode)) {
         errno = EINVAL;
-        close(fd);
+        fd_close(fd);
         return EOF;
     }
     if (st.st_size > (off_t)SSIZE_MAX) {
         errno = E2BIG;
-        close(fd);
+        fd_close(fd);
         return EOF;
     }
 
@@ -73,7 +73,7 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
     char* text = malloc(fileSize + 1);
     int r;
 
-    if (read(fd, text, fileSize) == fileSize) {
+    if (fd_read(fd, text, fileSize) == fileSize) {
         text[fileSize] = '\0';
 
         *pOutText = text;
@@ -86,7 +86,7 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
         free(text);
         r = EOF;
     }
-    close(fd);
+    fd_close(fd);
 
     return r;
 }

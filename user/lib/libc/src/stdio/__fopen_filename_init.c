@@ -42,7 +42,7 @@ int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char 
     
     self->v.fd = fd;
     if (__fopen_init((FILE*)self, &self->v, &__FILE_fd_callbacks, sm) != 0) {
-        close(fd);
+        fd_close(fd);
         return EOF;
     }
 

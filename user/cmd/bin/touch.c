@@ -55,7 +55,7 @@ static int touch(const char* _Nonnull path)
         int fd = open(path, O_CREAT|O_EXCL|O_RDWR, 0666);
 
         if (fd >= 0) {
-            close(fd);
+            fd_close(fd);
             return 0;
         }
         else {

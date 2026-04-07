@@ -38,12 +38,12 @@ CLAP_DECL(params,
 static int copy_file_contents(int sfd, int dfd)
 {
     for (;;) {
-        const ssize_t nBytesRead = read(sfd, copy_buf, COPY_BUF_SIZE);
+        const ssize_t nBytesRead = fd_read(sfd, copy_buf, COPY_BUF_SIZE);
         if (nBytesRead <= 0) {
             return (nBytesRead == 0) ? 0 : -1;
         }
 
-        const nBytesWritten = write(dfd, copy_buf, nBytesRead);
+        const nBytesWritten = fd_write(dfd, copy_buf, nBytesRead);
         if (nBytesWritten != nBytesRead) {
             return -1;
         }
@@ -71,7 +71,7 @@ static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull src
         if (copy_file_contents(sfd, dfd) != 0) {
             //XXX a funlink() would be nice here...
             fs_remove(NULL, dstPath);
-            close(dfd);
+            fd_close(dfd);
             dfd = -1;
         }
     }
@@ -86,10 +86,10 @@ static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull src
 
 
     if (dfd != -1) {
-        close(dfd);
+        fd_close(dfd);
     }
     if (sfd != -1) {
-        close(sfd);
+        fd_close(sfd);
     }
 
     return (sfd != -1 && dfd != -1) ? 0 : -1;

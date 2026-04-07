@@ -15,8 +15,8 @@
 __CPP_BEGIN
 
 enum {
-    SC_read = 0,            // errno_t read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
-    SC_write,               // errno_t write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
+    SC_fd_read = 0,         // errno_t fd_read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
+    SC_fd_write,            // errno_t fd_write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
     SC_clock_nanosleep,     // errno_t clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
     SC_vm_allocate,         // errno_t vm_allocate(size_t nbytes, void **pOutMem)
     SC_proc_exit,           // _Noreturn void proc_exit(int status)
@@ -25,9 +25,9 @@ enum {
     SC_proc_vcpus,          // int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize)
     SC_getpargs,            // pargs_t * _Nonnull getpargs(void)
     SC_open,                // errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
-    SC_close,               // errno_t close(int fd)
+    SC_fd_close,            // errno_t fd_close(int fd)
     SC_proc_join,           // int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
-    SC_lseek,               // errno_t lseek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
+    SC_fd_seek,             // errno_t fd_seek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
     SC_proc_cwd,            // errno_t proc_cwd(char* buffer, size_t bufferSize)
     SC_proc_setcwd,         // errno_t proc_setcwd(const char* _Nonnull path)
     SC_host_procs,          // int host_procs(const proc_matcher_t* _Nullable matchers, pid_t* _Nonnull buf, size_t bufSize)
@@ -41,7 +41,7 @@ enum {
     SC_fs_rename,           // errno_t fs_rename(int owd, const char* _Nonnull oldpath, int nwd, const char* _Nonnull newpath)
     SC_ioctl,               // errno_t ioctl(int fd, int cmd, ...)
     SC_fs_truncate,         // errno_t fs_truncate(int wd, const char* _Nonnull path, off_t length)
-    SC_ftruncate,           // errno_t ftruncate(int fd, off_t length)
+    SC_fd_truncate,         // errno_t fd_truncate(int fd, off_t length)
     SC_mkfile,              // errno_t mkfile(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
     SC_pipe,                // errno_t pipe(int* _Nonnull rioc, int* _Nonnull wioc)
     SC_wq_dispose,          // void wq_dispose(int q)

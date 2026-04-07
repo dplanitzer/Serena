@@ -153,13 +153,13 @@ static int tgetc(int fd)
 {
     char buf[2];
 
-    if (read(fd, buf, 1) != 1) {
+    if (fd_read(fd, buf, 1) != 1) {
         return EOF;
     }
 
     if (buf[0] == 033) {
         // ESC [ <cursor direction> or ESC [ <digits> ~
-        if (read(fd, buf, 2) != 2) {
+        if (fd_read(fd, buf, 2) != 2) {
             return EOF;
         }
 
@@ -175,7 +175,7 @@ static int tgetc(int fd)
 
                     num_buf[i++] = buf[1];
                     while (i < 8) {
-                        if (read(fd, &num_buf[i], 1) != 1) {
+                        if (fd_read(fd, &num_buf[i], 1) != 1) {
                             return EOF;
                         }
                         if (!isdigit(num_buf[i])) {
@@ -226,7 +226,7 @@ static int tgetc(int fd)
 
 static void twrite(int fd, const char* _Nonnull str)
 {
-    write(fd, str, strlen(str));
+    fd_write(fd, str, strlen(str));
 }
 
 static void tinsertc(int fd, char ch)
@@ -243,14 +243,14 @@ static void tinsertc(int fd, char ch)
     buf[7] = '4';
     buf[8] = 'l';
 
-    write(fd, buf, 9);
+    fd_write(fd, buf, 9);
 }
 
 static void tbs(int fd)
 {
     char bs = 8;
 
-    write(fd, &bs, 1);
+    fd_write(fd, &bs, 1);
 }
 
 static void tmovetox(int fd, int x)
@@ -264,38 +264,37 @@ static void tmovetox(int fd, int x)
         buf[2] = '[';
         len = _titoa(__abs(x), &buf[3]);
         buf[3 + len] = 'C';
-        write(fd, buf, len + 4);
+        fd_write(fd, buf, len + 4);
     }
     else {
         buf[0] = '\r';
-        write(fd, buf, 1);
+        fd_write(fd, buf, 1);
     }
 }
 
 static void tmovex(int fd, int dir)
 {
     if (dir < 0) {
-        write(fd, "\033[D", 3); // cursor left
+        fd_write(fd, "\033[D", 3); // cursor left
     }
     else if (dir > 0) {
-        write(fd, "\033[C", 3); // cursor right
+        fd_write(fd, "\033[C", 3); // cursor right
     }
 }
 
 static void tcls(int fd)
 {
-    write(fd, "\033[2J\033[H", 7);
+    fd_write(fd, "\033[2J\033[H", 7);
 }
 
 static void tcursoron(int fd, bool onoff)
 {
     if (onoff) {
-        write(fd, "\033[?25h", 6);
+        fd_write(fd, "\033[?25h", 6);
     }
     else {
-        write(fd, "\033[?25l", 6);
+        fd_write(fd, "\033[?25l", 6);
     }
-
 }
 
 
@@ -493,7 +492,7 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
 
     tcursoron(self->fd_out, false);
     tmovetox(self->fd_out, self->inputAreaFirstCol);
-    write(self->fd_out, self->line, self->lineLastCol + 1);
+    fd_write(self->fd_out, self->line, self->lineLastCol + 1);
     tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
     tcursoron(self->fd_out, true);
 }
@@ -502,7 +501,7 @@ static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
 {
     if (self->promptWidth > 0) {
         tmovetox(self->fd_out, 0);
-        write(self->fd_out, self->prompt, self->promptLength);
+        fd_write(self->fd_out, self->prompt, self->promptLength);
     }
 }
 
@@ -510,7 +509,7 @@ static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
 {
     if (self->textLastCol >= 0) {
         tmovetox(self->fd_out, self->inputAreaFirstCol);
-        write(self->fd_out, self->line, self->textLastCol + 1);
+        fd_write(self->fd_out, self->line, self->textLastCol + 1);
     }
 }
 
@@ -580,7 +579,7 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
 
     tcursoron(self->fd_out, false);
     tbs(self->fd_out);
-    write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
+    fd_write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
     tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
     tcursoron(self->fd_out, true);
 
@@ -602,7 +601,7 @@ static void LineReader_Delete(LineReaderRef _Nonnull self)
     self->textLastCol--;
 
     tcursoron(self->fd_out, false);
-    write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
+    fd_write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
     tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
     tcursoron(self->fd_out, true);
 
@@ -624,7 +623,7 @@ static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
         }
         else {
             tcursoron(self->fd_out, false);
-            write(self->fd_out, &self->line[self->cursorX], __min(self->textLastCol + 2, self->lineLastCol + 1) - self->cursorX);
+            fd_write(self->fd_out, &self->line[self->cursorX], __min(self->textLastCol + 2, self->lineLastCol + 1) - self->cursorX);
             tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX + 1);
             tcursoron(self->fd_out, true);
         }
@@ -636,7 +635,7 @@ static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
     else {
         self->line[self->cursorX] = ch;
 
-        write(self->fd_out, &self->line[self->cursorX], 1);
+        fd_write(self->fd_out, &self->line[self->cursorX], 1);
 
         if (self->textLastCol < self->cursorX) {
             self->textLastCol = self->cursorX;

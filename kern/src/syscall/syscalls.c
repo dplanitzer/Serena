@@ -37,7 +37,6 @@ SYSCALL_REF(dir_open);
 SYSCALL_REF(fs_create_directory);
 SYSCALL_REF(fs_attr);
 SYSCALL_REF(fs_truncate);
-SYSCALL_REF(ftruncate);
 SYSCALL_REF(fs_access);
 SYSCALL_REF(fs_unlink);
 SYSCALL_REF(fs_rename);
@@ -45,12 +44,12 @@ SYSCALL_REF(fs_setowner);
 SYSCALL_REF(fs_setperms);
 SYSCALL_REF(fs_settimes);
 
+SYSCALL_REF(fd_close);
+SYSCALL_REF(fd_read);
+SYSCALL_REF(fd_write);
+SYSCALL_REF(fd_seek);
 SYSCALL_REF(fd_attr);
-
-SYSCALL_REF(close);
-SYSCALL_REF(read);
-SYSCALL_REF(write);
-SYSCALL_REF(seek);
+SYSCALL_REF(fd_truncate);
 SYSCALL_REF(fcntl);
 SYSCALL_REF(ioctl);
 
@@ -107,8 +106,8 @@ SYSCALL_REF(vcpu_info);
 #define SYSCALL_COUNT   76
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
-    SYSCALL_ENTRY(read, SC_ERRNO),
-    SYSCALL_ENTRY(write, SC_ERRNO),
+    SYSCALL_ENTRY(fd_read, SC_ERRNO),
+    SYSCALL_ENTRY(fd_write, SC_ERRNO),
     SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
@@ -117,9 +116,9 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
     SYSCALL_ENTRY(getpargs, SC_PTR),
     SYSCALL_ENTRY(open, SC_ERRNO),
-    SYSCALL_ENTRY(close, SC_ERRNO),
+    SYSCALL_ENTRY(fd_close, SC_ERRNO),
     SYSCALL_ENTRY(proc_timedjoin, SC_ERRNO),
-    SYSCALL_ENTRY(seek, SC_ERRNO),
+    SYSCALL_ENTRY(fd_seek, SC_ERRNO),
     SYSCALL_ENTRY(proc_cwd, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
     SYSCALL_ENTRY(host_procs, SC_ERRNO),
@@ -133,7 +132,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_rename, SC_ERRNO),
     SYSCALL_ENTRY(ioctl, SC_ERRNO),
     SYSCALL_ENTRY(fs_truncate, SC_ERRNO),
-    SYSCALL_ENTRY(ftruncate, SC_ERRNO),
+    SYSCALL_ENTRY(fd_truncate, SC_ERRNO),
     SYSCALL_ENTRY(mkfile, SC_ERRNO),
     SYSCALL_ENTRY(mkpipe, SC_ERRNO),
     SYSCALL_ENTRY(wq_dispose, SC_ERRNO),

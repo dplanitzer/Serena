@@ -173,7 +173,7 @@ static void draw(void)
     b = strcpy_x(b, "Press W, A, S, D to move the snake.\n");
     b = strcpy_x(b, "Press ESC to quit the game.");
 
-    (void)write(STDOUT_FILENO, buf, b - buf);
+    (void)fd_write(STDOUT_FILENO, buf, b - buf);
 
 
     // Draw the fruit
@@ -190,7 +190,7 @@ static void draw(void)
         *b++ = 'o';
     }
 
-    (void)write(STDOUT_FILENO, buf, b - buf);
+    (void)fd_write(STDOUT_FILENO, buf, b - buf);
 }
 
 static void logic(void)

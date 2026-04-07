@@ -1,5 +1,5 @@
 //
-//  close.c
+//  fd_close.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
@@ -9,7 +9,7 @@
 #include <kpi/syscall.h>
 #include <serena/fd.h>
 
-int close(int fd)
+int fd_close(int fd)
 {
-    return (int)_syscall(SC_close, fd);
+    return (int)_syscall(SC_fd_close, fd);
 }

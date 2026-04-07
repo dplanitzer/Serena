@@ -31,26 +31,26 @@ void pipe_test(int argc, char *argv[])
 
     const char* pBytesToWrite = "Hello World";
     size_t nBytesToWrite = strlen(pBytesToWrite) + 1;
-    ssize_t nBytesWritten = write(fds[SEO_PIPE_WRITE], pBytesToWrite, nBytesToWrite);
+    ssize_t nBytesWritten = fd_write(fds[SEO_PIPE_WRITE], pBytesToWrite, nBytesToWrite);
     assert_ssize_ge(0, nBytesWritten);
     printf("written: %s, nbytes: %zd\n", pBytesToWrite, nBytesWritten);
     assert_ssize_eq(nBytesToWrite, nBytesWritten);
 
-    assert_ok(close(fds[SEO_PIPE_WRITE]));
+    assert_ok(fd_close(fds[SEO_PIPE_WRITE]));
 
     char pBuffer[64];
-    ssize_t nBytesRead = read(fds[SEO_PIPE_READ], pBuffer, nBytesWritten);
+    ssize_t nBytesRead = fd_read(fds[SEO_PIPE_READ], pBuffer, nBytesWritten);
     assert_ssize_ge(0, nBytesRead);
     printf("read: %s, nbytes: %zd\n", pBuffer, nBytesRead);
     assert_ssize_eq(nBytesToWrite, nBytesWritten);
     assert_int_eq(0, strcmp(pBuffer, pBytesToWrite));
 
     // Should get EOF now since we already closed the write side
-    nBytesRead = read(fds[SEO_PIPE_READ], pBuffer, 1);
+    nBytesRead = fd_read(fds[SEO_PIPE_READ], pBuffer, 1);
     assert_ssize_eq(0, nBytesRead);
     printf("write side is closed, read: nbytes: %zd\n", nBytesRead);
 
-    assert_ok(close(fds[SEO_PIPE_READ]));
+    assert_ok(fd_close(fds[SEO_PIPE_READ]));
     printf("ok\n");
 }
 
@@ -67,7 +67,7 @@ static void OnReadFromPipe(int fd)
     while (true) {
         //clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, NULL);
         buf[0] = '\0';
-        const ssize_t nBytesRead = read(fd, buf, nBytesToRead);
+        const ssize_t nBytesRead = fd_read(fd, buf, nBytesToRead);
         assert_ssize_ge(0, nBytesRead);
         buf[nBytesRead] = '\0';
 
@@ -85,7 +85,7 @@ static void OnWriteToPipe(int fd)
     
     while (true) {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
-        const ssize_t nBytesWritten = write(fd, bytes, nBytesToWrite);
+        const ssize_t nBytesWritten = fd_write(fd, bytes, nBytesToWrite);
         assert_ssize_ge(0, nBytesWritten);
 
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);

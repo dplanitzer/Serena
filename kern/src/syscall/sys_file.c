@@ -40,22 +40,22 @@ SYSCALL_3(open, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
     return _kopen(vp->proc, pa->path, pa->oflags, pa->pOutIoc);
 }
 
-SYSCALL_1(close, int fd)
+SYSCALL_1(fd_close, int fd)
 {
     return _kclose(vp->proc, pa->fd);
 }
 
-SYSCALL_4(read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
+SYSCALL_4(fd_read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
     return _kread(vp->proc, pa->fd, pa->buffer, pa->nBytesToRead, pa->nBytesRead);
 }
 
-SYSCALL_4(write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
+SYSCALL_4(fd_write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
 {
     return _kwrite(vp->proc, pa->fd, pa->buffer, pa->nBytesToWrite, pa->nBytesWritten);
 }
 
-SYSCALL_4(seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+SYSCALL_4(fd_seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     return _kseek(vp->proc, pa->fd, pa->offset, pa->pOutNewPos, pa->whence);
 }
@@ -142,7 +142,7 @@ SYSCALL_3(fs_truncate, int wd, const char* _Nonnull path, off_t length)
     return err;
 }
 
-SYSCALL_2(ftruncate, int fd, off_t length)
+SYSCALL_2(fd_truncate, int fd, off_t length)
 {
     return _kftruncate(vp->proc, pa->fd, pa->length);
 }

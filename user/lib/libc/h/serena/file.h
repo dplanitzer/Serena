@@ -51,10 +51,6 @@ extern int fs_settimes(dir_t* _Nullable wd, const char* _Nonnull path, const str
 // @Concurrency: Safe
 extern int fs_truncate(dir_t* _Nullable wd, const char* _Nonnull path, off_t length);
 
-// Similar to fs_truncate() but operates on the open file identified by 'fd'.
-// @Concurrency: Safe
-extern int ftruncate(int fd, off_t length);
-
 
 // Removes the directory entry at 'path' from its containing directory. The
 // object referenced by this directory entry is only deleted from the filesystem

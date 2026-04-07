@@ -22,7 +22,7 @@ FILE * _Nullable tmpfile(void)
 
     FILE* fp = fdopen(fd, "wb+");
     if (fp == NULL) {
-        close(fd);
+        fd_close(fd);
         return NULL;
     }
 

@@ -32,7 +32,7 @@ dir_t* _Nullable dir_open(const char* _Nonnull path)
 int dir_close(dir_t* _Nullable dir)
 {
     if (dir) {
-        const errno_t err = (errno_t)_syscall(SC_close, dir->fd);
+        const errno_t err = (errno_t)_syscall(SC_fd_close, dir->fd);
 
         free(dir);
 
@@ -45,7 +45,7 @@ int dir_close(dir_t* _Nullable dir)
 
 void dir_rewind(dir_t* _Nonnull dir)
 {
-    (void)_syscall(SC_lseek, dir->fd, (off_t)0ll, NULL, SEEK_SET);
+    (void)_syscall(SC_fd_seek, dir->fd, (off_t)0ll, NULL, SEEK_SET);
     dir->nextEntryToRead = dir->entbuf;
     dir->endOfBuffer = dir->entbuf;
 }
@@ -54,7 +54,7 @@ const dir_entry_t* _Nullable dir_read(dir_t* _Nonnull dir)
 {
     if (dir->nextEntryToRead >= dir->endOfBuffer) {
         ssize_t nBytesRead;
-        const errno_t err = (errno_t)_syscall(SC_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * __DIRENT_COUNT, &nBytesRead);
+        const errno_t err = (errno_t)_syscall(SC_fd_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * __DIRENT_COUNT, &nBytesRead);
 
         if (err != EOK || nBytesRead == 0) {
             return NULL;

@@ -175,5 +175,5 @@ void hid_test(int argc, char *argv[])
 
     assert_int_ge(0, ioctl(fd, kHIDCommand_FlushEvents));
     assert_int_ge(0, ioctl(fd, kHIDCommand_ReleaseCursor));
-    close(fd);
+    fd_close(fd);
 }

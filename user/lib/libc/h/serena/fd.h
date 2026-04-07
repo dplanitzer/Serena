@@ -41,7 +41,7 @@ extern int open(const char* _Nonnull path, int oflags, ...);
 // closing the channel. The I/O channel is guaranteed to be closed once this
 // function returns. The error returned here is in this sense purely advisory.
 // @Concurrency: Safe
-extern int close(int fd);
+extern int fd_close(int fd);
 
 
 // Performs an operation on the given descriptor. The operation is performed on
@@ -51,14 +51,6 @@ extern int fcntl(int fd, int cmd, ...);
 
 // Returns 1 if the I/O channel is connected to a terminal and 0 otherwise.
 extern int isatty(int fd);
-
-
-// Sets the current file position. Note that the file position may be set to a
-// value past the current file size. Doing this implicitly expands the size of
-// the file to encompass the new file position. The byte range between the old
-// end of file and the new end of file is automatically filled with zero bytes.
-// @Concurrency: Safe
-extern off_t lseek(int fd, off_t offset, int whence);
 
 
 // Reads up to 'nbytes' bytes from the I/O channel 'fd' and writes them to the
@@ -71,7 +63,7 @@ extern off_t lseek(int fd, off_t offset, int whence);
 // byte could be successfully read before an error is encountered then all the
 // successfully read bytes are returned.
 // @Concurrency: Safe
-extern ssize_t read(int fd, void* _Nonnull buf, size_t nbytes);
+extern ssize_t fd_read(int fd, void* _Nonnull buf, size_t nbytes);
 
 // Writes up to 'nbytes' bytes to the I/O channel 'fd'. The bytes are taken from
 // the buffer 'buf' which must be big enough to hold 'nbytes' bytes. The number
@@ -80,7 +72,20 @@ extern ssize_t read(int fd, void* _Nonnull buf, size_t nbytes);
 // to the destination. The errno variable is set to a suitable error in this
 // case.
 // @Concurrency: Safe
-extern ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes);
+extern ssize_t fd_write(int fd, const void* _Nonnull buf, size_t nbytes);
+
+
+// Sets the current file position. Note that the file position may be set to a
+// value past the current file size. Doing this implicitly expands the size of
+// the file to encompass the new file position. The byte range between the old
+// end of file and the new end of file is automatically filled with zero bytes.
+// @Concurrency: Safe
+extern off_t fd_seek(int fd, off_t offset, int whence);
+
+
+// Similar to fs_truncate() but operates on the open file identified by 'fd'.
+// @Concurrency: Safe
+extern int fd_truncate(int fd, off_t length);
 
 __CPP_END
 

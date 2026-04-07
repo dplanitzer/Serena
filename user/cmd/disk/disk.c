@@ -85,7 +85,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
             errno = 0;
             
             // Try formatting individual tracks next
-            lseek(ioc, 0ll, SEEK_SET);
+            fd_seek(ioc, 0ll, SEEK_SET);
             while (t < trackCount) {
                 printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
                 fflush(stdout);
@@ -128,7 +128,7 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
             if (!bQuick) {
                 ok = wipe_disk(fd, &info);
                 if (ok) {
-                    lseek(fd, 0ll, SEEK_SET);
+                    fd_seek(fd, 0ll, SEEK_SET);
                 }
             }
             if (ok) {
@@ -261,7 +261,7 @@ static void cmd_geometry(const char* _Nonnull path)
             return;
         }
         ioctl(fd, kDiskCommand_GetDiskInfo, &di);
-        close(fd);
+        fd_close(fd);
     }
     else {
         // filesystem
@@ -303,7 +303,7 @@ static void sense_disk(const char* _Nonnull diskPath)
 
     if (fd >= 0) {
         ioctl(fd, kDiskCommand_SenseDisk);
-        close(fd);
+        fd_close(fd);
     }
 }
 

@@ -1,5 +1,5 @@
 //
-//  write.c
+//  fd_read.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
@@ -9,12 +9,13 @@
 #include <kpi/syscall.h>
 #include <serena/fd.h>
 
-ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes)
-{
-    ssize_t nBytesWritten;
 
-    if (_syscall(SC_write, fd, buf, nbytes, &nBytesWritten) == 0) {
-        return nBytesWritten;
+ssize_t fd_read(int fd, void* _Nonnull buf, size_t nbytes)
+{
+    ssize_t nBytesRead;
+
+    if (_syscall(SC_fd_read, fd, buf, nbytes, &nBytesRead) == 0) {
+        return nBytesRead;
     }
     else {
         return -1;

@@ -11,17 +11,17 @@
 
 ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
 {
-    return read(self->fd, buf, nbytes);
+    return fd_read(self->fd, buf, nbytes);
 }
 
 static ssize_t __fd_write(__IOChannel_FILE_Vars* _Nonnull self, const void* buf, ssize_t nbytes)
 {
-    return write(self->fd, buf, nbytes);
+    return fd_write(self->fd, buf, nbytes);
 }
 
 static long long __fd_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, int whence)
 {
-    const off_t r = lseek(self->fd, offset, whence);
+    const off_t r = fd_seek(self->fd, offset, whence);
 
     if (r >= 0ll) {
         return r;
@@ -32,7 +32,7 @@ static long long __fd_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offse
 
 static int __fd_close(__IOChannel_FILE_Vars* _Nonnull self)
 {
-    return (close(self->fd) == 0) ? 0 : EOF;
+    return (fd_close(self->fd) == 0) ? 0 : EOF;
 }
 
 const FILE_Callbacks __FILE_fd_callbacks = {
