@@ -83,14 +83,14 @@ static void show_proc(pid_t pid)
 {
     proc_basic_info_t basic;
     proc_ids_info_t ids;
-    proc_creds_info_t creds;
+    proc_user_info_t creds;
 
     errno = 0;
 
     proc_info(pid, PROC_INFO_BASIC, &basic);
     proc_info(pid, PROC_INFO_IDS, &ids);
-    proc_info(pid, PROC_INFO_CREDS, &creds);
-    proc_name(pid, path_buf, sizeof(path_buf));
+    proc_info(pid, PROC_INFO_USER, &creds);
+    proc_path(pid, path_buf, sizeof(path_buf));
 
     if (errno != 0) {
         return;

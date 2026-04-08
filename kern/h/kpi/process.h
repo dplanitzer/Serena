@@ -56,10 +56,6 @@ struct proc_status {
 };
 
 
-// Tell umask() to just return the current umask without changing it
-#define SEO_UMASK_NO_CHANGE -1
-
-
 // Scheduling parameters that apply to a process as a whole
 #define PROC_SCHED_QUANTUM_BOOST    1       /* param range: 0..15 */
 #define PROC_SCHED_NICE             2       /* param range: 0..63 */
@@ -70,7 +66,7 @@ typedef void* proc_info_ref;
 
 #define PROC_INFO_BASIC 1
 #define PROC_INFO_IDS   2
-#define PROC_INFO_CREDS 3
+#define PROC_INFO_USER  3
 #define PROC_INFO_TIMES 4
 
 
@@ -98,10 +94,11 @@ typedef struct proc_ids_info {
 } proc_ids_info_t;
 
 
-typedef struct proc_creds_info {
+typedef struct proc_user_info {
     uid_t   uid;
     gid_t   gid;
-} proc_creds_info_t;
+    mode_t  umask;
+} proc_user_info_t;
 
 
 typedef struct proc_times_info {

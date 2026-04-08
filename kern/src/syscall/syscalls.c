@@ -65,9 +65,9 @@ SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
 SYSCALL_REF(proc_setschedparam);
 SYSCALL_REF(proc_info);
-SYSCALL_REF(proc_name);
+SYSCALL_REF(proc_path);
 SYSCALL_REF(proc_vcpus);
-SYSCALL_REF(proc_umask);
+SYSCALL_REF(proc_setumask);
 
 
 SYSCALL_REF(vm_allocate);
@@ -112,7 +112,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(spawn_process, SC_ERRNO),
-    SYSCALL_ENTRY(proc_name, SC_ERRNO),
+    SYSCALL_ENTRY(proc_path, SC_ERRNO),
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
     SYSCALL_ENTRY(getpargs, SC_PTR),
     SYSCALL_ENTRY(open, SC_ERRNO),
@@ -122,7 +122,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_cwd, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
     SYSCALL_ENTRY(host_procs, SC_ERRNO),
-    SYSCALL_ENTRY(proc_umask, SC_INT),
+    SYSCALL_ENTRY(proc_setumask, SC_VOID),
     SYSCALL_ENTRY(fs_create_directory, SC_ERRNO),
     SYSCALL_ENTRY(fs_attr, SC_ERRNO),
     SYSCALL_ENTRY(dir_open, SC_ERRNO),

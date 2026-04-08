@@ -1,5 +1,5 @@
 //
-//  proc_umask.c
+//  proc_setumask.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,7 +9,7 @@
 #include <serena/process.h>
 #include <kpi/syscall.h>
 
-mode_t proc_umask(mode_t mask)
+void proc_setumask(mode_t mask)
 {
-    return _syscall(SC_proc_umask, mask);
+    (void)_syscall(SC_proc_setumask, mask);
 }

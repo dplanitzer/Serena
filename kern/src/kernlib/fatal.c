@@ -97,12 +97,12 @@ _Noreturn void _fatalException(void* _Nonnull ksp)
     kdispatch_t dq = kdispatch_current_queue();
 
     static char dq_nam[KDISPATCH_MAX_NAME_LENGTH + 1];
-    static char proc_name[16 + 1];
+    static char proc_name[32 + 1];
 
     if (dq) {
         kdispatch_name(dq, dq_nam, KDISPATCH_MAX_NAME_LENGTH + 1);
     }
-    Process_GetName(vp->proc, proc_name, sizeof(proc_name));
+    Process_GetPath(vp->proc, proc_name, sizeof(proc_name));
 
 
     fatal(

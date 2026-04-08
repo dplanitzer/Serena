@@ -55,12 +55,10 @@ extern int proc_setcwd(const char* _Nonnull path);
 extern pargs_t* _Nonnull getpargs(void);
 
 
-// Sets the process' umask. Bits set in this mask are cleared in the permissions
-// that are used to create a file. Returns the old umask. Note that calling this
-// function with SEO_UMASK_NO_CHANGE as the argument causes proc_umask() to
-// simply return the current umask without chaning it as a side-effect.
+// Sets the process' umask. Get the current umask value by calling proc_info()
+// with the PROC_INFO_USER selector.
 // @Concurrency: Safe
-extern mode_t proc_umask(mode_t mask);
+extern void proc_setumask(mode_t mask);
 
 
 extern int proc_schedparam(pid_t pid, int type, int* _Nonnull param);
@@ -68,7 +66,7 @@ extern int proc_setschedparam(pid_t pid, int type, const int* _Nonnull param);
 
 
 extern int proc_info(pid_t pid, int flavor, proc_info_ref _Nonnull info);
-extern int proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize);
+extern int proc_path(pid_t pid, char* _Nonnull buf, size_t bufSize);
 
 // Fills the buffer with an array of vcpuid_t's of all currently acquired vcpus
 // in the calling process. 'bufSize' is the size of the buffer in terms of the

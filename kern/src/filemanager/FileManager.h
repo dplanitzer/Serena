@@ -66,7 +66,7 @@ extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const cha
 
 // Sets the umask. Bits set in 'mask' are cleared in the mode used to create a
 // file. Returns the old umask.
-extern mode_t FileManager_UMask(FileManagerRef _Nonnull self, mode_t mask);
+extern void FileManager_SetUMask(FileManagerRef _Nonnull self, mode_t mask);
 
 // Returns the current umask.
 #define FileManager_GetUMask(__self) \

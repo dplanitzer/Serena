@@ -334,11 +334,12 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             break;
         }
 
-        case PROC_INFO_CREDS: {
-            proc_creds_info_t* ip = info;
+        case PROC_INFO_USER: {
+            proc_user_info_t* ip = info;
 
             ip->uid = FileManager_GetRealUserId(&self->fm);
             ip->gid = FileManager_GetRealGroupId(&self->fm);
+            ip->umask = FileManager_GetUMask(&self->fm);
             break;
         }
 
@@ -370,7 +371,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
     return err;
 }
 
-errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+errno_t Process_GetPath(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
     if (bufSize < 1) {
         return ERANGE;

@@ -65,21 +65,15 @@ SYSCALL_1(proc_setcwd, const char* _Nonnull path)
     return err;
 }
 
-SYSCALL_1(proc_umask, mode_t mask)
+SYSCALL_1(proc_setumask, mode_t mask)
 {
     ProcessRef pp = vp->proc;
-    mode_t omask;
 
     mtx_lock(&pp->mtx);
-    if (pa->mask != SEO_UMASK_NO_CHANGE) {
-        omask = FileManager_UMask(&pp->fm, pa->mask);
-    }
-    else {
-        omask = FileManager_GetUMask(&pp->fm);
-    }
+    FileManager_SetUMask(&pp->fm, pa->mask);
     mtx_unlock(&pp->mtx);
     
-    return (intptr_t)omask;
+    return EOK;
 }
 
 SYSCALL_3(proc_schedparam, pid_t pid, int type, int* _Nonnull param)
@@ -152,19 +146,19 @@ SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
     return err;
 }
 
-SYSCALL_3(proc_name, pid_t pid, char* _Nonnull buf, size_t bufSize)
+SYSCALL_3(proc_path, pid_t pid, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
-        err = Process_GetName(pp, pa->buf, pa->bufSize);
+        err = Process_GetPath(pp, pa->buf, pa->bufSize);
     }
     else {
         ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
         if (the_pp) {
-            Process_GetName(the_pp, pa->buf, pa->bufSize);
+            Process_GetPath(the_pp, pa->buf, pa->bufSize);
             Process_Release(the_pp);
         }
         else {

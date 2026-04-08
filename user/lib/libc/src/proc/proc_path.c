@@ -1,5 +1,5 @@
 //
-//  proc_name.c
+//  proc_path.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/28/26.
@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int proc_name(pid_t pid, char* _Nonnull buf, size_t bufSize)
+int proc_path(pid_t pid, char* _Nonnull buf, size_t bufSize)
 {
-    return (int)_syscall(SC_proc_name, pid, buf, bufSize);
+    return (int)_syscall(SC_proc_path, pid, buf, bufSize);
 }
