@@ -11,48 +11,48 @@
 #include <serena/signal.h>
 
 
-int sigemptyset(sigset_t* _Nonnull set)
+int sigset_empty(sigset_t* _Nonnull set)
 {
     *set = 0;
     return 0;
 }
 
-int sigfillset(sigset_t* _Nonnull set)
+int sigset_all(sigset_t* _Nonnull set)
 {
     *set = UINT_MAX;
     return 0;
 }
 
-int sigaddset(sigset_t* _Nonnull set, int signo)
+int sigset_add(sigset_t* _Nonnull set, int signo)
 {
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         errno = EINVAL;
         return -1;
     }
 
-    *set |= _SIGBIT(signo);
+    *set |= sig_bit(signo);
     return 0;
 }
 
-int sigdelset(sigset_t* _Nonnull set, int signo)
+int sigset_remove(sigset_t* _Nonnull set, int signo)
 {
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         errno = EINVAL;
         return -1;
     }
 
-    *set &= ~_SIGBIT(signo);
+    *set &= ~sig_bit(signo);
     return 0;
 }
 
-int sigismember(const sigset_t* _Nonnull set, int signo)
+int sigset_contains(const sigset_t* _Nonnull set, int signo)
 {
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         errno = EINVAL;
         return -1;
     }
 
-    if (*set & _SIGBIT(signo)) {
+    if (*set & sig_bit(signo)) {
         return 1;
     }
     else {

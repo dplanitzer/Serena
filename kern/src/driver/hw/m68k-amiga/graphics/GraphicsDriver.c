@@ -41,7 +41,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
     // Allocate the Copper management VCPU
     wq_init(&self->copvpWaitQueue);
-    self->copvpSigs = _SIGBIT(SIGCOPRUN);
+    self->copvpSigs = sig_bit(SIGCOPRUN);
 
     _vcpu_acquire_attr_t attr;
     attr.func = (vcpu_func_t)GraphicsDriver_CopperManager;

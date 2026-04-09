@@ -415,10 +415,10 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sigcred
 {
     decl_try_err();
 
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         return EINVAL;
     }
-    if (signo == SIGVPRQ || signo == SIGVPDS) {
+    if (signo == SIG_VCPU_RELINQUISH || signo == SIG_VCPU_SUSPEND) {
         return EPERM;
     }
 

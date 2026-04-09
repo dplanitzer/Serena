@@ -62,7 +62,7 @@ static void fmt_mem_size(size_t msize, char* _Nonnull buf)
 static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
 {
     switch (ip->run_state) {
-        case PROC_STATE_ALIVE:
+        case PROC_STATE_RESUMED:
             return (ip->vcpu_waiting_count == ip->vcpu_count) ? kState_Sleeping : kState_Running;
 
         case PROC_STATE_SUSPENDED:

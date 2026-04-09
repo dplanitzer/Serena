@@ -21,8 +21,8 @@
 #include <sched/vcpu.h>
 
 
-#define SIGVBL  SIGUSR1
-#define SIGSCR  SIGUSR2
+#define SIGVBL  SIG_USER_1
+#define SIGSCR  SIG_USER_2
 
 
 // Should be somewhere between 16 and 20.

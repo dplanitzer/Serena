@@ -181,8 +181,8 @@ int main(int argc, char *argv[])
     fdreopen(STDERR_FILENO, "w", stderr);
 
 
-    // Enable SIGCHLD reception
-    sigroute(SIG_ROUTE_ADD, SIGCHLD, SIG_SCOPE_VCPU, VCPUID_MAIN);
+    // Enable SIG_CHILD reception
+    sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_SCOPE_VCPU, VCPUID_MAIN);
     
 
     printf("\033[36mSerena OS v0.8.0-alpha\033[0m\nCopyright 2023 - 2026, Dietmar Planitzer.\n\n");

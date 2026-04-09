@@ -280,7 +280,7 @@ extern errno_t kdispatch_item_on_signal(kdispatch_t _Nonnull self, int signo, kd
 // Allocates a signal. If 'signo' is <= 0 then the first available USR signal
 // with lowest priority is allocated. The signal is allocated in the context of
 // the dispatcher 'self'. If 'signo' is a valid signal number in the range of
-// SIGUSRMIN to SIGUSRMAX and that signal isn't already allocated in the context
+// SIG_USER_MIN to SIG_USER_MAX and that signal isn't already allocated in the context
 // of the dispatcher, then this signal is marked as allocated. The number of the
 // allocated signal is returned on success and -1 otherwise.
 // Signals are allocated on a per dispatcher basis since the semantic meaning of
@@ -294,17 +294,17 @@ extern int kdispatch_alloc_signal(kdispatch_t _Nonnull self, int signo);
 // allocated in the first place.
 extern void kdispatch_free_signal(kdispatch_t _Nonnull self, int signo);
 
-// Returns the vcpu group id that should be used in a sigsend() call to send a
+// Returns the vcpu group id that should be used in a sig_send() call to send a
 // signal to the dispatcher. The signal should be sent with scope
 // SIG_SCOPE_VCPU_GROUP.
 extern vcpuid_t kdispatch_signal_target(kdispatch_t _Nonnull self);
 
 // Sends the signal 'signo' to the dispatcher. 'signo' should have been allocated
 // with the kdispatch_alloc_signal() function. Calling this function is slightly
-// preferred over the alternative of calling sigsend() and passing the vcpu
+// preferred over the alternative of calling sig_send() and passing the vcpu
 // group id of the dispatcher retrieved by calling kdispatch_signal_target(). The
 // reason is that this function is able to apply some optimizations to the signal
-// sending process that sigsend() can not.
+// sending process that sig_send() can not.
 extern errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo);
 
 

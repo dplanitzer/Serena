@@ -11,47 +11,47 @@
 
 
 const sigset_t SIGSET_IGNORE_ALL = 0;
-const sigset_t SIGSET_NON_ROUTABLE = _SIGBIT(SIGKILL) | _SIGBIT(SIGSTOP) | _SIGBIT(SIGCONT) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGDISP);
-const sigset_t SIGSET_PRIV_SYS = _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS);
+const sigset_t SIGSET_NON_ROUTABLE = sig_bit(SIG_TERMINATE) | sig_bit(SIG_FORCE_SUSPEND) | sig_bit(SIG_RESUME) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND) | sig_bit(SIG_DISPATCH);
+const sigset_t SIGSET_PRIV_SYS = sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND);
 
 
-void sigemptyset(sigset_t* _Nonnull set)
+void sigset_empty(sigset_t* _Nonnull set)
 {
     *set = 0;
 }
 
-void sigfillset(sigset_t* _Nonnull set)
+void sigset_all(sigset_t* _Nonnull set)
 {
     *set = UINT_MAX;
 }
 
-errno_t sigaddset(sigset_t* _Nonnull set, int signo)
+errno_t sigset_add(sigset_t* _Nonnull set, int signo)
 {
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         return EINVAL;
     }
 
-    *set |= _SIGBIT(signo);
+    *set |= sig_bit(signo);
     return EOK;
 }
 
-errno_t sigdelset(sigset_t* _Nonnull set, int signo)
+errno_t sigset_remove(sigset_t* _Nonnull set, int signo)
 {
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         return EINVAL;
     }
 
-    *set &= ~_SIGBIT(signo);
+    *set &= ~sig_bit(signo);
     return EOK;
 }
 
-bool sigismember(const sigset_t* _Nonnull set, int signo)
+bool sigset_contains(const sigset_t* _Nonnull set, int signo)
 {
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         return false;
     }
 
-    if (*set & _SIGBIT(signo)) {
+    if (*set & sig_bit(signo)) {
         return true;
     }
     else {

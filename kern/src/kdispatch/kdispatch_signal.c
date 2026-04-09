@@ -13,10 +13,10 @@ static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int sign
 {
     deque_for_each(&self->workers, struct kdispatch_worker, it,
         if (enable) {
-            it->hotsigs |= _SIGBIT(signo);
+            it->hotsigs |= sig_bit(signo);
         }
         else {
-            it->hotsigs &= ~_SIGBIT(signo);
+            it->hotsigs &= ~sig_bit(signo);
         }
     )
 
@@ -106,7 +106,7 @@ static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int 
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
         //XXX what's the highest quarter we need and only allocate up to this
         //XXX quarter.
-        if ((err = kalloc_cleared(SIGMAX * sizeof(struct kdispatch_sigtrap), (void**)&self->sigtraps)) != EOK) {
+        if ((err = kalloc_cleared(SIG_MAX * sizeof(struct kdispatch_sigtrap), (void**)&self->sigtraps)) != EOK) {
             return err;
         }
     }
@@ -151,13 +151,13 @@ void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int s
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-static sigset_t _SIGSET_NOSENDMON = _SIGBIT(SIGDISP) | _SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGSTOP);
+static sigset_t _SIGSET_NOSENDMON = sig_bit(SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND) | sig_bit(SIG_FORCE_SUSPEND);
 
 errno_t kdispatch_item_on_signal(kdispatch_t _Nonnull self, int signo, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
-    if (signo < SIGMIN || signo > SIGMAX || (_SIGSET_NOSENDMON & _SIGBIT(signo)) != 0) {
+    if (signo < SIG_MIN || signo > SIG_MAX || (_SIGSET_NOSENDMON & sig_bit(signo)) != 0) {
         return EINVAL;
     }
 
@@ -179,8 +179,8 @@ int kdispatch_alloc_signal(kdispatch_t _Nonnull self, int signo)
     mtx_lock(&self->mutex);
     if (signo <= 0) {
         // Allocate the first lowest priority USR signal available
-        for (int i = SIGUSRMAX; i >= SIGUSRMIN; i--) {
-            sigset_t sigbit = _SIGBIT(i);
+        for (int i = SIG_USER_MAX; i >= SIG_USER_MIN; i--) {
+            sigset_t sigbit = sig_bit(i);
 
             if ((self->alloced_sigs & sigbit) == 0) {
                 self->alloced_sigs |= sigbit;
@@ -189,9 +189,9 @@ int kdispatch_alloc_signal(kdispatch_t _Nonnull self, int signo)
             }
         }
     }
-    else if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
+    else if (signo >= SIG_USER_MIN && signo <= SIG_USER_MAX) {
         // Allocate the specific USR signal 'signo'
-        const sigset_t sigbit = _SIGBIT(signo);
+        const sigset_t sigbit = sig_bit(signo);
 
         if ((self->alloced_sigs & sigbit) == 0) {
             self->alloced_sigs |= sigbit;
@@ -206,8 +206,8 @@ int kdispatch_alloc_signal(kdispatch_t _Nonnull self, int signo)
 void kdispatch_free_signal(kdispatch_t _Nonnull self, int signo)
 {
     mtx_lock(&self->mutex);
-    if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
-        self->alloced_sigs &= ~_SIGBIT(signo);
+    if (signo >= SIG_USER_MIN && signo <= SIG_USER_MAX) {
+        self->alloced_sigs &= ~sig_bit(signo);
     }
     mtx_unlock(&self->mutex);
 }
@@ -227,7 +227,7 @@ errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
     vcpuid_t id;
     int scope;
 
-    if (signo < SIGMIN || signo > SIGMAX || (_SIGSET_NOSENDMON & _SIGBIT(signo)) != 0) {
+    if (signo < SIG_MIN || signo > SIG_MAX || (_SIGSET_NOSENDMON & sig_bit(signo)) != 0) {
         return EINVAL;
     }
 

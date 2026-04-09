@@ -29,60 +29,60 @@ typedef volatile int sig_atomic_t;
 // the signal list below.
 //
 // Vcpu groups defer the default behavior for signals to the vcpu scope. The
-// only signal for which vcpus define a default behavior is SIGKILL: it causes
+// only signal for which vcpus define a default behavior is SIG_TERMINATE: it causes
 // the vcpu to relinquish itself involuntary. All other signals are freely
 // available on the vcpu level. This means that if a vcpu A sends a signal to
 // vcpu B (in the same process), or you register a vcpu and signal with a kernel
 // API then this signal will be sent directly to the vcpu using the vcpu scope
 // and thus no default behavior will be applied to the signal.
 
-#define SIGMIN  1
-#define SIGMAX  32
+#define SIG_MIN  1
+#define SIG_MAX  32
 
 // Ordered from highest to lowest priority
-#define SIGKILL     1   // Forced process termination, non-routable
-#define SIGVPRQ     2   // Privileged signal
-#define SIGVPDS     3   // Privileged signal
-#define SIGSTOP     4   // Forced process suspend, non-routable
-#define SIGTSTP     5   // TTY, stop/suspend process, default: stop/suspend process
-#define SIGCONT     6   // TTY, default: continue/resume process, non-routable
-#define SIGXCPU     7   // kernel, process exceeded CPU time limit, default: terminate
-#define SIGHUP      8   // XXX logind, user logged out, default: terminate
-#define SIGQUIT     9  // TTY, process quit, default: terminate
-#define SIGINT      10  // TTY, process interrupt, default: ignore
-#define SIGALRM     11  // XXX clock_alarm(), default: ignore
-#define SIGCHLD     12    // kernel, child process terminated, default: ignore
-#define SIGWINCH    13  // TTY, console window size changed, default: ignore
-#define SIGTTIN     14  // TTY, background process attempt to read from terminal input, default: stop/suspend process
-#define SIGTTOUT    15  // TTY, background process attempt to write to terminal output, default: stop/suspend process
-#define SIGUSR1     16  // User defined signals, default: ignore
-#define SIGUSR2     17
-#define SIGUSR3     18
-#define SIGUSR4     19
-#define SIGUSR5     20
-#define SIGUSR6     21
-#define SIGUSR7     22
-#define SIGUSR8     23
-#define SIGUSR9     24
-#define SIGUSR10    25
-#define SIGUSR11    26
-#define SIGUSR12    27
-#define SIGUSR13    28
-#define SIGUSR14    29
-#define SIGUSR15    30
-#define SIGUSR16    31
-#define SIGDISP     32  // libdispatch, default: ignore
+#define SIG_TERMINATE       1   // Forced process termination, non-routable
+#define SIG_VCPU_RELINQUISH 2   // Privileged signal
+#define SIG_VCPU_SUSPEND    3   // Privileged signal
+#define SIG_FORCE_SUSPEND   4   // Forced process suspend, non-routable
+#define SIG_SUSPEND         5   // TTY, stop/suspend process, default: stop/suspend process
+#define SIG_RESUME          6   // TTY, default: continue/resume process, non-routable
+#define SIG_CPU_LIMIT       7   // kernel, process exceeded CPU time limit, default: terminate
+#define SIG_LOGOUT          8   // XXX logind, user logged out, default: terminate
+#define SIG_QUIT            9   // TTY, process quit, default: terminate
+#define SIG_INTERRUPT       10  // TTY, process interrupt, default: ignore
+#define SIG_TIMEOUT         11  // XXX clock_alarm(), default: ignore
+#define SIG_CHILD           12  // kernel, child process changed state, default: ignore
+#define SIG_WIN_CHANGE      13  // TTY, console window size changed, default: ignore
+#define SIG_BKG_READ        14  // TTY, background process attempt to read from terminal input, default: stop/suspend process
+#define SIG_BKG_WRITE       15  // TTY, background process attempt to write to terminal output, default: stop/suspend process
+#define SIG_USER_1          16  // User defined signals, default: ignore
+#define SIG_USER_2          17
+#define SIG_USER_3          18
+#define SIG_USER_4          19
+#define SIG_USER_5          20
+#define SIG_USER_6          21
+#define SIG_USER_7          22
+#define SIG_USER_8          23
+#define SIG_USER_9          24
+#define SIG_USER_10         25
+#define SIG_USER_11         26
+#define SIG_USER_12         27
+#define SIG_USER_13         28
+#define SIG_USER_14         29
+#define SIG_USER_15         30
+#define SIG_USER_16         31
+#define SIG_DISPATCH        32  // libdispatch, default: ignore
 
-#define SIGUSR      SIGUSR1
+#define SIG_USER      SIG_USER_1
 
-#define SIGUSRMIN   SIGUSR1
-#define SIGUSRMAX   SIGUSR16
+#define SIG_USER_MIN   SIG_USER_1
+#define SIG_USER_MAX   SIG_USER_16
 
 
-#define _SIGBIT(__signo) (1 << ((__signo) - 1))
+#define sig_bit(__signo) (1 << ((__signo) - 1))
 
-#define SIGSET_NONMASKABLES (_SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ))
-#define SIGSET_URGENTS      (_SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS))
+#define SIGSET_NONMASKABLES (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH))
+#define SIGSET_URGENTS      (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND))
 
 
 #define SIG_SCOPE_VCPU          0   /* vcpu inside this process */

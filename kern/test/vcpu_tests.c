@@ -130,13 +130,13 @@ static void test_sigkill_terminator(void)
     clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
     puts("- terminating A -");
     
-    assert_ok(sigsend(SIG_SCOPE_VCPU, vcpu_id(test_sigkill_vcpu_a), SIGKILL));
+    assert_ok(sig_send(SIG_SCOPE_VCPU, vcpu_id(test_sigkill_vcpu_a), SIG_TERMINATE));
     puts("done");
 }
 
 // Two VPs:
 // a) runs continuously and prints some text
-// b) sends SIGKILL to (a)
+// b) sends SIG_TERMINATE to (a)
 // -> forces (a) to relinquish
 void vcpu_sigkill_test(int argc, char *argv[])
 {

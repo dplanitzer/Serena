@@ -192,17 +192,17 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
 {
     const sigset_t sigs = vp->pending_sigs;
 
-    if ((sigs & _SIGBIT(SIGKILL)) != 0) {
-        Process_Exit(vp->proc, JREASON_SIGNAL, SIGKILL);
+    if ((sigs & sig_bit(SIG_TERMINATE)) != 0) {
+        Process_Exit(vp->proc, JREASON_SIGNAL, SIG_TERMINATE);
         /* NOT REACHED */
     }
 
-    if ((sigs & _SIGBIT(SIGVPRQ)) != 0) {
+    if ((sigs & sig_bit(SIG_VCPU_RELINQUISH)) != 0) {
         Process_RelinquishVirtualProcessor(vp->proc, vp);
         /* NOT REACHED */
     }
 
-    if ((sigs & _SIGBIT(SIGVPDS)) != 0) {
+    if ((sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0) {
         vcpu_do_pending_deferred_suspend(vp);
     }
 }

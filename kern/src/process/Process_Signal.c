@@ -41,14 +41,14 @@ static void sigroute_destroy(sigroute_t _Nullable self)
 
 void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self)
 {
-    for (size_t i = 0; i < SIGMAX; i++) {
+    for (size_t i = 0; i < SIG_MAX; i++) {
         self->sig_route[i] = QUEUE_INIT;
     }
 }
 
 void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
 {
-    for (size_t i = 0; i < SIGMAX; i++) {
+    for (size_t i = 0; i < SIG_MAX; i++) {
         while (!queue_empty(&self->sig_route[i])) {
             sigroute_t rp = (sigroute_t)queue_remove_first(&self->sig_route[i]);
             sigroute_destroy(rp);
@@ -113,10 +113,10 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
 {
     decl_try_err();
 
-    if (signo < SIGMIN || signo > SIGMAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
+    if (signo < SIG_MIN || signo > SIG_MAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
         return EINVAL;
     }
-    if ((SIGSET_NON_ROUTABLE & _SIGBIT(signo)) != 0) {
+    if ((SIGSET_NON_ROUTABLE & sig_bit(signo)) != 0) {
         return EPERM;
     }
     if (self == gKernelProcess) {
@@ -174,8 +174,8 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
     }
 
     if (target_vp) {
-        // This sigsend() will auto-force-resume the receiving vcpu if we're
-        // sending SIGKILL
+        // This sig_send() will auto-force-resume the receiving vcpu if we're
+        // sending SIG_TERMINATE
         vcpu_send_signal(target_vp, signo);
         return EOK;
     }
@@ -192,8 +192,8 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
         vcpu_t cvp = vcpu_from_owner_qe(it);
 
         if (cvp->group_id == id) {
-            // This sigsend() will auto-force-resume the receiving vcpu if we're
-            // sending SIGKILL
+            // This sig_send() will auto-force-resume the receiving vcpu if we're
+            // sending SIG_TERMINATE
             vcpu_send_signal(cvp, signo);
             hasMatch = true;
         }
@@ -205,15 +205,15 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
 static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t id, int signo)
 {
     switch (signo) {
-        case SIGKILL:
+        case SIG_TERMINATE:
             _proc_terminate(self, signo);
             break;
 
-        case SIGSTOP:
+        case SIG_FORCE_SUSPEND:
             _proc_suspend(self);
             break;
 
-        case SIGCONT:
+        case SIG_RESUME:
             _proc_resume(self);
             break;
 
@@ -236,15 +236,15 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
             }
             else {
                 switch (signo) {
-                    case SIGXCPU:
-                    case SIGHUP:
-                    case SIGQUIT:
+                    case SIG_CPU_LIMIT:
+                    case SIG_LOGOUT:
+                    case SIG_QUIT:
                         _proc_terminate(self, signo);
                         break;
 
-                    case SIGTTIN:
-                    case SIGTTOUT:
-                    case SIGTSTP:
+                    case SIG_BKG_READ:
+                    case SIG_BKG_WRITE:
+                    case SIG_SUSPEND:
                         _proc_suspend(self);
                         break;
 
@@ -263,10 +263,10 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
 {
     decl_try_err();
 
-    if (signo < SIGMIN || signo > SIGMAX) {
+    if (signo < SIG_MIN || signo > SIG_MAX) {
         return EINVAL;
     }
-    if ((SIGSET_PRIV_SYS & _SIGBIT(signo)) != 0) {
+    if ((SIGSET_PRIV_SYS & sig_bit(signo)) != 0) {
         return EPERM;
     }
 
@@ -295,8 +295,8 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
                 break;
         }
     }
-    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIGCHLD && self->exit_coordinator) {
-        // Auto-route SIGCHLD to the exit coordinator because we're in EXIT state
+    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIG_CHILD && self->exit_coordinator) {
+        // Auto-route SIG_CHILD to the exit coordinator because we're in EXIT state
         vcpu_send_signal(self->exit_coordinator, signo);
     }
     mtx_unlock(&self->mtx);

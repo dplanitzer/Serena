@@ -30,7 +30,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     AddressSpace_Init(&self->addr_space);
 
     self->retainCount = RC_INIT;
-    self->run_state = PROC_STATE_ALIVE;
+    self->run_state = PROC_STATE_RESUMED;
     self->pid = 0;
     self->ppid = ppid;
     self->pgrp = pgrp;
@@ -476,13 +476,13 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
 void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
 {
     _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
-    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
+    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
 }
 
 void Process_Terminate(ProcessRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    _proc_terminate(self, SIGKILL);
+    _proc_terminate(self, SIG_TERMINATE);
     mtx_unlock(&self->mtx);
 }
 
@@ -490,7 +490,7 @@ void Process_Terminate(ProcessRef _Nonnull self)
 // Otherwise does nothing. Nesting is not supported.
 void _proc_suspend(ProcessRef _Nonnull _Locked self)
 {
-    if (self->run_state == PROC_STATE_ALIVE) {
+    if (self->run_state == PROC_STATE_RESUMED) {
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
             vcpu_t cvp = vcpu_from_owner_qe(it);
 
@@ -517,7 +517,7 @@ void _proc_resume(ProcessRef _Nonnull _Locked self)
 
             vcpu_resume(cvp, false);
         )
-        self->run_state = PROC_STATE_ALIVE;
+        self->run_state = PROC_STATE_RESUMED;
     }
 }
 

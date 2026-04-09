@@ -51,6 +51,9 @@ SYNCH_OBJS_DIR := $(LIBC_OBJS_DIR)/synch
 SERENA_SOURCES_DIR := $(LIBC_SOURCES_DIR)/serena
 SERENA_OBJS_DIR := $(LIBC_OBJS_DIR)/serena
 
+SIGNAL_SOURCES_DIR := $(LIBC_SOURCES_DIR)/signal
+SIGNAL_OBJS_DIR := $(LIBC_OBJS_DIR)/signal
+
 TIME_SOURCES_DIR := $(LIBC_SOURCES_DIR)/time
 TIME_OBJS_DIR := $(LIBC_OBJS_DIR)/time
 
@@ -93,6 +96,7 @@ $(LIBSC_OBJS_DIR):
 -include $(STRING_SOURCES_DIR)/package.mk
 -include $(SYNCH_SOURCES_DIR)/package.mk
 -include $(SERENA_SOURCES_DIR)/package.mk
+-include $(SIGNAL_SOURCES_DIR)/package.mk
 -include $(TIME_SOURCES_DIR)/package.mk
 -include $(VCPU_SOURCES_DIR)/package.mk
 
@@ -101,7 +105,8 @@ $(LIBSC_OBJS_DIR):
 $(LIBC_FILE): $(ARCH_M68K_OBJS) $(ARCH_M68K_VBCC_OBJS) $(EXT_OBJS) \
 			  $(IEEEFP_OBJS) $(LOCALE_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) \
 			  $(STDLIB_OBJS) $(STRING_OBJS) $(SYNCH_OBJS) $(SERENA_OBJS) \
-			  $(TIME_OBJS) $(HOST_OBJS) $(PROC_OBJS) $(VCPU_OBJS)
+			  $(SIGNAL_OBJS) $(TIME_OBJS) $(HOST_OBJS) $(PROC_OBJS) \
+			  $(VCPU_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 

@@ -119,11 +119,11 @@ typedef struct Process {
     // All VPs that belong to this process and are currently in a clock_wait()
     struct waitqueue                clk_wait_queue;
     
-    // All VPs blocking on a sigwait() or sigtimedwait()
+    // All VPs blocking on a sig_wait() or sig_timedwait()
     struct waitqueue                siwa_queue;
     
     // Signal routes
-    queue_t/*struct sigroute>*/     sig_route[SIGMAX];
+    queue_t/*struct sigroute>*/     sig_route[SIG_MAX];
     
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process

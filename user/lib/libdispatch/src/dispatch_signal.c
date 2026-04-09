@@ -17,10 +17,10 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
 {
     deque_for_each(&self->workers, struct dispatch_worker, it,
         if (enable) {
-            it->hotsigs |= _SIGBIT(signo);
+            it->hotsigs |= sig_bit(signo);
         }
         else {
-            it->hotsigs &= ~_SIGBIT(signo);
+            it->hotsigs &= ~sig_bit(signo);
         }
     )
 
@@ -108,7 +108,7 @@ static int _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo,
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
         //XXX what's the highest quarter we need and only allocate up to this
         //XXX quarter.
-        self->sigtraps = calloc(SIGMAX, sizeof(struct dispatch_sigtrap));
+        self->sigtraps = calloc(SIG_MAX, sizeof(struct dispatch_sigtrap));
         if (self->sigtraps == NULL) {
             return -1;
         }
@@ -154,13 +154,13 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-static sigset_t _SIGSET_NOSENDMON = _SIGBIT(SIGDISP) | _SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGSTOP);
+static sigset_t _SIGSET_NOSENDMON = sig_bit(SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND) | sig_bit(SIG_FORCE_SUSPEND);
 
 int dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
-    if (signo < SIGMIN || signo > SIGMAX || (_SIGSET_NOSENDMON & _SIGBIT(signo)) != 0) {
+    if (signo < SIG_MIN || signo > SIG_MAX || (_SIGSET_NOSENDMON & sig_bit(signo)) != 0) {
         errno = EINVAL;
         return -1;
     }
@@ -180,8 +180,8 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
     mtx_lock(&self->mutex);
     if (signo <= 0) {
         // Allocate the first lowest priority USR signal available
-        for (int i = SIGUSRMAX; i >= SIGUSRMIN; i--) {
-            sigset_t sigbit = _SIGBIT(i);
+        for (int i = SIG_USER_MAX; i >= SIG_USER_MIN; i--) {
+            sigset_t sigbit = sig_bit(i);
 
             if ((self->alloced_sigs & sigbit) == 0) {
                 self->alloced_sigs |= sigbit;
@@ -190,9 +190,9 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
             }
         }
     }
-    else if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
+    else if (signo >= SIG_USER_MIN && signo <= SIG_USER_MAX) {
         // Allocate the specific USR signal 'signo'
-        const sigset_t sigbit = _SIGBIT(signo);
+        const sigset_t sigbit = sig_bit(signo);
 
         if ((self->alloced_sigs & sigbit) == 0) {
             self->alloced_sigs |= sigbit;
@@ -207,8 +207,8 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
 void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
 {
     mtx_lock(&self->mutex);
-    if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
-        self->alloced_sigs &= ~_SIGBIT(signo);
+    if (signo >= SIG_USER_MIN && signo <= SIG_USER_MAX) {
+        self->alloced_sigs &= ~sig_bit(signo);
     }
     mtx_unlock(&self->mutex);
 }
@@ -227,7 +227,7 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     vcpuid_t id;
     int r, scope;
 
-    if (signo < SIGMIN || signo > SIGMAX || (_SIGSET_NOSENDMON & _SIGBIT(signo)) != 0) {
+    if (signo < SIG_MIN || signo > SIG_MAX || (_SIGSET_NOSENDMON & sig_bit(signo)) != 0) {
         errno = EINVAL;
         return -1;
     }
@@ -242,7 +242,7 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
         scope = SIG_SCOPE_VCPU_GROUP;
     }
 
-    r = sigsend(scope, id, signo);
+    r = sig_send(scope, id, signo);
     mtx_unlock(&self->mutex);
     return r;
 }

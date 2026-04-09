@@ -36,7 +36,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->mtx);
     wq_init(&self->reportsWaitQueue);
 
-    self->reportSigs = _SIGBIT(SIGVBL) | _SIGBIT(SIGSCR);
+    self->reportSigs = sig_bit(SIGVBL) | sig_bit(SIGSCR);
     self->report.type = kHIDReportType_Null;
 
     self->keyFlags = gUSBHIDKeyFlags;

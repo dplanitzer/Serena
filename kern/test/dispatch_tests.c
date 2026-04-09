@@ -170,7 +170,7 @@ static void OnSendSignal(struct siginfo* _Nonnull si)
 
     if (sig_send_toggle) {
         printf("Sending signal #%d   [sigsend]\n", si->signo);
-        assert_ok(sigsend(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
+        assert_ok(sig_send(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
     }
     else {
         printf("Sending signal #%d   [dispatch_send_signal]\n", si->signo);
@@ -190,7 +190,7 @@ void dq_signal_test(int argc, char *argv[])
     struct siginfo si;
     si.group_id = dispatch_signal_target(gDispatcher);
     si.signo = dispatch_alloc_signal(gDispatcher, 0);
-    assert_true(si.signo >= SIGMIN && si.signo <= SIGMAX);
+    assert_true(si.signo >= SIG_MIN && si.signo <= SIG_MAX);
 
     printf("vcpu-group-id: %u, signo: %d\n\n", si.group_id, si.signo);
 

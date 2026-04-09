@@ -23,9 +23,9 @@
 // - relinquish vcpu
 // - distribute process level signal to vcpu(s)
 // Exclusion is provided by 'mtx'. One important factor here is that exit and exec
-// send SIGKILL to the vcpus in the process and they do this while holding 'mtx'.
+// send SIG_TERMINATE to the vcpus in the process and they do this while holding 'mtx'.
 // Thus operation like 'spawn child', 'acquire vcpu' should take 'mtx' and then
-// check whether SIGKILL is pending. If it is return with EINTR since the vcpu is
+// check whether SIG_TERMINATE is pending. If it is return with EINTR since the vcpu is
 // in the process of getting shot down.
 
 
@@ -52,7 +52,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
     ProcessRef zp = NULL;
     struct timespec deadline;
     bool exists = false;
-    sigset_t hot_sigs = _SIGBIT(SIGCHLD);
+    sigset_t hot_sigs = sig_bit(SIG_CHILD);
     int signo;
 
     switch (scope) {
@@ -126,9 +126,9 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 
     Process_GetSigcred(self, &sc);
 
-    // Note that SIGCHLD is getting auto-routed to us (exit coordinator) because
+    // Note that SIG_CHILD is getting auto-routed to us (exit coordinator) because
     // the process is in exit state.
-    ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
+    ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC_CHILDREN, self->pid, SIG_TERMINATE);
 
     // Reap all zombies. There may have been zombies before we came here. That's
     // why we unconditionally execute this loop.
@@ -149,7 +149,7 @@ void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
     deque_for_each(&self->vcpu_queue, deque_node_t, it,
         vcpu_t cvp = vcpu_from_owner_qe(it);
 
-        vcpu_send_signal(cvp, SIGKILL);
+        vcpu_send_signal(cvp, SIG_TERMINATE);
     )
 }
 
@@ -178,7 +178,7 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
         sigcred_t sc;
 
         Process_GetSigcred(self, &sc);
-        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIGCHLD);
+        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
     }
 }
 

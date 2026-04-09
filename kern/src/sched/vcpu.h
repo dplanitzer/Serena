@@ -127,7 +127,7 @@ struct vcpu {
     cpu_excpt_state_t               excpt_state;            // Exception state as recorded by cpu_exception()
 
     // Signals
-    sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())
+    sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sig_wait())
 
     // Waiting related state
     clock_deadline_t                timeout;                // The wait timeout timer
@@ -245,7 +245,7 @@ extern errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _No
 extern errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns true if the vcpu is in aborting state. Meaning that it has received a
-// SIGKILL and that it will relinquish soon.
+// SIG_TERMINATE and that it will relinquish soon.
 extern bool vcpu_is_aborting(vcpu_t _Nonnull self);
 
 

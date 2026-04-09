@@ -18,10 +18,10 @@ extern const sigset_t SIGSET_NON_ROUTABLE;
 extern const sigset_t SIGSET_PRIV_SYS;
 
 
-extern void sigemptyset(sigset_t* _Nonnull set);
-extern void sigfillset(sigset_t* _Nonnull set);
-extern errno_t sigaddset(sigset_t* _Nonnull set, int signo);
-extern errno_t sigdelset(sigset_t* _Nonnull set, int signo);
-extern bool sigismember(const sigset_t* _Nonnull set, int signo);
+extern void sigset_empty(sigset_t* _Nonnull set);
+extern void sigset_all(sigset_t* _Nonnull set);
+extern errno_t sigset_add(sigset_t* _Nonnull set, int signo);
+extern errno_t sigset_remove(sigset_t* _Nonnull set, int signo);
+extern bool sigset_contains(const sigset_t* _Nonnull set, int signo);
 
 #endif /* _KERN_SIGNAL_H */

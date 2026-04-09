@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
     const bool isInteractive = (arg_strings.count == 0) ? true : false;
 
     
-    // Enable SIGCHLD reception
-    sigroute(SIG_ROUTE_ADD, SIGCHLD, SIG_SCOPE_VCPU, VCPUID_MAIN);
+    // Enable SIG_CHILD reception
+    sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_SCOPE_VCPU, VCPUID_MAIN);
 
 
     ShellRef sh = Shell_Create(isInteractive);
