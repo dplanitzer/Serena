@@ -12,5 +12,5 @@
 
 int proc_cwd(char* _Nonnull buffer, size_t bufferSize)
 {
-    return (int)_syscall(SC_proc_cwd, buffer, bufferSize);
+    return (int)_syscall(SC_proc_property, PROC_SELF, PROC_PROP_CWD, buffer, bufferSize);
 }

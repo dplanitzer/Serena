@@ -90,7 +90,7 @@ static void show_proc(pid_t pid)
     proc_info(pid, PROC_INFO_BASIC, &basic);
     proc_info(pid, PROC_INFO_IDS, &ids);
     proc_info(pid, PROC_INFO_USER, &creds);
-    proc_path(pid, path_buf, sizeof(path_buf));
+    proc_property(pid, PROC_PROP_PATH, path_buf, sizeof(path_buf));
 
     if (errno != 0) {
         return;
@@ -115,7 +115,7 @@ static int show_procs(void)
 #define _TMP_MAX_COUNT  33
     static pid_t g_pid_buf[_TMP_MAX_COUNT];
 
-    if (host_procs(g_pid_buf, _TMP_MAX_COUNT) < 0) {
+    if (host_processes(g_pid_buf, _TMP_MAX_COUNT) < 0) {
         return -1;
     }
     

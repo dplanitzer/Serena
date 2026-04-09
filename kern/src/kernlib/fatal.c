@@ -102,7 +102,7 @@ _Noreturn void _fatalException(void* _Nonnull ksp)
     if (dq) {
         kdispatch_name(dq, dq_nam, KDISPATCH_MAX_NAME_LENGTH + 1);
     }
-    Process_GetPath(vp->proc, proc_name, sizeof(proc_name));
+    Process_GetProperty(vp->proc, PROC_PROP_NAME, proc_name, sizeof(proc_name));
 
 
     fatal(

@@ -22,16 +22,18 @@
 // the last entry in the table contains a NULL.
 // This data structure is set up by the kernel when it processes a Spawn()
 // request. Once set up the kernel neither reads nor writes to this area.
-typedef struct pargs {
-    size_t                      version;        // sizeof(pargs_t)
+typedef struct proc_args {
+    size_t                      version;        // sizeof(proc_args_t)
     size_t                      reserved;
-    size_t                      arguments_size; // Size of the area that holds all of pargs_t + argv + envp
+    size_t                      pargs_size;     // Size of the area that holds all of proc_args_t + argv + envp
+    size_t                      argv_size;
+    size_t                      env_size;
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
     kei_func_t* _Nonnull        urt_funcs;      // Pointer to the URT function table
-} pargs_t;
+} proc_args_t;
 
 
 #define JOIN_PROC       0   /* Join child process with pid */
@@ -83,6 +85,9 @@ typedef struct proc_basic_info {
     size_t  vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
 
     size_t  vm_size;                // size of process address space in bytes
+
+    size_t  argv_size;              // size of the argv vector
+    size_t  env_size;               // size of the environment variable table
 } proc_basic_info_t;
 
 
@@ -112,5 +117,13 @@ typedef struct proc_times_info {
     struct timespec acq_system_time;    // Time the process has spent running in system/kernel mode since creation. Acquired vcpus only
     struct timespec acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
 } proc_times_info_t;
+
+
+// Process properties
+#define PROC_PROP_CWD       1
+#define PROC_PROP_NAME      2
+#define PROC_PROP_PATH      3
+#define PROC_PROP_ARGS      4
+#define PROC_PROP_ENVIRON   5
 
 #endif /* _KPI_PROCESS_H */

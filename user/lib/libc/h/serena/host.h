@@ -24,7 +24,7 @@ __CPP_BEGIN
 //
 // Note that the list of returned processes includes processes in all possible
 // states, including the zombie state.
-extern int host_procs(pid_t* _Nonnull buf, size_t bufSize);
+extern int host_processes(pid_t* _Nonnull buf, size_t bufSize);
 
 // Fills the buffer with an array of fsid_t's of all currently mounted
 // filesystems. 'bufSize' is the size of the buffer in terms of the number of

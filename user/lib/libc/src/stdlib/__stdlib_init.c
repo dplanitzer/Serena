@@ -13,7 +13,7 @@
 #include <serena/mtx.h>
 #include <vcpu/__vcpu.h>
 
-pargs_t*    __gProcessArguments;
+proc_args_t*    __gProcessArguments;
 kei_func_t* __gKeiTab;
 char **     environ;
 
@@ -25,7 +25,7 @@ volatile bool            __gIsExiting;
 mtx_t __g_dtoa_mtx[2];
 
 
-void __stdlibc_init(pargs_t* _Nonnull argsp)
+void __stdlibc_init(proc_args_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
     __gKeiTab = argsp->urt_funcs;
@@ -49,7 +49,7 @@ void __stdlibc_init(pargs_t* _Nonnull argsp)
 // area, etc.
 bool __is_pointer_NOT_freeable(void* ptr)
 {
-    if (ptr >= (void*)__gProcessArguments && ptr < (void*)(((char*) __gProcessArguments) + __gProcessArguments->arguments_size)) {
+    if (ptr >= (void*)__gProcessArguments && ptr < (void*)(((char*) __gProcessArguments) + __gProcessArguments->pargs_size)) {
         return true;
     }
 

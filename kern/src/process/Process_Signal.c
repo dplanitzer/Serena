@@ -154,40 +154,6 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
 // MARK: -
 // MARK: Signal Reception
 
-static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int signo)
-{
-    _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
-    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
-}
-
-// Suspend all vcpus in the process if the process is currently in running state.
-// Otherwise does nothing. Nesting is not supported.
-static void _proc_stop(ProcessRef _Nonnull _Locked self)
-{
-    if (self->run_state == PROC_STATE_ALIVE) {
-        deque_for_each(&self->vcpu_queue, deque_node_t, it,
-            vcpu_t cvp = vcpu_from_owner_qe(it);
-
-            vcpu_suspend(cvp);
-        )
-        self->run_state = PROC_STATE_SUSPENDED;
-    }
-}
-
-// Resume all vcpus in the process if the process is currently in stopped state.
-// Otherwise does nothing.
-static void _proc_cont(ProcessRef _Nonnull _Locked self)
-{
-    if (self->run_state == PROC_STATE_SUSPENDED) {
-        deque_for_each(&self->vcpu_queue, deque_node_t, it,
-            vcpu_t cvp = vcpu_from_owner_qe(it);
-
-            vcpu_resume(cvp, false);
-        )
-        self->run_state = PROC_STATE_ALIVE;
-    }
-}
-
 static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t id, int signo, bool doSelfOpt)
 {
     vcpu_t me_vp = vcpu_current();
@@ -240,15 +206,15 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 {
     switch (signo) {
         case SIGKILL:
-            _proc_terminate_on_behalf_of(self, signo);
+            _proc_terminate(self, signo);
             break;
 
         case SIGSTOP:
-            _proc_stop(self);
+            _proc_suspend(self);
             break;
 
         case SIGCONT:
-            _proc_cont(self);
+            _proc_resume(self);
             break;
 
         default:
@@ -273,13 +239,13 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
                     case SIGXCPU:
                     case SIGHUP:
                     case SIGQUIT:
-                        _proc_terminate_on_behalf_of(self, signo);
+                        _proc_terminate(self, signo);
                         break;
 
                     case SIGTTIN:
                     case SIGTTOUT:
                     case SIGTSTP:
-                        _proc_stop(self);
+                        _proc_suspend(self);
                         break;
 
                     default:

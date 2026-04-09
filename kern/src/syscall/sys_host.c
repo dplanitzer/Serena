@@ -39,7 +39,7 @@ SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
     return err;
 }
 
-SYSCALL_3(host_procs, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
+SYSCALL_3(host_processes, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {
     return ProcessManager_GetProcessIds(gProcessManager, pa->buf, pa->bufSize, pa->out_hasMore);
 }

@@ -14,7 +14,6 @@
 #include <serena/file.h>
 #include <serena/process.h>
 #include <serena/signal.h>
-#include <serena/spawn.h>
 #include <serena/vcpu.h>
 
 
@@ -54,7 +53,7 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
 
 static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
-    spawn_opts_t opts = {0};
+    proc_spawn_t opts = {0};
     const char* argv[3];
     const char* envp[5];
     
@@ -72,16 +71,16 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     opts.umask = 0022;  // XXX hardcoded for now
     opts.uid = 1000;    // XXX hardcoded for now
     opts.gid = 1000;    // XXX hardcoded for now
-    opts.options = kSpawn_NewProcessGroup
-        | kSpawn_NewSession
-        | kSpawn_OverrideUserId
-        | kSpawn_OverrideGroupId
-        | kSpawn_OverrideUserMask;
+    opts.options = PROC_SPAWN_GROUP_LEADER
+        | PROC_SPAWN_SESSION_LEADER
+        | PROC_SPAWN_UID
+        | PROC_SPAWN_GID
+        | PROC_SPAWN_UMASK;
 
 
     // Spawn the shell
     pid_t childPid;
-    const int r = os_spawn(shellPath, argv, &opts, &childPid);
+    const int r = proc_spawn(shellPath, argv, &opts, &childPid);
 
 
     char** ep = envp;

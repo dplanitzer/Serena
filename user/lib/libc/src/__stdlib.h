@@ -24,7 +24,7 @@ __CPP_BEGIN
 typedef void (*at_exit_func_t)(void);
 
 
-extern pargs_t* __gProcessArguments;
+extern proc_args_t* __gProcessArguments;
 
 extern spinlock_t               __gAtExitLock;
 extern at_exit_func_t _Nullable __gAtExitFuncs[ATEXIT_MAX];
@@ -33,7 +33,7 @@ extern volatile bool            __gIsExiting;
 
 
 
-extern void __stdlibc_init(pargs_t* _Nonnull argsp);
+extern void __stdlibc_init(proc_args_t* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __locale_init(void);
 extern void __stdio_init(void);

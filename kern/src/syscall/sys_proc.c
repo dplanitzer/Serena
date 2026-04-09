@@ -11,16 +11,16 @@
 #include <process/ProcessManager.h>
 
 
-SYSCALL_0(getpargs)
-{
-    return (intptr_t) vp->proc->pargs_base;
-}
-
 SYSCALL_1(proc_exit, int status)
 {    
     Process_Exit(vp->proc, JREASON_EXIT, pa->status);
     /* NOT REACHED */
     return 0;
+}
+
+SYSCALL_4(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const proc_spawn_t* _Nonnull options, pid_t* _Nullable pOutPid)
+{
+    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
 }
 
 SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
@@ -35,23 +35,123 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
     return err;
 }
 
-SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
-{
-    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
-}
-
 SYSCALL_5(proc_timedjoin, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
 {
     return Process_TimedJoin(vp->proc, pa->scope, pa->id, pa->flags, pa->wtp, pa->ps);
 }
 
-SYSCALL_2(proc_cwd, char* _Nonnull buffer, size_t bufferSize)
+SYSCALL_1(proc_terminate, pid_t pid)
 {
+    decl_try_err();
     ProcessRef pp = vp->proc;
 
-    mtx_lock(&pp->mtx);
-    const errno_t err = FileManager_GetWorkingDirectoryPath(&pp->fm, pa->buffer, pa->bufferSize);
-    mtx_unlock(&pp->mtx);
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
+        Process_Terminate(pp);
+    }
+    else {
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (the_pp) {
+            Process_Terminate(the_pp);
+            Process_Release(the_pp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
+    return err;
+}
+
+SYSCALL_1(proc_suspend, pid_t pid)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
+        Process_Suspend(pp);
+    }
+    else {
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (the_pp) {
+            Process_Suspend(the_pp);
+            Process_Release(the_pp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
+    return err;
+}
+
+SYSCALL_1(proc_resume, pid_t pid)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
+        Process_Resume(pp);
+    }
+    else {
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (the_pp) {
+            Process_Resume(the_pp);
+            Process_Release(the_pp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
+    return err;
+}
+
+SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
+        err = Process_GetInfo(pp, pa->flavor, pa->info);
+    }
+    else {
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (the_pp) {
+            Process_GetInfo(the_pp, pa->flavor, pa->info);
+            Process_Release(the_pp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
+    return err;
+}
+
+SYSCALL_4(proc_property, pid_t pid, int flavor, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
+        err = Process_GetProperty(pp, pa->flavor, pa->buf, pa->bufSize);
+    }
+    else {
+        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+
+        if (the_pp) {
+            Process_GetProperty(the_pp, pa->flavor, pa->buf, pa->bufSize);
+            Process_Release(the_pp);
+        }
+        else {
+            err = ESRCH;
+        }
+    }
+
     return err;
 }
 
@@ -112,53 +212,6 @@ SYSCALL_3(proc_setschedparam, pid_t pid, int type, int* _Nonnull param)
 
         if (the_pp) {
             Process_SetSchedParam(the_pp, pa->type, pa->param);
-            Process_Release(the_pp);
-        }
-        else {
-            err = ESRCH;
-        }
-
-    }
-
-    return err;
-}
-
-SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
-{
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-
-    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
-        err = Process_GetInfo(pp, pa->flavor, pa->info);
-    }
-    else {
-        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
-
-        if (the_pp) {
-            Process_GetInfo(the_pp, pa->flavor, pa->info);
-            Process_Release(the_pp);
-        }
-        else {
-            err = ESRCH;
-        }
-    }
-
-    return err;
-}
-
-SYSCALL_3(proc_path, pid_t pid, char* _Nonnull buf, size_t bufSize)
-{
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-
-    if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
-        err = Process_GetPath(pp, pa->buf, pa->bufSize);
-    }
-    else {
-        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
-
-        if (the_pp) {
-            Process_GetPath(the_pp, pa->buf, pa->bufSize);
             Process_Release(the_pp);
         }
         else {

@@ -147,6 +147,10 @@ extern void Process_deinit(ProcessRef _Nonnull self);
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 
+extern void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo);
+extern void _proc_suspend(ProcessRef _Nonnull _Locked self);
+extern void _proc_resume(ProcessRef _Nonnull _Locked self);
+
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 

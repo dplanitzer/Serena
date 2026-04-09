@@ -65,7 +65,7 @@ extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid);
+extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid);
 
 // Prepares the image of the process by replacing the current image with a new
 // executable image loaded from 'execPath'. Note that this function does not
@@ -92,13 +92,17 @@ extern errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _N
 extern errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _Nonnull param);
 
 
+// Returns a copy of a specific process property.
+extern errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize);
+
 // Returns a copy of the receiver's information.
 extern errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Nonnull info);
 
-// Returns a copy of the process' path
-extern errno_t Process_GetPath(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
-
 // Returns an array of vcpuid_t's corresponding to the currently acquired vcpus.
 extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
+
+extern void Process_Terminate(ProcessRef _Nonnull self);
+extern void Process_Suspend(ProcessRef _Nonnull self);
+extern void Process_Resume(ProcessRef _Nonnull self);
 
 #endif /* Process_h */

@@ -12,7 +12,6 @@
 #include <serena/file.h>
 #include <serena/process.h>
 #include <serena/signal.h>
-#include <serena/spawn.h>
 #include <serena/vcpu.h>
 
 
@@ -37,7 +36,7 @@ static int __system(const char *string)
     pid_t sh_pid;
     vcpuid_t vp_id = vcpu_id(vcpu_self());
     int r = 0;
-    spawn_opts_t opts = {0};
+    proc_spawn_t opts = {0};
     const char* argv[4];
     struct proc_status ps;
 
@@ -49,7 +48,7 @@ static int __system(const char *string)
     // Enable SIGCHLD reception
     sigroute(SIG_ROUTE_ADD, SIGCHLD, SIG_SCOPE_VCPU, vp_id);
 
-    if (os_spawn(__shellPath, argv, &opts, &sh_pid) != 0) {
+    if (proc_spawn(__shellPath, argv, &opts, &sh_pid) != 0) {
         r = -1;
         goto out;
     }

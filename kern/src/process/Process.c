@@ -16,7 +16,7 @@
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
 static const char*      g_kernel_argv[2] = { "kerneld", NULL };
 static const char*      g_kernel_env[1] = { NULL };
-static pargs_t          g_kernel_pargs;
+static proc_args_t      g_kernel_pargs;
 static struct Process   g_kernel_proc_storage;
 ProcessRef _Nonnull gKernelProcess;
 
@@ -305,6 +305,106 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
     return err;
 }
 
+// 'bufSize' has to be >= 1
+static errno_t _proc_path(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+    const proc_args_t* pa = (const proc_args_t*)self->pargs_base;
+    const char* arg0 = (pa) ? pa->argv[0] : NULL;
+    const size_t arg0len = (arg0) ? strlen(arg0) : 0;
+
+    if (bufSize >= arg0len + 1) {
+        memcpy(buf, arg0, arg0len);
+        buf[arg0len] = '\0';
+    }
+    else {
+        *buf = '\0';
+        return ERANGE;
+    }
+
+    return err;
+}
+
+// 'bufSize' has to be >= 1
+static errno_t _proc_name(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+    const proc_args_t* pa = (const proc_args_t*)self->pargs_base;
+    const char* arg0 = (pa) ? pa->argv[0] : NULL;
+    const char* fname = (arg0) ? strrchr(arg0, '/') + 1 : arg0;
+    const size_t fnameLen = (fname) ? strlen(fname) : 0;
+
+    if (bufSize >= fnameLen + 1) {
+        memcpy(buf, fname, fnameLen);
+        buf[fnameLen] = '\0';
+    }
+    else {
+        *buf = '\0';
+        return ERANGE;
+    }
+
+    return err;
+}
+
+errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+
+    if (bufSize < 1) {
+        return ERANGE;
+    }
+
+    mtx_lock(&self->mtx);
+
+    switch (flavor) {
+        case PROC_PROP_CWD:
+            err = FileManager_GetWorkingDirectoryPath(&self->fm, buf, bufSize);
+            break;
+
+        case PROC_PROP_PATH:
+            err = _proc_path(self, buf, bufSize);
+            break;
+
+        case PROC_PROP_NAME:
+            err = _proc_name(self, buf, bufSize);
+            break;
+
+        case PROC_PROP_ARGS: {
+            const size_t argv_size = ((proc_args_t*)self->pargs_base)->argv_size;
+
+            if (bufSize >= argv_size) {
+                memcpy(buf, ((proc_args_t*)self->pargs_base)->argv, argv_size);
+            }
+            else {
+                *buf = '\0';
+                err = ERANGE;
+            }
+            break;
+        }
+
+        case PROC_PROP_ENVIRON: {
+            const size_t env_size = ((proc_args_t*)self->pargs_base)->env_size;
+
+            if (bufSize >= env_size) {
+                memcpy(buf, ((proc_args_t*)self->pargs_base)->envp, env_size);
+            }
+            else {
+                *buf = '\0';
+                err = ERANGE;
+            }
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
 // Returns a copy of the receiver's information.
 errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Nonnull info)
 {
@@ -321,6 +421,8 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
             ip->vcpu_waiting_count = self->vcpu_waiting_count;
             ip->vm_size = AddressSpace_GetVirtualSize(&self->addr_space);
+            ip->argv_size = ((proc_args_t*)self->pargs_base)->argv_size;
+            ip->env_size = ((proc_args_t*)self->pargs_base)->env_size;
             break;
         }
 
@@ -371,29 +473,59 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
     return err;
 }
 
-errno_t Process_GetPath(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
 {
-    if (bufSize < 1) {
-        return ERANGE;
-    }
+    _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
+    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
+}
 
+void Process_Terminate(ProcessRef _Nonnull self)
+{
     mtx_lock(&self->mtx);
-    decl_try_err();
-    const pargs_t* pa = (const pargs_t*)self->pargs_base;
-    const char* arg0 = (pa) ? pa->argv[0] : NULL;
-    const size_t arg0len = (arg0) ? strlen(arg0) : 0;
-
-    if (bufSize >= arg0len + 1) {
-        memcpy(buf, arg0, arg0len);
-        buf[arg0len] = '\0';
-    }
-    else {
-        *buf = '\0';
-        return ERANGE;
-    }
-
+    _proc_terminate(self, SIGKILL);
     mtx_unlock(&self->mtx);
-    return err;
+}
+
+// Suspend all vcpus in the process if the process is currently in running state.
+// Otherwise does nothing. Nesting is not supported.
+void _proc_suspend(ProcessRef _Nonnull _Locked self)
+{
+    if (self->run_state == PROC_STATE_ALIVE) {
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
+
+            vcpu_suspend(cvp);
+        )
+        self->run_state = PROC_STATE_SUSPENDED;
+    }
+}
+
+void Process_Suspend(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    _proc_suspend(self);
+    mtx_unlock(&self->mtx);
+}
+
+// Resume all vcpus in the process if the process is currently in stopped state.
+// Otherwise does nothing.
+void _proc_resume(ProcessRef _Nonnull _Locked self)
+{
+    if (self->run_state == PROC_STATE_SUSPENDED) {
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
+
+            vcpu_resume(cvp, false);
+        )
+        self->run_state = PROC_STATE_ALIVE;
+    }
+}
+
+void Process_Resume(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    _proc_resume(self);
+    mtx_unlock(&self->mtx);
 }
 
 
@@ -408,7 +540,7 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, pRootFh, UID_ROOT, GID_ROOT, rootDir, rootDir, perm_from_octal(0022));
     Inode_Relinquish(rootDir);
 
-    g_kernel_pargs.version = sizeof(pargs_t);
+    g_kernel_pargs.version = sizeof(proc_args_t);
     g_kernel_pargs.argc = 1;
     g_kernel_pargs.argv = g_kernel_argv;
     g_kernel_pargs.envp = g_kernel_env;
@@ -426,9 +558,9 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
 
 errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh)
 {
-    spawn_opts_t opts = (spawn_opts_t){0};
+    proc_spawn_t opts = (proc_spawn_t){0};
 
-    opts.options = kSpawn_NewProcessGroup | kSpawn_NewSession;
+    opts.options = PROC_SPAWN_GROUP_LEADER | PROC_SPAWN_SESSION_LEADER;
 
     return Process_SpawnChild(self, g_systemd_argv[0], g_systemd_argv, &opts, fh, NULL);
 }

@@ -21,7 +21,7 @@ SYSCALL_REF(clock_getres);
 SYSCALL_REF(excpt_sethandler);
 
 SYSCALL_REF(host_info);
-SYSCALL_REF(host_procs);
+SYSCALL_REF(host_processes);
 SYSCALL_REF(host_filesystems);
 
 SYSCALL_REF(fs_info);
@@ -56,18 +56,19 @@ SYSCALL_REF(ioctl);
 SYSCALL_REF(mkpipe);
 
 SYSCALL_REF(proc_exit);
-SYSCALL_REF(spawn_process);
-SYSCALL_REF(getpargs);
-SYSCALL_REF(proc_cwd);
+SYSCALL_REF(proc_spawn);
+SYSCALL_REF(proc_property);
 SYSCALL_REF(proc_setcwd);
 SYSCALL_REF(proc_timedjoin);
 SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
 SYSCALL_REF(proc_setschedparam);
 SYSCALL_REF(proc_info);
-SYSCALL_REF(proc_path);
 SYSCALL_REF(proc_vcpus);
 SYSCALL_REF(proc_setumask);
+SYSCALL_REF(proc_terminate);
+SYSCALL_REF(proc_suspend);
+SYSCALL_REF(proc_resume);
 
 
 SYSCALL_REF(vm_allocate);
@@ -103,7 +104,7 @@ SYSCALL_REF(vcpu_info);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   76
+#define SYSCALL_COUNT   77
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_read, SC_ERRNO),
@@ -111,17 +112,17 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
-    SYSCALL_ENTRY(spawn_process, SC_ERRNO),
-    SYSCALL_ENTRY(proc_path, SC_ERRNO),
+    SYSCALL_ENTRY(proc_spawn, SC_ERRNO),
+    SYSCALL_ENTRY(proc_terminate, SC_ERRNO),
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
-    SYSCALL_ENTRY(getpargs, SC_PTR),
+    SYSCALL_ENTRY(proc_suspend, SC_ERRNO),
     SYSCALL_ENTRY(open, SC_ERRNO),
     SYSCALL_ENTRY(fd_close, SC_ERRNO),
     SYSCALL_ENTRY(proc_timedjoin, SC_ERRNO),
     SYSCALL_ENTRY(fd_seek, SC_ERRNO),
-    SYSCALL_ENTRY(proc_cwd, SC_ERRNO),
+    SYSCALL_ENTRY(proc_property, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
-    SYSCALL_ENTRY(host_procs, SC_ERRNO),
+    SYSCALL_ENTRY(host_processes, SC_ERRNO),
     SYSCALL_ENTRY(proc_setumask, SC_VOID),
     SYSCALL_ENTRY(fs_create_directory, SC_ERRNO),
     SYSCALL_ENTRY(fs_attr, SC_ERRNO),
@@ -182,6 +183,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_state, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setstate, SC_ERRNO),
     SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
+    SYSCALL_ENTRY(proc_resume, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

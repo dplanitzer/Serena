@@ -51,15 +51,15 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
         return E2BIG;
     }
 
-    pargs_t* pargs = NULL;
-    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
+    proc_args_t* pargs = NULL;
+    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(proc_args_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
     const errno_t err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
     if (err != EOK) {
         return err;
     }
 
 
-    char** proc_argv = (char**)((char*)pargs + sizeof(pargs_t));
+    char** proc_argv = (char**)((char*)pargs + sizeof(proc_args_t));
     char** proc_env = (char**)&proc_argv[nArgvCount + 1];
     char*  dst = (char*)&proc_env[nEnvCount + 1];
 
@@ -81,9 +81,11 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
 
 
     // Process Arguments
-    pargs->version = sizeof(pargs_t);
+    pargs->version = sizeof(proc_args_t);
     pargs->reserved = 0;
-    pargs->arguments_size = nbytes_procargs;
+    pargs->pargs_size = nbytes_procargs;
+    pargs->argv_size = nbytes_argv;
+    pargs->env_size = nbytes_envp;
     pargs->argc = nArgvCount;
     pargs->argv = proc_argv;
     pargs->envp = proc_env;
@@ -151,7 +153,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
     // Load the executable
     try(_proc_img_load_gemdos_exec(pimg, (InodeChannelRef)chan));
-    ((pargs_t*)(pimg->pargs))->image_base = pimg->base;
+    ((proc_args_t*)(pimg->pargs))->image_base = pimg->base;
 
 
     // Create the new main vcpu

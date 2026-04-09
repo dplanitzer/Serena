@@ -15,7 +15,7 @@
 #include <ext/timespec.h>
 #include <serena/clock.h>
 #include <serena/filesystem.h>
-#include <serena/spawn.h>
+#include <serena/process.h>
 
 
 static _Noreturn void halt_machine(void)
@@ -27,7 +27,7 @@ static _Noreturn void halt_machine(void)
 
 static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 {
-    spawn_opts_t opts = {0};
+    proc_spawn_t opts = {0};
     const char* argv[3];
 
     argv[0] = procPath;
@@ -35,7 +35,7 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
     argv[2] = NULL;
 
     // Spawn the process
-    return os_spawn(procPath, argv, &opts, NULL);
+    return proc_spawn(procPath, argv, &opts, NULL);
 }
 
 int main(int argc, char *argv[])

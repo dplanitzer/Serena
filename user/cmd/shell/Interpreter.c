@@ -16,7 +16,6 @@
 #include <ext/stdlib.h>
 #include <serena/exception.h>
 #include <serena/process.h>
-#include <serena/spawn.h>
 
 //
 // Notes:
@@ -147,8 +146,7 @@ static void Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self
 {
     decl_try_err();
     Value val;
-    pargs_t* pargs = getpargs();
-    char** envp = pargs->envp;
+    char** envp = environ;
 
     while (*envp) {
         char* keyp = *envp;
@@ -218,7 +216,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     char* cmdPath = NULL;
     const bool needsSearchPath = should_use_search_path(argv[0]);
     const size_t searchPathLen = (needsSearchPath) ? strlen(gSearchPath) : 0;
-    spawn_opts_t opts = {0};
+    proc_spawn_t opts = {0};
     
     const size_t cmdPathLen = searchPathLen + strlen(argv[0]);
     if (cmdPathLen > PATH_MAX - 1) {
@@ -238,7 +236,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Spawn the external command
-    if (os_spawn(cmdPath, argv, &opts, &childPid) != 0) {
+    if (proc_spawn(cmdPath, argv, &opts, &childPid) != 0) {
         throw(errno);
     }
 

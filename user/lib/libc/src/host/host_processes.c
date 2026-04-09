@@ -1,5 +1,5 @@
 //
-//  host_procs.c
+//  host_processes.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/30/26.
@@ -10,11 +10,11 @@
 #include <kpi/syscall.h>
 
 
-int host_procs(pid_t* _Nonnull buf, size_t bufSize)
+int host_processes(pid_t* _Nonnull buf, size_t bufSize)
 {
     int hasMore = 0;
     
-    if (_syscall(SC_host_procs, buf, bufSize, &hasMore) == 0) {
+    if (_syscall(SC_host_processes, buf, bufSize, &hasMore) == 0) {
         return hasMore;
     }
     else {

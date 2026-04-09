@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int proc_info(pid_t _Nonnull pid, int flavor, proc_info_ref _Nonnull info)
+int proc_info(pid_t pid, int flavor, proc_info_ref _Nonnull info)
 {
     return (int)_syscall(SC_proc_info, pid, flavor, info);
 }
