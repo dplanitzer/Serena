@@ -46,6 +46,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
 
     self->attr = *attr;
     self->state = _DISPATCHER_STATE_ACTIVE;
+    self->alloced_sigs = sig_bit(_SIG_DISPATCH);
 
     if (cnd_init(&self->cond) != 0) {
         return false;

@@ -139,6 +139,11 @@ extern void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self);
 #define _KDISPATCH_EWC_TIMER        2
 
 
+// Signal used to indicate that a new work item has been added to the dispatcher.
+// This signal is marked as allocated.
+#define _SIG_DISPATCH   SIG_USER_MAX
+
+
 struct kdispatch {
     mtx_t                           mutex;
     cnd_t                           cond;

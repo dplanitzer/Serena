@@ -71,12 +71,12 @@ typedef volatile int sig_atomic_t;
 #define SIG_USER_14         29
 #define SIG_USER_15         30
 #define SIG_USER_16         31
-#define SIG_DISPATCH        32  // libdispatch, default: ignore
+#define SIG_USER_17         32
 
-#define SIG_USER      SIG_USER_1
+#define SIG_USER        SIG_USER_1
 
-#define SIG_USER_MIN   SIG_USER_1
-#define SIG_USER_MAX   SIG_USER_16
+#define SIG_USER_MIN    SIG_USER_1
+#define SIG_USER_MAX    SIG_USER_17
 
 
 #define sig_bit(__signo) (1 << ((__signo) - 1))

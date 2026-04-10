@@ -142,6 +142,10 @@ extern vcpu_key_t __os_dispatch_key;
 #define _DISPATCH_EWC_TIMER         2
 
 
+// Signal used to indicate that a new work item has been added to the dispatcher.
+// This signal is marked as allocated.
+#define _SIG_DISPATCH   SIG_USER_MAX
+
 
 struct dispatch {
     mtx_t                           mutex;

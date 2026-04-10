@@ -55,7 +55,7 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, i
     if (self) {
         self->owner = owner;
         self->adoption = adoption;
-        self->hotsigs = sig_bit(SIG_DISPATCH);
+        self->hotsigs = sig_bit(_SIG_DISPATCH);
 
 
         switch (adoption) {
@@ -93,7 +93,7 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
 
 void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 {
-    sig_send(SIG_SCOPE_VCPU, self->id, SIG_DISPATCH);
+    sig_send(SIG_SCOPE_VCPU, self->id, _SIG_DISPATCH);
 }
 
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup)
@@ -189,7 +189,7 @@ static bool _should_relinquish(dispatch_worker_t _Nonnull _Locked self)
 
 
     dispatch_t q = self->owner;
-    const int has_armed_sigs = (self->hotsigs & ~sig_bit(SIG_DISPATCH)) != 0;
+    const int has_armed_sigs = (self->hotsigs & ~sig_bit(_SIG_DISPATCH)) != 0;
     const int has_armed_timers = q->timers.first != NULL;
 
     if (!has_armed_sigs && !has_armed_timers && q->worker_count > q->attr.minConcurrency) {
@@ -211,7 +211,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
-    int flags, signo = SIG_DISPATCH;
+    int flags, signo = _SIG_DISPATCH;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
@@ -286,7 +286,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
             mayRelinquish = true;
         }
 
-        if (r == 0 && signo != SIG_DISPATCH && q->sigtraps) {
+        if (r == 0 && signo != _SIG_DISPATCH && q->sigtraps) {
             _dispatch_submit_items_for_signal(q, signo, self);
         }
 

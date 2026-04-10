@@ -45,7 +45,7 @@ errno_t _kdispatch_worker_create(kdispatch_t _Nonnull owner, kdispatch_worker_t 
     try(kalloc_cleared(sizeof(struct kdispatch_worker), (void**)&self));
 
     self->owner = owner;
-    self->hotsigs = sig_bit(SIG_DISPATCH);
+    self->hotsigs = sig_bit(_SIG_DISPATCH);
     self->allow_relinquish = !_dispatch_is_fixed_concurrency(owner);
 
     wq_init(&self->wq);
@@ -76,7 +76,7 @@ void _kdispatch_worker_destroy(kdispatch_worker_t _Nullable self)
 
 void _kdispatch_worker_wakeup(kdispatch_worker_t _Nonnull _Locked self)
 {
-    vcpu_send_signal(self->vcpu, SIG_DISPATCH);
+    vcpu_send_signal(self->vcpu, _SIG_DISPATCH);
 }
 
 void _kdispatch_worker_submit(kdispatch_worker_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item, bool doWakeup)
@@ -171,7 +171,7 @@ static bool _should_relinquish(kdispatch_worker_t _Nonnull _Locked self)
 
 
     kdispatch_t q = self->owner;
-    const int has_armed_sigs = (self->hotsigs & ~sig_bit(SIG_DISPATCH)) != 0;
+    const int has_armed_sigs = (self->hotsigs & ~sig_bit(_SIG_DISPATCH)) != 0;
     const int has_armed_timers = q->timers.first != NULL;
 
     if (!has_armed_sigs && !has_armed_timers && q->worker_count > q->attr.minConcurrency) {
@@ -193,7 +193,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
     kdispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
-    int flags, signo = SIG_DISPATCH;
+    int flags, signo = _SIG_DISPATCH;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
@@ -268,7 +268,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
             mayRelinquish = true;
         }
 
-        if (err == EOK && signo != SIG_DISPATCH && q->sigtraps) {
+        if (err == EOK && signo != _SIG_DISPATCH && q->sigtraps) {
             _kdispatch_submit_items_for_signal(q, signo, self);
         }
 

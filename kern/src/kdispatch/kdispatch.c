@@ -33,6 +33,7 @@ static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t
     self->attr = *attr;
     self->group_id = new_vcpu_groupid();
     self->state = _DISPATCHER_STATE_ACTIVE;
+    self->alloced_sigs = sig_bit(_SIG_DISPATCH);
 
     cnd_init(&self->cond);
 
