@@ -25,7 +25,7 @@ typedef struct syscall_entry {
 #define SC_INT      0       /* Simple int return*/
 #define SC_ERRNO    1       /* System call returns an error that should be stored in vcpu->errno */
 #define SC_PTR      2       /* System call returns a pointer */
-#define SC_VOID     3       /* System call returns nothing. Eg sigurgent() */
+#define SC_VOID     3       /* System call returns nothing. Eg sig_urgent() */
 #define SC_NORETURN SC_VOID /* System call does not return */
 
 

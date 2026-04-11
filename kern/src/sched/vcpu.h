@@ -74,7 +74,7 @@ typedef struct cpu_excpt_state {
 // A deferred suspend is delayed until the currently executing system call is
 // about to return to user space. A vcpu executing in user space at the time of
 // a vcpu_suspend() call is redirected at the next scheduler tick to a
-// sigurgent() system call. It will enter the suspended state at the end of this
+// sig_urgent() system call. It will enter the suspended state at the end of this
 // system call.
 // Note that a system call that is in waiting state at the time a suspension
 // request comes in, will continue to wait and the suspension request is left

@@ -73,12 +73,12 @@ SYSCALL_REF(proc_resume);
 
 SYSCALL_REF(vm_allocate);
 
-SYSCALL_REF(sigwait);
-SYSCALL_REF(sigtimedwait);
-SYSCALL_REF(sigpending);
-SYSCALL_REF(sigsend);
-SYSCALL_REF(sigroute);
-SYSCALL_REF(sigurgent);
+SYSCALL_REF(sig_wait);
+SYSCALL_REF(sig_timedwait);
+SYSCALL_REF(sig_pending);
+SYSCALL_REF(sig_send);
+SYSCALL_REF(sig_route);
+SYSCALL_REF(sig_urgent);
 
 SYSCALL_REF(wq_create);
 SYSCALL_REF(wq_dispose);
@@ -155,13 +155,13 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
     SYSCALL_ENTRY(proc_info, SC_ERRNO),
-    SYSCALL_ENTRY(sigroute, SC_ERRNO),
+    SYSCALL_ENTRY(sig_route, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_PTR),
     SYSCALL_ENTRY(vcpu_setdata, SC_INT),
-    SYSCALL_ENTRY(sigwait, SC_ERRNO),
-    SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
+    SYSCALL_ENTRY(sig_wait, SC_ERRNO),
+    SYSCALL_ENTRY(sig_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup_then_timedwait, SC_ERRNO),
-    SYSCALL_ENTRY(sigpending, SC_ERRNO),
+    SYSCALL_ENTRY(sig_pending, SC_ERRNO),
     SYSCALL_ENTRY(host_filesystems, SC_ERRNO),
     SYSCALL_ENTRY(fs_info, SC_ERRNO),
     SYSCALL_ENTRY(fs_label, SC_ERRNO),
@@ -169,8 +169,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_relinquish_self, SC_NORETURN),
     SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_resume, SC_ERRNO),
-    SYSCALL_ENTRY(sigsend, SC_ERRNO),
-    SYSCALL_ENTRY(sigurgent, SC_VOID),
+    SYSCALL_ENTRY(sig_send, SC_ERRNO),
+    SYSCALL_ENTRY(sig_urgent, SC_VOID),
     SYSCALL_ENTRY(excpt_sethandler, SC_ERRNO),
     SYSCALL_ENTRY(proc_exec, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_policy, SC_ERRNO),

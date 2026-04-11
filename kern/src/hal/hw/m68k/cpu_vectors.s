@@ -48,8 +48,8 @@
     xdef _cpu_vector_table
     xdef __excpt_return
 
-    xdef _sigurgent
-    xdef _sigurgent_end
+    xdef _sig_urgent
+    xdef _sig_urgent_end
 
 
 
@@ -317,13 +317,13 @@ __sys_entry:
 
 
 ;-------------------------------------------------------------------------------
-; void sigurgent(void)
-; void sigurgent_end(void)
-_sigurgent:
-    move.l  #63, -(sp)   ; SC_sigurgent
+; void sig_urgent(void)
+; void sig_urgent_end(void)
+_sig_urgent:
+    move.l  #63, -(sp)   ; SC_sig_urgent
     subq.l  #4, sp
     trap    #0
     addq.l  #8, sp
     rts
-_sigurgent_end:
+_sig_urgent_end:
     nop

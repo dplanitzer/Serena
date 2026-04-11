@@ -15,37 +15,37 @@
 #include <sched/waitqueue.h>
 
 
-SYSCALL_0(sigurgent)
+SYSCALL_0(sig_urgent)
 {
     return EOK;
 }
 
-SYSCALL_4(sigroute, int op, int signo, int scope, id_t id)
+SYSCALL_4(sig_route, int op, int signo, int scope, id_t id)
 {
     return Process_Sigroute(vp->proc, pa->op, pa->signo, pa->scope, pa->id);
 }
 
-SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)
+SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
 
     return vcpu_wait_for_signal(&pp->siwa_queue, pa->set, pa->signo);
 }
 
-SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nullable signo)
+SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
 
     return vcpu_timedwait_for_signal(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
 }
 
-SYSCALL_1(sigpending, sigset_t* _Nonnull set)
+SYSCALL_1(sig_pending, sigset_t* _Nonnull set)
 {
     *(pa->set) = vcpu_pending_signals(vp);
     return EOK;
 }
 
-SYSCALL_3(sigsend, int scope, id_t id, int signo)
+SYSCALL_3(sig_send, int scope, id_t id, int signo)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

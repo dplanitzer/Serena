@@ -53,7 +53,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
     register vcpu_t run = (vcpu_t)self->running;
 
-    // Redirect the currently running VP to sigurgent() if it is running in user
+    // Redirect the currently running VP to sig_urgent() if it is running in user
     // mode, has an urgent signal pending and we haven't already triggered a
     // redirect previously.
     if (excpt_frame_isuser(efp) && (run->pending_sigs & SIGSET_URGENTS) != 0) {

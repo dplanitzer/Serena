@@ -50,19 +50,19 @@ void cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
         void* ret_addr;
     };
 
-    extern void sigurgent(void);
-    extern void sigurgent_end(void);
+    extern void sig_urgent(void);
+    extern void sig_urgent_end(void);
     const uintptr_t upc = excpt_frame_getpc(efp);
 
-    if (upc >= (uintptr_t)sigurgent && upc < (uintptr_t)sigurgent_end) {
+    if (upc >= (uintptr_t)sig_urgent && upc < (uintptr_t)sig_urgent_end) {
         return;
     }
 
-    // This return address will be popped off the stack by the sigurgent()
+    // This return address will be popped off the stack by the sig_urgent()
     // function rts instruction.
     struct sigurgent_frame* fp = (struct sigurgent_frame*)usp_grow(sizeof(struct sigurgent_frame));
     fp->ret_addr = (void*)excpt_frame_getpc(efp);
-    excpt_frame_setpc(efp, sigurgent);
+    excpt_frame_setpc(efp, sig_urgent);
 }
 
 
