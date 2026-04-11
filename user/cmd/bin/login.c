@@ -91,10 +91,10 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     
     // XXX enable dispatch queue based notifications again
     // XXX broken for now. Typing exit in the login shell will throw an error
-    // XXX because this proc_join() here consumes the pid and the proc_join() in
-    // XXX on_shell_termination() can't get the pid anymore.
-    struct proc_status ps;
-    proc_join(JOIN_PROC, childPid, &ps);
+    // XXX because this proc_status() here consumes the pid and the proc_status()
+    // XXX in on_shell_termination() can't get the pid anymore.
+    proc_status_t ps;
+    proc_status(PROC_STOF_PID, childPid, 0, &ps);
     on_shell_termination(NULL);
     // XXX enable dispatch queue based notifications again
 
@@ -127,8 +127,8 @@ static void login_user(void)
 // row.
 static void on_shell_termination(void* _Nullable ignore)
 {
-    struct proc_status ps;
-    const int r = proc_timedjoin(JOIN_ANY, 0, 0, &TIMESPEC_ZERO, &ps);
+    proc_status_t ps;
+    const int r = proc_status(PROC_STOF_ANY, 0, PROC_STF_NONBLOCKING, &ps);
 
     if (r == -1) {
         printf("Error: %s.\n", strerror(errno));
@@ -136,7 +136,7 @@ static void on_shell_termination(void* _Nullable ignore)
         /* NOT REACHED */
     }
 
-    if ((ps.reason == JREASON_EXIT && ps.u.status != EXIT_SUCCESS) || ps.reason != JREASON_EXIT) {
+    if ((ps.reason == PROC_STATUS_EXITED && ps.u.status != EXIT_SUCCESS) || ps.reason != PROC_STATUS_EXITED) {
         gFailedCounter++;
     }
 

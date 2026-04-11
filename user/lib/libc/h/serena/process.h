@@ -65,24 +65,11 @@ extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], c
 extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp);
 
 // Checks whether the specified child process or a member of the specified child
-// process group has terminated and is available for joining/reaping. If so,
-// then this function fills out the process status record 'ps' and returns 0.
-// Otherwise it blocks until the specified process has terminated or a member of
-// the specified child process group has terminated. A 'scope' of JOIN_PROC
-// indicates that the function should wait until the process with PID 'id' has
-// terminated. A 'scope' of JOIN_PROC_GROUP indicates that the function should
-// wait until a member of the child process group with id 'id' has terminated
-// and a 'scope' of JOIN_ANY indicates that this function should wait until any
-// child process terminates. You should pass 0 for 'id' if the scope is JOIN_ANY.  
-extern int proc_join(int scope, pid_t id, struct proc_status* _Nonnull ps);
-
-// Similar to proc_join() but imposes a timeout of 'wtp' on the wait. If 'wtp'
-// is 0 and (or a absolute time in the past) then this function simply checks
-// whether the indicated process has terminated without ever waiting. This
-// function returns ETIMEDOUT in this case or if the timeout has been reached
-// without the indicated process terminating. 
-extern int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps);
-
+// process group has undergone a state change. If so, then this function fills 
+// in the process status record 'ps' and returns 0. Otherwise EAGAIN is returned
+// if PROC_STF_NONBLOCKING is set in 'flags' or it waits until a process or the
+// specified process changes its state again.  
+extern int proc_status(int of, pid_t id, int flags, proc_status_t* _Nonnull ps);
 
 extern int proc_terminate(pid_t pid);
 extern int proc_suspend(pid_t pid);

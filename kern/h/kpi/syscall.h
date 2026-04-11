@@ -26,7 +26,7 @@ enum {
     SC_proc_suspend,        // errno_t proc_suspend(pid_t pid)
     SC_open,                // errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
     SC_fd_close,            // errno_t fd_close(int fd)
-    SC_proc_join,           // int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
+    SC_proc_status,         // errno_t proc_status(pid_t id, int flags, proc_status_t* _Nonnull ps)
     SC_fd_seek,             // errno_t fd_seek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
     SC_proc_property,       // errno_t proc_property(pid_t pid, int flavor, void* _Nonnull buf, size_t bufSize)
     SC_proc_setcwd,         // errno_t proc_setcwd(const char* _Nonnull path)

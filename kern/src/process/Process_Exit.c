@@ -29,77 +29,65 @@
 // in the process of getting shot down.
 
 
-static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int scope, pid_t id, bool* _Nonnull pOutExists)
+static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int of, pid_t id, bool* _Nonnull pOutExists)
 {
-    switch (scope) {
-        case JOIN_PROC:
+    switch (of) {
+        case PROC_STOF_PID:
             return ProcessManager_CopyZombieOfParent(gProcessManager, self->pid, id, pOutExists);
 
-        case JOIN_PROC_GROUP:
+        case PROC_STOF_ANY_FELLOW:
             return ProcessManager_CopyGroupZombieOfParent(gProcessManager, self->pid, id, pOutExists);
 
-        case JOIN_ANY:
+        case PROC_STOF_ANY:
             return ProcessManager_CopyAnyZombieOfParent(gProcessManager, self->pid, pOutExists);
+
+        default:
+            return NULL;
     }
 }
 
-// Waits for the child process with the given PID to terminate and returns the
-// termination status. Returns ECHILD if the function was told to wait for a
-// specific process or process group and the process or group does not exist.
-errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
+errno_t Process_GetStatus(ProcessRef _Nonnull self, int of, pid_t id, int flags, proc_status_t* _Nonnull ps)
 {
     decl_try_err();
     ProcessRef zp = NULL;
-    struct timespec deadline;
-    bool exists = false;
-    sigset_t hot_sigs = sig_bit(SIG_CHILD);
-    int signo;
 
-    switch (scope) {
-        case JOIN_PROC:
-        case JOIN_PROC_GROUP:
-        case JOIN_ANY:
+    switch (of) {
+        case PROC_STOF_PID:
+        case PROC_STOF_ANY_FELLOW:
+        case PROC_STOF_ANY:
             break;
 
         default:
             return EINVAL;
     }
 
-
-    if ((flags & TIMER_ABSTIME) == 0) {
-        struct timespec now;
-
-        clock_gettime(g_mono_clock, &now);
-        timespec_add(&now, wtp, &deadline);
-    }
-    else {
-        deadline = *wtp;
+    if ((flags & ~(PROC_STF_NONBLOCKING)) != 0) {
+        return EINVAL;
     }
 
 
     for (;;) {
-        mtx_lock(&self->mtx);
+        bool exists = false;
 
-        zp = _find_matching_zombie(self, scope, id, &exists);
+        zp = _find_matching_zombie(self, of, id, &exists);
+
         if (zp) {
-            mtx_unlock(&self->mtx);
             break;
         }
 
         if (!exists) {
-            mtx_unlock(&self->mtx);
             return ECHILD;
         }
-
-        if (timespec_eq(wtp, &TIMESPEC_ZERO)) {
-            mtx_unlock(&self->mtx);
-            return ETIMEDOUT;
+        
+        if ((flags & PROC_STF_NONBLOCKING) == PROC_STF_NONBLOCKING) {
+            return EAGAIN;
         }
 
-        mtx_unlock(&self->mtx);
-        
 
-        err = vcpu_timedwait_for_signal(&self->siwa_queue, &hot_sigs, flags | TIMER_ABSTIME, &deadline, &signo);
+        sigset_t hot_sigs = sig_bit(SIG_CHILD);
+        int signo;
+
+        err = vcpu_wait_for_signal(&self->siwa_queue, &hot_sigs, &signo);
         if (err != EOK) {
             return err;
         }
@@ -133,9 +121,9 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     // Reap all zombies. There may have been zombies before we came here. That's
     // why we unconditionally execute this loop.
     for (;;) {
-        struct proc_status ps;
+        proc_status_t ps;
 
-        if (Process_TimedJoin(self, JOIN_ANY, 0, 0, &TIMESPEC_INF, &ps) == ECHILD) {
+        if (Process_GetStatus(self, PROC_STOF_ANY, 0, 0, &ps) == ECHILD) {
             break;
         }
     }

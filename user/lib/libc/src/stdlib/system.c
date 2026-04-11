@@ -38,7 +38,7 @@ static int __system(const char *string)
     int r = 0;
     proc_spawn_t opts = {0};
     const char* argv[4];
-    struct proc_status ps;
+    proc_status_t ps;
 
     argv[0] = __shellPath;
     argv[1] = "-c";
@@ -53,7 +53,7 @@ static int __system(const char *string)
         goto out;
     }
 
-    if (proc_join(JOIN_PROC, sh_pid, &ps) < 0) {
+    if (proc_status(PROC_STOF_PID, sh_pid, 0, &ps) < 0) {
         r = -1;
         goto out;
     }
@@ -61,7 +61,7 @@ static int __system(const char *string)
 out:
     sig_route(SIG_ROUTE_DEL, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
 
-    return (r == 0) ? (ps.reason == JREASON_EXIT) ? ps.u.status : EXIT_FAILURE : -1;
+    return (r == 0) ? (ps.reason == PROC_STATUS_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
 }
 
 int system(const char *string)

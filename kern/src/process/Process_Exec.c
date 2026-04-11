@@ -90,7 +90,7 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
     pargs->argv = proc_argv;
     pargs->envp = proc_env;
     pargs->image_base = NULL;
-    pargs->urt_funcs = gKeiTable;
+    pargs->kei_funcs = gKeiTable;
 
     pimg->pargs = (char*)pargs;
 

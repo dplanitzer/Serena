@@ -13,7 +13,7 @@
 
 SYSCALL_1(proc_exit, int status)
 {    
-    Process_Exit(vp->proc, JREASON_EXIT, pa->status);
+    Process_Exit(vp->proc, PROC_STATUS_EXITED, pa->status);
     /* NOT REACHED */
     return 0;
 }
@@ -35,9 +35,9 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
     return err;
 }
 
-SYSCALL_5(proc_timedjoin, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
+SYSCALL_4(proc_status, int of, pid_t id, int flags, proc_status_t* _Nonnull ps)
 {
-    return Process_TimedJoin(vp->proc, pa->scope, pa->id, pa->flags, pa->wtp, pa->ps);
+    return Process_GetStatus(vp->proc, pa->of, pa->id, pa->flags, pa->ps);
 }
 
 SYSCALL_1(proc_terminate, pid_t pid)

@@ -32,22 +32,23 @@ typedef struct proc_args {
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
-    kei_func_t* _Nonnull        urt_funcs;      // Pointer to the URT function table
+    kei_func_t* _Nonnull        kei_funcs;      // Pointer to the URT function table
 } proc_args_t;
 
 
-#define JOIN_PROC       0   /* Join child process with pid */
-#define JOIN_PROC_GROUP 1   /* Join any member of the child process group */
-#define JOIN_ANY        2   /* Join any child process */
+#define PROC_STOF_PID           0   /* Status of child process with pid */
+#define PROC_STOF_ANY_FELLOW    1   /* Status of any member of the specified child process group */
+#define PROC_STOF_ANY           2   /* Status of any of the process' child processes */
+
+#define PROC_STF_NONBLOCKING   1    /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
+
+#define PROC_STATUS_EXITED      1
+#define PROC_STATUS_SIGNALED    2
+#define PROC_STATUS_EXCEPTION   3
 
 
-#define JREASON_EXIT        1
-#define JREASON_SIGNAL      2
-#define JREASON_EXCEPTION   3
-
-
-// The result of a waitpid() system call.
-struct proc_status {
+// Result of a proc_status() call.
+typedef struct proc_status {
     pid_t   pid;        // pid of the child process
     int     reason;     // termination reason
     union {
@@ -55,7 +56,7 @@ struct proc_status {
         int signo;      // signal that caused the process to terminate
         int excptno;    // exception that caused the process to terminate
     }       u;
-};
+} proc_status_t;
 
 
 // Scheduling parameters that apply to a process as a whole

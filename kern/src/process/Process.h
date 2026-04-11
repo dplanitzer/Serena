@@ -57,10 +57,10 @@ extern int Process_GetState(ProcessRef _Nonnull self);
 // will eventually reap the zombie and free the it for good.
 extern _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code);
 
-// Waits for the child process with the given PID to terminate and returns the
-// termination status. Returns ECHILD if the function was told to wait for a
-// specific process or process group and the process or group does not exist.
-extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps);
+// Returns the most recent state change of the receiver. Blocks by default until
+// the next state change if non is currently pending and 'flags' doesn't have
+// PROC_STF_NONBLOCKING set.
+extern errno_t Process_GetStatus(ProcessRef _Nonnull self, int of, pid_t id, int flags, proc_status_t* _Nonnull ps);
 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments

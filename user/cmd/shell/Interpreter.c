@@ -242,9 +242,9 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Wait for the command to complete its task
-    struct proc_status ps;
-    proc_join(JOIN_PROC, childPid, &ps);
-    if (ps.reason == JREASON_EXCEPTION) {
+    proc_status_t ps;
+    proc_status(PROC_STOF_PID, childPid, 0, &ps);
+    if (ps.reason == PROC_STATUS_EXCEPTION) {
         if (ps.u.excptno == EXCPT_FORCED_ABORT) {
             fprintf(stderr, "%s aborted.\n", argv[0]);
         }

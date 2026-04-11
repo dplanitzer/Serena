@@ -28,7 +28,7 @@ mtx_t __g_dtoa_mtx[2];
 void __stdlibc_init(proc_args_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
-    __gKeiTab = argsp->urt_funcs;
+    __gKeiTab = argsp->kei_funcs;
     environ = argsp->envp;
 
     __gAtExitFuncsCount = 0;

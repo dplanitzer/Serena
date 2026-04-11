@@ -475,7 +475,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
 
 void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
 {
-    _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
+    _proc_set_exit_reason(self, PROC_STATUS_SIGNALED, signo)
     vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
 }
 
