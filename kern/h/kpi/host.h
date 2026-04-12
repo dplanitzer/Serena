@@ -35,7 +35,7 @@ typedef struct host_basic_info {
 //XXX NOT YET
 //		-- sched info
 //          --- scheduler clock id
-//			--- min timeout ??? may not be needed since can use clock_getres(); though more convenient to have it here
+//			--- min timeout ??? may not be needed since can use clock_info(); though more convenient to have it here
 //			--- min quantum size
 //		-- resource counts
 //			--- proc_count				// num procs right now

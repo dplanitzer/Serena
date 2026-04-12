@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
         testToRun->func(argc, argv);
 
         if (testToRun->keepMainRunning) {
-            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+            clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
         }
         else {
             puts("ok");

@@ -44,7 +44,7 @@ static void philosopher(int* num)
         assert_ok(sem_wait(&chopstick[RIGHT(p)], 1));
 
         printf("Philosopher %d is eating...\n", p);
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &wt, NULL);
+        clock_wait(CLOCK_MONOTONIC, 0, &wt, NULL);
         printf("Philosopher %d has finished eating\n", p);
 
         assert_ok(sem_post(&chopstick[RIGHT(p)], 1));

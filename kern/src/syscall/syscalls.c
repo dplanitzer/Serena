@@ -14,9 +14,9 @@ SYSCALL_REF(coninit);
 SYSCALL_REF(nosys);
 SYSCALL_REF(nullsys);
 
-SYSCALL_REF(clock_gettime);
-SYSCALL_REF(clock_nanosleep);
-SYSCALL_REF(clock_getres);
+SYSCALL_REF(clock_time);
+SYSCALL_REF(clock_wait);
+SYSCALL_REF(clock_info);
 
 SYSCALL_REF(excpt_sethandler);
 
@@ -109,7 +109,7 @@ SYSCALL_REF(vcpu_info);
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_read, SC_ERRNO),
     SYSCALL_ENTRY(fd_write, SC_ERRNO),
-    SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
+    SYSCALL_ENTRY(clock_wait, SC_ERRNO),
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(proc_spawn, SC_ERRNO),
@@ -137,7 +137,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(mkfile, SC_ERRNO),
     SYSCALL_ENTRY(pipe_create, SC_ERRNO),
     SYSCALL_ENTRY(wq_dispose, SC_ERRNO),
-    SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
+    SYSCALL_ENTRY(clock_time, SC_ERRNO),
     SYSCALL_ENTRY(fs_mount, SC_ERRNO),
     SYSCALL_ENTRY(fs_unmount, SC_ERRNO),
     SYSCALL_ENTRY(host_info, SC_ERRNO),
@@ -175,7 +175,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_exec, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_policy, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setpolicy, SC_ERRNO),
-    SYSCALL_ENTRY(clock_getres, SC_ERRNO),
+    SYSCALL_ENTRY(clock_info, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_info, SC_ERRNO),
     SYSCALL_ENTRY(nullsys, SC_ERRNO),
     SYSCALL_ENTRY(proc_schedparam, SC_ERRNO),

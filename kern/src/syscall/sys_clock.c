@@ -10,9 +10,10 @@
 #include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
+#include <kpi/clock.h>
 
 
-SYSCALL_4(clock_nanosleep, int clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+SYSCALL_4(clock_wait, int clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
     if (!timespec_isvalid(pa->wtp)) {
         return EINVAL;
@@ -37,7 +38,7 @@ SYSCALL_4(clock_nanosleep, int clockid, int flags, const struct timespec* _Nonnu
     return (err != ETIMEDOUT) ? err : EOK;
 }
 
-SYSCALL_2(clock_gettime, int clockid, struct timespec* _Nonnull time)
+SYSCALL_2(clock_time, int clockid, struct timespec* _Nonnull time)
 {
     if (pa->clockid != CLOCK_MONOTONIC) {
         return ENODEV;
@@ -47,12 +48,23 @@ SYSCALL_2(clock_gettime, int clockid, struct timespec* _Nonnull time)
     return EOK;
 }
 
-SYSCALL_2(clock_getres, int clockid, struct timespec* _Nonnull res)
+SYSCALL_3(clock_info, int clockid, int flavor, clock_info_ref _Nonnull info)
 {
     if (pa->clockid != CLOCK_MONOTONIC) {
         return ENODEV;
     }
 
-    clock_getresolution(g_mono_clock, pa->res);
+    switch (pa->flavor) {
+        case CLOCK_INFO_BASIC: {
+            clock_basic_info_t* ip = pa->info;
+
+            clock_getresolution(g_mono_clock, &ip->tick_resolution);
+            break;
+        }
+
+        default:
+            return EINVAL;
+    }
+
     return EOK;
 }

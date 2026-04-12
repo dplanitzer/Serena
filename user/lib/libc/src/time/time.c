@@ -13,7 +13,7 @@ time_t time(time_t *timer)
 {
     struct timespec ts;
     
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    clock_time(CLOCK_MONOTONIC, &ts);
     if (timer) {
         *timer = ts.tv_sec;
     }

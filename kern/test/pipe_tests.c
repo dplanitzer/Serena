@@ -65,7 +65,7 @@ static void OnReadFromPipe(int fd)
     timespec_from_ms(&dly, 200);
 
     while (true) {
-        //clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, NULL);
+        //clock_wait(CLOCK_MONOTONIC, 0, &dly, NULL);
         buf[0] = '\0';
         const ssize_t nBytesRead = fd_read(fd, buf, nBytesToRead);
         assert_ssize_ge(0, nBytesRead);
@@ -84,7 +84,7 @@ static void OnWriteToPipe(int fd)
     timespec_from_ms(&dur, 20);
     
     while (true) {
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
+        clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);
         const ssize_t nBytesWritten = fd_write(fd, bytes, nBytesToWrite);
         assert_ssize_ge(0, nBytesWritten);
 

@@ -220,7 +220,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
         // acceptable to push them back on the timeline.
         dispatch_timer_t tp = (dispatch_timer_t)q->timers.first;
         if (tp) {
-            clock_gettime(CLOCK_MONOTONIC, &now);
+            clock_time(CLOCK_MONOTONIC, &now);
 
             if (timespec_le(&tp->deadline, &now)) {
                 _queue_remove_first(&q->timers);

@@ -14,6 +14,6 @@ clock_t clock(void)
     // XXX should actually return the time since process start
     struct timespec ts;
     
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    clock_time(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * CLOCKS_PER_SEC + ts.tv_nsec / ((1000l * 1000l * 1000l) / CLOCKS_PER_SEC);
 }

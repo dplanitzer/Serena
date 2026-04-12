@@ -153,7 +153,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
     if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
         struct timespec now;
 
-        clock_gettime(CLOCK_MONOTONIC, &now);
+        clock_time(CLOCK_MONOTONIC, &now);
         timespec_add(&now, &timer->deadline, &timer->deadline);
     }
 
@@ -175,7 +175,7 @@ void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _N
 
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    clock_time(CLOCK_MONOTONIC, &now);
     do  {
         timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
     } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));

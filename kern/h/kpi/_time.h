@@ -19,7 +19,7 @@ typedef int clockid_t;
 #define CLOCK_MONOTONIC 0
 
 
-// If specified then the wait time passed to clock_nanosleep() is an absolute
+// If specified then the wait time passed to clock_wait() is an absolute
 // time; otherwise the wait time is interpreted as a duration.
 #define TIMER_ABSTIME   2
 

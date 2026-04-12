@@ -53,5 +53,5 @@ int main(int argc, char *argv[])
     }
 
     // Don't exit (doing it this cheep way for now. Should keep an eye on its children though)
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+    clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
 }

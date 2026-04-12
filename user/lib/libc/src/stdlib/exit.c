@@ -25,7 +25,7 @@ _Noreturn void exit(int status)
     if (isAlreadyExiting) {
         // Some other vcpu has already started the exit() process. Wait until
         // the process is shot down by the kernel.
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+        clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
         /* NOT REACHED */
     }
 

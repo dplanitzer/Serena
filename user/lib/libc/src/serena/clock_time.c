@@ -1,5 +1,5 @@
 //
-//  clock_gettime.c
+//  clock_time.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,7 +9,7 @@
 #include <kpi/syscall.h>
 #include <serena/clock.h>
 
-int clock_gettime(clockid_t clockid, struct timespec* _Nonnull ts)
+int clock_time(clockid_t clockid, struct timespec* _Nonnull ts)
 {
-    return (int)_syscall(SC_clock_gettime, clockid, ts);
+    return (int)_syscall(SC_clock_time, clockid, ts);
 }

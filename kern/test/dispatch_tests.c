@@ -32,7 +32,7 @@ static void OnAsync(void* _Nonnull ign)
     printf("%d\n", gCounter++);
     //struct timespec dur;
     // timespec_from_sec(&dur, 2);
-    //clock_nanosleep(clock_uptime, 0, &dur, NULL);
+    //clock_wait(clock_uptime, 0, &dur, NULL);
     assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
 
@@ -55,7 +55,7 @@ static int OnSync(void* _Nonnull ign)
     struct timespec dur;
 
     timespec_from_ms(&dur, 500);
-    clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
+    clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);
     printf("%d (Dispatcher: %p)\n", gCounter++, dispatch_current_queue());
     return 1234;
 }
