@@ -18,6 +18,9 @@ EXT_SOURCES_DIR := $(LIBC_SOURCES_DIR)/ext
 EXT_OBJS_DIR := $(LIBC_OBJS_DIR)/ext
 EXT_SC_OBJS_DIR := $(LIBSC_OBJS_DIR)/ext
 
+FS_SOURCES_DIR := $(LIBC_SOURCES_DIR)/fs
+FS_OBJS_DIR := $(LIBC_OBJS_DIR)/fs
+
 HOST_SOURCES_DIR := $(LIBC_SOURCES_DIR)/host
 HOST_OBJS_DIR := $(LIBC_OBJS_DIR)/host
 
@@ -86,6 +89,7 @@ $(LIBSC_OBJS_DIR):
 -include $(ARCH_M68K_SOURCES_DIR)/package.mk
 -include $(ARCH_M68K_VBCC_SOURCES_DIR)/package.mk
 -include $(EXT_SOURCES_DIR)/package.mk
+-include $(FS_SOURCES_DIR)/package.mk
 -include $(HOST_SOURCES_DIR)/package.mk
 -include $(IEEEFP_SOURCES_DIR)/package.mk
 -include $(LOCALE_SOURCES_DIR)/package.mk
@@ -105,8 +109,8 @@ $(LIBSC_OBJS_DIR):
 $(LIBC_FILE): $(ARCH_M68K_OBJS) $(ARCH_M68K_VBCC_OBJS) $(EXT_OBJS) \
 			  $(IEEEFP_OBJS) $(LOCALE_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) \
 			  $(STDLIB_OBJS) $(STRING_OBJS) $(SYNCH_OBJS) $(SERENA_OBJS) \
-			  $(SIGNAL_OBJS) $(TIME_OBJS) $(HOST_OBJS) $(PROC_OBJS) \
-			  $(VCPU_OBJS)
+			  $(SIGNAL_OBJS) $(TIME_OBJS) $(FS_OBJS) $(HOST_OBJS) \
+			  $(PROC_OBJS) $(VCPU_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 
