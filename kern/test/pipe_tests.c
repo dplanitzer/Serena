@@ -26,31 +26,31 @@ void pipe_test(int argc, char *argv[])
 {
     int fds[2];
 
-    assert_ok(pipe(fds));
-    printf("rioc: %d, wioc: %d\n", fds[SEO_PIPE_READ], fds[SEO_PIPE_WRITE]);
+    assert_ok(pipe_create(fds));
+    printf("rioc: %d, wioc: %d\n", fds[PIPE_FD_READ], fds[PIPE_FD_WRITE]);
 
     const char* pBytesToWrite = "Hello World";
     size_t nBytesToWrite = strlen(pBytesToWrite) + 1;
-    ssize_t nBytesWritten = fd_write(fds[SEO_PIPE_WRITE], pBytesToWrite, nBytesToWrite);
+    ssize_t nBytesWritten = fd_write(fds[PIPE_FD_WRITE], pBytesToWrite, nBytesToWrite);
     assert_ssize_ge(0, nBytesWritten);
     printf("written: %s, nbytes: %zd\n", pBytesToWrite, nBytesWritten);
     assert_ssize_eq(nBytesToWrite, nBytesWritten);
 
-    assert_ok(fd_close(fds[SEO_PIPE_WRITE]));
+    assert_ok(fd_close(fds[PIPE_FD_WRITE]));
 
     char pBuffer[64];
-    ssize_t nBytesRead = fd_read(fds[SEO_PIPE_READ], pBuffer, nBytesWritten);
+    ssize_t nBytesRead = fd_read(fds[PIPE_FD_READ], pBuffer, nBytesWritten);
     assert_ssize_ge(0, nBytesRead);
     printf("read: %s, nbytes: %zd\n", pBuffer, nBytesRead);
     assert_ssize_eq(nBytesToWrite, nBytesWritten);
     assert_int_eq(0, strcmp(pBuffer, pBytesToWrite));
 
     // Should get EOF now since we already closed the write side
-    nBytesRead = fd_read(fds[SEO_PIPE_READ], pBuffer, 1);
+    nBytesRead = fd_read(fds[PIPE_FD_READ], pBuffer, 1);
     assert_ssize_eq(0, nBytesRead);
     printf("write side is closed, read: nbytes: %zd\n", nBytesRead);
 
-    assert_ok(fd_close(fds[SEO_PIPE_READ]));
+    assert_ok(fd_close(fds[PIPE_FD_READ]));
     printf("ok\n");
 }
 
@@ -95,12 +95,12 @@ static void OnWriteToPipe(int fd)
 
 void pipe2_test(int argc, char *argv[])
 {
-    assert_ok(pipe(fds));
+    assert_ok(pipe_create(fds));
 
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_FIXED_CONCURRENT_UTILITY(2);
     gDispatcher = dispatch_create(&attr);
     assert_not_null(gDispatcher);
 
-    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWriteToPipe, (void*)fds[SEO_PIPE_WRITE]));
-    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnReadFromPipe, (void*)fds[SEO_PIPE_READ]));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWriteToPipe, (void*)fds[PIPE_FD_WRITE]));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnReadFromPipe, (void*)fds[PIPE_FD_READ]));
 }

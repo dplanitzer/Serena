@@ -43,7 +43,7 @@ enum {
     SC_fs_truncate,         // errno_t fs_truncate(int wd, const char* _Nonnull path, off_t length)
     SC_fd_truncate,         // errno_t fd_truncate(int fd, off_t length)
     SC_mkfile,              // errno_t mkfile(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
-    SC_pipe,                // errno_t pipe(int* _Nonnull rioc, int* _Nonnull wioc)
+    SC_pipe_create,         // errno_t pipe_create(int fds[2])
     SC_wq_dispose,          // void wq_dispose(int q)
     SC_clock_gettime,       // errno_t clock_gettime(clockid_t clock, struct timespec* _Nonnull ts)
     SC_fs_mount,            // errno_t fs_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)

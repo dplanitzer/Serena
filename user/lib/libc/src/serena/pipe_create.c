@@ -10,7 +10,7 @@
 #include <serena/pipe.h>
 
 
-int pipe(int fds[2])
+int pipe_create(int fds[2])
 {
-    return (int)_syscall(SC_pipe, &fds[0], &fds[1]);
+    return (int)_syscall(SC_pipe_create, fds);
 }

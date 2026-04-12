@@ -53,7 +53,7 @@ SYSCALL_REF(fd_info);
 SYSCALL_REF(fd_setflags);
 SYSCALL_REF(ioctl);
 
-SYSCALL_REF(mkpipe);
+SYSCALL_REF(pipe_create);
 
 SYSCALL_REF(proc_exit);
 SYSCALL_REF(proc_spawn);
@@ -135,7 +135,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_truncate, SC_ERRNO),
     SYSCALL_ENTRY(fd_truncate, SC_ERRNO),
     SYSCALL_ENTRY(mkfile, SC_ERRNO),
-    SYSCALL_ENTRY(mkpipe, SC_ERRNO),
+    SYSCALL_ENTRY(pipe_create, SC_ERRNO),
     SYSCALL_ENTRY(wq_dispose, SC_ERRNO),
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
     SYSCALL_ENTRY(fs_mount, SC_ERRNO),
