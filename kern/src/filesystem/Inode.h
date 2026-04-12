@@ -78,11 +78,11 @@ any_subclass_funcs(Inode,
     // Get/Set Inode Attributes
     //
 
-    // Returns the file information of the given node. The node may be of any
+    // Returns the attributes of the given node. The node may be of any
     // type.
     // Override: Optional
     // Default Behavior: Returns the node's file info
-    void (*getInfo)(void* _Nonnull _Locked self, fs_attr_t* _Nonnull pOutInfo);
+    void (*getAttributes)(void* _Nonnull _Locked self, fs_attr_t* _Nonnull attr);
 
     // Sets the mode of the inode.
     // Override: Optional
@@ -271,8 +271,8 @@ extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 invoke_n(createChannel, Inode, __self, __mode, __pOutChannel)
 
 
-#define Inode_GetInfo(__self, __pOutInfo) \
-invoke_n(getInfo, Inode, __self, __pOutInfo)
+#define Inode_GetAttributes(__self, __attr) \
+invoke_n(getAttributes, Inode, __self, __attr)
 
 #define Inode_SetMode(__self, __mode) \
 invoke_n(setMode, Inode, __self, __mode)

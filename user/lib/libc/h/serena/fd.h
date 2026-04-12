@@ -50,9 +50,6 @@ extern int fd_close(int fd);
 // @Concurrency: Safe
 extern int fcntl(int fd, int cmd, ...);
 
-// Returns 1 if the I/O channel is connected to a terminal and 0 otherwise.
-extern int isatty(int fd);
-
 
 // Reads up to 'nbytes' bytes from the I/O channel 'fd' and writes them to the
 // buffer 'buf'. The buffer must be big enough to hold 'nbytes' bytes. If at
@@ -84,14 +81,27 @@ extern ssize_t fd_write(int fd, const void* _Nonnull buf, size_t nbytes);
 extern off_t fd_seek(int fd, off_t offset, int whence);
 
 
-// Similar to fs_attr() but operates on the file descriptor 'fd'.
+// Similar to fs_truncate() but operates on the open file identified by 'fd'.
+// @Concurrency: Safe
+extern int fd_truncate(int fd, off_t length);
+
+
+// Returns a copy of file/directory attributes. Similar to fs_attr() but
+// operates on the file descriptor 'fd'.
 // @Concurrency: Safe
 extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 
 
-// Similar to fs_truncate() but operates on the open file identified by 'fd'.
+// Returns information about the descriptor 'fd'. The kind of information that
+// should be returned if specified by 'flavor'. 'info' must point to a memory
+// block that is big enough to hold the corresponding info data structure.
 // @Concurrency: Safe
-extern int fd_truncate(int fd, off_t length);
+extern int fd_info(int fd, int flavor, fd_info_ref _Nonnull info);
+
+// Convenience function that returns the type of the descriptor. FD_TYPE_INVALID
+// is returned if the descriptor is not valid.
+// @Concurrency: Safe
+extern int fd_type(int fd);
 
 __CPP_END
 

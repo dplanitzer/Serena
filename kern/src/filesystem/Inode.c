@@ -145,7 +145,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
     }
 }
 
-void Inode_getInfo(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull pi)
+void Inode_getAttributes(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull attr)
 {
     struct timespec now;
 
@@ -154,32 +154,32 @@ void Inode_getInfo(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull pi)
     }
 
     if (Inode_IsAccessed(self)) {
-        pi->st_atim = now;
+        attr->st_atim = now;
     } else {
-        pi->st_atim = self->accessTime;
+        attr->st_atim = self->accessTime;
     }
     if (Inode_IsUpdated(self)) {
-        pi->st_mtim = now;
+        attr->st_mtim = now;
     } else {
-        pi->st_mtim = self->modificationTime;
+        attr->st_mtim = self->modificationTime;
     }
     if (Inode_IsStatusChanged(self)) {
-        pi->st_ctim = now;
+        attr->st_ctim = now;
     } else {
-        pi->st_ctim = self->statusChangeTime;
+        attr->st_ctim = self->statusChangeTime;
     }
     
-    pi->st_size = self->size;
-    pi->st_uid = self->uid;
-    pi->st_gid = self->gid;
-    pi->st_mode = self->mode;
-    pi->st_nlink = self->linkCount;
-    pi->st_fsid = Filesystem_GetId(self->filesystem);
-    pi->st_ino = self->inid;
-    pi->st_blksize = Filesystem_GetNodeBlockSize(self->filesystem, self);
-    pi->st_blocks = (pi->st_blksize > 0) ? ((pi->st_size + (pi->st_blksize >> 1)) / pi->st_blksize) : 0;
-    pi->st_dev = 0;
-    pi->st_rdev = 0;
+    attr->st_size = self->size;
+    attr->st_uid = self->uid;
+    attr->st_gid = self->gid;
+    attr->st_mode = self->mode;
+    attr->st_nlink = self->linkCount;
+    attr->st_fsid = Filesystem_GetId(self->filesystem);
+    attr->st_ino = self->inid;
+    attr->st_blksize = Filesystem_GetNodeBlockSize(self->filesystem, self);
+    attr->st_blocks = (attr->st_blksize > 0) ? ((attr->st_size + (attr->st_blksize >> 1)) / attr->st_blksize) : 0;
+    attr->st_dev = 0;
+    attr->st_rdev = 0;
 }
 
 void Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)
@@ -242,7 +242,7 @@ errno_t Inode_truncate(InodeRef _Nonnull _Locked self, off_t length)
 any_subclass_func_defs(Inode,
 func_def(deinit, Inode)
 func_def(createChannel, Inode)
-func_def(getInfo, Inode)
+func_def(getAttributes, Inode)
 func_def(setMode, Inode)
 func_def(setOwner, Inode)
 func_def(setTimes, Inode)

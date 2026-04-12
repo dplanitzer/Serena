@@ -48,8 +48,9 @@ SYSCALL_REF(fd_close);
 SYSCALL_REF(fd_read);
 SYSCALL_REF(fd_write);
 SYSCALL_REF(fd_seek);
-SYSCALL_REF(fd_attr);
 SYSCALL_REF(fd_truncate);
+SYSCALL_REF(fd_attr);
+SYSCALL_REF(fd_info);
 SYSCALL_REF(fcntl);
 SYSCALL_REF(ioctl);
 
@@ -104,7 +105,7 @@ SYSCALL_REF(vcpu_info);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   77
+#define SYSCALL_COUNT   78
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_read, SC_ERRNO),
@@ -184,6 +185,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_setstate, SC_ERRNO),
     SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
     SYSCALL_ENTRY(proc_resume, SC_ERRNO),
+    SYSCALL_ENTRY(fd_info, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

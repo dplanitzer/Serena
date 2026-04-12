@@ -255,8 +255,24 @@ errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
     return err;
 }
 
+errno_t IOChannel_GetInfo(IOChannelRef _Nonnull self, int flavor, fd_info_ref _Nonnull info)
+{
+    switch (flavor) {
+        case FD_INFO_BASIC: {
+            fd_basic_info_t* ip = info;
 
-errno_t IOChannel_getFileInfo(IOChannelRef _Nonnull self, fs_attr_t* _Nonnull pOutInfo)
+            ip->type = self->channelType;
+            ip->flags = self->mode;
+            return EOK;
+        }
+            
+        default:
+            return EINVAL;
+    }
+}
+
+
+errno_t IOChannel_getAttributes(IOChannelRef _Nonnull self, fs_attr_t* _Nonnull attr)
 {
     return EBADF;
 }
@@ -274,6 +290,6 @@ func_def(read, IOChannel)
 func_def(write, IOChannel)
 func_def(seek, IOChannel)
 func_def(getSeekableRange, IOChannel)
-func_def(getFileInfo, IOChannel)
+func_def(getAttributes, IOChannel)
 func_def(truncate, IOChannel)
 );

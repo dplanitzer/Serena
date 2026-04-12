@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/file.h>
+#include <serena/fd.h>
 #include <kpi/syscall.h>
 
 int fd_attr(int fd, fs_attr_t* _Nonnull attr)

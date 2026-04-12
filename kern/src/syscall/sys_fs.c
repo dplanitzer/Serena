@@ -8,9 +8,197 @@
 
 #include "syscalldecls.h"
 #include <filemanager/FilesystemManager.h>
+#include <kpi/directory.h>
 #include <kpi/disk.h>
 #include <kpi/filesystem.h>
 
+
+SYSCALL_4(mkfile, const char* _Nonnull path, int oflags, mode_t mode, int* _Nonnull pOutIoc)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef chan;
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->mode, &chan);
+    if (err == EOK) {
+        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
+    }
+    mtx_unlock(&pp->mtx);
+
+    if (err != EOK) {
+        IOChannel_Release(chan);
+        *(pa->pOutIoc) = -1;
+    }
+    return err;
+}
+
+SYSCALL_2(dir_open, const char* _Nonnull path, int* _Nonnull pOutIoc)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef chan;
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_OpenDirectory(&pp->fm, pa->path, &chan);
+    if (err == EOK) {
+        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
+    }
+    mtx_unlock(&pp->mtx);
+    
+    if (err != EOK) {
+        IOChannel_Release(chan);
+        *(pa->pOutIoc) = -1;
+    }
+    return err;
+}
+
+SYSCALL_3(fs_create_directory, int wd, const char* _Nonnull path, mode_t mode)
+{
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    const errno_t err = FileManager_CreateDirectory(&pp->fm, pa->path, pa->mode);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_3(fs_attr, int wd, const char* _Nonnull path, fs_attr_t* _Nonnull attr)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_GetAttributes(&pp->fm, pa->path, pa->attr);
+    mtx_unlock(&pp->mtx);    
+    return err;
+}
+
+SYSCALL_3(fs_truncate, int wd, const char* _Nonnull path, off_t length)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_TruncateFile(&pp->fm, pa->path, pa->length);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_3(fs_access, int wd, const char* _Nonnull path, int mode)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_CheckAccess(&pp->fm, pa->path, pa->mode);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_3(fs_unlink, int wd, const char* _Nonnull path, int mode)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_Unlink(&pp->fm, pa->path, pa->mode);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_4(fs_rename, int owd, const char* _Nonnull oldPath, int nwd,  const char* _Nonnull newPath)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->owd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+    if (pa->nwd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_Rename(&pp->fm, pa->oldPath, pa->newPath);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_4(fs_setowner, int wd, const char* _Nonnull path, uid_t uid, gid_t gid)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_SetFileOwner(&pp->fm, pa->path, pa->uid, pa->gid);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, mode_t mode)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_SetFileMode(&pp->fm, pa->path, pa->mode);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
+
+SYSCALL_3(fs_settimes, int wd, const char* _Nonnull path, const struct timespec times[_Nullable 2])
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    mtx_lock(&pp->mtx);
+    err = FileManager_SetFileTimestamps(&pp->fm, pa->path, pa->times);
+    mtx_unlock(&pp->mtx);
+    return err;
+}
 
 SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)
 {

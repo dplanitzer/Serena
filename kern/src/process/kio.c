@@ -98,19 +98,6 @@ errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap)
     return err;
 }
 
-
-errno_t _kfstat(ProcessRef _Nonnull pp, int fd, fs_attr_t* _Nonnull pOutInfo)
-{
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
-        err = IOChannel_GetFileInfo(pChannel, pOutInfo);
-        IOChannel_EndOperation(pChannel);
-    }
-    return err;
-}
-
 errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length)
 {
     decl_try_err();
@@ -118,6 +105,30 @@ errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length)
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_Truncate(pChannel, length);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
+}
+
+errno_t _kfattr(ProcessRef _Nonnull pp, int fd, fs_attr_t* _Nonnull attr)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
+        err = IOChannel_GetAttributes(pChannel, attr);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
+}
+
+errno_t _kfinfo(ProcessRef _Nonnull pp, int fd, int flavor, fd_info_ref _Nonnull info)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
+        err = IOChannel_GetInfo(pChannel, flavor, info);
         IOChannel_EndOperation(pChannel);
     }
     return err;

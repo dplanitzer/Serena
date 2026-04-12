@@ -47,9 +47,9 @@ const FILE_Callbacks __FILE_fd_callbacks = {
 int __fdopen_init(__IOChannel_FILE* _Nonnull self, int fd, __FILE_Mode sm)
 {
     // The descriptor must be valid and open
-    const int fl = fcntl(fd, F_GETFL);
-    
-    if (fl == -1) {
+    fd_basic_info_t info;
+
+    if (fd_info(fd, FD_INFO_BASIC, &info) == -1) {
         errno = EBADF;
         return EOF;
     }
@@ -58,6 +58,7 @@ int __fdopen_init(__IOChannel_FILE* _Nonnull self, int fd, __FILE_Mode sm)
     // Make sure that 'mode' lines up with what the descriptor can actually
     // do
     int ok = 1;
+    const int fl = info.flags;
 
     if (((sm & __kStreamMode_Read) != 0) && ((fl & O_RDONLY) == 0)) {
         ok = 0;

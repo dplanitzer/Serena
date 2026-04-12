@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
-    if (fcntl(STDIN_FILENO, F_GETFL) != -1) {
+    if (fd_type(STDIN_FILENO) > FD_TYPE_INVALID) {
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }

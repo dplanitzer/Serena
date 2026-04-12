@@ -92,6 +92,7 @@ enum {
     SC_vcpu_setstate,       // int vcpu_setstate(vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull state)
     SC_fs_setlabel,         // errno_t fs_setlabel(fsid_t fsid, const char* _Nonnull label)
     SC_proc_resume,         // errno_t proc_resume(pid_t pid)
+    SC_fd_info,             // errno_t fd_info(int fd, int flavor, fd_info_ref _Nonnull info)
 };
 
 

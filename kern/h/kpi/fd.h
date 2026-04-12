@@ -26,20 +26,31 @@
 
 
 // Descriptor types.
+#define FD_TYPE_INVALID     -1
 #define FD_TYPE_TERMINAL    0
 #define FD_TYPE_INODE       1
 #define FD_TYPE_DRIVER      2
 #define FD_TYPE_PROCESS     3
 
 
+#define FD_INFO_BASIC   1
+
+typedef void* fd_info_ref;
+
+typedef struct fd_basic_info {
+    int     type;
+    int     flags;
+} fd_basic_info_t;
+
+
 // Returns the descriptor flags (int)
 // int fcntl(int fd, F_GETFD)
-#define F_GETFD     0
+#define F_GETFD     0   //XXX obsolete
 
 
 // Returns file status and access modes
 // int fcntl(int fd, F_GETFL)
-#define F_GETFL     1
+#define F_GETFL     1   //XXX obsolete
 
 // Sets the file status to the given bits, ignoring any bits outside O_FILESTATUS
 // int fcntl(int fd, F_SETFL, int fsbits)
@@ -54,6 +65,6 @@
 
 // Returns the descriptor type
 // int fcntl(int fd, F_GETTYPE)
-#define F_GETTYPE   4
+#define F_GETTYPE   4   //XXX obsolete
 
 #endif /* _KPI_FD_H */

@@ -148,11 +148,11 @@ any_subclass_funcs(IOChannel,
     // Inode Channel Interface
     //
 
-    // Returns information about the Inode to which the channel is connected if
+    // Returns the attributes of the Inode to which the channel is connected if
     // the channel is an Inode channel. Returns EBADF otherwise.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*getFileInfo)(void* _Nonnull self, fs_attr_t* _Nonnull pOutInfo);
+    errno_t (*getAttributes)(void* _Nonnull self, fs_attr_t* _Nonnull attr);
 
     // Reduces or increases the size of a regular file if the channel is connected
     // to an Inode. Returns EBADF otherwise
@@ -216,10 +216,11 @@ invoke_n(seek, IOChannel, __self, __offset, __pOutNewPos, __whence)
 invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
 
 extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
+extern errno_t IOChannel_GetInfo(IOChannelRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
 
 
-#define IOChannel_GetFileInfo(__self, __pOutInfo) \
-invoke_n(getFileInfo, IOChannel, __self, __pOutInfo)
+#define IOChannel_GetAttributes(__self, __attr) \
+invoke_n(getAttributes, IOChannel, __self, __attr)
 
 #define IOChannel_Truncate(__self, __length) \
 invoke_n(truncate, IOChannel, __self, __length)

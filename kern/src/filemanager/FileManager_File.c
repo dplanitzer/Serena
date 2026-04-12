@@ -167,15 +167,14 @@ catch:
     return err;
 }
 
-// Returns information about the file at the given path.
-errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_attr_t* _Nonnull pOutInfo)
+errno_t FileManager_GetAttributes(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_attr_t* _Nonnull pOutInfo)
 {
     decl_try_err();
     ResolvedPath r;
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
-        Inode_GetInfo(r.inode, pOutInfo);
+        Inode_GetAttributes(r.inode, pOutInfo);
         Inode_Unlock(r.inode);
     }
 

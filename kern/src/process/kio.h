@@ -14,7 +14,7 @@
 #include <ext/try.h>
 #include <kobj/AnyRefs.h>
 #include <kpi/attr.h>
-#include <kpi/file.h>
+#include <kpi/fd.h>
 #include <kpi/types.h>
 
 
@@ -26,8 +26,10 @@ extern errno_t _kseek(ProcessRef _Nonnull pp, int fd, off_t offset, off_t* _Null
 extern errno_t _kfcntl(ProcessRef _Nonnull pp, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap);
 extern errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap);
 
-extern errno_t _kfstat(ProcessRef _Nonnull pp, int fd, fs_attr_t* _Nonnull pOutInfo);
 extern errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length);
+
+extern errno_t _kfattr(ProcessRef _Nonnull pp, int fd, fs_attr_t* _Nonnull attr);
+extern errno_t _kfinfo(ProcessRef _Nonnull pp, int fd, int flavor, fd_info_ref _Nonnull info);
 
 
 #define kopen(path, oflags, pOutIoc) \
@@ -51,11 +53,14 @@ _kfcntl(gKernelProcess, fd cmd, pResult, ap)
 #define kioctl(fd, cmd, ap) \
 _kioctl(gKernelProcess, fd, cmd, ap)
 
-
-#define kfstat(fd, pOutInfo) \
-_kfstat(gKernelProcess, fd, gOutInfo)
-
 #define kftruncate(fd, length) \
 _kftruncate(gKernelProcess, fd, length)
+
+#define kfattr(fd, attr) \
+_kfattr(gKernelProcess, fd, attr)
+
+#define kfinfo(fd, flavor, info) \
+_kfinfo(gKernelProcess, fd, flavor, info)
+
 
 #endif /* _KIO_H */

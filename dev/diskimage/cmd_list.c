@@ -70,19 +70,19 @@ static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
 
 static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    fs_attr_t info;
-    const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
+    fs_attr_t attr;
+    const errno_t err = FileManager_GetAttributes(self->fm, path, &attr);
     
     if (err == EOK) {
-        itoa(info.st_nlink, self->buf, 10);
+        itoa(attr.st_nlink, self->buf, 10);
         self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
-        itoa(info.st_uid, self->buf, 10);
+        itoa(attr.st_uid, self->buf, 10);
         self->uidWidth = __max(self->uidWidth, strlen(self->buf));
-        itoa(info.st_gid, self->buf, 10);
+        itoa(attr.st_gid, self->buf, 10);
         self->gidWidth = __max(self->gidWidth, strlen(self->buf));
-        lltoa(info.st_size, self->buf, 10);
+        lltoa(attr.st_size, self->buf, 10);
         self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
-        itoa(info.st_ino, self->buf, 10);
+        itoa(attr.st_ino, self->buf, 10);
         self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->buf));
     }
     return err;
@@ -90,13 +90,13 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
 
 static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    fs_attr_t info;
-    const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
+    fs_attr_t attr;
+    const errno_t err = FileManager_GetAttributes(self->fm, path, &attr);
     
     if (err == EOK) {
         char tc;
 
-        switch (S_FTYPE(info.st_mode)) {
+        switch (S_FTYPE(attr.st_mode)) {
             case S_IFDEV:   tc = 'h'; break;
             case S_IFDIR:   tc = 'd'; break;
             case S_IFPROC:  tc = 'P'; break;
@@ -110,18 +110,18 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->buf[i] = '-';
         }
 
-        file_permissions_to_text(perm_get(info.st_mode, S_ICUSR), &self->buf[1]);
-        file_permissions_to_text(perm_get(info.st_mode, S_ICGRP), &self->buf[4]);
-        file_permissions_to_text(perm_get(info.st_mode, S_ICOTH), &self->buf[7]);
+        file_permissions_to_text(perm_get(attr.st_mode, S_ICUSR), &self->buf[1]);
+        file_permissions_to_text(perm_get(attr.st_mode, S_ICGRP), &self->buf[4]);
+        file_permissions_to_text(perm_get(attr.st_mode, S_ICOTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
             self->buf,
-            self->linkCountWidth, info.st_nlink,
-            self->uidWidth, info.st_uid,
-            self->gidWidth, info.st_gid,
-            self->sizeWidth, info.st_size,
-            self->inodeIdWidth, info.st_ino,
+            self->linkCountWidth, attr.st_nlink,
+            self->uidWidth, attr.st_uid,
+            self->gidWidth, attr.st_gid,
+            self->sizeWidth, attr.st_size,
+            self->inodeIdWidth, attr.st_ino,
             entryName);
     }
     return err;
@@ -207,9 +207,9 @@ static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    fs_attr_t info;
+    fs_attr_t attr;
 
-    return (FileManager_GetFileInfo(self->fm, path, &info) == EOK && S_ISDIR(info.st_mode)) ? true : false;
+    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && S_ISDIR(attr.st_mode)) ? true : false;
 }
 
 

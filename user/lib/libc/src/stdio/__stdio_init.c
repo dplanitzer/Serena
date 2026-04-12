@@ -32,6 +32,7 @@ static void __stdio_exit(void)
 
 void __stdio_init(void)
 {
+    int ftype;
     int bufmod;
     size_t bufsiz;
 
@@ -42,10 +43,11 @@ void __stdio_init(void)
     _Stdout = (FILE*)&_StdoutObj;
     _Stderr = (FILE*)&_StderrObj;
 
-    if (fcntl(STDIN_FILENO, F_GETFL) != -1) {
+    ftype = fd_type(STDIN_FILENO);
+    if (ftype > FD_TYPE_INVALID) {
         __fdopen_init(&_StdinObj, STDIN_FILENO, __kStreamMode_Read);
 
-        if (fcntl(STDIN_FILENO, F_GETTYPE) == FD_TYPE_TERMINAL) {
+        if (ftype == FD_TYPE_TERMINAL) {
             bufmod = _IOLBF;
             bufsiz = 256;
         }
@@ -60,10 +62,11 @@ void __stdio_init(void)
         __fopen_null_init(_Stdin, __kStreamMode_Read);
     }
 
-    if (fcntl(STDOUT_FILENO, F_GETFL) != -1) {
+    ftype = fd_type(STDOUT_FILENO);
+    if (ftype > FD_TYPE_INVALID) {
         __fdopen_init(&_StdoutObj, STDOUT_FILENO, __kStreamMode_Write);
 
-        if (fcntl(STDOUT_FILENO, F_GETTYPE) == FD_TYPE_TERMINAL) {
+        if (ftype == FD_TYPE_TERMINAL) {
             bufmod = _IOLBF;
             bufsiz = 256;
         }
@@ -78,7 +81,7 @@ void __stdio_init(void)
         __fopen_null_init(_Stdout, __kStreamMode_Write);
     }
 
-    if (fcntl(STDERR_FILENO, F_GETFL) != -1) {
+    if (fd_type(STDERR_FILENO) > FD_TYPE_INVALID) {
         __fdopen_init(&_StderrObj, STDERR_FILENO, __kStreamMode_Write);
     }
     else {
