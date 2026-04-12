@@ -29,7 +29,7 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnul
     drive_info_t dinf;
 
     dinf.platter = (params->driveType == kDriveType_3_5) ? DISK_DIAM_3_5 : DISK_DIAM_5_25;
-    dinf.properties = 0;
+    dinf.flags = 0;
     try(DiskDriver_Create(class(FloppyDriver), 0, g_cats, &dinf, (DriverRef*)&self));
 
     self->drive = drive;
@@ -82,9 +82,9 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
         if (hasDisk) {
             SensedDisk info;
     
-            info.properties = DISK_PROP_REMOVABLE;
+            info.flags = DISK_FLAG_REMOVABLE;
             if ((status & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
-                info.properties |= DISK_PROP_READ_ONLY;
+                info.flags |= DISK_FLAG_READ_ONLY;
             }
             info.sectorSize = ADF_SECTOR_DATA_SIZE;
             info.heads = ADF_HEADS_PER_CYL;

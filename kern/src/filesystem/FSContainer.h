@@ -21,7 +21,7 @@
 open_class(FSContainer, Object,
     size_t      blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
     blkcnt_t    blockCount;         // overall number of addressable blocks in this FSContainer
-    uint32_t    properties;         // FS properties defined by the FS container 
+    uint32_t    flags;              // FS flags defined by the FS container 
 );
 open_class_funcs(FSContainer, Object,
 
@@ -81,11 +81,11 @@ open_class_funcs(FSContainer, Object,
 #define FSContainer_GetBlockSize(__self)\
 ((FSContainerRef)__self)->blockSize
 
-#define FSContainer_GetFSProperties(__self)\
-((FSContainerRef)__self)->properties
+#define FSContainer_GetFlags(__self)\
+((FSContainerRef)__self)->flags
 
 #define FSContainer_IsReadOnly(__self)\
-((((FSContainerRef)__self)->properties & FS_PROP_READ_ONLY) == FS_PROP_READ_ONLY ? true : false)
+((((FSContainerRef)__self)->flags & FS_FLAG_READ_ONLY) == FS_FLAG_READ_ONLY ? true : false)
 
 
 #define FSContainer_Disconnect(__self) \
@@ -116,6 +116,6 @@ invoke_n(getDiskInfo, FSContainer, __self, __info)
 // Methods for use by FSContainer subclassers.
 //
 
-extern errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t flags, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */

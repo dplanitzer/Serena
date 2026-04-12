@@ -1,5 +1,5 @@
 //
-//  fs_diskpath.c
+//  fs_property.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -9,7 +9,7 @@
 #include <serena/filesystem.h>
 #include <kpi/syscall.h>
 
-int fs_diskpath(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+int fs_property(fsid_t fsid, int flavor, char* _Nonnull buf, size_t bufSize)
 {
-    return (int)_syscall(SC_fs_diskpath, fsid, buf, bufSize);
+    return (int)_syscall(SC_fs_property, fsid, flavor, buf, bufSize);
 }

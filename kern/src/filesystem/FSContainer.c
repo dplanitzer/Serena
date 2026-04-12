@@ -13,7 +13,7 @@
 #include <ext/bit.h>
 
 
-errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t flags, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FSContainerRef self;
@@ -23,7 +23,7 @@ errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t b
     if ((err = Object_Create(pClass, 0, (void**)&self)) == EOK) {
         self->blockCount = blockCount;
         self->blockSize = blockSize;
-        self->properties = properties;
+        self->flags = flags;
     }
 
     *pOutSelf = self;

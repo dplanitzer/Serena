@@ -17,15 +17,15 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     decl_try_err();
     struct DiskContainer* self = NULL;
     disk_info_t info;
-    uint32_t fsprops = 0;
+    uint32_t flags = 0;
 
     try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDiskInfo, &info));
 
-    if ((info.properties & DISK_PROP_READ_ONLY) == DISK_PROP_READ_ONLY) {
-        fsprops |= FS_PROP_READ_ONLY;
+    if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
+        flags |= FS_FLAG_READ_ONLY;
     }
-    if ((info.properties & DISK_PROP_REMOVABLE) == DISK_PROP_REMOVABLE) {
-        fsprops |= FS_PROP_REMOVABLE;
+    if ((info.flags & DISK_FLAG_REMOVABLE) == DISK_FLAG_REMOVABLE) {
+        flags |= FS_FLAG_REMOVABLE;
     }
 
     //XXX select the disk cache based on FS needs and driver sector size
@@ -33,7 +33,7 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     DiskSession s;
     DiskCache_OpenSession(diskCache, pChannel, &info, &s);
 
-    try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(diskCache), flags, (FSContainerRef*)&self));
     self->diskCache = diskCache;
     self->session = s;
 

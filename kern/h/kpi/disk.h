@@ -23,14 +23,14 @@
 #define DISK_DIAM_8         800
 
 
-// Drive properties
-#define DRIVE_PROP_FIXED        0x0001
-#define DRIVE_PROP_READ_ONLY    0x0002
+// Drive flags
+#define DRIVE_FLAG_FIXED        0x0001
+#define DRIVE_FLAG_READ_ONLY    0x0002
 
 // Information about the disk drive
 typedef struct drive_info {
     uint16_t    platter;
-    uint32_t    properties;         // drive properties 
+    uint32_t    flags;          // drive flags 
 } drive_info_t;
 
 // Returns information about a disk drive. Use the kDriverCommand_GetCategories
@@ -40,9 +40,9 @@ typedef struct drive_info {
 #define kDiskCommand_GetDriveInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
-// Disk properties
-#define DISK_PROP_REMOVABLE 0x0001
-#define DISK_PROP_READ_ONLY 0x0002
+// Disk flags
+#define DISK_FLAG_REMOVABLE 0x0001
+#define DISK_FLAG_READ_ONLY 0x0002
 
 // Disk information
 typedef struct disk_info {
@@ -53,7 +53,7 @@ typedef struct disk_info {
     scnt_t      sectorsPerRdwr;     // number of consecutive sectors that the drive hardware reads/writes from/to this disk. Usually 1 but may be the same as 'sectorsPerTrack' if the disk hardware reads/writes whole tracks in a single I/O operation. May be used to implement sector clustering
     size_t      sectorSize;
     uint32_t    diskId;             // unique id starting at 1, incremented every time a new disk is inserted into the drive
-    uint32_t    properties;         // Disk properties
+    uint32_t    flags;              // disk flags
 } disk_info_t;
 
 // Returns information about the disk that is currently in the drive.

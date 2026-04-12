@@ -25,8 +25,7 @@ SYSCALL_REF(host_processes);
 SYSCALL_REF(host_filesystems);
 
 SYSCALL_REF(fs_info);
-SYSCALL_REF(fs_diskpath);
-SYSCALL_REF(fs_label);
+SYSCALL_REF(fs_property);
 SYSCALL_REF(fs_setlabel);
 SYSCALL_REF(fs_mount);
 SYSCALL_REF(fs_unmount);
@@ -144,7 +143,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(host_info, SC_ERRNO),
     SYSCALL_ENTRY(fs_sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
-    SYSCALL_ENTRY(fs_diskpath, SC_ERRNO),
+    SYSCALL_ENTRY(fs_property, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_errno, SC_INT),
     SYSCALL_ENTRY(fs_setowner, SC_ERRNO),
     SYSCALL_ENTRY(fd_setflags, SC_ERRNO),
@@ -165,7 +164,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sig_pending, SC_ERRNO),
     SYSCALL_ENTRY(host_filesystems, SC_ERRNO),
     SYSCALL_ENTRY(fs_info, SC_ERRNO),
-    SYSCALL_ENTRY(fs_label, SC_ERRNO),
+    SYSCALL_ENTRY(nosys, SC_ERRNO),                 //XXX UNUSED
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_relinquish_self, SC_NORETURN),
     SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),

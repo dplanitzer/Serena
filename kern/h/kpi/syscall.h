@@ -51,7 +51,7 @@ enum {
     SC_host_info,           // errno_t host_info(int flavor, host_info_ref _Nonnull info)
     SC_fs_sync,             // void fs_sync(void)
     SC_coninit,             // void __con_init(void)
-    SC_fs_diskpath,         // errno_t fs_diskpath(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+    SC_fs_property,         // errno_t fs_property(fsid_t fsid, int flavor, char* _Nonnull buf, size_t bufSize)
     SC_vcpu_errno,          // errno_t* _Nonnull __vcpu_errno(void)
     SC_fs_setowner,         // errno_t fs_setowner(int wd, const char* _Nonnull path, uid_t uid, gid_t gid)
     SC_fd_setflags,         // errno_t fd_setflags(int fd, int op, int flags)
@@ -72,7 +72,7 @@ enum {
     SC_sig_pending,         // int sig_pending(sigset_t* _Nonnull set)
     SC_host_filesystems,    // errno_t host_filesystems(fsid_t* _Nonnull buf, size_t bufSize)
     SC_fs_info,             // errno_t fs_info(int flavor, fs_info_ref _Nonnull info)
-    SC_fs_label,            // errno_t fs_label(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+    SC_unused,              //XXX UNUSED
     SC_vcpu_acquire,        // int vcpu_acquire(const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
     SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
     SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)

@@ -46,7 +46,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
 
     drive_info_t drvi;
     drvi.platter = DISK_DIAM_UNKNOWN;
-    drvi.properties = DRIVE_PROP_FIXED;
+    drvi.flags = DRIVE_FLAG_FIXED;
 
     try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
@@ -76,7 +76,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     info.cylinders = 1;
     info.sectorSize = self->sectorSize;
     info.sectorsPerRdwr = 1;
-    info.properties = 0;
+    info.flags = 0;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 

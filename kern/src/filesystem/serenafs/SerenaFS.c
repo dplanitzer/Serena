@@ -137,9 +137,9 @@ errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, int flavor, fs_info_ref _Non
             ip->count = SfsAllocator_GetAllocatedBlockCount(&self->blockAllocator);
             ip->blockSize = FSContainer_GetBlockSize(fsContainer);
             ip->fsid = Filesystem_GetId(self);
-            ip->properties = 0;
+            ip->flags = 0;
             if (FSContainer_IsReadOnly(fsContainer)) {
-                ip->properties |= FS_PROP_READ_ONLY;
+                ip->flags |= FS_FLAG_READ_ONLY;
             }
             memcpy(ip->type, "sefs", 5);
             break;

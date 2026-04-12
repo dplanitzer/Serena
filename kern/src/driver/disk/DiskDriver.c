@@ -72,7 +72,7 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->sectorCount = (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders;
         self->sectorSize = info->sectorSize;
     
-        self->diskProperties = info->properties;
+        self->diskFlags = info->flags;
         self->flags.hasDisk = 1;
         self->flags.isDiskChangeActive = 0;
 
@@ -93,7 +93,7 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->sectorCount = 0;
         self->sectorSize = 0;
     
-        self->diskProperties = DISK_PROP_READ_ONLY;
+        self->diskFlags = DISK_FLAG_READ_ONLY;
         self->flags.hasDisk = 0;
         self->flags.isDiskChangeActive = 0;
     }
@@ -257,7 +257,7 @@ static void _get_drive_info_async(DiskDriverRef _Nonnull self, GetDriveInfoReque
 {
     drive_info_t* p = req->ip;
     
-    p->properties = self->diskProperties;
+    p->flags = self->diskFlags;
     req->s.status = EOK;
 }
 
@@ -276,7 +276,7 @@ static void _get_disk_info_async(DiskDriverRef _Nonnull self, DiskGeometryReques
         p->sectorSize = self->sectorSize;
         p->sectorsPerRdwr = self->sectorsPerRdwr;
         p->diskId = self->diskId;
-        p->properties = self->diskProperties;
+        p->flags = self->diskFlags;
         req->s.status = EOK;
     }
     else {

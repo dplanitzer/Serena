@@ -37,7 +37,7 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
 
     drive_info_t drvi;
     drvi.platter = DISK_DIAM_UNKNOWN;
-    drvi.properties = DRIVE_PROP_READ_ONLY | DRIVE_PROP_FIXED;
+    drvi.flags = DRIVE_FLAG_READ_ONLY | DRIVE_FLAG_FIXED;
 
     try(DiskDriver_Create(class(RomDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
@@ -69,7 +69,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     info.cylinders = 1;
     info.sectorSize = self->sectorSize;
     info.sectorsPerRdwr = 1;
-    info.properties = DISK_PROP_READ_ONLY;
+    info.flags = DISK_FLAG_READ_ONLY;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 

@@ -216,31 +216,33 @@ SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)
     return err;
 }
 
-SYSCALL_3(fs_diskpath, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+SYSCALL_4(fs_property, fsid_t fsid, int flavor, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     mtx_lock(&pp->mtx);
-    err = FileManager_GetFilesystemDiskPath(&pp->fm, pa->fsid, pa->buf, pa->bufSize);
-    mtx_unlock(&pp->mtx);
-    return err;
-}
 
-SYSCALL_3(fs_label, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
-{
-    decl_try_err();
-    ProcessRef pp = vp->proc;
+    switch (pa->flavor) {
+        case FS_PROP_LABEL: {
+            FilesystemRef fsp = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pa->fsid);
 
-    mtx_lock(&pp->mtx);
-    FilesystemRef fsp = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pa->fsid);
+            if (fsp) {
+                err = Filesystem_GetLabel(fsp, pa->buf, pa->bufSize);
+                Object_Release(fsp);
+            }
+            else {
+                err = ESRCH;
+            }
+            break;
+        }
 
-    if (fsp) {
-        err = Filesystem_GetLabel(fsp, pa->buf, pa->bufSize);
-        Object_Release(fsp);
-    }
-    else {
-        err = ESRCH;
+        case FS_PROP_DISKPATH:
+            err = FileManager_GetFilesystemDiskPath(&pp->fm, pa->fsid, pa->buf, pa->bufSize);
+            break;
+
+        default:
+            err = EINVAL;
     }
     mtx_unlock(&pp->mtx);
     return err;

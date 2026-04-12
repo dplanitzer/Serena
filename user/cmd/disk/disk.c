@@ -186,16 +186,6 @@ void cmd_fsid(const char* _Nonnull path)
 }
 
 
-static void print_cat_info(const fs_basic_info_t* _Nonnull info)
-{
-    char diskName[32];
-
-    fs_diskpath(info->fsid, diskName, sizeof(diskName));
-
-    puts("Catalog ID");
-    printf("%s       %u\n", diskName, info->fsid);
-}
-
 static void print_reg_info(const fs_basic_info_t* _Nonnull info)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
@@ -204,13 +194,15 @@ static void print_reg_info(const fs_basic_info_t* _Nonnull info)
     char diskName[32];
     char volLabel[64];
 
-    fs_diskpath(info->fsid, diskName, sizeof(diskName));
-    if (fs_label(info->fsid, volLabel, sizeof(volLabel))) {
+    if (fs_property(info->fsid, FS_PROP_DISKPATH, diskName, sizeof(diskName)) == -1) {
+        return;
+    }
+    if (fs_property(info->fsid, FS_PROP_LABEL, volLabel, sizeof(volLabel)) == -1) {
         return;
     }
 
 
-    if ((info->properties & FS_PROP_READ_ONLY) == FS_PROP_READ_ONLY) {
+    if ((info->flags & FS_FLAG_READ_ONLY) == FS_FLAG_READ_ONLY) {
         status = "Read Only";
     }
     else {
@@ -223,13 +215,25 @@ static void print_reg_info(const fs_basic_info_t* _Nonnull info)
     printf("%s %u %lluK %u %u %u%% %s %s %s\n", diskName, info->fsid, size / 1024ull, info->count, info->capacity - info->count, fullPerc, status, info->type, volLabel);
 }
 
+static void print_cat_info(const fs_basic_info_t* _Nonnull info)
+{
+    char diskName[32];
+
+    if (fs_property(info->fsid, FS_PROP_DISKPATH, diskName, sizeof(diskName)) == -1) {
+        return;
+    }
+
+    puts("Catalog ID");
+    printf("%s       %u\n", diskName, info->fsid);
+}
+
 static void cmd_info(const char* _Nonnull path)
 {
     const fsid_t fsid = get_fsid(path);
     fs_basic_info_t info;
 
     if (!fs_info(fsid, FS_INFO_BASIC, &info)) {
-        if ((info.properties & FS_PROP_CATALOG) == FS_PROP_CATALOG) {
+        if ((info.flags & FS_FLAG_CATALOG) == FS_FLAG_CATALOG) {
             print_cat_info(&info);
         }
         else {
@@ -271,7 +275,7 @@ static void cmd_geometry(const char* _Nonnull path)
             return;
         }
 
-        fs_diskpath(fsid, buf, sizeof(buf));
+        fs_property(fsid, FS_PROP_DISKPATH, buf, sizeof(buf));
         path = buf;
     }
 
