@@ -129,50 +129,30 @@ errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
     return EOK;
 }
 
-errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap)
+errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags)
 {
-    decl_try_err();
+    if ((flags & ~O_FILESTATUS) != 0) {
+        return EINVAL;
+    }
 
-    switch (cmd) {
-        case F_GETFD:
-            *pResult = 0;
+    switch (op) {
+        case FD_FOP_ADD:
+            self->mode |= flags;    //XXX should be atomic_int()
             break;
 
-        case F_GETFL:
-            *pResult = self->mode;
+        case FD_FOP_REMOVE:
+            self->mode &= ~flags;   //XXX should be atomic_int()
             break;
 
-        case F_SETFL: { //XXX should be atomic_int
-            const int flags = va_arg(ap, int);
-
-            self->mode = (flags & O_FILESTATUS);
-            break;
-        }
-
-        case F_UPDTFL: {    //XXX should be atomic_int
-            const int setOrClear = va_arg(ap, int);
-            const int fl = va_arg(ap, int) & O_FILESTATUS;
-
-            if (setOrClear) {
-                self->mode |= fl;
-            }
-            else {
-                self->mode &= ~fl;
-            }
-            break;
-        }
-
-        case F_GETTYPE:
-            *pResult = self->channelType;
+        case FD_FOP_REPLACE:
+            self->mode = flags;     //XXX should be atomic_int()
             break;
 
         default:
-            *pResult = -1;
-            err = EINVAL;
-            break;
+            return EINVAL;
     }
 
-    return err;
+    return EOK;
 }
 
 

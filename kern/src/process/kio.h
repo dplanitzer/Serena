@@ -23,7 +23,7 @@ extern errno_t _kclose(ProcessRef _Nonnull pp, int fd);
 extern errno_t _kread(ProcessRef _Nonnull pp, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
 extern errno_t _kwrite(ProcessRef _Nonnull pp, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten);
 extern errno_t _kseek(ProcessRef _Nonnull pp, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence);
-extern errno_t _kfcntl(ProcessRef _Nonnull pp, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap);
+extern errno_t _ksetflags(ProcessRef _Nonnull pp, int fd, int op, int flags);
 extern errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap);
 
 extern errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length);
@@ -47,8 +47,8 @@ _kwrite(gKernelProcess, fd, buffer, nBytesToWrite, nBytesWritten)
 #define kseek(fd, offset, pOutNewPos, whence) \
 _kseek(gKernelProcess, fd, offset, pOutNewPos, whence)
 
-#define kfcntl(fd, cmd, pResult, ap) \
-_kfcntl(gKernelProcess, fd cmd, pResult, ap)
+#define ksetflags(fd, op, flags) \
+_ksetflags(gKernelProcess, fd, op, flags)
 
 #define kioctl(fd, cmd, ap) \
 _kioctl(gKernelProcess, fd, cmd, ap)

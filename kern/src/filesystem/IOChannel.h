@@ -200,7 +200,7 @@ any_subclass_funcs(IOChannel,
 ((IOChannelRef)(__self))->offset += (__delta)
 
 
-extern errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap);
+extern errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags);
 
 
 #define IOChannel_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \

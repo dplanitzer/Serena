@@ -73,14 +73,13 @@ errno_t _kseek(ProcessRef _Nonnull pp, int fd, off_t offset, off_t* _Nullable pO
     return err;
 }
 
-errno_t _kfcntl(ProcessRef _Nonnull pp, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap)
+errno_t _ksetflags(ProcessRef _Nonnull pp, int fd, int op, int flags)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    *pResult = -1;
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
-        err = IOChannel_vFcntl(pChannel, cmd, pResult, ap);
+        err = IOChannel_SetFlags(pChannel, op, flags);
         IOChannel_EndOperation(pChannel);
     }
     return err;

@@ -40,9 +40,9 @@ SYSCALL_4(fd_seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence
     return _kseek(vp->proc, pa->fd, pa->offset, pa->pOutNewPos, pa->whence);
 }
 
-SYSCALL_4(fcntl, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap)
+SYSCALL_3(fd_setflags, int fd, int op, int flags)
 {
-    return _kfcntl(vp->proc, pa->fd, pa->cmd, pa->pResult, pa->ap);
+    return _ksetflags(vp->proc, pa->fd, pa->op, pa->flags);
 }
 
 SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)

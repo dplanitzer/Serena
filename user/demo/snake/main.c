@@ -70,7 +70,7 @@ static void setup(void)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
-    fcntl(STDIN_FILENO, F_UPDTFL, 1, O_NONBLOCK);
+    fd_setflags(STDIN_FILENO, FD_FOP_ADD, O_NONBLOCK);
     cursor_on(false);
 
     game_over = false;
@@ -95,7 +95,7 @@ static void setup(void)
 static void cleanup(void)
 {
     cursor_on(true);
-    fcntl(STDIN_FILENO, F_UPDTFL, 0, O_NONBLOCK);
+    fd_setflags(STDIN_FILENO, FD_FOP_REMOVE, O_NONBLOCK);
 }
 
 

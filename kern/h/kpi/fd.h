@@ -25,6 +25,12 @@
 #define O_FILESTATUS    (O_APPEND | O_NONBLOCK)
 
 
+// fd_setflags() operation modes
+#define FD_FOP_REPLACE  1
+#define FD_FOP_ADD      2
+#define FD_FOP_REMOVE   3
+
+
 // Descriptor types.
 #define FD_TYPE_INVALID     -1
 #define FD_TYPE_TERMINAL    0
@@ -41,30 +47,5 @@ typedef struct fd_basic_info {
     int     type;
     int     flags;
 } fd_basic_info_t;
-
-
-// Returns the descriptor flags (int)
-// int fcntl(int fd, F_GETFD)
-#define F_GETFD     0   //XXX obsolete
-
-
-// Returns file status and access modes
-// int fcntl(int fd, F_GETFL)
-#define F_GETFL     1   //XXX obsolete
-
-// Sets the file status to the given bits, ignoring any bits outside O_FILESTATUS
-// int fcntl(int fd, F_SETFL, int fsbits)
-#define F_SETFL     2
-
-// Updates the file status to the given bits, ignoring any bits outside O_FILESTATUS.
-// If 'setOrClear' is 0 then the specified bits are cleared; otherwise the specified
-// bits are set in the descriptor
-// int fcntl(int fd, F_SETFL, int setOrClear, int fsbits)
-#define F_UPDTFL    3
-
-
-// Returns the descriptor type
-// int fcntl(int fd, F_GETTYPE)
-#define F_GETTYPE   4   //XXX obsolete
 
 #endif /* _KPI_FD_H */

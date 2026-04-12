@@ -45,12 +45,6 @@ extern int open(const char* _Nonnull path, int oflags, ...);
 extern int fd_close(int fd);
 
 
-// Performs an operation on the given descriptor. The operation is performed on
-// the descriptor itself rather than the underlying resource.
-// @Concurrency: Safe
-extern int fcntl(int fd, int cmd, ...);
-
-
 // Reads up to 'nbytes' bytes from the I/O channel 'fd' and writes them to the
 // buffer 'buf'. The buffer must be big enough to hold 'nbytes' bytes. If at
 // least one byte could be read successfully then the actual number of bytes
@@ -102,6 +96,12 @@ extern int fd_info(int fd, int flavor, fd_info_ref _Nonnull info);
 // is returned if the descriptor is not valid.
 // @Concurrency: Safe
 extern int fd_type(int fd);
+
+
+// Updates the descriptor flags by combining the current descriptor flags with
+// the new flags 'flags' based o the combination operation 'op'.
+// @Concurrency: Safe
+extern int fd_setflags(int fd, int op, int flags);
 
 __CPP_END
 

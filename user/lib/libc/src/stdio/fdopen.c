@@ -8,24 +8,25 @@
 
 #include "__stdio.h"
 #include <stdlib.h>
-#include <serena/file.h>
+#include <serena/fd.h>
 
-FILE *fdopen(int ioc, const char * _Nonnull mode)
+FILE *fdopen(int fd, const char * _Nonnull mode)
 {
+    const int ftype = fd_type(fd);
     __FILE_Mode sm;
 
-    if (__fopen_parse_mode(mode, &sm) == 0) {
+    if (ftype > FD_TYPE_INVALID && __fopen_parse_mode(mode, &sm) == 0) {
         __IOChannel_FILE* self;
 
         if ((self = malloc(SIZE_OF_FILE_SUBCLASS(__IOChannel_FILE))) == NULL) {
             return NULL;
         }
 
-        if (__fdopen_init(self, ioc, sm | __kStreamMode_FreeOnClose) == 0) {
+        if (__fdopen_init(self, fd, sm | __kStreamMode_FreeOnClose) == 0) {
             int bufmod;
             size_t bufsiz;
 
-            if (fcntl(fileno((FILE*)self), F_GETTYPE) == FD_TYPE_TERMINAL) {
+            if (ftype == FD_TYPE_TERMINAL) {
                 bufmod = _IOLBF;
                 bufsiz = 256;
             }

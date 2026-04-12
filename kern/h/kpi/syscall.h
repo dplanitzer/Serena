@@ -54,7 +54,7 @@ enum {
     SC_fs_diskpath,         // errno_t fs_diskpath(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
     SC_vcpu_errno,          // errno_t* _Nonnull __vcpu_errno(void)
     SC_fs_setowner,         // errno_t fs_setowner(int wd, const char* _Nonnull path, uid_t uid, gid_t gid)
-    SC_fcntl,               // int fcntl(int fd, int cmd, int* _Nonnull pResult, ...)
+    SC_fd_setflags,         // errno_t fd_setflags(int fd, int op, int flags)
     SC_fs_setperms,         // errno_t fs_setperms(int, const char* _Nonnull path, mode_t mode)
     SC_fs_settimes,         // errno_t fs_settimes(int, const char* _Nonnull path, const struct timespec times[_Nullable 2])
     SC_vcpu_yield,          // void vcpu_yield(void)

@@ -51,7 +51,7 @@ SYSCALL_REF(fd_seek);
 SYSCALL_REF(fd_truncate);
 SYSCALL_REF(fd_attr);
 SYSCALL_REF(fd_info);
-SYSCALL_REF(fcntl);
+SYSCALL_REF(fd_setflags);
 SYSCALL_REF(ioctl);
 
 SYSCALL_REF(mkpipe);
@@ -147,7 +147,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_diskpath, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_errno, SC_INT),
     SYSCALL_ENTRY(fs_setowner, SC_ERRNO),
-    SYSCALL_ENTRY(fcntl, SC_ERRNO),
+    SYSCALL_ENTRY(fd_setflags, SC_ERRNO),
     SYSCALL_ENTRY(fs_setperms, SC_ERRNO),
     SYSCALL_ENTRY(fs_settimes, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_yield, SC_VOID),
