@@ -55,7 +55,7 @@ static int copy_file_contents(int sfd, int dfd)
 static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull srcStat, const char* _Nonnull dstPath)
 {
     int sfd = -1, dfd = -1;
-    mode_t perms = S_FPERM(srcStat->st_mode);
+    mode_t perms = S_FPERM(srcStat->mode);
 
     // Need to ensure that the destination file has write permissions so that we
     // can actually copy the data
@@ -79,9 +79,9 @@ static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull src
 
     // Remove the write rights from the destination if the source doesn't have
     // write rights
-    if (dfd != -1 && !perm_has(srcStat->st_mode, S_ICUSR, S_IWRITE)) {
+    if (dfd != -1 && !perm_has(srcStat->mode, S_ICUSR, S_IWRITE)) {
         //XXX use fchmod() instead once it exists
-        fs_setperms(NULL, dstPath, srcStat->st_mode);
+        fs_setperms(NULL, dstPath, srcStat->mode);
     }
 
 
@@ -132,20 +132,20 @@ static int copy_obj(const char* _Nonnull srcPath, const char* _Nonnull dstPath)
 
 
     // Source must be a file for now
-    if (!hasSrc || !S_ISREG(srcstat.st_mode)) {
+    if (!hasSrc || !S_ISREG(srcstat.mode)) {
         errno = EINVAL;
         return -1;
     }
 
     // Destination must not exist or be a directory
-    if (hasDst && !S_ISDIR(dststat.st_mode)) {
+    if (hasDst && !S_ISDIR(dststat.mode)) {
         errno = EINVAL;
         return -1;
     }
 
 
     // Compute the final destination path if 'dstPath' points to a directory
-    if (hasDst && S_ISDIR(dststat.st_mode)) {
+    if (hasDst && S_ISDIR(dststat.mode)) {
         const char* lastSrcPathComponent = strrchr(srcPath, '/');
         const char* fileName = (lastSrcPathComponent) ? lastSrcPathComponent + 1 : srcPath;
 

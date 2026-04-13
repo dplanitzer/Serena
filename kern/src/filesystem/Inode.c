@@ -154,32 +154,30 @@ void Inode_getAttributes(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull att
     }
 
     if (Inode_IsAccessed(self)) {
-        attr->st_atim = now;
+        attr->acc_time = now;
     } else {
-        attr->st_atim = self->accessTime;
+        attr->acc_time = self->accessTime;
     }
     if (Inode_IsUpdated(self)) {
-        attr->st_mtim = now;
+        attr->mod_time = now;
     } else {
-        attr->st_mtim = self->modificationTime;
+        attr->mod_time = self->modificationTime;
     }
     if (Inode_IsStatusChanged(self)) {
-        attr->st_ctim = now;
+        attr->chg_time = now;
     } else {
-        attr->st_ctim = self->statusChangeTime;
+        attr->chg_time = self->statusChangeTime;
     }
     
-    attr->st_size = self->size;
-    attr->st_uid = self->uid;
-    attr->st_gid = self->gid;
-    attr->st_mode = self->mode;
-    attr->st_nlink = self->linkCount;
-    attr->st_fsid = Filesystem_GetId(self->filesystem);
-    attr->st_ino = self->inid;
-    attr->st_blksize = Filesystem_GetNodeBlockSize(self->filesystem, self);
-    attr->st_blocks = (attr->st_blksize > 0) ? ((attr->st_size + (attr->st_blksize >> 1)) / attr->st_blksize) : 0;
-    attr->st_dev = 0;
-    attr->st_rdev = 0;
+    attr->size = self->size;
+    attr->uid = self->uid;
+    attr->gid = self->gid;
+    attr->mode = self->mode;
+    attr->nlink = self->linkCount;
+    attr->fsid = Filesystem_GetId(self->filesystem);
+    attr->ino = self->inid;
+    attr->blk_size = Filesystem_GetNodeBlockSize(self->filesystem, self);
+    attr->blocks = (attr->blk_size > 0) ? ((attr->size + (attr->blk_size >> 1)) / attr->blk_size) : 0;
 }
 
 void Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)

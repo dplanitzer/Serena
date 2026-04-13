@@ -58,18 +58,18 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
         return EOF;
     }
 
-    if (!S_ISREG(st.st_mode)) {
+    if (!S_ISREG(st.mode)) {
         errno = EINVAL;
         fd_close(fd);
         return EOF;
     }
-    if (st.st_size > (off_t)SSIZE_MAX) {
+    if (st.size > (off_t)SSIZE_MAX) {
         errno = E2BIG;
         fd_close(fd);
         return EOF;
     }
 
-    const size_t fileSize = (size_t)st.st_size;
+    const size_t fileSize = (size_t)st.size;
     char* text = malloc(fileSize + 1);
     int r;
 

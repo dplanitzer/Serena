@@ -14,20 +14,18 @@
 #include <kpi/types.h>
 
 typedef struct fs_attr {
-    struct timespec st_atim;    // Last data access time
-    struct timespec st_mtim;    // Last data modification time
-    struct timespec st_ctim;    // Last file status change time
-    off_t           st_size;
-    uid_t           st_uid;
-    gid_t           st_gid;
-    mode_t          st_mode;
-    nlink_t         st_nlink;
-    fsid_t          st_fsid;
-    ino_t           st_ino;
-    blksize_t       st_blksize;
-    blkcnt_t        st_blocks;
-    dev_t           st_dev;     // Always 0
-    dev_t           st_rdev;    // Always 0
+    struct timespec acc_time;    // Last data access time
+    struct timespec mod_time;    // Last data modification time
+    struct timespec chg_time;    // Last file status change time
+    off_t           size;
+    uid_t           uid;
+    gid_t           gid;
+    mode_t          mode;
+    nlink_t         nlink;
+    fsid_t          fsid;
+    ino_t           ino;
+    blksize_t       blk_size;
+    blkcnt_t        blocks;
 } fs_attr_t;
 
 

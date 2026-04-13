@@ -169,7 +169,7 @@ static fsid_t get_fsid(const char* _Nonnull path)
 
 
     if (fs_attr(NULL, p, &info) == 0) {
-        return info.st_fsid;
+        return info.fsid;
     }
     else {
         return -1;
@@ -258,7 +258,7 @@ static void cmd_geometry(const char* _Nonnull path)
         }
     }
 
-    if (S_ISDEV(st.st_mode)) {
+    if (S_ISDEV(st.mode)) {
         // raw disk
         fd = open(path, O_RDONLY);
         if (fd < 0) {

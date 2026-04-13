@@ -75,17 +75,17 @@ static int format_inode(const char* _Nonnull path, const char* _Nonnull entryNam
         return -1;
     }
     
-    itoa(st.st_nlink, buf, 10);
+    itoa(st.nlink, buf, 10);
     nlink_w = __max(nlink_w, strlen(buf));
-    itoa(st.st_uid, buf, 10);
+    itoa(st.uid, buf, 10);
     uid_w = __max(uid_w, strlen(buf));
-    itoa(st.st_gid, buf, 10);
+    itoa(st.gid, buf, 10);
     gid_w = __max(gid_w, strlen(buf));
-    lltoa(st.st_size, buf, 10);
+    lltoa(st.size, buf, 10);
     size_w = __max(size_w, strlen(buf));
 
     // Show time if the date is less than 12 months old; otherwise show date
-    localtime_r(&st.st_mtim.tv_sec, &date);
+    localtime_r(&st.mod_time.tv_sec, &date);
     if (date.tm_year == cur_year || (date.tm_year == cur_year - 1 && date.tm_mon > cur_month)) {
         date_w = TIME_WIDTH;
     }
@@ -105,7 +105,7 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
         return -1;
     }
     
-    switch (S_FTYPE(st.st_mode)) {
+    switch (S_FTYPE(st.mode)) {
         case S_IFDEV:   tc = 'h'; break;
         case S_IFDIR:   tc = 'd'; break;
         case S_IFPROC:  tc = 'P'; break;
@@ -119,19 +119,19 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
         buf[i] = '-';
     }
 
-    file_permissions_to_text(perm_get(st.st_mode, S_ICUSR), &buf[1]);
-    file_permissions_to_text(perm_get(st.st_mode, S_ICGRP), &buf[4]);
-    file_permissions_to_text(perm_get(st.st_mode, S_ICOTH), &buf[7]);
+    file_permissions_to_text(perm_get(st.mode, S_ICUSR), &buf[1]);
+    file_permissions_to_text(perm_get(st.mode, S_ICGRP), &buf[4]);
+    file_permissions_to_text(perm_get(st.mode, S_ICOTH), &buf[7]);
     buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-    localtime_r(&st.st_mtim.tv_sec, &date);
+    localtime_r(&st.mod_time.tv_sec, &date);
         
     printf("%s %*d  %*u %*u  %*lld  ",
         buf,
-        nlink_w, st.st_nlink,
-        uid_w, st.st_uid,
-        gid_w, st.st_gid,
-        size_w, st.st_size);
+        nlink_w, st.nlink,
+        uid_w, st.uid,
+        gid_w, st.gid,
+        size_w, st.size);
     if (date_w == DATE_WIDTH) {
         printf("%s %d %d  ",
             __gc_abbrev_ymon(date.tm_mon + 1),
@@ -217,7 +217,7 @@ static bool is_dir(const char* _Nonnull path)
 {
     fs_attr_t st;
 
-    return (fs_attr(NULL, path, &st) == 0 && S_ISDIR(st.st_mode)) ? true : false;
+    return (fs_attr(NULL, path, &st) == 0 && S_ISDIR(st.mode)) ? true : false;
 }
 
 

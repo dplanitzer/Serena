@@ -74,15 +74,15 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
     const errno_t err = FileManager_GetAttributes(self->fm, path, &attr);
     
     if (err == EOK) {
-        itoa(attr.st_nlink, self->buf, 10);
+        itoa(attr.nlink, self->buf, 10);
         self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
-        itoa(attr.st_uid, self->buf, 10);
+        itoa(attr.uid, self->buf, 10);
         self->uidWidth = __max(self->uidWidth, strlen(self->buf));
-        itoa(attr.st_gid, self->buf, 10);
+        itoa(attr.gid, self->buf, 10);
         self->gidWidth = __max(self->gidWidth, strlen(self->buf));
-        lltoa(attr.st_size, self->buf, 10);
+        lltoa(attr.size, self->buf, 10);
         self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
-        itoa(attr.st_ino, self->buf, 10);
+        itoa(attr.ino, self->buf, 10);
         self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->buf));
     }
     return err;
@@ -96,7 +96,7 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
     if (err == EOK) {
         char tc;
 
-        switch (S_FTYPE(attr.st_mode)) {
+        switch (S_FTYPE(attr.mode)) {
             case S_IFDEV:   tc = 'h'; break;
             case S_IFDIR:   tc = 'd'; break;
             case S_IFPROC:  tc = 'P'; break;
@@ -110,18 +110,18 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->buf[i] = '-';
         }
 
-        file_permissions_to_text(perm_get(attr.st_mode, S_ICUSR), &self->buf[1]);
-        file_permissions_to_text(perm_get(attr.st_mode, S_ICGRP), &self->buf[4]);
-        file_permissions_to_text(perm_get(attr.st_mode, S_ICOTH), &self->buf[7]);
+        file_permissions_to_text(perm_get(attr.mode, S_ICUSR), &self->buf[1]);
+        file_permissions_to_text(perm_get(attr.mode, S_ICGRP), &self->buf[4]);
+        file_permissions_to_text(perm_get(attr.mode, S_ICOTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
             self->buf,
-            self->linkCountWidth, attr.st_nlink,
-            self->uidWidth, attr.st_uid,
-            self->gidWidth, attr.st_gid,
-            self->sizeWidth, attr.st_size,
-            self->inodeIdWidth, attr.st_ino,
+            self->linkCountWidth, attr.nlink,
+            self->uidWidth, attr.uid,
+            self->gidWidth, attr.gid,
+            self->sizeWidth, attr.size,
+            self->inodeIdWidth, attr.ino,
             entryName);
     }
     return err;
@@ -209,7 +209,7 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     fs_attr_t attr;
 
-    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && S_ISDIR(attr.st_mode)) ? true : false;
+    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && S_ISDIR(attr.mode)) ? true : false;
 }
 
 
