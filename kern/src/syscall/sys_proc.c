@@ -165,12 +165,12 @@ SYSCALL_1(proc_setcwd, const char* _Nonnull path)
     return err;
 }
 
-SYSCALL_1(proc_setumask, mode_t umask)
+SYSCALL_1(proc_setumask, fs_perms_t mask)
 {
     ProcessRef pp = vp->proc;
 
     mtx_lock(&pp->mtx);
-    FileManager_SetUMask(&pp->fm, pa->umask);
+    FileManager_SetUMask(&pp->fm, pa->mask);
     mtx_unlock(&pp->mtx);
     
     return EOK;

@@ -48,7 +48,7 @@ gid_t FileManager_GetRealGroupId(FileManagerRef _Nonnull self)
     return self->rgid;
 }
 
-void FileManager_SetUMask(FileManagerRef _Nonnull self, mode_t mask)
+void FileManager_SetUMask(FileManagerRef _Nonnull self, fs_perms_t mask)
 {
     self->umask = mask & 0777;
 }

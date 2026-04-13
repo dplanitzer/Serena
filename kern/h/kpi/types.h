@@ -49,6 +49,9 @@ typedef size_t          ino_t;
 #endif
 
 
+typedef unsigned int    fs_ftype_t;
+typedef unsigned int    fs_perms_t;
+
 typedef int             nlink_t;
 typedef unsigned int    mode_t;
 

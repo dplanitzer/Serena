@@ -31,7 +31,7 @@ extern int proc_name(char* _Nonnull buf, size_t bufSize);
 // Sets the process' umask. Get the current umask value by calling proc_info()
 // with the PROC_INFO_USER selector.
 // @Concurrency: Safe
-extern void proc_setumask(mode_t mask);
+extern void proc_setumask(fs_perms_t mask);
 
 
 extern int proc_schedparam(pid_t pid, int type, int* _Nonnull param);
