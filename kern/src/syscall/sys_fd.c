@@ -64,3 +64,17 @@ SYSCALL_3(fd_info, int fd, int flavor, fd_info_ref _Nonnull info)
 {
     return _kfinfo(vp->proc, pa->fd, pa->flavor, pa->info);
 }
+
+SYSCALL_3(fd_dup, int fd, int min_fd, int* _Nonnull new_fd)
+{
+    ProcessRef pp = vp->proc;
+
+    return IOChannelTable_DupChannel(&pp->ioChannelTable, pa->fd, pa->min_fd, pa->new_fd);
+}
+
+SYSCALL_3(fd_dup_to, int fd, int target_fd, int* _Nonnull new_fd)
+{
+    ProcessRef pp = vp->proc;
+
+    return IOChannelTable_DupChannelTo(&pp->ioChannelTable, pa->fd, pa->target_fd);
+}

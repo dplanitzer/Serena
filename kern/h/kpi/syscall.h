@@ -72,7 +72,7 @@ enum {
     SC_sig_pending,         // int sig_pending(sigset_t* _Nonnull set)
     SC_host_filesystems,    // errno_t host_filesystems(fsid_t* _Nonnull buf, size_t bufSize)
     SC_fs_info,             // errno_t fs_info(int flavor, fs_info_ref _Nonnull info)
-    SC_unused,              //XXX UNUSED
+    SC_fd_dup_to,           // errno_t fd_dup_to(int fd, int target_fd, int* _Nonnull new_fd)
     SC_vcpu_acquire,        // int vcpu_acquire(const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
     SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
     SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)
@@ -93,6 +93,7 @@ enum {
     SC_fs_setlabel,         // errno_t fs_setlabel(fsid_t fsid, const char* _Nonnull label)
     SC_proc_resume,         // errno_t proc_resume(pid_t pid)
     SC_fd_info,             // errno_t fd_info(int fd, int flavor, fd_info_ref _Nonnull info)
+    SC_fd_dup,              // errno_t fd_dup(int fd, int min_fd, int* _Nonnull new_fd)
 };
 
 

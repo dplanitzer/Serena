@@ -103,6 +103,19 @@ extern int fd_type(int fd);
 // @Concurrency: Safe
 extern int fd_setflags(int fd, int op, int flags);
 
+
+// Creates a new reference to the descriptor 'fd' and assigns it to a new
+// descriptor which it returns. The newly allocated descriptor id is greater or
+// equal 'min_fd'. Returns -1 and sets errno accordingly on an error.
+// @Concurrency: Safe
+extern int fd_dup(int fd, int min_fd);
+
+// Creates a new reference to the existing descriptor 'fd' and assigns it to the
+// descriptor 'target_fd'. 'target_fd' is closed if it is a valid descriptor. An
+// unused is selected if 'target_fd' is < 0.
+// Returns -1 and sets errno appropriately on an error.
+extern int fd_dup_to(int fd, int target_fd);
+
 __CPP_END
 
 #endif /* _SERENA_FD_H */

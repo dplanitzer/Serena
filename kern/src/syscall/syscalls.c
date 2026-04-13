@@ -51,6 +51,8 @@ SYSCALL_REF(fd_truncate);
 SYSCALL_REF(fd_attr);
 SYSCALL_REF(fd_info);
 SYSCALL_REF(fd_setflags);
+SYSCALL_REF(fd_dup);
+SYSCALL_REF(fd_dup_to);
 SYSCALL_REF(ioctl);
 
 SYSCALL_REF(pipe_create);
@@ -104,7 +106,7 @@ SYSCALL_REF(vcpu_info);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   78
+#define SYSCALL_COUNT   79
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_read, SC_ERRNO),
@@ -164,7 +166,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sig_pending, SC_ERRNO),
     SYSCALL_ENTRY(host_filesystems, SC_ERRNO),
     SYSCALL_ENTRY(fs_info, SC_ERRNO),
-    SYSCALL_ENTRY(nosys, SC_ERRNO),                 //XXX UNUSED
+    SYSCALL_ENTRY(fd_dup_to, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_relinquish_self, SC_NORETURN),
     SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),
@@ -185,6 +187,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
     SYSCALL_ENTRY(proc_resume, SC_ERRNO),
     SYSCALL_ENTRY(fd_info, SC_ERRNO),
+    SYSCALL_ENTRY(fd_dup, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
