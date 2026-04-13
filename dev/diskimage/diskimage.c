@@ -327,11 +327,11 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
         out_perms->isValid = true;
     }
     else if (*arg != '\0') {
-        mode_t perms[3] = {0, 0, 0};
+        fs_perms_t perms[3] = {0, 0, 0};
         const char* str = arg;
 
         for (int i = 0; i < 3; i++) {
-            mode_t t = 0;
+            fs_perms_t t = 0;
 
             for (int j = 0; j < 3; j++) {
                 switch (*str++) {

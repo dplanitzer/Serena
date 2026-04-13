@@ -53,7 +53,7 @@ extern errno_t FileManager_GetWorkingDirectoryPath(FileManagerRef _Nonnull self,
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t permissions);
+extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_perms_t permissions);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
@@ -66,7 +66,7 @@ extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const cha
 
 // Sets the umask. Bits set in 'mask' are cleared in the mode used to create a
 // file. Returns the old umask.
-extern void FileManager_SetUMask(FileManagerRef _Nonnull self, mode_t mask);
+extern void FileManager_SetUMask(FileManagerRef _Nonnull self, mode_t umask);
 
 // Returns the current umask.
 #define FileManager_GetUMask(__self) \
@@ -78,10 +78,6 @@ extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* 
 // Opens the given file or named resource. Opening directories is handled by the
 // FileManager_OpenDirectory() function.
 extern errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-// Creates a new directory. 'mode' are the file permissions that should be
-// assigned to the new directory (modulo the file creation mask).
-extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull pPath, mode_t mode);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.

@@ -22,7 +22,7 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockA
 }
 
 
-errno_t cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull dmgPath)
+errno_t cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamContainerRef fsContainer = NULL;

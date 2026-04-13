@@ -15,7 +15,7 @@
 #include <kpi/file.h>
 
 
-static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, mode_t perms, uid_t uid, gid_t gid)
+static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
 {
     decl_try_err();
 
@@ -31,7 +31,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
     return err;
 }
 
-static errno_t _create_directory_recursively(FileManagerRef fm, char* _Nonnull path, mode_t permissions, uid_t uid, gid_t gid)
+static errno_t _create_directory_recursively(FileManagerRef fm, char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     char* p = path;
@@ -72,7 +72,7 @@ static errno_t _create_directory_recursively(FileManagerRef fm, char* _Nonnull p
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static errno_t create_directory_recursively(FileManagerRef _Nonnull fm, char* _Nonnull path, mode_t permissions, uid_t uid, gid_t gid)
+static errno_t create_directory_recursively(FileManagerRef _Nonnull fm, char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     int i = 0;
@@ -93,7 +93,7 @@ static errno_t create_directory_recursively(FileManagerRef _Nonnull fm, char* _N
 ////////////////////////////////////////////////////////////////////////////////
 
 
-errno_t cmd_makedir(bool shouldCreateParents, mode_t dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
+errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamContainerRef disk = NULL;

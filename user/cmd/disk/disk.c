@@ -26,8 +26,8 @@
 #include "sefs_init.h"
 
 typedef struct di_permissions_spec {
-    mode_t  p;
-    bool    isValid;
+    fs_perms_t  p;
+    bool        isValid;
 } di_permissions_spec_t;
 
 typedef struct di_owner_spec {
@@ -107,7 +107,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
     return ok;
 }
 
-void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
+void cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
 {
     FILE* fp = NULL;
     disk_info_t info;
@@ -364,11 +364,11 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
         out_perms->isValid = true;
     }
     else if (*arg != '\0') {
-        mode_t perms[3] = {0, 0, 0};
+        fs_perms_t perms[3] = {0, 0, 0};
         const char* str = arg;
 
         for (int i = 0; i < 3; i++) {
-            mode_t t = 0;
+            fs_perms_t t = 0;
 
             for (int j = 0; j < 3; j++) {
                 switch (*str++) {

@@ -17,7 +17,7 @@
 #define BLOCK_SIZE  4096
 
 
-static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, mode_t fsperms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
+static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -45,7 +45,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     return err;
 }
 
-errno_t cmd_push(mode_t filePerms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
+errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamContainerRef disk = NULL;
@@ -61,7 +61,7 @@ errno_t cmd_push(mode_t filePerms, uid_t uid, gid_t gid, const char* _Nonnull sr
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
     try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
 
-    try(_create_file(&m->fm, dstPath, filePerms, uid, gid, &chan));
+    try(_create_file(&m->fm, dstPath, fsperms, uid, gid, &chan));
     try_null(fp, fopen(srcPath, "rb"), errno);
 
     while (true) {
