@@ -166,7 +166,7 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
 
     // If this is a directory then unlink it from its parent since we remove a
     // '..' entry that points to the parent
-    if (S_ISDIR(Inode_GetMode(pNodeToRemove))) {
+    if (Inode_IsDirectory(pNodeToRemove)) {
         Inode_Unlink((InodeRef)self);
     }
 

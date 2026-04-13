@@ -75,7 +75,7 @@ errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsign
     err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, &rp);
     if (err == EOK) {
         Inode_Lock(rp.inode);
-        if (!S_ISDIR(Inode_GetMode(rp.inode))) {
+        if (!Inode_IsDirectory(rp.inode)) {
             err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
         }
         else {

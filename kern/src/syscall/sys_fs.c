@@ -179,7 +179,7 @@ SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, mode_t mode)
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_SetFileMode(&pp->fm, pa->path, pa->mode);
+    err = FileManager_SetFilePermissions(&pp->fm, pa->path, pa->mode);
     mtx_unlock(&pp->mtx);
     return err;
 }

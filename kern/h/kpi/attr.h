@@ -45,10 +45,10 @@ typedef struct fs_attr {
 #define S_ISLNK(__mode)     (((__mode) & S_IFMT) == S_IFLNK)
 #define S_ISFIFO(__mode)    (((__mode) & S_IFMT) == S_IFIFO)
 
-// Returns the file permission bits from a fs_attr_t
+// Returns the file permission bits from a mode_t
 #define S_FPERM(__mode) ((__mode) & S_IFMP)
 
-// Returns the file type bits from a fs_attr_t
+// Returns the file type bits from a mode_t
 #define S_FTYPE(__mode) ((__mode) & S_IFMT)
 
 #endif /* _KPI_ATTR_H */

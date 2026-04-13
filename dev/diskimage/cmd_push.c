@@ -17,7 +17,7 @@
 #define BLOCK_SIZE  4096
 
 
-static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, mode_t perms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
+static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, mode_t fsperms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -25,7 +25,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     err = FileManager_OpenFile(fm, path, O_WRONLY | O_TRUNC, &chan);
     if (err == ENOENT) {
         // File doesn't exist yet. Create it
-        err = FileManager_CreateFile(fm, path, O_WRONLY, perms, &chan);
+        err = FileManager_CreateFile(fm, path, O_WRONLY, fsperms, &chan);
     }
 
     if (err == EOK) {
@@ -33,7 +33,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
         //XXX use channel versions once they exist
         err = FileManager_SetFileOwner(fm, path, uid, gid);
         if (err == EOK) {
-            err = FileManager_SetFileMode(fm, path, perms);
+            err = FileManager_SetFilePermissions(fm, path, fsperms);
         }
 
         if (err != EOK) {

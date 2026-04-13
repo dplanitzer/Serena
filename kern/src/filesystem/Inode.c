@@ -16,8 +16,10 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 
-errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
-    mode_t mode, uid_t uid, gid_t gid, int linkCount,
+errno_t Inode_Create(Class* _Nonnull pClass,
+    FilesystemRef _Nonnull pFS, ino_t id,
+    mode_t mode, uid_t uid, gid_t gid,
+    int linkCount,
     off_t size,
     const struct timespec* _Nonnull accessTime,
     const struct timespec* _Nonnull modTime,
@@ -42,7 +44,8 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
         self->inid = id;
         self->pnid = pnid;
         self->linkCount = linkCount;
-        self->mode = mode;
+        self->fileType = S_FTYPE(mode);
+        self->permissions = S_FPERM(mode);
         self->uid = uid;
         self->gid = gid;
         self->flags = 0;
@@ -132,7 +135,7 @@ errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
 
 errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    switch (Inode_GetType(self)) {
+    switch (Inode_GetFileType(self)) {
         case S_IFDIR:
             return InodeChannel_Create(self, O_RDONLY, pOutChannel);
 
@@ -172,7 +175,7 @@ void Inode_getAttributes(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull att
     attr->size = self->size;
     attr->uid = self->uid;
     attr->gid = self->gid;
-    attr->mode = self->mode;
+    attr->mode = __S_MKMODE(self->fileType, self->permissions);
     attr->nlink = self->linkCount;
     attr->fsid = Filesystem_GetId(self->filesystem);
     attr->ino = self->inid;
@@ -180,9 +183,9 @@ void Inode_getAttributes(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull att
     attr->blocks = (attr->blk_size > 0) ? ((attr->size + (attr->blk_size >> 1)) / attr->blk_size) : 0;
 }
 
-void Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)
+void Inode_setPermissions(InodeRef _Nonnull _Locked self, fs_perms_t fsperms)
 {
-    self->mode = mode;
+    self->permissions = fsperms & 0777;
     Inode_SetModified(self, kInodeFlag_StatusChanged);
 }
 
@@ -241,7 +244,7 @@ any_subclass_func_defs(Inode,
 func_def(deinit, Inode)
 func_def(createChannel, Inode)
 func_def(getAttributes, Inode)
-func_def(setMode, Inode)
+func_def(setPermissions, Inode)
 func_def(setOwner, Inode)
 func_def(setTimes, Inode)
 func_def(read, Inode)

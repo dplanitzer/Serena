@@ -23,8 +23,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     off_t fileSize = 0ll;
     InodeRef pNode = NULL;
     FSBlock blk = {0};
-    const sfs_itype_t itype = SfsITypeFromMode(mode);
-    const sfs_perm_t iperms = SfsPermissionsFromMode(mode);
+    const sfs_itype_t itype = SfsITypeFromFileType(S_FTYPE(mode));
+    const sfs_perm_t iperms = SfsPermissionsFromFsPerms(S_FPERM(mode));
 
     if (itype == 0) {
         *pOutNode = NULL;

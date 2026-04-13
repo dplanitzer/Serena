@@ -15,11 +15,11 @@
 #include <kpi/sefs_format.h>
 
 
-extern sfs_itype_t SfsITypeFromMode(mode_t mode);
+extern sfs_itype_t SfsITypeFromFileType(fs_ftype_t ftype);
 extern mode_t SfsModeFromIType(sfs_itype_t itype);
 
-#define SfsPermissionsFromMode(__mode) \
-((__mode) & 0777)
+#define SfsPermissionsFromFsPerms(__fsperms) \
+((__fsperms) & 0777)
 
 #define SfsModeFromPermissions(__perm) \
 (__perm)
@@ -51,12 +51,9 @@ extern errno_t SfsFile_UnmapBlock(SfsFileRef _Nonnull _Locked self, SfsFileBlock
 extern bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength);
 
 #define SfsFile_GetIType(__self) \
-(SfsITypeFromMode(Inode_GetMode(__self)))
+(SfsITypeFromFileType(Inode_GetFileType(__self)))
 
 #define SfsFile_GetPermissions(__self) \
-(SfsPermissionsFromMode(Inode_GetMode(__self)))
-
-#define SfsFile_IsDirectory(__self) \
-(S_ISDIR(Inode_GetMode(__self)))
+(SfsPermissionsFromFsPerms(Inode_GetPermissions(__self)))
 
 #endif /* SfsFile_h */

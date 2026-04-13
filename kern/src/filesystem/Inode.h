@@ -52,7 +52,8 @@ open_class(Inode, Any,
     ino_t                           inid;       // Filesystem specific ID of the inode
     ino_t                           pnid;       // Filesystem specific ID of the parent inode (directory in which inid is stored)
     nlink_t                         linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
-    mode_t                          mode;
+    fs_ftype_t                      fileType;
+    fs_perms_t                      permissions;
     uid_t                           uid;
     gid_t                           gid;
     uint32_t                        flags;
@@ -84,10 +85,10 @@ any_subclass_funcs(Inode,
     // Default Behavior: Returns the node's file info
     void (*getAttributes)(void* _Nonnull _Locked self, fs_attr_t* _Nonnull attr);
 
-    // Sets the mode of the inode.
+    // Sets the access permissions of the inode.
     // Override: Optional
-    // Default Behavior: Updates the inode's mode info
-    void (*setMode)(void* _Nonnull _Locked self, mode_t mode);
+    // Default Behavior: Updates the inode's permissions
+    void (*setPermissions)(void* _Nonnull _Locked self, fs_perms_t fsperms);
 
     // Sets the user and group id of the inode.
     // Override: Optional
@@ -200,13 +201,25 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 void Inode_Unlink(InodeRef _Nonnull self);
 
 
-// Returns the file type and permissions of the node.
-#define Inode_GetMode(__self) \
-    ((InodeRef)__self)->mode
-
 // Returns the node type. See the S_IFXXX macros.
-#define Inode_GetType(__self) \
-    (((InodeRef)__self)->mode & S_IFMT)
+#define Inode_GetFileType(__self) \
+    ((InodeRef)__self)->fileType
+
+// Returns true if the inode is a directory
+#define Inode_IsDirectory(__self) \
+    (((InodeRef)__self)->fileType == S_IFDIR)
+
+// Returns true if the inode is a regular file
+#define Inode_IsRegularFile(__self) \
+    (((InodeRef)__self)->fileType == S_IFREG)
+
+// Returns true if the inode is a device
+#define Inode_IsDevice(__self) \
+    (((InodeRef)__self)->fileType == S_IFDEV)
+
+// Returns the node access permissions.
+#define Inode_GetPermissions(__self) \
+    ((InodeRef)__self)->permissions
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
@@ -274,8 +287,8 @@ invoke_n(createChannel, Inode, __self, __mode, __pOutChannel)
 #define Inode_GetAttributes(__self, __attr) \
 invoke_n(getAttributes, Inode, __self, __attr)
 
-#define Inode_SetMode(__self, __mode) \
-invoke_n(setMode, Inode, __self, __mode)
+#define Inode_SetPermissions(__self, __fsperms) \
+invoke_n(setPermissions, Inode, __self, __fsperms)
 
 #define Inode_SetOwner(__self, __uid, __gid) \
 invoke_n(setOwner, Inode, __self, __uid, __gid)

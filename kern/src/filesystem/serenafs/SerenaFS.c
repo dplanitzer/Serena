@@ -227,7 +227,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked tar
     decl_try_err();
 
     // A directory must be empty in order to be allowed to unlink its
-    if (SfsFile_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && SfsDirectory_IsNotEmpty(target)) {
+    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && SfsDirectory_IsNotEmpty(target)) {
         throw(EBUSY);
     }
 
@@ -257,7 +257,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const bool isMovingDir = SfsFile_IsDirectory(pNode);
+    const bool isMovingDir = Inode_IsDirectory(pNode);
 
     // The 'moveLock' ensures that there can be only one operation active at any
     // given time that might move directories around in the filesystem. This ie

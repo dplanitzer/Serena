@@ -24,7 +24,7 @@ static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const
     // Make sure that it is actually a directory and that we have at least search
     // permission
     Inode_Lock(r.inode);
-    if (S_ISDIR(Inode_GetMode(r.inode))) {
+    if (Inode_IsDirectory(r.inode)) {
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, X_OK);
     }
     else {
@@ -118,7 +118,7 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     Inode_Lock(r.inode);
-    if (S_ISDIR(Inode_GetMode(r.inode))) {
+    if (Inode_IsDirectory(r.inode)) {
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK);
     }
     else {

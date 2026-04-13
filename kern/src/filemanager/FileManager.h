@@ -90,7 +90,7 @@ extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const cha
 // Returns the attributes of the file at the given path.
 extern errno_t FileManager_GetAttributes(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fs_attr_t* _Nonnull attr);
 
-extern errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode);
+extern errno_t FileManager_SetFilePermissions(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_perms_t fsperms);
 
 extern errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);
 

@@ -275,16 +275,12 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     return didTrim;
 }
 
-sfs_itype_t SfsITypeFromMode(mode_t mode)
+sfs_itype_t SfsITypeFromFileType(fs_ftype_t ftype)
 {
-    if (S_ISDIR(mode)) {
-        return kSFSInode_Directory;
-    }
-    else if (S_ISREG(mode)) {
-        return kSFSInode_RegularFile;
-    }
-    else {
-        return 0;
+    switch (ftype) {
+        case S_IFDIR:   return kSFSInode_Directory;
+        case S_IFREG:   return kSFSInode_RegularFile;
+        default:        return 0;
     }
 }
 

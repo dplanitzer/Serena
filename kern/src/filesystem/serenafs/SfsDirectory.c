@@ -319,7 +319,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
 
     // Increment the link count of the directory if the child node is itself a
     // directory (accounting for its '..' entry)
-    if (SfsFile_IsDirectory(pChildNode)) {
+    if (Inode_IsDirectory(pChildNode)) {
         Inode_Link(self);
     }
 
@@ -360,7 +360,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
 
 
     // Reduce our link count by one if we removed a subdirectory
-    if (SfsFile_IsDirectory(pNodeToRemove)) {
+    if (Inode_IsDirectory(pNodeToRemove)) {
         Inode_Unlink(self);
     }
 

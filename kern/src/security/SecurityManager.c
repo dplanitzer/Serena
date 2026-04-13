@@ -36,8 +36,8 @@ catch:
 
 errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
 {
-    const mode_t nodePerms = Inode_GetMode(pNode);
-    mode_t reqPerms = 0;
+    const fs_perms_t fsperms = Inode_GetPermissions(pNode);
+    fs_perms_t reqPerms = 0;
 
     // XXX probably temporary until we're getting around to designing a full permission model
     if (uid == UID_ROOT) {
@@ -64,13 +64,13 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     mode_t finalPerms;
 
     if (Inode_GetUserId(pNode) == uid) {
-        finalPerms = perm_get(nodePerms, S_ICUSR);
+        finalPerms = perm_get(fsperms, S_ICUSR);
     }
     else if (Inode_GetGroupId(pNode) == gid) {
-        finalPerms = perm_get(nodePerms, S_ICGRP);
+        finalPerms = perm_get(fsperms, S_ICGRP);
     }
     else {
-        finalPerms = perm_get(nodePerms, S_ICOTH);
+        finalPerms = perm_get(fsperms, S_ICOTH);
     }
 
 

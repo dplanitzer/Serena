@@ -40,7 +40,7 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
     _KernFS_AddInode(self, ip);
 
     Inode_Lock(ip);
-    err = KfsDirectory_InsertEntry((KfsDirectoryRef)dir, Inode_GetId(ip), S_ISDIR(Inode_GetMode(ip)), name);
+    err = KfsDirectory_InsertEntry((KfsDirectoryRef)dir, Inode_GetId(ip), Inode_IsDirectory(ip), name);
     if (err == EOK) {
         Inode_Writeback(dir);
     }

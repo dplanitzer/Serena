@@ -9,6 +9,10 @@
 #ifndef __KPI_ATTR_H
 #define __KPI_ATTR_H 1
 
+typedef unsigned int    fs_ftype_t;
+typedef unsigned int    fs_perms_t;
+
+
 #define S_IRWXU 0700
 #define S_IRUSR 0400
 #define S_IWUSR 0200

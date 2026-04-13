@@ -22,7 +22,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 
 
     // This must be some kind of file and not a directory
-    if (S_ISDIR(Inode_GetMode(pFile))) {
+    if (Inode_IsDirectory(pFile)) {
         return EISDIR;
     }
 
@@ -182,8 +182,7 @@ errno_t FileManager_GetAttributes(FileManagerRef _Nonnull self, const char* _Non
     return err;
 }
 
-// Modifies information about the file at the given path.
-errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode)
+errno_t FileManager_SetFilePermissions(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_perms_t fsperms)
 {
     decl_try_err();
     ResolvedPath r;
@@ -194,7 +193,7 @@ errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnu
         Inode_Lock(r.inode);
         err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
         if (err == EOK) {
-            Inode_SetMode(r.inode, mode & S_IFMP);
+            Inode_SetPermissions(r.inode, fsperms);
         }
         Inode_Unlock(r.inode);
     }
@@ -263,7 +262,7 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
     
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
-        if (S_ISREG(Inode_GetMode(r.inode))) {
+        if (Inode_IsRegularFile(r.inode)) {
             err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
             if (err == EOK) {
                 err = Inode_Truncate(r.inode, length);
@@ -328,7 +327,6 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
     // Figure out what the target node is
     try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, name, NULL, &target));
     Inode_Lock(target);
-    const mode_t tmod = Inode_GetMode(target);
 
 
     switch (mode) {
@@ -336,13 +334,13 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
             break;
 
         case __FS_ULNK_FIL_ONLY:
-            if (S_ISDIR(tmod)) {
+            if (Inode_IsDirectory(target)) {
                 throw(EISDIR);
             }
             break;
 
         case __FS_ULNK_DIR_ONLY:
-            if (!S_ISDIR(tmod)) {
+            if (!Inode_IsDirectory(target)) {
                 throw(ENOTDIR);
             }
             break;
@@ -353,7 +351,7 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
     }
 
 
-    if (S_ISDIR(tmod)) {
+    if (Inode_IsDirectory(target)) {
         // Can not unlink a mountpoint
         if (FileHierarchy_IsAttachmentPoint(self->fileHierarchy, target)) {
             throw(EBUSY);

@@ -108,7 +108,7 @@ errno_t InodeChannel_truncate(InodeChannelRef _Nonnull self, off_t length)
     
     // Does not adjust the file offset
     Inode_Lock(pn);
-    if (S_ISREG(Inode_GetMode(pn))) {
+    if (Inode_IsRegularFile(pn)) {
         err = Inode_Truncate(pn, length);
     }
     else {
