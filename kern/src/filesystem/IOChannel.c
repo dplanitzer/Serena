@@ -24,7 +24,7 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int m
         self->resource = resource;
         self->ownerCount = 1;
         self->useCount = 0;
-        self->mode = mode & (O_ACCMODE | O_FILESTATUS);
+        self->mode = mode & (O_ACCMODE | O_FLAGS);
         self->channelType = channelType;
     }
     *pOutChannel = self;
@@ -131,7 +131,7 @@ errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
 
 errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags)
 {
-    if ((flags & ~O_FILESTATUS) != 0) {
+    if ((flags & ~O_FLAGS) != 0) {
         return EINVAL;
     }
 
@@ -242,7 +242,8 @@ errno_t IOChannel_GetInfo(IOChannelRef _Nonnull self, int flavor, fd_info_ref _N
             fd_basic_info_t* ip = info;
 
             ip->type = self->channelType;
-            ip->flags = self->mode;
+            ip->flags = self->mode & O_FLAGS;
+            ip->access_mode = self->mode & O_ACCMODE;
             return EOK;
         }
             

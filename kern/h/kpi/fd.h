@@ -9,7 +9,7 @@
 #ifndef _KPI_FD_H
 #define _KPI_FD_H 1
 
-// File access modes and status bits
+// File access modes and flag bits
 #define O_RDONLY    0x0001
 #define O_WRONLY    0x0002
 #define O_RDWR      (O_RDONLY | O_WRONLY)
@@ -20,9 +20,9 @@
 #define O_NONBLOCK  0x0040
 #define _O_EXONLY   0x0080
 
-// File access mode and status masks
-#define O_ACCMODE       (O_RDONLY | O_WRONLY | O_RDWR)
-#define O_FILESTATUS    (O_APPEND | O_NONBLOCK)
+// File access mode and flag masks
+#define O_ACCMODE   (O_RDONLY | O_WRONLY | O_RDWR)
+#define O_FLAGS     (O_APPEND | O_NONBLOCK)
 
 
 // fd_setflags() operation modes
@@ -44,8 +44,9 @@
 typedef void* fd_info_ref;
 
 typedef struct fd_basic_info {
-    int     type;
-    int     flags;
+    int type;
+    int flags;
+    int access_mode;
 } fd_basic_info_t;
 
 #endif /* _KPI_FD_H */

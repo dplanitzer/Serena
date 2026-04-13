@@ -58,15 +58,14 @@ int __fdopen_init(__IOChannel_FILE* _Nonnull self, int fd, __FILE_Mode sm)
     // Make sure that 'mode' lines up with what the descriptor can actually
     // do
     int ok = 1;
-    const int fl = info.flags;
 
-    if (((sm & __kStreamMode_Read) != 0) && ((fl & O_RDONLY) == 0)) {
+    if (((sm & __kStreamMode_Read) != 0) && ((info.access_mode & O_RDONLY) == 0)) {
         ok = 0;
     }
-    if (((sm & __kStreamMode_Write) != 0) && ((fl & O_WRONLY) == 0)) {
+    if (((sm & __kStreamMode_Write) != 0) && ((info.access_mode & O_WRONLY) == 0)) {
         ok = 0;
     }
-    if (((sm & __kStreamMode_Append) != 0) && ((fl & O_APPEND) == 0)) {
+    if (((sm & __kStreamMode_Append) != 0) && ((info.flags & O_APPEND) == 0)) {
         ok = 0;
     }
     if (!ok) {
