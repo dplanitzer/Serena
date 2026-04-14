@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/signal.h>
 #include "Asserts.h"
@@ -20,8 +20,8 @@
 static dispatch_t gDispatcher;
 static int gCounter;
 
-static struct timespec DELAY_500MS;
-static struct timespec DELAY_1000MS;
+static nanotime_t DELAY_500MS;
+static nanotime_t DELAY_1000MS;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -30,8 +30,8 @@ static struct timespec DELAY_1000MS;
 static void OnAsync(void* _Nonnull ign)
 {
     printf("%d\n", gCounter++);
-    //struct timespec dur;
-    // timespec_from_sec(&dur, 2);
+    //nanotime_t dur;
+    // nanotime_from_sec(&dur, 2);
     //clock_wait(clock_uptime, 0, &dur, NULL);
     assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
@@ -52,9 +52,9 @@ void dq_async_test(int argc, char *argv[])
 
 static int OnSync(void* _Nonnull ign)
 {
-    struct timespec dur;
+    nanotime_t dur;
 
-    timespec_from_ms(&dur, 500);
+    nanotime_from_ms(&dur, 500);
     clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);
     printf("%d (Dispatcher: %p)\n", gCounter++, dispatch_current_queue());
     return 1234;
@@ -90,7 +90,7 @@ void dq_after_test(int argc, char *argv[])
     gDispatcher = dispatch_create(&attr);
     assert_not_null(gDispatcher);
 
-    timespec_from_ms(&DELAY_500MS, 500);
+    nanotime_from_ms(&DELAY_500MS, 500);
     assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAfter, NULL));
 }
 
@@ -98,7 +98,7 @@ void dq_after_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: dq_repeating_test
 
-static struct timespec DELAY_250MS;
+static nanotime_t DELAY_250MS;
 
 static void OnRepeating(void* _Nonnull ign)
 {
@@ -111,7 +111,7 @@ void dq_repeating_test(int argc, char *argv[])
     gDispatcher = dispatch_create(&attr);
     assert_not_null(gDispatcher);
 
-    timespec_from_ms(&DELAY_250MS, 250);
+    nanotime_from_ms(&DELAY_250MS, 250);
     assert_ok(dispatch_repeating(gDispatcher, 0, &DELAY_250MS, &DELAY_250MS, (dispatch_async_func_t)OnRepeating, NULL));
 }
 
@@ -136,7 +136,7 @@ void dq_terminate_test(int argc, char *argv[])
     gDispatcher = dispatch_create(&attr);
     assert_not_null(gDispatcher);
 
-    timespec_from_ms(&DELAY_500MS, 500);
+    nanotime_from_ms(&DELAY_500MS, 500);
     assert_ok(dispatch_repeating(gDispatcher, 0, &DELAY_500MS, &DELAY_500MS, (dispatch_async_func_t)OnRepeating2, (void*)1));
     assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)1));
     assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)2));
@@ -204,6 +204,6 @@ void dq_signal_test(int argc, char *argv[])
     assert_ok(dispatch_item_on_signal(gDispatcher, si.signo, item));
 
 
-    timespec_from_ms(&DELAY_1000MS, 1000);
-    assert_ok(dispatch_repeating(gDispatcher, 0, &TIMESPEC_ZERO, &DELAY_1000MS, (dispatch_async_func_t)OnSendSignal, &si));
+    nanotime_from_ms(&DELAY_1000MS, 1000);
+    assert_ok(dispatch_repeating(gDispatcher, 0, &NANOTIME_ZERO, &DELAY_1000MS, (dispatch_async_func_t)OnSendSignal, &si));
 }

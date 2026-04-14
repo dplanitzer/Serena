@@ -148,7 +148,7 @@ struct vcpu {
     int16_t                         suspension_count;       // > 0 -> VP is suspended
 
     // Usage stats
-    struct timespec                 acquisition_time;
+    nanotime_t                      acquisition_time;
     ticks_t                         user_ticks;
     ticks_t                         system_ticks;
     ticks_t                         wait_ticks;             // accumulated number of ticks spent in waiting or suspended state (since acquisition)
@@ -242,7 +242,7 @@ extern sigset_t vcpu_pending_signals(vcpu_t _Nonnull self);
 extern errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
 
 // @Entry Condition: preemption disabled
-extern errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
+extern errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns true if the vcpu is in aborting state. Meaning that it has received a
 // SIG_TERMINATE and that it will relinquish soon.

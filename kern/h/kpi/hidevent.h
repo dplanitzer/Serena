@@ -105,7 +105,7 @@ typedef union _HIDEventData {
 typedef struct HIDEvent {
     int32_t         type;
     did_t           driverId;   // Driver id of the driver that triggered this event; not available for keyboard and mouse events
-    struct timespec eventTime;
+    nanotime_t      eventTime;
     HIDEventData    data;
 } HIDEvent;
 

@@ -56,7 +56,7 @@ _sem_relinquish_multiple:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t sem_acquire_multiple(sem_t* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline)
+; errno_t sem_acquire_multiple(sem_t* _Nonnull sema, int npermits, const nanotime_t* _Nonnull deadline)
 ; Acquires 'npermits' from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have enough permits available.
@@ -107,7 +107,7 @@ _sem_acquire_multiple:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t sem_acquireall(sem_t* _Nonnull sema, const struct timespec* _Nonnull deadline, int* _Nonnull pOutPermitCount)
+; errno_t sem_acquireall(sem_t* _Nonnull sema, const nanotime_t* _Nonnull deadline, int* _Nonnull pOutPermitCount)
 ; Acquires all permits from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have any permits available.

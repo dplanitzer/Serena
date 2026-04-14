@@ -26,7 +26,7 @@ void sem_deinit(sem_t* _Nonnull self)
 // Invoked by sem_acquire() if the semaphore doesn't have the expected
 // number of permits.
 // @Entry Condition: preemption disabled
-errno_t sem_onwait(sem_t* _Nonnull self, const struct timespec* _Nonnull deadline)
+errno_t sem_onwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline)
 {
     return wq_timedwait(&self->wq,
                         NULL,

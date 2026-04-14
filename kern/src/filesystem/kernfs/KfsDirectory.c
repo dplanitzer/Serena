@@ -16,7 +16,7 @@
 errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    struct timespec now;
+    nanotime_t now;
     KfsDirectoryRef self;
 
     FSGetCurrentTime(&now);

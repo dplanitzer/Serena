@@ -18,7 +18,7 @@ __CPP_BEGIN
 // Returns the current time of the monotonic clock. The monotonic clock starts
 // ticking at boot time and never moves backward.
 // @Concurrency: Safe
-extern int clock_time(clockid_t clockid, struct timespec* _Nonnull ts);
+extern int clock_time(clockid_t clockid, nanotime_t* _Nonnull ts);
 
 // Returns information about the clock 'clockid'.
 extern int clock_info(clockid_t clockid, int flavor, clock_info_ref _Nonnull info);
@@ -29,7 +29,7 @@ extern int clock_info(clockid_t clockid, int flavor, clock_info_ref _Nonnull inf
 // the remaining time if this function wakes up before the specified timeout
 // value.
 // @Concurrency: Safe
-extern int clock_wait(clockid_t clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
+extern int clock_wait(clockid_t clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp);
 
 __CPP_END
 

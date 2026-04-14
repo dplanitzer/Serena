@@ -30,7 +30,7 @@ static void alloc_bmp_mark_used(uint8_t *bitmap, blkno_t lba, bool inUse)
     }
 }
 
-errno_t sefs_init(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t blockCount, size_t blockSize, const struct timespec* creatTime, uid_t uid, gid_t gid, fs_perms_t permissions, const char* _Nonnull label)
+errno_t sefs_init(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t blockCount, size_t blockSize, const nanotime_t* creatTime, uid_t uid, gid_t gid, fs_perms_t permissions, const char* _Nonnull label)
 {
     decl_try_err();
 

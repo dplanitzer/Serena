@@ -46,7 +46,7 @@ extern int sem_wait(sem_t* _Nonnull sema, int npermits);
 // an absolute point in time if 'flags' includes TIMER_ABSTIME and a duration
 // relative to the current time otherwise. 
 // @Concurrency: Safe
-extern int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct timespec* _Nonnull wtp);
+extern int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const nanotime_t* _Nonnull wtp);
 
 // Attempts to acquire 'npermits' without blocking. Returns 0 on success and -1
 // and errno set to EBUSY otherwise.

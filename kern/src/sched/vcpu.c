@@ -14,7 +14,7 @@
 #include <string.h>
 #include <ext/atomic.h>
 #include <ext/math.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kern/kernlib.h>

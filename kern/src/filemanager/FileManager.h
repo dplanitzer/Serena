@@ -90,7 +90,7 @@ extern errno_t FileManager_SetFilePermissions(FileManagerRef _Nonnull self, cons
 
 extern errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);
 
-extern errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* _Nonnull path, const struct timespec times[_Nullable 2]);
+extern errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* _Nonnull path, const nanotime_t times[_Nullable 2]);
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.

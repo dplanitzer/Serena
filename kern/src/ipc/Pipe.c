@@ -8,7 +8,7 @@
 
 #include "Pipe.h"
 #include <ext/math.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kern/cbuf.h>
 #include <kern/kernlib.h>
 #include <kpi/file.h>

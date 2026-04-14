@@ -26,7 +26,7 @@ errno_t cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t
 {
     decl_try_err();
     RamContainerRef fsContainer = NULL;
-    struct timespec now;
+    nanotime_t now;
 
     if (strcmp(fsType, "sefs")) {
         throw(EINVAL);

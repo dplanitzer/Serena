@@ -17,7 +17,7 @@
 typedef void* clock_info_ref;
 
 typedef struct clock_basic_info {
-    struct timespec tick_resolution;    // length of a single clock tick in terms of seconds and nanoseconds
+    nanotime_t tick_resolution;    // length of a single clock tick in terms of seconds and nanoseconds
 } clock_basic_info_t;
 
 #endif /* _KPI_CLOCK_H */

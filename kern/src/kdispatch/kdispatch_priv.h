@@ -12,7 +12,7 @@
 #include "kdispatch.h"
 #include <assert.h>
 #include <limits.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kern/signal.h>
@@ -53,8 +53,8 @@ typedef struct kdispatch_conv_item* kdispatch_conv_item_t;
 struct kdispatch_timer {
     queue_node_t                timer_qe;
     kdispatch_item_t _Nonnull   item;
-    struct timespec             deadline;   // Time when the timer fires next
-    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
+    nanotime_t                  deadline;   // Time when the timer fires next
+    nanotime_t                  interval;   // Time interval until next time the timer should fire (if repeating) 
 };
 typedef struct kdispatch_timer* kdispatch_timer_t;
 

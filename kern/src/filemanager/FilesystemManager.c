@@ -10,7 +10,7 @@
 #include <kdispatch/kdispatch.h>
 #include <driver/disk/DiskDriver.h>
 #include <ext/queue.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/kernfs/KernFS.h>
@@ -71,7 +71,7 @@ typedef struct FilesystemManager {
     deque_t                 filesystems;    // deque_t<FSEntry>
     size_t                  fs_count;       // number of filesystems in 'filesystems'
     deque_t                 reaperQueue;    // deque_t<FSEntry>
-    struct timespec         bgInterval;
+    nanotime_t         bgInterval;
 } FilesystemManager;
 
 
@@ -88,7 +88,7 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
     mtx_init(&self->mtx);
-    timespec_from_sec(&self->bgInterval, 30);
+    nanotime_from_sec(&self->bgInterval, 30);
 
 catch:
     *pOutSelf = self;

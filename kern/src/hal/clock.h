@@ -62,21 +62,21 @@ extern void clock_start(clock_ref_t _Nonnull self);
 (__res)->tv_nsec = (__self)->ns_per_tick
 
 // Returns the current time of the clock in terms of the clock tick resolution.
-extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
+extern void clock_gettime(clock_ref_t _Nonnull self, nanotime_t* _Nonnull ts);
 
 // Returns the current time of the clock with microseconds precision.
-extern void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
+extern void clock_gettime_hires(clock_ref_t _Nonnull self, nanotime_t* _Nonnull ts);
 
 
 // Converts a timespec to a clock tick value, applying truncation.
-extern ticks_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
+extern ticks_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const nanotime_t* _Nonnull ts);
 
 // Converts a timespec to a clock tick value by rounding fractional clock ticks
 // to the next higher clock tick value.
-extern ticks_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
+extern ticks_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const nanotime_t* _Nonnull ts);
 
 // Converts a clock tick value to a timespec.
-extern void clock_ticks2time(clock_ref_t _Nonnull self, ticks_t ticks, struct timespec* _Nonnull ts);
+extern void clock_ticks2time(clock_ref_t _Nonnull self, ticks_t ticks, nanotime_t* _Nonnull ts);
 
 
 // Registers the deadline timer 'deadline' with the clock 'self'. The deadline

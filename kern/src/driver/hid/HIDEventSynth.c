@@ -7,7 +7,7 @@
 //
 
 #include "HIDEventSynth.h"
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <kern/kernlib.h>
 #include <kpi/hidkeycodes.h>
@@ -21,8 +21,8 @@ enum {
 
 void HIDEventSynth_Init(HIDEventSynthRef _Nonnull self)
 {
-    timespec_from_ms(&self->initialKeyRepeatDelay, 300);
-    timespec_from_ms(&self->keyRepeatDelay, 100);
+    nanotime_from_ms(&self->initialKeyRepeatDelay, 300);
+    nanotime_from_ms(&self->keyRepeatDelay, 100);
     self->state = kState_Idle;
 }
 
@@ -119,17 +119,17 @@ static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
 }
 static bool _key_repeat_tick(HIDEventSynthRef _Nonnull self, HIDSynthResult* _Nonnull result)
 {
-    struct timespec now;
+    nanotime_t now;
 
     clock_gettime(g_mono_clock, &now);
 
-    if (timespec_ge(&now, &self->nextEventTime)) {
+    if (nanotime_ge(&now, &self->nextEventTime)) {
         result->deadline = self->nextEventTime;
         result->flags = self->keyFlags;
         result->keyCode = self->keyCode;
 
-        while (timespec_lt(&self->nextEventTime, &now)) {
-            timespec_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
+        while (nanotime_lt(&self->nextEventTime, &now)) {
+            nanotime_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
         }
 
         return true;
@@ -142,7 +142,7 @@ static bool _key_repeat_tick(HIDEventSynthRef _Nonnull self, HIDSynthResult* _No
 HIDSynthAction HIDEventSynth_Tick(HIDEventSynthRef _Nonnull self, const HIDEvent* _Nullable evt, HIDSynthResult* _Nonnull result)
 {
     const int evtType = (evt) ? evt->type : -1;
-    struct timespec now;
+    nanotime_t now;
     int r;
 
     switch (evtType) {
@@ -152,7 +152,7 @@ HIDSynthAction HIDEventSynth_Tick(HIDEventSynthRef _Nonnull self, const HIDEvent
                 self->keyFlags = evt->data.key.flags;
                 self->keyCode = evt->data.key.keyCode;
                 clock_gettime(g_mono_clock, &now);
-                timespec_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
+                nanotime_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
             }
             else {
                 self->state = kState_Idle;
@@ -177,7 +177,7 @@ HIDSynthAction HIDEventSynth_Tick(HIDEventSynthRef _Nonnull self, const HIDEvent
         default:    // All other event types or null event type
             if (self->state == kState_Repeating) {
                 if (_key_repeat_tick(self, result)) {
-                    r = (evtType == -1 || timespec_lt(&result->deadline, &evt->eventTime)) ? HIDSynth_MakeRepeat : HIDSynth_UseEvent;
+                    r = (evtType == -1 || nanotime_lt(&result->deadline, &evt->eventTime)) ? HIDSynth_MakeRepeat : HIDSynth_UseEvent;
                 }
                 else {
                     if (evtType >= 0) {

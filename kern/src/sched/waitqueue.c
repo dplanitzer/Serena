@@ -42,7 +42,7 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 // non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const sigset_t hot_sigs = (set) ? *set : SIGSET_NONMASKABLES;
@@ -52,7 +52,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
     assert(vp->run_state == VCPU_RUST_RUNNING);
 
     if (rmtp) {
-        timespec_clear(rmtp);
+        nanotime_clear(rmtp);
     }
 
     if ((vp->pending_sigs & hot_sigs) != 0) {
@@ -65,7 +65,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    if (wtp && timespec_lt(wtp, &TIMESPEC_INF)) {
+    if (wtp && nanotime_lt(wtp, &NANOTIME_INF)) {
         deadline_ticks = clock_time2ticks_ceil(g_mono_clock, wtp);
 
         if ((flags & WAIT_ABSTIME) == 0) {
@@ -145,7 +145,7 @@ errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 }
 
 // @Entry Condition: preemption disabled
-errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp)
 {
     switch (wq_prim_wait(self, set, flags, wtp, rmtp)) {
         case WRES_SIGNAL:   return EINTR;

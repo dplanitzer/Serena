@@ -23,8 +23,8 @@ extern errno_t HIDManager_Start(HIDManagerRef _Nonnull self);
 
 
 // Configuring the keyboard
-extern void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay);
-extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay);
+extern void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, nanotime_t* _Nullable pInitialDelay, nanotime_t* _Nullable pRepeatDelay);
+extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const nanotime_t* _Nonnull initialDelay, const nanotime_t* _Nonnull repeatDelay);
 
 
 // Returns the keyboard hardware state
@@ -47,7 +47,7 @@ extern uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self
 
 
 // Event queue
-extern errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt);
+extern errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt);
 extern void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData);
 extern void HIDManager_FlushEvents(HIDManagerRef _Nonnull self);
 

@@ -14,13 +14,13 @@
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-void FSGetCurrentTime(struct timespec* _Nonnull ts)
+void FSGetCurrentTime(nanotime_t* _Nonnull ts)
 {
 #if defined(__APPLE__)
     ts->tv_sec = time(NULL);
     ts->tv_nsec = 0;
 #else
-    timespec_get(ts, TIME_UTC);
+    timespec_get((struct timespec*)ts, TIME_UTC);
 #endif
 }
 

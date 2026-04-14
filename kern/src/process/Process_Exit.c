@@ -9,7 +9,7 @@
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
 #include <assert.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kern/log.h>

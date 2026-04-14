@@ -105,7 +105,7 @@ catch:
 // MARK: Kernel API
 ////////////////////////////////////////////////////////////////////////////////
 
-void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
+void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, nanotime_t* _Nullable pInitialDelay, nanotime_t* _Nullable pRepeatDelay)
 {
     mtx_lock(&self->mtx);
     if (pInitialDelay) {
@@ -117,7 +117,7 @@ void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec*
     mtx_unlock(&self->mtx);
 }
 
-void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
+void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const nanotime_t* _Nonnull initialDelay, const nanotime_t* _Nonnull repeatDelay)
 {
     mtx_lock(&self->mtx);
     self->evqSynth.initialKeyRepeatDelay = *initialDelay;
@@ -438,10 +438,10 @@ void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t 
 // Dequeues and returns the next available event or ETIMEDOUT if no event is
 // available and a timeout > 0 was specified. Returns EAGAIN if no event is
 // available and the timeout is 0.
-errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt)
+errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt)
 {
     decl_try_err();
-    struct timespec deadline;
+    nanotime_t deadline;
 
     mtx_lock(&self->mtx);
     for (;;) {
@@ -471,7 +471,7 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
             deadline = *timeout;
         }
         else {
-            deadline = (timespec_lt(&self->evqSynthResult.deadline, timeout)) ? self->evqSynthResult.deadline : *timeout;
+            deadline = (nanotime_lt(&self->evqSynthResult.deadline, timeout)) ? self->evqSynthResult.deadline : *timeout;
         }
         if (deadline.tv_sec == 0 && deadline.tv_nsec == 0) {
             err = EAGAIN;
@@ -481,10 +481,10 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
 
         err = cnd_timedwait(&self->evqCnd, &self->mtx, &deadline);
         if (err == ETIMEDOUT) {
-            struct timespec now;
+            nanotime_t now;
 
             clock_gettime(g_mono_clock, &now);
-            if (timespec_ge(&now, timeout)) {
+            if (nanotime_ge(&now, timeout)) {
                 break;
             }
             err = EOK;

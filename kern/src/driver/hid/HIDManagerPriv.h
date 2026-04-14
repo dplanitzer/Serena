@@ -88,7 +88,7 @@ typedef struct HIDManager {
     struct waitqueue            reportsWaitQueue;
     sigset_t                    reportSigs;
     HIDReport                   report;
-    struct timespec             now;        // Current time from the viewpoint of the reports collector
+    nanotime_t                  now;        // Current time from the viewpoint of the reports collector
     irq_handler_t               vblHandler;
 
 

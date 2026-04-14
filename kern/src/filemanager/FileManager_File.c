@@ -224,7 +224,7 @@ errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonn
     return err;
 }
 
-errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* _Nonnull path, const struct timespec times[_Nullable 2])
+errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* _Nonnull path, const nanotime_t times[_Nullable 2])
 {
     decl_try_err();
     ResolvedPath r;

@@ -16,7 +16,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    struct timespec now;
+    nanotime_t now;
     ino_t parentInodeId = Inode_GetId(dir);
     blkno_t inodeLba = 0;
     blkno_t dirContLba = 0;

@@ -16,7 +16,7 @@
 errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, ObjectRef _Nonnull obj, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    struct timespec now;
+    nanotime_t now;
     KfsSpecialRef self;
 
     FSGetCurrentTime(&now);

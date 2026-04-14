@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/signal.h>
 #include <serena/vcpu.h>
@@ -122,9 +122,9 @@ static void test_sigkill_print_loop(void)
 
 static void test_sigkill_terminator(void)
 {
-    struct timespec ts_1sec, ts_2sec;
+    nanotime_t ts_1sec, ts_2sec;
 
-    timespec_from_sec(&ts_1sec, 1);
+    nanotime_from_sec(&ts_1sec, 1);
     puts("B running\n");
 
     clock_wait(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
@@ -184,10 +184,10 @@ static void test_suspend_print_loop(void)
 
 static void test_suspend_A_loop(void)
 {
-    struct timespec ts_1sec, ts_2sec;
+    nanotime_t ts_1sec, ts_2sec;
 
-    timespec_from_sec(&ts_1sec, 1);
-    timespec_from_sec(&ts_2sec, 2);
+    nanotime_from_sec(&ts_1sec, 1);
+    nanotime_from_sec(&ts_2sec, 2);
     puts("B running\n");
 
     for (;;) {

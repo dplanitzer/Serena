@@ -11,7 +11,7 @@
 
 time_t time(time_t *timer)
 {
-    struct timespec ts;
+    nanotime_t ts;
     
     clock_time(CLOCK_MONOTONIC, &ts);
     if (timer) {

@@ -119,7 +119,7 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     if ((flags & COPFLAG_WAIT_RUNNING) == COPFLAG_WAIT_RUNNING) {
         while (prog->state == COP_STATE_READY) {
-            sem_acquire(&g_copper_notify_sem, &TIMESPEC_INF);
+            sem_acquire(&g_copper_notify_sem, &NANOTIME_INF);
         }
     }
 }

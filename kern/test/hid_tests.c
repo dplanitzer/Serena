@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/framebuffer.h>
 #include <serena/file.h>
 #include <serena/hid.h>
@@ -95,7 +95,7 @@ void hid_test(int argc, char *argv[])
     assert_int_ge(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
 
     while (!done) {
-        assert_int_ge(0, ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt));
+        assert_int_ge(0, ioctl(fd, kHIDCommand_GetNextEvent, &NANOTIME_INF, &evt));
 
         switch (evt.type) {
             case kHIDEventType_KeyDown:

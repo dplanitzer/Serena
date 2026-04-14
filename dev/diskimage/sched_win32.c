@@ -58,7 +58,7 @@ errno_t cnd_wait(cnd_t* pCondVar, mtx_t* mtx)
     return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
 }
 
-errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const struct timespec* _Nonnull deadline)
+errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const nanotime_t* _Nonnull deadline)
 {
     return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
 }

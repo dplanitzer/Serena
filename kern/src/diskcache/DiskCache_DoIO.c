@@ -8,7 +8,7 @@
 
 #include "DiskCachePriv.h"
 #include <assert.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 
 static void _on_disk_request_done(StrategyRequest* _Nonnull req);
 

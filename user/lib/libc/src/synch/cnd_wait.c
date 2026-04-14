@@ -15,7 +15,7 @@
 // lock before we are able to enter the wait, that we don't lose the fact that
 // the producer signalled us. We would miss this wakeup with a stateless wait
 // queue.
-static int __cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
+static int __cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const nanotime_t* _Nullable wtp)
 {
     if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
@@ -36,10 +36,10 @@ static int __cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, co
 
 int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
 {
-    return __cnd_wait(self, mutex, TIMER_ABSTIME, &TIMESPEC_INF);
+    return __cnd_wait(self, mutex, TIMER_ABSTIME, &NANOTIME_INF);
 }
 
-int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
+int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const nanotime_t* _Nonnull wtp)
 {
     return __cnd_wait(self, mutex, flags, wtp);
 }

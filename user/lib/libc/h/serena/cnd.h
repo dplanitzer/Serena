@@ -52,7 +52,7 @@ extern int cnd_wait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex);
 // Returns 0 on success and -1 and errno set to ETIMEOUT if the condition
 // variable isn't signaled before the point in time defined by 'wtp'.
 // @Concurrency: Safe
-extern int cnd_timedwait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex, int flags, const struct timespec* _Nonnull wtp);
+extern int cnd_timedwait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex, int flags, const nanotime_t* _Nonnull wtp);
 
 __CPP_END
 

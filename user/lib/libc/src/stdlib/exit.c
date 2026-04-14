@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <__stdlib.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/process.h>
 
@@ -25,7 +25,7 @@ _Noreturn void exit(int status)
     if (isAlreadyExiting) {
         // Some other vcpu has already started the exit() process. Wait until
         // the process is shot down by the kernel.
-        clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+        clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
         /* NOT REACHED */
     }
 

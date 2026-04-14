@@ -31,7 +31,7 @@ CLAP_DECL(params,
 
 static int touch(const char* _Nonnull path)
 {
-    struct timespec times[2];
+    nanotime_t times[2];
 
     times[FS_TIMFLD_ACC].tv_sec = 0;
     times[FS_TIMFLD_ACC].tv_nsec = FS_TIME_NOW;

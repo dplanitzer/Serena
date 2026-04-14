@@ -111,7 +111,7 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
     /* NOT REACHED */
 }
 
-int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct timespec* _Nonnull wtp)
+int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const nanotime_t* _Nonnull wtp)
 {
     bool didWakeup = false;
 

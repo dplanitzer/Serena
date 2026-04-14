@@ -9,7 +9,7 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 
 static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer);
@@ -93,7 +93,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     // Initialize the text cursor timer
     self->textCursorTimer.item = KDISPATCH_ITEM_INIT((kdispatch_item_func_t)Console_OnTextCursorBlink, NULL);
     self->textCursorTimer.console = self;
-    timespec_from_ms(&self->textCursorTimer.blinkInterval, 500);
+    nanotime_from_ms(&self->textCursorTimer.blinkInterval, 500);
 
 catch:
     return err;

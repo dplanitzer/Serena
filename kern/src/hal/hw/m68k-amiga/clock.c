@@ -7,7 +7,7 @@
 //
 
 #include <assert.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
@@ -160,12 +160,12 @@ bool clock_cancel_deadline(clock_ref_t _Nonnull self, clock_deadline_t* _Nonnull
     return r;
 }
 
-void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
+void clock_gettime(clock_ref_t _Nonnull self, nanotime_t* _Nonnull ts)
 {
     clock_ticks2time(self, self->tick_count, ts);
 }
 
-void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
+void clock_gettime_hires(clock_ref_t _Nonnull self, nanotime_t* _Nonnull ts)
 {
     struct ticks_ns ticks_ns;
     
@@ -179,14 +179,14 @@ void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts
 }
 
 #ifndef MACHINE_AMIGA
-ticks_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts)
+ticks_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const nanotime_t* _Nonnull ts)
 {
     const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
     
     return nanos / (int64_t)self->ns_per_tick;
 }
 
-ticks_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts)
+ticks_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const nanotime_t* _Nonnull ts)
 {
     const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
     const int64_t ticks = nanos / (int64_t)self->ns_per_tick;
@@ -195,7 +195,7 @@ ticks_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* 
     return (nanos_prime < nanos) ? (int32_t)ticks + 1 : (int32_t)ticks;
 }
 
-void clock_ticks2time(clock_ref_t _Nonnull self, ticks_t ticks, struct timespec* _Nonnull ts)
+void clock_ticks2time(clock_ref_t _Nonnull self, ticks_t ticks, nanotime_t* _Nonnull ts)
 {
     const int64_t ns = (int64_t)ticks * (int64_t)self->ns_per_tick;
     

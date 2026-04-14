@@ -8,7 +8,7 @@
 
 #include "syscalldecls.h"
 #include <ext/hash.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/sched.h>
 #include <kern/kalloc.h>
 #include <kpi/signal.h>
@@ -120,7 +120,7 @@ SYSCALL_1(wq_wait, int q)
     return err;
 }
 
-SYSCALL_3(wq_timedwait, int q, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_3(wq_timedwait, int q, int flags, const nanotime_t* _Nonnull wtp)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -133,7 +133,7 @@ SYSCALL_3(wq_timedwait, int q, int flags, const struct timespec* _Nonnull wtp)
     return err;
 }
 
-SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const nanotime_t* _Nonnull wtp)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

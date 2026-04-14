@@ -27,12 +27,12 @@ int wq_wait(int q)
     return (int)_syscall(SC_wq_wait, q);
 }
 
-int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
+int wq_timedwait(int q, int flags, const nanotime_t* _Nonnull wtp)
 {
     return (int)_syscall(SC_wq_timedwait, q, flags, wtp);
 }
 
-int wq_wakeup_then_timedwait(int q, int q2, int flags, const struct timespec* _Nonnull wtp)
+int wq_wakeup_then_timedwait(int q, int q2, int flags, const nanotime_t* _Nonnull wtp)
 {
     return (int)_syscall(SC_wq_wakeup_then_timedwait, q, q2, flags, wtp);
 }

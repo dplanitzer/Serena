@@ -8,7 +8,7 @@
 
 #include "HIDDriver.h"
 #include <driver/hid/HIDManager.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <filesystem/IOChannel.h>
 #include <kpi/file.h>
 #include <kpi/hid.h>
@@ -43,14 +43,14 @@ errno_t HIDDriver_read(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, vo
 {
     decl_try_err();
     const bool isNonBlocking = (IOChannel_GetMode(ioc) & O_NONBLOCK) == O_NONBLOCK;
-    const struct timespec* timp = (isNonBlocking) ? &TIMESPEC_ZERO : &TIMESPEC_INF;
+    const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
     HIDEvent* pe = buf;
     ssize_t nBytesRead = 0;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
         // Only block waiting for the first event. For all other events we do not
         // wait.
-        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? timp : &TIMESPEC_ZERO, pe);
+        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? timp : &NANOTIME_ZERO, pe);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -71,7 +71,7 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
 {
     switch (cmd) {
         case kHIDCommand_GetNextEvent: {
-            const struct timespec* timeoutp = va_arg(ap, struct timespec*);
+            const nanotime_t* timeoutp = va_arg(ap, nanotime_t*);
             HIDEvent* evt = va_arg(ap, HIDEvent*);
 
             return HIDManager_GetNextEvent(gHIDManager, timeoutp, evt);
@@ -82,16 +82,16 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
             return EOK;
             
         case kHIDCommand_GetKeyRepeatDelays: {
-            struct timespec* initialp = va_arg(ap, struct timespec*);
-            struct timespec* repeatp = va_arg(ap, struct timespec*);
+            nanotime_t* initialp = va_arg(ap, nanotime_t*);
+            nanotime_t* repeatp = va_arg(ap, nanotime_t*);
 
             HIDManager_GetKeyRepeatDelays(gHIDManager, initialp, repeatp);
             return EOK;
         }
 
         case kHIDCommand_SetKeyRepeatDelays: {
-            const struct timespec* initialp = va_arg(ap, struct timespec*);
-            const struct timespec* repeatp = va_arg(ap, struct timespec*);
+            const nanotime_t* initialp = va_arg(ap, nanotime_t*);
+            const nanotime_t* repeatp = va_arg(ap, nanotime_t*);
 
             HIDManager_SetKeyRepeatDelays(gHIDManager, initialp, repeatp);
             return EOK;

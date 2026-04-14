@@ -91,7 +91,7 @@ errno_t KernFS_onAcquireNode(KernFSRef _Nonnull self, ino_t inid, InodeRef _Null
 errno_t KernFS_onWritebackNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     if (Inode_IsModified(pNode)) {
-        struct timespec now;
+        nanotime_t now;
         
         FSGetCurrentTime(&now);
 

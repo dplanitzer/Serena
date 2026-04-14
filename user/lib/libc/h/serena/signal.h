@@ -39,7 +39,7 @@ extern int sig_wait(const sigset_t* _Nonnull set, int* _Nonnull signo);
 
 // Similar to sig_wait() but returns with ETIMEDOUT if the wait reached the timeout
 // value.
-extern int sig_timedwait(const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
+extern int sig_timedwait(const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns the set of signals that are pending. This function does not consume
 // pending signals and it does not trigger signal handlers.

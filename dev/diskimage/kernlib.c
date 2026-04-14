@@ -14,8 +14,8 @@
 #include <kpi/_time.h>
 
 
-const struct timespec TIMESPEC_ZERO = {0l, 0l};
-const struct timespec TIMESPEC_INF = {LONG_MAX, NSEC_PER_SEC-1l};
+const nanotime_t NANOTIME_ZERO = {0l, 0l};
+const nanotime_t NANOTIME_INF = {LONG_MAX, NSEC_PER_SEC-1l};
 
 
 ////////////////////////////////////////////////////////////////////////////////

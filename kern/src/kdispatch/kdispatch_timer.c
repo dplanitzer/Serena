@@ -18,7 +18,7 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
     // timer fire time (ascending). Timers with the same fire time are added in
     // FIFO order.
     while (ctp) {
-        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
+        if (nanotime_gt(&ctp->deadline, &timer->deadline)) {
             break;
         }
         
@@ -113,7 +113,7 @@ void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, kdispatch_ite
 }
 
 
-static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
+static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
     kdispatch_timer_t timer;
@@ -147,10 +147,10 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
     timer->interval = *itp;
 
     if ((flags & KDISPATCH_SUBMIT_ABSTIME) == 0) {
-        struct timespec now;
+        nanotime_t now;
 
         clock_gettime(g_mono_clock, &now);
-        timespec_add(&now, &timer->deadline, &timer->deadline);
+        nanotime_add(&now, &timer->deadline, &timer->deadline);
     }
 
 
@@ -167,14 +167,14 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
 
 void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
-    struct timespec now;
+    nanotime_t now;
 
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
     clock_gettime(g_mono_clock, &now);
     do  {
-        timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
-    } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
+        nanotime_add(&timer->deadline, &timer->interval, &timer->deadline);
+    } while (nanotime_le(&timer->deadline, &now) && nanotime_gt(&timer->interval, &NANOTIME_ZERO));
 
 
     timer->timer_qe = QUEUE_NODE_INIT;
@@ -192,11 +192,11 @@ void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, kdispatch_item_t _Nonnull item)
+errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
-    if (!timespec_isvalid(wtp)) {
+    if (!nanotime_isvalid(wtp)) {
         return EINVAL;
     }
 
@@ -211,7 +211,7 @@ errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct 
     item->type = _KDISPATCH_TYPE_USER_TIMER;
     item->flags = 0;
 
-    err = _kdispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, item);
+    err = _kdispatch_arm_timer(self, flags, wtp, &NANOTIME_INF, item);
 
 catch:
     mtx_unlock(&self->mutex);
@@ -219,11 +219,11 @@ catch:
     return err;
 }
 
-errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
+errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
-    if (!timespec_isvalid(wtp) || (itp && !timespec_isvalid(itp))) {
+    if (!nanotime_isvalid(wtp) || (itp && !nanotime_isvalid(itp))) {
         return EINVAL;
     }
 
@@ -246,11 +246,11 @@ catch:
     return err;
 }
 
-errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg)
+errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     decl_try_err();
 
-    if (!timespec_isvalid(wtp)) {
+    if (!nanotime_isvalid(wtp)) {
         return EINVAL;
     }
 
@@ -264,7 +264,7 @@ errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct times
             item->func = (int (*)(void*))func;
             item->arg = arg;
 
-            err = _kdispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, (kdispatch_item_t)item);
+            err = _kdispatch_arm_timer(self, flags, wtp, &NANOTIME_INF, (kdispatch_item_t)item);
             if (err != EOK) {
                 _kdispatch_cache_item(self, (kdispatch_item_t)item);
             }
@@ -281,11 +281,11 @@ errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct times
     return err;
 }
 
-errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg)
+errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     decl_try_err();
 
-    if (!timespec_isvalid(wtp) || (itp && !timespec_isvalid(itp))) {
+    if (!nanotime_isvalid(wtp) || (itp && !nanotime_isvalid(itp))) {
         return EINVAL;
     }
 

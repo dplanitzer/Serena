@@ -67,7 +67,7 @@ errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline)
+errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_t* _Nonnull deadline)
 {
     const int sps = preempt_disable();
     

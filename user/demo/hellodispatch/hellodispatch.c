@@ -28,12 +28,12 @@ static void print_loop(void* _Nullable ignore)
 
 int main(int argc, char *argv[])
 {
-    struct timespec per_char_delay;
+    nanotime_t per_char_delay;
 
-    timespec_from_ms(&per_char_delay, 200);
+    nanotime_from_ms(&per_char_delay, 200);
     gIndex = 0;
 
-    dispatch_repeating(dispatch_main_queue(), 0, &TIMESPEC_ZERO, &per_char_delay, (dispatch_async_func_t)print_loop, NULL);
+    dispatch_repeating(dispatch_main_queue(), 0, &NANOTIME_ZERO, &per_char_delay, (dispatch_async_func_t)print_loop, NULL);
     dispatch_run_main_queue();
     
     /* NOT REACHED */

@@ -11,7 +11,7 @@
 #include <limits.h>
 #include <string.h>
 #include <ext/bit.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kern/kalloc.h>
 #include <kern/log.h>
 #include <sched/vcpu.h>

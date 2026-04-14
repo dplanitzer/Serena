@@ -104,7 +104,7 @@ typedef struct Process {
     FileManager                     fm;
 
     // Times stats
-    struct timespec                 creation_time;
+    nanotime_t                      creation_time;
     ticks_t                         user_ticks;         // number of clock ticks this process has spent running in user space across all vcpus (former + current)
     ticks_t                         system_ticks;       // number of clock ticks this process has spent running in system space across all vcpus (former + current)
     ticks_t                         wait_ticks;         // number of clock ticks this process has spent waiting or suspended across all vcpus (former + current)

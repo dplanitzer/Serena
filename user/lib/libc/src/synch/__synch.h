@@ -10,7 +10,7 @@
 #define __SYNCH_H 1
 
 #include <errno.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/cnd.h>
 #include <serena/mtx.h>
 #include <serena/waitqueue.h>

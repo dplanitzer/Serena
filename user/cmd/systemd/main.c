@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/filesystem.h>
 #include <serena/process.h>
@@ -53,5 +53,5 @@ int main(int argc, char *argv[])
     }
 
     // Don't exit (doing it this cheep way for now. Should keep an eye on its children though)
-    clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+    clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
 }

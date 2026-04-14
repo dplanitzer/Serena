@@ -10,7 +10,7 @@
 #define _DELAY_H 1
 
 #include <ext/try.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kpi/signal.h>
 
 struct WaitQueue;

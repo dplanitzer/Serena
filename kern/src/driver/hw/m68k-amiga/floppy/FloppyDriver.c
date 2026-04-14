@@ -9,7 +9,7 @@
 #include "FloppyDriverPriv.h"
 #include <assert.h>
 #include <string.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <kern/kalloc.h>
 #include <kern/log.h>
@@ -108,9 +108,9 @@ void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, SenseDiskRequest* _
 static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
 {
     decl_try_err();
-    struct timespec interval;
+    nanotime_t interval;
 
-    timespec_from_ms(&interval, 800);
+    nanotime_from_ms(&interval, 800);
 
     // XXX hardcoded to DD for now
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
@@ -132,7 +132,7 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     if (err == EOK) {
         self->flags.isOnline = 1;
         _FloppyDriver_doSenseDisk(self);
-        kdispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &TIMESPEC_ZERO, &interval, (kdispatch_async_func_t)FloppyDriver_CheckDiskChange, self);
+        kdispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &NANOTIME_ZERO, &interval, (kdispatch_async_func_t)FloppyDriver_CheckDiskChange, self);
     }
     else {
         self->flags.isOnline = 0;
@@ -241,8 +241,8 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
 
     FloppyDriver_CancelDelayedMotorOff(self);
     
-    struct timespec dly; 
-    timespec_from_sec(&dly, 4);
+    nanotime_t dly; 
+    nanotime_from_sec(&dly, 4);
     kdispatch_after(DiskDriver_GetDispatchQueue(self), 0, &dly, (kdispatch_async_func_t)FloppyDriver_MotorOff, self);
 }
 

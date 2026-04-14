@@ -10,7 +10,7 @@
 #define _KPI_VCPU_H 1
 
 #include <machine/vcpu_state.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kpi/types.h>
 #include <stdint.h>
 
@@ -151,11 +151,11 @@ typedef struct vcpu_ids_info {
 
 
 typedef struct vcpu_times_info {
-    struct timespec acquisition_time;   // Time when the process acquired this vcpu
+    nanotime_t  acquisition_time;   // Time when the process acquired this vcpu
     
-    struct timespec user_time;          // Time the vcpu has spent running in user mode since acquisition
-    struct timespec system_time;        // Time the vcpu has spent running in system/kernel mode since acquisition
-    struct timespec wait_time;          // Time the vcpu has spent in waiting or suspended state since acquisition
+    nanotime_t  user_time;          // Time the vcpu has spent running in user mode since acquisition
+    nanotime_t  system_time;        // Time the vcpu has spent running in system/kernel mode since acquisition
+    nanotime_t  wait_time;          // Time the vcpu has spent in waiting or suspended state since acquisition
 } vcpu_times_info_t;
 
 #endif /* _KPI_VCPU_H */

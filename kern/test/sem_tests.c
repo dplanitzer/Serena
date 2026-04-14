@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/math.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/process.h>
 #include <serena/sem.h>
@@ -33,9 +33,9 @@ static dispatch_t gDispatcher;
 static void philosopher(int* num)
 {
     const int p = *num;
-    struct timespec wt;
+    nanotime_t wt;
 
-    timespec_from_sec(&wt, 2);
+    nanotime_from_sec(&wt, 2);
     while (true) {
         assert_ok(sem_wait(&room, 1));
         printf("Philosopher %d has entered room\n", p);

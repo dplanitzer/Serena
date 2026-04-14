@@ -23,7 +23,7 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
     // timer fire time (ascending). Timers with the same fire time are added in
     // FIFO order.
     while (ctp) {
-        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
+        if (nanotime_gt(&ctp->deadline, &timer->deadline)) {
             break;
         }
         
@@ -118,7 +118,7 @@ void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t
 }
 
 
-static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
+static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, dispatch_item_t _Nonnull item)
 {
     dispatch_timer_t timer;
 
@@ -151,10 +151,10 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
     timer->interval = *itp;
 
     if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
-        struct timespec now;
+        nanotime_t now;
 
         clock_time(CLOCK_MONOTONIC, &now);
-        timespec_add(&now, &timer->deadline, &timer->deadline);
+        nanotime_add(&now, &timer->deadline, &timer->deadline);
     }
 
 
@@ -171,14 +171,14 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
 
 void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
-    struct timespec now;
+    nanotime_t now;
 
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
     clock_time(CLOCK_MONOTONIC, &now);
     do  {
-        timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
-    } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
+        nanotime_add(&timer->deadline, &timer->interval, &timer->deadline);
+    } while (nanotime_le(&timer->deadline, &now) && nanotime_gt(&timer->interval, &NANOTIME_ZERO));
     
 
     timer->timer_qe = QUEUE_NODE_INIT;
@@ -196,11 +196,11 @@ void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _N
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_item_t _Nonnull item)
+int dispatch_item_after(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
-    if (!timespec_isvalid(wtp)) {
+    if (!nanotime_isvalid(wtp)) {
         errno = EINVAL;
         return -1;
     }
@@ -211,7 +211,7 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
             item->type = _DISPATCH_TYPE_USER_TIMER;
             item->flags = 0;
 
-            r = _dispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, item);
+            r = _dispatch_arm_timer(self, flags, wtp, &NANOTIME_INF, item);
         }
     }
     else {
@@ -222,11 +222,11 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
     return r;
 }
 
-int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
+int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
-    if (!timespec_isvalid(wtp) || (itp && !timespec_isvalid(itp))) {
+    if (!nanotime_isvalid(wtp) || (itp && !nanotime_isvalid(itp))) {
         errno = EINVAL;
         return -1;
     }
@@ -248,11 +248,11 @@ int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct ti
     return r;
 }
 
-int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+int dispatch_after(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     int r = -1;
 
-    if (!timespec_isvalid(wtp)) {
+    if (!nanotime_isvalid(wtp)) {
         errno = EINVAL;
         return -1;
     }
@@ -267,7 +267,7 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
             item->func = (int (*)(void*))func;
             item->arg = arg;
 
-            r = _dispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, (dispatch_item_t)item);
+            r = _dispatch_arm_timer(self, flags, wtp, &NANOTIME_INF, (dispatch_item_t)item);
             if (r == -1) {
                 _dispatch_cache_item(self, (dispatch_item_t)item);
             }
@@ -278,11 +278,11 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
     return r;
 }
 
-int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+int dispatch_repeating(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     int r = -1;
 
-    if (!timespec_isvalid(wtp) || (itp && !timespec_isvalid(itp))) {
+    if (!nanotime_isvalid(wtp) || (itp && !nanotime_isvalid(itp))) {
         errno = EINVAL;
         return -1;
     }

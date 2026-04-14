@@ -14,7 +14,7 @@
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-void FSGetCurrentTime(struct timespec* _Nonnull ts)
+void FSGetCurrentTime(nanotime_t* _Nonnull ts)
 {
     clock_gettime(g_mono_clock, ts);
 }

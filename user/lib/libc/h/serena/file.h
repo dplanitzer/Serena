@@ -37,7 +37,7 @@ extern int fs_setowner(dir_t* _Nullable wd, const char* _Nonnull path, uid_t uid
 // Sets the access and modification date of the file at 'path'. The dates are
 // set to the current time if 'times' is NULL.
 // @Concurrency: Safe
-extern int fs_settimes(dir_t* _Nullable wd, const char* _Nonnull path, const struct timespec times[_Nullable 2]);
+extern int fs_settimes(dir_t* _Nullable wd, const char* _Nonnull path, const nanotime_t times[_Nullable 2]);
 
 
 // Truncates the file at the filesystem location 'path'. If the new length is

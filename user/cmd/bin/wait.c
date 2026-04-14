@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 
 
@@ -73,8 +73,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    struct timespec dur;
-    timespec_from_ms(&dur, ms);
+    nanotime_t dur;
+    nanotime_from_ms(&dur, ms);
     clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);
 
     return EXIT_SUCCESS;

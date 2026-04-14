@@ -37,10 +37,10 @@ typedef unsigned long   clock_t;
 // Seconds since 00:00, Jan 1st 1970 UTC
 typedef long time_t;
 
-struct timespec {
+typedef struct nanotime {
     time_t  tv_sec;
     long    tv_nsec;    // 0..<1billion
-};
+} nanotime_t;
 
 // Milliseconds
 typedef long mseconds_t;

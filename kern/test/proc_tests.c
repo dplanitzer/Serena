@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/exception.h>
 #include <serena/process.h>
@@ -38,7 +38,7 @@ static void just_suspend(const char* _Nonnull str)
 static void just_wait(const char* _Nonnull str)
 {
     puts(str);
-    clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+    clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
 }
 
 
@@ -79,8 +79,8 @@ void proc_exit_test(int argc, char *argv[])
 
     
     puts("Waiting...");
-    struct timespec delay;
-    timespec_from_sec(&delay, 2);
+    nanotime_t delay;
+    nanotime_from_sec(&delay, 2);
     clock_wait(CLOCK_MONOTONIC, 0, &delay, NULL);
 
     puts("Exiting");

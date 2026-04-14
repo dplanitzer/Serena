@@ -45,9 +45,9 @@ open_class(Inode, Any,
     int                             state;
 
     mtx_t                           mtx;
-    struct timespec                 accessTime;
-    struct timespec                 modificationTime;
-    struct timespec                 statusChangeTime;
+    nanotime_t                      accessTime;
+    nanotime_t                      modificationTime;
+    nanotime_t                      statusChangeTime;
     off_t                           size;       // File size
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
     ino_t                           inid;       // Filesystem specific ID of the inode
@@ -99,7 +99,7 @@ any_subclass_funcs(Inode,
     // Sets the access and modification timestamps of the inode.
     // Override: Optional
     // Default Behavior: Updates the inode's timestamp info
-    void (*setTimes)(void* _Nonnull _Locked self, const struct timespec times[_Nullable 2]);
+    void (*setTimes)(void* _Nonnull _Locked self, const nanotime_t times[_Nullable 2]);
 
 
     //
@@ -329,9 +329,9 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
     gid_t gid,
     int linkCount,
     off_t size,
-    const struct timespec* _Nonnull accessTime,
-    const struct timespec* _Nonnull modTime,
-    const struct timespec* _Nonnull statusChangeTime,
+    const nanotime_t* _Nonnull accessTime,
+    const nanotime_t* _Nonnull modTime,
+    const nanotime_t* _Nonnull statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nullable self);

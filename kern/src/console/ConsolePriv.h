@@ -147,7 +147,7 @@ typedef struct SavedState {
 typedef struct CursorTimer {
     struct kdispatch_item   item;
     ConsoleRef _Nonnull     console;
-    struct timespec         blinkInterval;
+    nanotime_t              blinkInterval;
 } CursorTimer;
 
 
@@ -166,7 +166,7 @@ final_class_ivars(Console, PseudoDriver,
     IOChannelRef _Nonnull       fbChannel;
     int                         clutId;
     int                         surfaceId;
-    surface_mapping_t              pixels;
+    surface_mapping_t           pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
     int                         textCursorSurface;

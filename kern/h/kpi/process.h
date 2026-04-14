@@ -10,7 +10,7 @@
 #define _KPI_PROCESS_H 1
 
 #include <_cmndef.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kpi/kei.h>
 #include <kpi/types.h>
 
@@ -108,15 +108,15 @@ typedef struct proc_user_info {
 
 
 typedef struct proc_times_info {
-    struct timespec creation_time;      // Time when the process was created
+    nanotime_t  creation_time;      // Time when the process was created
 
-    struct timespec user_time;          // Time the process has spent running in user mode since creation. This includes currently acquired and formerly acquired vcpus
-    struct timespec system_time;        // Time the process has spent running in system/kernel mode since creation. This includes currently acquired and formerly acquired vcpus
-    struct timespec wait_time;          // Time the process has spent in waiting or suspended state since creation. This includes currently acquired and formerly acquired vcpus
+    nanotime_t  user_time;          // Time the process has spent running in user mode since creation. This includes currently acquired and formerly acquired vcpus
+    nanotime_t  system_time;        // Time the process has spent running in system/kernel mode since creation. This includes currently acquired and formerly acquired vcpus
+    nanotime_t  wait_time;          // Time the process has spent in waiting or suspended state since creation. This includes currently acquired and formerly acquired vcpus
 
-    struct timespec acq_user_time;      // Time the process has spent running in user mode since creation. Acquired vcpus only
-    struct timespec acq_system_time;    // Time the process has spent running in system/kernel mode since creation. Acquired vcpus only
-    struct timespec acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
+    nanotime_t  acq_user_time;      // Time the process has spent running in user mode since creation. Acquired vcpus only
+    nanotime_t  acq_system_time;    // Time the process has spent running in system/kernel mode since creation. Acquired vcpus only
+    nanotime_t  acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
 } proc_times_info_t;
 
 

@@ -44,8 +44,8 @@ extern void sem_relinquish_multiple(sem_t* _Nonnull self, int npermits);
 #define sem_acquire(__self, __deadline) \
 sem_acquire_multiple(__self, 1, __deadline)
 
-extern errno_t sem_acquire_multiple(sem_t* _Nonnull self, int npermits, const struct timespec* _Nonnull deadline);
-extern errno_t sem_acquireall(sem_t* _Nonnull self, const struct timespec* _Nonnull deadline, int* _Nonnull pOutPermitCount);
+extern errno_t sem_acquire_multiple(sem_t* _Nonnull self, int npermits, const nanotime_t* _Nonnull deadline);
+extern errno_t sem_acquireall(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline, int* _Nonnull pOutPermitCount);
 
 
 #define sem_tryacquire(__self) \

@@ -19,4 +19,9 @@
 typedef long mseconds_t;
 typedef long useconds_t;
 
+typedef struct nanotime {
+    time_t  tv_sec;
+    long    tv_nsec;    // 0..<1billion
+} nanotime_t;
+
 #endif /* _DI_PRIV_TIME_H */

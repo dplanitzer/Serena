@@ -10,7 +10,7 @@
 #include "SerenaFSPriv.h"
 #include <assert.h>
 #include <ext/endian.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <filesystem/FSUtilities.h>
 
 
@@ -18,11 +18,11 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
 {
     decl_try_err();
     SfsFileRef self;
-    struct timespec at, mt, st;
+    nanotime_t at, mt, st;
 
-    timespec_from(&at, UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec));
-    timespec_from(&mt, UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec));
-    timespec_from(&st, UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec));
+    nanotime_from(&at, UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec));
+    nanotime_from(&mt, UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec));
+    nanotime_from(&st, UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec));
 
     err = Inode_Create(
         pClass,
@@ -54,12 +54,12 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
 void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip)
 {
     SfsFileRef self = (SfsFileRef)pNode;
-    struct timespec now;
+    nanotime_t now;
     
     FSGetCurrentTime(&now);
-    const struct timespec* atp = (Inode_IsAccessed(self)) ? &now : Inode_GetAccessTime(self);
-    const struct timespec* mtp = (Inode_IsUpdated(self)) ? &now : Inode_GetModificationTime(self);
-    const struct timespec* ctp = (Inode_IsStatusChanged(self)) ? &now : Inode_GetStatusChangeTime(self);
+    const nanotime_t* atp = (Inode_IsAccessed(self)) ? &now : Inode_GetAccessTime(self);
+    const nanotime_t* mtp = (Inode_IsUpdated(self)) ? &now : Inode_GetModificationTime(self);
+    const nanotime_t* ctp = (Inode_IsStatusChanged(self)) ? &now : Inode_GetStatusChangeTime(self);
 
     const sfs_itype_t itype = SfsFile_GetIType(self);
     const sfs_perm_t iperms = SfsFile_GetPermissions(self);

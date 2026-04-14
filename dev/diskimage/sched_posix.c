@@ -67,7 +67,7 @@ errno_t cnd_wait(cnd_t* pCondVar, mtx_t* mtx)
     }
 }
 
-errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const struct timespec* _Nonnull deadline)
+errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const nanotime_t* _Nonnull deadline)
 {
     if (pthread_cond_timedwait(pCondVar, mtx, deadline) == 0) {
         return 0;

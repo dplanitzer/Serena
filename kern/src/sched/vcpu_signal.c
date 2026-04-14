@@ -9,7 +9,7 @@
 #include "vcpu.h"
 #include "sched.h"
 #include <limits.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kpi/signal.h>
@@ -107,11 +107,11 @@ errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull s
     return err;
 }
 
-errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
+errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
 {
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
-    struct timespec now, deadline;
+    nanotime_t now, deadline;
     bool done = false;
     errno_t err;
     
@@ -123,7 +123,7 @@ errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonn
     }
     else {
         clock_gettime(g_mono_clock, &now);
-        timespec_add(&now, wtp, &deadline);
+        nanotime_add(&now, wtp, &deadline);
     }
 
 

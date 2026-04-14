@@ -1,49 +1,49 @@
 //
-//  ext/timespec.c
+//  ext/nanotime.c
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/12/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <limits.h>
 
 
-const struct timespec   TIMESPEC_ZERO = {0l, 0l};
-const struct timespec   TIMESPEC_INF = {LONG_MAX, NSEC_PER_SEC-1l};
+const nanotime_t   NANOTIME_ZERO = {0l, 0l};
+const nanotime_t   NANOTIME_INF = {LONG_MAX, NSEC_PER_SEC-1l};
 
 
-void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis)
+void nanotime_from_ms(nanotime_t* _Nonnull ts, mseconds_t millis)
 {
     ts->tv_sec = millis / MSEC_PER_SEC;
     ts->tv_nsec = (millis - (ts->tv_sec * MSEC_PER_SEC)) * 1000000l;
 }
 
-void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros)
+void nanotime_from_us(nanotime_t* _Nonnull ts, useconds_t micros)
 {
     ts->tv_sec = micros / USEC_PER_SEC;
     ts->tv_nsec = (micros - (ts->tv_sec * USEC_PER_SEC)) * 1000l;
 }
 
 
-mseconds_t timespec_ms(struct timespec* _Nonnull ts)
+mseconds_t nanotime_ms(nanotime_t* _Nonnull ts)
 {
     return ts->tv_sec * MSEC_PER_SEC + ts->tv_nsec / 1000000l;
 }
 
-useconds_t timespec_us(struct timespec* _Nonnull ts)
+useconds_t nanotime_us(nanotime_t* _Nonnull ts)
 {
     return ts->tv_sec * USEC_PER_SEC + ts->tv_nsec / 1000l;
 }
 
-int64_t timespec_ns(struct timespec* _Nonnull ts)
+int64_t nanotime_ns(nanotime_t* _Nonnull ts)
 {
     return (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
 }
 
 
-void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res)
+void nanotime_add(const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1, nanotime_t* _Nonnull res)
 {
     res->tv_sec = t0->tv_sec + t1->tv_sec;
     res->tv_nsec = t0->tv_nsec + t1->tv_nsec;
@@ -55,11 +55,11 @@ void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _No
     
     // Check for overflow
     if (res->tv_sec < 0) {
-        *res = TIMESPEC_INF;
+        *res = NANOTIME_INF;
     }
 }
 
-void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res)
+void nanotime_sub(const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1, nanotime_t* _Nonnull res)
 {
     res->tv_sec = t0->tv_sec - t1->tv_sec;
     res->tv_nsec = t0->tv_nsec - t1->tv_nsec;
@@ -71,16 +71,16 @@ void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _No
 
     // Check for underflow
     if (res->tv_sec < 0) {
-        *res = TIMESPEC_ZERO;
+        *res = NANOTIME_ZERO;
     }
 }
 
 
-void timespec_normalize(struct timespec* _Nonnull ts)
+void nanotime_normalize(nanotime_t* _Nonnull ts)
 {
     if (ts->tv_sec < 0 || (ts->tv_sec == 0 && ts->tv_nsec < 0)) {
         // Input represents an underflow
-        *ts = TIMESPEC_ZERO;
+        *ts = NANOTIME_ZERO;
         return;
     }
 
@@ -93,7 +93,7 @@ void timespec_normalize(struct timespec* _Nonnull ts)
 	
     if (ts->tv_sec < 0) {
         // Previous loop overflowed
-        *ts = TIMESPEC_INF;
+        *ts = NANOTIME_INF;
         return;
     }
 
@@ -106,6 +106,6 @@ void timespec_normalize(struct timespec* _Nonnull ts)
 
     if (ts->tv_sec < 0) {
         // Previous loop underflowed
-        *ts = TIMESPEC_ZERO;
+        *ts = NANOTIME_ZERO;
     }
 }

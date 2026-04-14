@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 #include <ext/queue.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <ext/try.h>
 #include <kpi/vcpu.h>
 
@@ -254,19 +254,19 @@ extern errno_t kdispatch_sync(kdispatch_t _Nonnull self, kdispatch_sync_func_t _
 // if 'flags' has the TIMER_ABSTIME flag set. The dispatcher takes ownership of
 // item until that time. Once the item has executed, it's retire function will
 // be called and ownership reverts back to the item.
-extern errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, kdispatch_item_t _Nonnull item);
+extern errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, kdispatch_item_t _Nonnull item);
 
 // Similar to kdispatch_item_after(), except that the item is repeatedly executed
 // every 'itp time units until it is canceled.
-extern errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item);
+extern errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, kdispatch_item_t _Nonnull item);
 
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the
 // absolute time 'wtp' if 'flags' contains TIMER_ABSTIME.
-extern errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg);
+extern errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 // Convenience function to repeatedly execute 'func'.
-extern errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg);
+extern errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 
 // Register the given item as a signal monitor with the dispatcher. The item

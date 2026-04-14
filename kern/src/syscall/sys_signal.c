@@ -8,7 +8,7 @@
 
 #include "syscalldecls.h"
 #include <assert.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/sched.h>
 #include <kpi/signal.h>
 #include <process/ProcessManager.h>
@@ -32,7 +32,7 @@ SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
     return vcpu_wait_for_signal(&pp->siwa_queue, pa->set, pa->signo);
 }
 
-SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nullable signo)
+SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
 

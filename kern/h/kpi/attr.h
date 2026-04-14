@@ -14,19 +14,19 @@
 #include <kpi/types.h>
 
 typedef struct fs_attr {
-    struct timespec acc_time;    // Last data access time
-    struct timespec mod_time;    // Last data modification time
-    struct timespec chg_time;    // Last file status change time
-    off_t           size;
-    uid_t           uid;
-    gid_t           gid;
-    fs_ftype_t      file_type;
-    fs_perms_t      permissions;
-    nlink_t         nlink;
-    fsid_t          fsid;
-    ino_t           ino;
-    blksize_t       blk_size;
-    blkcnt_t        blocks;
+    nanotime_t  acc_time;    // Last data access time
+    nanotime_t  mod_time;    // Last data modification time
+    nanotime_t  chg_time;    // Last file status change time
+    off_t       size;
+    uid_t       uid;
+    gid_t       gid;
+    fs_ftype_t  file_type;
+    fs_perms_t  permissions;
+    nlink_t     nlink;
+    fsid_t      fsid;
+    ino_t       ino;
+    blksize_t   blk_size;
+    blkcnt_t    blocks;
 } fs_attr_t;
 
 

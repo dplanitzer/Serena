@@ -11,7 +11,7 @@
 
 #include <dispatch.h>
 #include <assert.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/cnd.h>
 #include <serena/signal.h>
@@ -49,8 +49,8 @@ typedef struct dispatch_conv_item* dispatch_conv_item_t;
 struct dispatch_timer {
     queue_node_t                timer_qe;
     dispatch_item_t _Nonnull    item;
-    struct timespec             deadline;   // Time when the timer fires next
-    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
+    nanotime_t                  deadline;   // Time when the timer fires next
+    nanotime_t                  interval;   // Time interval until next time the timer should fire (if repeating) 
 };
 typedef struct dispatch_timer* dispatch_timer_t;
 

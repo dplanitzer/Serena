@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/math.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/mtx.h>
 #include "Asserts.h"
 
@@ -46,9 +46,9 @@ static void select_and_write_pattern(void)
     char* dst = gCurrentPattern;
     const char* src = gAvailablePattern[gCurrentPatternIndex];
     size_t len = strlen(src) + 1;
-    struct timespec dl;
+    nanotime_t dl;
     
-    timespec_from_ms(&dl, 4);
+    nanotime_from_ms(&dl, 4);
 
     while (len > 0) {
         const size_t nBytesToCopy = __min(len, 4);

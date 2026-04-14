@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/pipe.h>
 #include <serena/process.h>
@@ -60,9 +60,9 @@ static void OnReadFromPipe(int fd)
 {
     char buf[16];
     size_t nBytesToRead = sizeof(buf);
-    struct timespec dly;
+    nanotime_t dly;
     
-    timespec_from_ms(&dly, 200);
+    nanotime_from_ms(&dly, 200);
 
     while (true) {
         //clock_wait(CLOCK_MONOTONIC, 0, &dly, NULL);
@@ -79,9 +79,9 @@ static void OnWriteToPipe(int fd)
 {
     const char* bytes = "Hello";
     size_t nBytesToWrite = strlen(bytes);
-    struct timespec dur;
+    nanotime_t dur;
     
-    timespec_from_ms(&dur, 20);
+    nanotime_from_ms(&dur, 20);
     
     while (true) {
         clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);

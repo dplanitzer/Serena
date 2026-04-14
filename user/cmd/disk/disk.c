@@ -131,7 +131,7 @@ void cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t ro
                 }
             }
             if (ok) {
-                struct timespec now;
+                nanotime_t now;
 
                 // XXX consider switching to the clock API for more precision
                 now.tv_sec = time(NULL);

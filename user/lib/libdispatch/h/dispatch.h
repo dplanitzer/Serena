@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 #include <ext/queue.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN
@@ -256,18 +256,18 @@ extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull
 // if 'flags' has the TIMER_ABSTIME flag set. The dispatcher takes ownership of
 // item until that time. Once the item has executed, it's retire function will
 // be called and ownership reverts back to the item.
-extern int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_item_t _Nonnull item);
+extern int dispatch_item_after(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, dispatch_item_t _Nonnull item);
 
 // Similar to dispatch_item_after(), except that the item is repeatedly executed
 // every 'itp time units until it is canceled.
-extern int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item);
+extern int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, dispatch_item_t _Nonnull item);
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the
 // absolute time 'wtp' if 'flags' contains TIMER_ABSTIME.
-extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
+extern int dispatch_after(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 // Convenience function to repeatedly execute 'func'.
-extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
+extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp, const nanotime_t* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 
 // Register the given item as a signal monitor with the dispatcher. The item

@@ -10,7 +10,7 @@
 #define _KPI_HOST_H 1
 
 #include <_cmndef.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <kpi/types.h>
 #include <machine/cpu.h>
 

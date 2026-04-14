@@ -8,7 +8,7 @@
 
 #include "syscalldecls.h"
 //#include <limits.h>
-//#include <ext/timespec.h>
+//#include <ext/nanotime.h>
 //#include <filesystem/IOChannel.h>
 //#include <kpi/directory.h>
 //#include <kpi/uid.h>

@@ -51,7 +51,7 @@ _cnd_wake(__self, true, __boost)
 extern errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx);
 
 // Version of Wait() with an absolute timeout.
-extern errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline);
+extern errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_t* _Nonnull deadline);
 
 
 // Wakes up one or all waiters on the condition variable. 'pri_boost' is the QoS

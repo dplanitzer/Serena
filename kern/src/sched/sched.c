@@ -222,9 +222,9 @@ _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 _Noreturn void sched_run_chores(sched_t _Nonnull self)
 {
     deque_t dead_vps;
-    struct timespec now, timeout, deadline;
+    nanotime_t now, timeout, deadline;
 
-    timespec_from_sec(&timeout, 1);
+    nanotime_from_sec(&timeout, 1);
     
     while (true) {
         dead_vps = DEQUE_INIT;

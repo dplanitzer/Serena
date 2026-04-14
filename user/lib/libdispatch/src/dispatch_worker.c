@@ -174,7 +174,7 @@ static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self)
 
     while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
         mtx_unlock(&q->mutex);
-        sig_timedwait(&self->hotsigs, 0, &TIMESPEC_INF, &signo);
+        sig_timedwait(&self->hotsigs, 0, &NANOTIME_INF, &signo);
         mtx_lock(&q->mutex);
     }
 
@@ -210,7 +210,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
 {
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
-    struct timespec now, deadline;
+    nanotime_t now, deadline;
     int flags, signo = _SIG_DISPATCH;
 
     for (;;) {
@@ -222,7 +222,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
         if (tp) {
             clock_time(CLOCK_MONOTONIC, &now);
 
-            if (timespec_le(&tp->deadline, &now)) {
+            if (nanotime_le(&tp->deadline, &now)) {
                 _queue_remove_first(&q->timers);
                 self->current_item = tp->item;
                 self->current_timer = tp;
@@ -265,11 +265,11 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
             flags = TIMER_ABSTIME;
         }
         else if (self->allow_relinquish) {
-            timespec_from_sec(&deadline, 5);
+            nanotime_from_sec(&deadline, 5);
             flags = 0;
         }
         else {
-            deadline = TIMESPEC_INF;
+            deadline = NANOTIME_INF;
         }
 
 

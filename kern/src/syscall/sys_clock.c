@@ -7,15 +7,15 @@
 //
 
 #include "syscalldecls.h"
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kpi/clock.h>
 
 
-SYSCALL_4(clock_wait, int clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+SYSCALL_4(clock_wait, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
 {
-    if (!timespec_isvalid(pa->wtp)) {
+    if (!nanotime_isvalid(pa->wtp)) {
         return EINVAL;
     }
     if (pa->clockid != CLOCK_MONOTONIC) {
@@ -38,7 +38,7 @@ SYSCALL_4(clock_wait, int clockid, int flags, const struct timespec* _Nonnull wt
     return (err != ETIMEDOUT) ? err : EOK;
 }
 
-SYSCALL_2(clock_time, int clockid, struct timespec* _Nonnull time)
+SYSCALL_2(clock_time, int clockid, nanotime_t* _Nonnull time)
 {
     if (pa->clockid != CLOCK_MONOTONIC) {
         return ENODEV;

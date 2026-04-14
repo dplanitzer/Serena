@@ -184,7 +184,7 @@ SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, fs_perms_t fsperms)
     return err;
 }
 
-SYSCALL_3(fs_settimes, int wd, const char* _Nonnull path, const struct timespec times[_Nullable 2])
+SYSCALL_3(fs_settimes, int wd, const char* _Nonnull path, const nanotime_t times[_Nullable 2])
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

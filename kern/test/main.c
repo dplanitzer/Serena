@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/clock.h>
 
 
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
         testToRun->func(argc, argv);
 
         if (testToRun->keepMainRunning) {
-            clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+            clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
         }
         else {
             puts("ok");

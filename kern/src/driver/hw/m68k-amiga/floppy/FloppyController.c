@@ -8,7 +8,7 @@
 
 #include "FloppyController.h"
 #include "FloppyDriverPriv.h"
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
@@ -387,11 +387,11 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     // Wait for the DMA to complete
-    struct timespec now, dly, deadline;
+    nanotime_t now, dly, deadline;
     
     clock_gettime(g_mono_clock, &now);
-    timespec_from_ms(&dly, 500);
-    timespec_add(&now, &dly, &deadline);
+    nanotime_from_ms(&dly, 500);
+    nanotime_add(&now, &dly, &deadline);
     err = sem_acquire(&self->done_sem, &deadline);
 
 

@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 {
     clap_parse(0, params, argc, argv);
 
-    struct timespec ti;
+    nanotime_t ti;
     if (clock_time(CLOCK_MONOTONIC, &ti) != 0) {
         return EXIT_FAILURE;
     }

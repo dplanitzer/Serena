@@ -8,7 +8,7 @@
 
 #include "sched.h"
 #include "vcpu.h"
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <process/ProcessPriv.h>

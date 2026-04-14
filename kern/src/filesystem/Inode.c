@@ -25,9 +25,9 @@ errno_t Inode_Create(Class* _Nonnull pClass,
     gid_t gid,
     int linkCount,
     off_t size,
-    const struct timespec* _Nonnull accessTime,
-    const struct timespec* _Nonnull modTime,
-    const struct timespec* _Nonnull statusChangeTime,
+    const nanotime_t* _Nonnull accessTime,
+    const nanotime_t* _Nonnull modTime,
+    const nanotime_t* _Nonnull statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode)
 {
@@ -154,7 +154,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
 
 void Inode_getAttributes(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull attr)
 {
-    struct timespec now;
+    nanotime_t now;
 
     if (Inode_IsModified(self)) {
         FSGetCurrentTime(&now);
@@ -205,7 +205,7 @@ void Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
     Inode_SetModified(self, kInodeFlag_StatusChanged);
 }
 
-void Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[_Nullable 2])
+void Inode_setTimes(InodeRef _Nonnull _Locked self, const nanotime_t times[_Nullable 2])
 {
     const long acc_ns = (times) ? times[FS_TIMFLD_ACC].tv_nsec : FS_TIME_NOW;
     const long mod_ns = (times) ? times[FS_TIMFLD_MOD].tv_nsec : FS_TIME_NOW;

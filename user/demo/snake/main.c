@@ -17,7 +17,7 @@
 #include <ext/string.h>
 #include <time.h>
 #include <ext/stdlib.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <serena/file.h>
 #include "utils.h"
 
@@ -25,7 +25,7 @@
 #define PLAYFIELD_WIDTH 40
 #define PLAYFIELD_HEIGHT 18
 
-static struct timespec game_loop_delay;
+static nanotime_t game_loop_delay;
 
 static int playfield_x, playfield_y;
 
@@ -78,7 +78,7 @@ static void setup(void)
     key = 0;
     score = 0;
 
-    timespec_from_ms(&game_loop_delay, 160);
+    nanotime_from_ms(&game_loop_delay, 160);
 
     playfield_x = (80 - (PLAYFIELD_WIDTH + 2)) / 2;
     playfield_y = 0;
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
 {
     setup();
 
-    dispatch_repeating(dispatch_main_queue(), 0, &TIMESPEC_ZERO, &game_loop_delay, (dispatch_async_func_t)game_loop, NULL);
+    dispatch_repeating(dispatch_main_queue(), 0, &NANOTIME_ZERO, &game_loop_delay, (dispatch_async_func_t)game_loop, NULL);
     dispatch_run_main_queue();
     /* NOT REACHED */
     return 0;

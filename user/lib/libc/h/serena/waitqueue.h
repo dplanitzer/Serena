@@ -43,11 +43,11 @@ extern int wq_wait(int q);
 // Same as wq_wait() but allows you to specify a timeout. The timeout is a
 // duration by default. Pass TIMER_ABSTIME in 'flags' to make it an absolute
 // time value. Returns ETIMEDOUT if the timeout is reached.
-extern int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp);
+extern int wq_timedwait(int q, int flags, const nanotime_t* _Nonnull wtp);
 
 // Atomically wakes up one waiter on wait queue 'q' and then enters the wait
 // state on the wait queue 'q2'. Otherwise just like wq_timedwait(). 
-extern int wq_wakeup_then_timedwait(int q, int q2, int flags, const struct timespec* _Nonnull wtp);
+extern int wq_wakeup_then_timedwait(int q, int q2, int flags, const nanotime_t* _Nonnull wtp);
 
 // Wakes up one or all waiters currently blocked on the wait queue 'q'. Note
 // that this function does not send a signal. Thus it will only wake up waiters

@@ -12,7 +12,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <ext/queue.h>
-#include <ext/timespec.h>
+#include <ext/nanotime.h>
 #include <ext/try.h>
 #include <kpi/signal.h>
 #include <kpi/waitqueue.h>
@@ -70,7 +70,7 @@ extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 // non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp);
 
 
 // Checks whether the caller has signals pending that are members of the signal
@@ -90,7 +90,7 @@ extern errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
-extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp);
 
 
 // Wakes up 'vp' if it is currently in waiting state. The wakeup reason is
