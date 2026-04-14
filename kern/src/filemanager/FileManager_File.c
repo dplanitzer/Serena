@@ -61,7 +61,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 }
 
 // Creates a file in the given filesystem location.
-errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, mode_t mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, fs_perms_t fsperms, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath r;
@@ -105,7 +105,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     }
     else if (err == ENOENT) {
         // File does not exist - create it
-        const mode_t filePerms = ~self->umask & (mode & 0777);
+        const fs_perms_t filePerms = ~self->umask & (fsperms & 0777);
 
 
         // The user provided read/write mode must match up with the provided (user) permissions

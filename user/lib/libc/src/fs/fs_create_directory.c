@@ -11,7 +11,7 @@
 #include "__readdir.h"
 
 
-int fs_create_directory(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode)
+int fs_create_directory(dir_t* _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms)
 {
-    return (int)_syscall(SC_fs_create_directory, (wd) ? _dir_fd(wd) : FD_CWD, path, (uint32_t)mode);
+    return (int)_syscall(SC_fs_create_directory, (wd) ? _dir_fd(wd) : FD_CWD, path, fsperms);
 }

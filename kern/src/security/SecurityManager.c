@@ -61,7 +61,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     }
 
 
-    mode_t finalPerms;
+    fs_perms_t finalPerms;
 
     if (Inode_GetUserId(pNode) == uid) {
         finalPerms = perm_get(fsperms, S_ICUSR);

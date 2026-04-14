@@ -101,9 +101,9 @@ typedef struct proc_ids_info {
 
 
 typedef struct proc_user_info {
-    uid_t   uid;
-    gid_t   gid;
-    mode_t  umask;
+    uid_t       uid;
+    gid_t       gid;
+    fs_perms_t  umask;
 } proc_user_info_t;
 
 

@@ -55,16 +55,16 @@ static int copy_file_contents(int sfd, int dfd)
 static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull srcStat, const char* _Nonnull dstPath)
 {
     int sfd = -1, dfd = -1;
-    mode_t perms = S_FPERM(srcStat->mode);
+    fs_perms_t fsperms = S_FPERM(srcStat->mode);
 
     // Need to ensure that the destination file has write permissions so that we
     // can actually copy the data
-    perm_add(perms, S_ICUSR, S_IWRITE);
+    perm_add(fsperms, S_ICUSR, S_IWRITE);
 
 
     sfd = open(srcPath, O_RDONLY);
     if (sfd >= 0) {
-        dfd = open(dstPath, O_CREAT|O_EXCL|O_WRONLY, perms);
+        dfd = open(dstPath, O_CREAT|O_EXCL|O_WRONLY, fsperms);
     }
 
     if (sfd != -1 && dfd != -1) {

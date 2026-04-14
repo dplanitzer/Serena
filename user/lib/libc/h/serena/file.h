@@ -18,7 +18,7 @@ __CPP_BEGIN
 
 // Same as open() with O_CREAT|O_WRONLY|O_TRUNC.
 // @Concurrency: Safe
-extern int creat(const char* _Nonnull path, mode_t mode);
+extern int creat(const char* _Nonnull path, fs_perms_t fsperms);
 
 
 // Returns the attributes of the filesystem object located at 'path'.
@@ -27,9 +27,9 @@ extern int fs_attr(dir_t* _Nullable wd, const char* _Nonnull path, fs_attr_t* _N
 
 
 // Changes the file permission bits of the file or directory at 'path' to the
-// file permissions encoded in 'mode'.
+// file permissions encoded in 'fsperms'.
 // @Concurrency: Safe
-extern int fs_setperms(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode);
+extern int fs_setperms(dir_t* _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms);
 
 extern int fs_setowner(dir_t* _Nullable wd, const char* _Nonnull path, uid_t uid, gid_t gid);
 

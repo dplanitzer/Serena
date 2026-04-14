@@ -55,7 +55,7 @@ typedef struct list_ctx {
 typedef errno_t (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
 
 
-static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
+static void file_permissions_to_text(fs_perms_t perms, char* _Nonnull buf)
 {
     if ((perms & S_IREAD) == S_IREAD) {
         buf[0] = 'r';

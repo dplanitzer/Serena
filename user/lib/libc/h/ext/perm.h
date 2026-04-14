@@ -27,7 +27,7 @@
 // W    Allow adding/removing directory entries
 // X    Allow searching the directory listing
 //
-// Note that a mode_t value type holds permission bits for all three
+// Note that a fs_perms_t value type holds permission bits for all three
 // permission classes.
 #define S_ICWIDTH   3
 #define S_ICMASK    0x07

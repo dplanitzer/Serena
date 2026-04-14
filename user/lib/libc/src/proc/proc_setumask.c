@@ -9,7 +9,7 @@
 #include <serena/process.h>
 #include <kpi/syscall.h>
 
-void proc_setumask(fs_perms_t mask)
+void proc_setumask(fs_perms_t umask)
 {
-    (void)_syscall(SC_proc_setumask, mask);
+    (void)_syscall(SC_proc_setumask, umask);
 }

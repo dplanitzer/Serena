@@ -9,11 +9,11 @@
 #include <kpi/syscall.h>
 #include <serena/file.h>
 
-int creat(const char* _Nonnull path, mode_t mode)
+int creat(const char* _Nonnull path, fs_perms_t fsperms)
 {
     int fd;
 
-    if (_syscall(SC_mkfile, path, O_WRONLY|O_TRUNC, mode, &fd) == 0) {
+    if (_syscall(SC_mkfile, path, O_WRONLY|O_TRUNC, fsperms, &fd) == 0) {
         return fd;
     }
     else {

@@ -18,7 +18,7 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const proc_sp
 
     uid_t ch_uid = self->fm.ruid;
     gid_t ch_gid = self->fm.rgid;
-    mode_t ch_umask = FileManager_GetUMask(&self->fm);
+    fs_perms_t ch_umask = FileManager_GetUMask(&self->fm);
     if ((opts->options & PROC_SPAWN_UMASK) == PROC_SPAWN_UMASK) {
         ch_umask = opts->umask & 0777;
     }

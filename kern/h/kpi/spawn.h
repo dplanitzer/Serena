@@ -44,7 +44,7 @@ typedef struct proc_spawn {
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
-    mode_t                              umask;                  // Override umask
+    fs_perms_t                          umask;                  // Override umask
     uid_t                               uid;                    // Override user ID
     gid_t                               gid;                    // Override group ID
     unsigned int                        options;

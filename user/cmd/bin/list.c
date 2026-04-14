@@ -54,15 +54,15 @@ static char         buf[BUF_SIZE];
 static char         path_buf[PATH_MAX];
 
 
-static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
+static void file_permissions_to_text(fs_perms_t fsperms, char* _Nonnull buf)
 {
-    if ((perms & S_IREAD) == S_IREAD) {
+    if ((fsperms & S_IREAD) == S_IREAD) {
         buf[0] = 'r';
     }
-    if ((perms & S_IWRITE) == S_IWRITE) {
+    if ((fsperms & S_IWRITE) == S_IWRITE) {
         buf[1] = 'w';
     }
-    if ((perms & S_IEXEC) == S_IEXEC) {
+    if ((fsperms & S_IEXEC) == S_IEXEC) {
         buf[2] = 'x';
     }
 }

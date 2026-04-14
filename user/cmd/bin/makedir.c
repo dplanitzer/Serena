@@ -15,7 +15,7 @@
 #include <serena/directory.h>
 
 
-static int _create_directory_recursively(char* _Nonnull path, mode_t permissions)
+static int _create_directory_recursively(char* _Nonnull path, fs_perms_t fsperms)
 {
     char* p = path;
 
@@ -28,7 +28,7 @@ static int _create_directory_recursively(char* _Nonnull path, mode_t permissions
 
         if (ps) { *ps = '\0'; }
 
-        const int r = fs_create_directory(NULL, path, permissions);
+        const int r = fs_create_directory(NULL, path, fsperms);
         if (ps) { *ps = '/'; }
 
         if (r != 0 && errno != EEXIST) {
@@ -58,12 +58,12 @@ static int _create_directory_recursively(char* _Nonnull path, mode_t permissions
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static int create_directory_recursively(char* _Nonnull path, mode_t permissions)
+static int create_directory_recursively(char* _Nonnull path, fs_perms_t fsperms)
 {
     int i = 0;
 
     while (i < 16) {
-        if (_create_directory_recursively(path, permissions) == 0) {
+        if (_create_directory_recursively(path, fsperms) == 0) {
             break;
         }
         
@@ -95,7 +95,7 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    const mode_t permissions = perm_from_octal(0755);
+    const fs_perms_t fsperms = perm_from_octal(0755);
     int r = 0;
 
     clap_parse(0, params, argc, argv);
@@ -104,10 +104,10 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < paths.count; i++) {
         char* path = (char*)paths.strings[i];
 
-        r = fs_create_directory(NULL, path, permissions);
+        r = fs_create_directory(NULL, path, fsperms);
         if (r != 0) {
             if (errno == ENOENT && should_create_parents) {
-                r = create_directory_recursively(path, permissions);
+                r = create_directory_recursively(path, fsperms);
             }
 
             if (r != 0) {

@@ -13,14 +13,14 @@
 #include <kpi/filesystem.h>
 
 
-SYSCALL_4(mkfile, const char* _Nonnull path, int oflags, mode_t mode, int* _Nonnull pOutIoc)
+SYSCALL_4(mkfile, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
     IOChannelRef chan;
 
     mtx_lock(&pp->mtx);
-    err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->mode, &chan);
+    err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->fsperms, &chan);
     if (err == EOK) {
         err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
     }
@@ -53,7 +53,7 @@ SYSCALL_2(dir_open, const char* _Nonnull path, int* _Nonnull pOutIoc)
     return err;
 }
 
-SYSCALL_3(fs_create_directory, int wd, const char* _Nonnull path, mode_t mode)
+SYSCALL_3(fs_create_directory, int wd, const char* _Nonnull path, fs_perms_t fsperms)
 {
     ProcessRef pp = vp->proc;
 
@@ -63,7 +63,7 @@ SYSCALL_3(fs_create_directory, int wd, const char* _Nonnull path, mode_t mode)
     }
 
     mtx_lock(&pp->mtx);
-    const errno_t err = FileManager_CreateDirectory(&pp->fm, pa->path, pa->mode);
+    const errno_t err = FileManager_CreateDirectory(&pp->fm, pa->path, pa->fsperms);
     mtx_unlock(&pp->mtx);
     return err;
 }
@@ -168,7 +168,7 @@ SYSCALL_4(fs_setowner, int wd, const char* _Nonnull path, uid_t uid, gid_t gid)
     return err;
 }
 
-SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, mode_t mode)
+SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, fs_perms_t fsperms)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -179,7 +179,7 @@ SYSCALL_3(fs_setperms, int wd, const char* _Nonnull path, mode_t mode)
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_SetFilePermissions(&pp->fm, pa->path, pa->mode);
+    err = FileManager_SetFilePermissions(&pp->fm, pa->path, pa->fsperms);
     mtx_unlock(&pp->mtx);
     return err;
 }

@@ -11,7 +11,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask)
+void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask)
 {
     self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
     self->rootDirectory = Inode_Reacquire(pRootDir);

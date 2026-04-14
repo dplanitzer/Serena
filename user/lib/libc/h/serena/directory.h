@@ -68,7 +68,7 @@ extern void dir_rewind(dir_t* _Nonnull dir);
 // specified by 'path', relative to the working directory 'wd'. 'mode'
 // specifies the permissions that should be assigned to the directory.
 // @Concurrency: Safe
-extern int fs_create_directory(dir_t* _Nullable wd, const char* _Nonnull path, mode_t mode);
+extern int fs_create_directory(dir_t* _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms);
 
 __CPP_END
 

@@ -21,13 +21,13 @@ typedef struct FileManager {
     InodeRef _Nonnull           rootDirectory;
     InodeRef _Nonnull           workingDirectory;
     
-    mode_t                      umask;      // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
+    fs_perms_t                  umask;      // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
     uid_t                       ruid;       // Real user identity inherited from the parent process / set at spawn time
     gid_t                       rgid;
 } FileManager;
 
 
-extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask);
+extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask);
 extern void FileManager_Deinit(FileManagerRef _Nonnull self);
 
 extern uid_t FileManager_GetRealUserId(FileManagerRef _Nonnull self);
@@ -53,7 +53,7 @@ extern errno_t FileManager_GetWorkingDirectoryPath(FileManagerRef _Nonnull self,
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_perms_t permissions);
+extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, fs_perms_t fsperms);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
@@ -73,7 +73,7 @@ extern void FileManager_SetUMask(FileManagerRef _Nonnull self, fs_perms_t mask);
 (__self)->umask
 
 // Creates a file in the given filesystem location.
-extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, mode_t mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, fs_perms_t fsperms, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Opens the given file or named resource. Opening directories is handled by the
 // FileManager_OpenDirectory() function.
