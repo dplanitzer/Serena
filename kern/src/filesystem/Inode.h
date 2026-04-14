@@ -15,6 +15,7 @@
 #include <kpi/attr.h>
 #include <kpi/directory.h>
 #include <kpi/file.h>
+#include <kpi/types.h>
 #include <sched/mtx.h>
 
 // Inode flags
@@ -322,7 +323,8 @@ invoke_n(truncate, Inode, __self, __length)
 extern errno_t Inode_Create(Class* _Nonnull pClass,
     FilesystemRef _Nonnull pFS,
     ino_t id,
-    mode_t mode,
+    fs_ftype_t fileType,
+    fs_perms_t fsperms,
     uid_t uid,
     gid_t gid,
     int linkCount,

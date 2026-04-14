@@ -17,8 +17,12 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 errno_t Inode_Create(Class* _Nonnull pClass,
-    FilesystemRef _Nonnull pFS, ino_t id,
-    mode_t mode, uid_t uid, gid_t gid,
+    FilesystemRef _Nonnull pFS,
+    ino_t id,
+    fs_ftype_t fileType,
+    fs_perms_t fsperms,
+    uid_t uid,
+    gid_t gid,
     int linkCount,
     off_t size,
     const struct timespec* _Nonnull accessTime,
@@ -44,8 +48,8 @@ errno_t Inode_Create(Class* _Nonnull pClass,
         self->inid = id;
         self->pnid = pnid;
         self->linkCount = linkCount;
-        self->fileType = S_FTYPE(mode);
-        self->permissions = S_FPERM(mode);
+        self->fileType = fileType;
+        self->permissions = fsperms;
         self->uid = uid;
         self->gid = gid;
         self->flags = 0;

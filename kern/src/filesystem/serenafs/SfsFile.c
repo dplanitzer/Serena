@@ -19,10 +19,6 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
     decl_try_err();
     SfsFileRef self;
     struct timespec at, mt, st;
-    mode_t mode = 0;
-
-    mode |= SfsModeFromIType(UInt16_BigToHost(ip->type));
-    mode |= SfsModeFromPermissions(UInt16_BigToHost(ip->permissions));
 
     timespec_from(&at, UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec));
     timespec_from(&mt, UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec));
@@ -32,7 +28,8 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
         pClass,
         (FilesystemRef)fs,
         inid,
-        mode,
+        SfsFileTypeFromIType(UInt16_BigToHost(ip->type)),
+        SfsFsPermsFromPermissions(UInt16_BigToHost(ip->permissions)),
         UInt32_BigToHost(ip->uid),
         UInt32_BigToHost(ip->gid),
         Int32_BigToHost(ip->linkCount),
@@ -284,7 +281,7 @@ sfs_itype_t SfsITypeFromFileType(fs_ftype_t ftype)
     }
 }
 
-mode_t SfsModeFromIType(sfs_itype_t itype)
+fs_ftype_t SfsFileTypeFromIType(sfs_itype_t itype)
 {
     switch (itype) {
         case kSFSInode_Directory:   return S_IFDIR;

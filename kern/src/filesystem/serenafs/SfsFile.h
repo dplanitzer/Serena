@@ -16,12 +16,12 @@
 
 
 extern sfs_itype_t SfsITypeFromFileType(fs_ftype_t ftype);
-extern mode_t SfsModeFromIType(sfs_itype_t itype);
+extern fs_ftype_t SfsFileTypeFromIType(sfs_itype_t itype);
 
 #define SfsPermissionsFromFsPerms(__fsperms) \
 ((__fsperms) & 0777)
 
-#define SfsModeFromPermissions(__perm) \
+#define SfsFsPermsFromPermissions(__perm) \
 (__perm)
 
 

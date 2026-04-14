@@ -13,7 +13,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t mode, uid_t uid, gid_t gid, ino_t pnid, ObjectRef _Nonnull obj, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, ObjectRef _Nonnull obj, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     struct timespec now;
@@ -25,7 +25,8 @@ errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t mode, uid_t
         class(KfsSpecial),
         (FilesystemRef)kfs,
         inid,
-        mode,
+        S_IFDEV,
+        fsperms,
         uid,
         gid,
         1,

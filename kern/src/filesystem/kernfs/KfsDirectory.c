@@ -13,7 +13,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, fs_perms_t permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     struct timespec now;
@@ -25,7 +25,8 @@ errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permission
         class(KfsDirectory),
         (FilesystemRef)fs,
         inid,
-        __S_MKMODE(S_IFDIR, permissions),
+        S_IFDIR,
+        permissions,
         uid,
         gid,
         1,
@@ -94,13 +95,13 @@ errno_t KfsDirectory_GetNameOfEntryWithId(KfsDirectoryRef _Nonnull _Locked self,
 // The expectation is that 'self' is locked before this function is called and
 // that 'self' remains locked until after the directory entry has been added to
 // self.
-errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, mode_t fileType)
+errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, fs_ftype_t ftype)
 {
     if (name->count > MAX_NAME_LENGTH) {
         return ENAMETOOLONG;
     }
 
-    if (S_ISDIR(fileType)) {
+    if (ftype == S_IFDIR) {
         // Adding a subdirectory increments our link count by 1
         if (Inode_GetLinkCount(self) >= MAX_LINK_COUNT) {
             return EMLINK;

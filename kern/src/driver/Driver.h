@@ -59,7 +59,7 @@ typedef struct DirEntry {
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
-    mode_t                  perms;
+    fs_perms_t              perms;
 } DirEntry;
 
 
@@ -67,7 +67,7 @@ typedef struct DriverEntry {
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
-    mode_t                  perms;
+    fs_perms_t              perms;
     intptr_t                arg;
 } DriverEntry;
 

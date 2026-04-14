@@ -11,7 +11,7 @@
 #include <process/Process.h>
 
 
-errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t mode, uid_t uid, gid_t gid, ino_t pnid, ProcessRef _Nonnull proc, KfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, ProcessRef _Nonnull proc, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     struct timespec now;
@@ -23,7 +23,8 @@ errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t mode, uid_t
         class(KfsProcess),
         (FilesystemRef)kfs,
         inid,
-        mode,
+        S_IFPROC,
+        fsperms,
         uid,
         gid,
         1,

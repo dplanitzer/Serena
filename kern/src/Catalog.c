@@ -100,7 +100,7 @@ static errno_t _Catalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folder
 
 // Publishes a folder with the name 'name' to the catalog. Pass kCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, CatalogId* _Nonnull pOutFolderId)
+errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, CatalogId* _Nonnull pOutFolderId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -114,7 +114,7 @@ errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId
 
     err = _Catalog_AcquireFolder(self, parentFolderId, &pDir);
     if (err == EOK) {
-        err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, uid, gid, __S_MKMODE(S_IFDIR, perms), &pNode);
+        err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, uid, gid, __S_MKMODE(S_IFDIR, fsperms), &pNode);
         if (err == EOK) {
             *pOutFolderId = (CatalogId)Inode_GetId(pNode);
         }
@@ -166,7 +166,7 @@ catch:
 }
 
 
-errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
+errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -180,7 +180,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
 
     err = _Catalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, arg, uid, gid, perms, &pNode);
+        err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, arg, uid, gid, fsperms, &pNode);
         if (err == EOK) {
             *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
         }
@@ -192,7 +192,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
     return err;
 }
 
-errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId)
+errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -206,7 +206,7 @@ errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull na
 
     err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateProcessNode((KernFSRef)self->fs, pDir, &pc, proc, uid, gid, perms, &pNode);
+        err = KernFS_CreateProcessNode((KernFSRef)self->fs, pDir, &pc, proc, uid, gid, fsperms, &pNode);
         if (err == EOK) {
             *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
         }
