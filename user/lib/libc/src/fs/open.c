@@ -18,7 +18,7 @@ int open(const char* _Nonnull path, int oflags, ...)
     va_start(ap, oflags);
 
     if ((oflags & O_CREAT) == O_CREAT) {
-        const fs_perms_t fsperms = va_arg(ap, fs_perms_t);
+        const fs_perms_t fsperms = va_arg(ap, unsigned int);
 
         r = (int)_syscall(SC_mkfile, path, oflags, fsperms, &fd);
     }

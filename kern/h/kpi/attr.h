@@ -31,11 +31,11 @@ typedef struct fs_attr {
 
 
 // File type.
-#define FS_FTYPE_REG    0x00000000  /* A regular file that stores data */
-#define FS_FTYPE_DIR    0x01000000  /* A directory which stores information about child nodes */
-#define FS_FTYPE_DEV    0x02000000  /* A driver which manages a piece of hardware */
-#define FS_FTYPE_PROC   0x03000000  /* A process */
-#define FS_FTYPE_LNK    0x04000000
-#define FS_FTYPE_FIFO   0x05000000
+#define FS_FTYPE_REG    0   /* A regular file that stores data */
+#define FS_FTYPE_DIR    1   /* A directory which stores information about child nodes */
+#define FS_FTYPE_DEV    2   /* A driver which manages a piece of hardware */
+#define FS_FTYPE_PROC   3   /* A process */
+#define FS_FTYPE_LNK    4
+#define FS_FTYPE_FIFO   5
 
 #endif /* _KPI_ATTR_H */
