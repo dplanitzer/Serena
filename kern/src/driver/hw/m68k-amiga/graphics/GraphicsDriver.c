@@ -76,7 +76,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     de.name = "fb";
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0666);
+    de.perms = fs_perms_from_octal(0666);
     de.arg = 0;
 
     err = Driver_Publish((DriverRef)self, &de);

@@ -26,7 +26,7 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
     be.name = "hw";
     be.uid = UID_ROOT;
     be.gid = GID_ROOT;
-    be.perms = perm_from_octal(0755);
+    be.perms = fs_perms_from_octal(0755);
 
     try(Driver_PublishBus((DriverRef)self, &be, NULL));
     try(PlatformController_DetectDevices(self));

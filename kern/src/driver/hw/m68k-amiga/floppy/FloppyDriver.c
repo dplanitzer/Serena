@@ -154,7 +154,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.name = name;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0666);
+    de.perms = fs_perms_from_octal(0666);
     de.arg = 0;
 
     try(Driver_Publish((DriverRef)self, &de));

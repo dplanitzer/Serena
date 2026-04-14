@@ -8,7 +8,6 @@
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
-#include <ext/perm.h>
 #include <filesystem/InodeChannel.h>
 #include <security/SecurityManager.h>
 #include <kpi/file.h>
@@ -112,10 +111,10 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
         if ((oflags & O_RDWR) == 0) {
             throw(EACCESS);
         }
-        if ((oflags & O_RDONLY) == O_RDONLY && !perm_has(filePerms, S_ICUSR, S_IREAD)) {
+        if ((oflags & O_RDONLY) == O_RDONLY && !fs_perms_has(filePerms, FS_PCLS_USR, FS_PRM_R)) {
             throw(EACCESS);
         }
-        if ((oflags & O_WRONLY) == O_WRONLY && !perm_has(filePerms, S_ICUSR, S_IWRITE)) {
+        if ((oflags & O_WRONLY) == O_WRONLY && !fs_perms_has(filePerms, FS_PCLS_USR, FS_PRM_W)) {
             throw(EACCESS);
         }
 
@@ -125,7 +124,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_CreateNode(pFS, dir, name, &dih, self->ruid, self->rgid, S_IFREG, filePerms, &ip));
+        try(Filesystem_CreateNode(pFS, dir, name, &dih, self->ruid, self->rgid, FS_FTYPE_REG, filePerms, &ip));
     }
     else {
         throw(err);

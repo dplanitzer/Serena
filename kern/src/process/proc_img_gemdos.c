@@ -57,7 +57,7 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
     try(IOChannel_GetAttributes(chan, &attr));
 
     // Do some basic file validation
-    if (attr.file_type != S_IFREG) {
+    if (attr.file_type != FS_FTYPE_REG) {
         throw(EACCESS);
     }
     if (attr.size < sizeof(gemdos_hdr_t)) {

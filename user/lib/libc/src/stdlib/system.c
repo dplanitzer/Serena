@@ -23,7 +23,7 @@ static int __has_shell(void)
     fs_attr_t attr;
 
     if (fs_attr(NULL, __shellPath, &attr) == 0) {
-        if ((attr.file_type == S_IFREG) && (attr.permissions & (S_IXUSR|S_IXGRP|S_IXOTH)) != 0) {
+        if ((attr.file_type == FS_FTYPE_REG) && (attr.permissions & (FS_USR_X|FS_GRP_X|FS_OTH_X)) != 0) {
             return -1;
         }
     }

@@ -114,7 +114,7 @@ errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId
 
     err = _Catalog_AcquireFolder(self, parentFolderId, &pDir);
     if (err == EOK) {
-        err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, uid, gid, S_IFDIR, fsperms, &pNode);
+        err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, uid, gid, FS_FTYPE_DIR, fsperms, &pNode);
         if (err == EOK) {
             *pOutFolderId = (CatalogId)Inode_GetId(pNode);
         }

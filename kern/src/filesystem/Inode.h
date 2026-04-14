@@ -208,15 +208,15 @@ void Inode_Unlink(InodeRef _Nonnull self);
 
 // Returns true if the inode is a directory
 #define Inode_IsDirectory(__self) \
-    (((InodeRef)__self)->fileType == S_IFDIR)
+    (((InodeRef)__self)->fileType == FS_FTYPE_DIR)
 
 // Returns true if the inode is a regular file
 #define Inode_IsRegularFile(__self) \
-    (((InodeRef)__self)->fileType == S_IFREG)
+    (((InodeRef)__self)->fileType == FS_FTYPE_REG)
 
 // Returns true if the inode is a device
 #define Inode_IsDevice(__self) \
-    (((InodeRef)__self)->fileType == S_IFDEV)
+    (((InodeRef)__self)->fileType == FS_FTYPE_DEV)
 
 // Returns the node access permissions.
 #define Inode_GetPermissions(__self) \

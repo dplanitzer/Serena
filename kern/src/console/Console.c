@@ -11,10 +11,10 @@
 #include <string.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
-#include <ext/perm.h>
 #include <ext/timespec.h>
 #include <kpi/console.h>
 #include <kpi/file.h>
+#include <kpi/fs_perms.h>
 #include <kpi/hid.h>
 
 
@@ -111,7 +111,7 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     de.name = "console";
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0666);
+    de.perms = fs_perms_from_octal(0666);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);

@@ -27,7 +27,7 @@ errno_t LogDriver_onStart(LogDriverRef _Nonnull _Locked self)
     de.name = "klog";
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0440);
+    de.perms = fs_perms_from_octal(0440);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);

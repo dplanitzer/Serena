@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <ext/math.h>
-#include <ext/perm.h>
 #include <ext/stdlib.h>
 #include <ext/string.h>
 #include <serena/directory.h>
@@ -56,13 +55,13 @@ static char         path_buf[PATH_MAX];
 
 static void file_permissions_to_text(fs_perms_t fsperms, char* _Nonnull buf)
 {
-    if ((fsperms & S_IREAD) == S_IREAD) {
+    if ((fsperms & FS_PRM_R) == FS_PRM_R) {
         buf[0] = 'r';
     }
-    if ((fsperms & S_IWRITE) == S_IWRITE) {
+    if ((fsperms & FS_PRM_W) == FS_PRM_W) {
         buf[1] = 'w';
     }
-    if ((fsperms & S_IEXEC) == S_IEXEC) {
+    if ((fsperms & FS_PRM_X) == FS_PRM_X) {
         buf[2] = 'x';
     }
 }
@@ -106,11 +105,11 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
     }
     
     switch (attr.file_type) {
-        case S_IFDEV:   tc = 'h'; break;
-        case S_IFDIR:   tc = 'd'; break;
-        case S_IFPROC:  tc = 'P'; break;
-        case S_IFIFO:   tc = 'p'; break;
-        case S_IFLNK:   tc = 'l'; break;
+        case FS_FTYPE_DEV:   tc = 'h'; break;
+        case FS_FTYPE_DIR:   tc = 'd'; break;
+        case FS_FTYPE_PROC:  tc = 'P'; break;
+        case FS_FTYPE_FIFO:   tc = 'p'; break;
+        case FS_FTYPE_LNK:   tc = 'l'; break;
         default:        tc = '-'; break;
     }
     buf[0] = tc;
@@ -119,9 +118,9 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
         buf[i] = '-';
     }
 
-    file_permissions_to_text(perm_get(attr.permissions, S_ICUSR), &buf[1]);
-    file_permissions_to_text(perm_get(attr.permissions, S_ICGRP), &buf[4]);
-    file_permissions_to_text(perm_get(attr.permissions, S_ICOTH), &buf[7]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_USR), &buf[1]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_GRP), &buf[4]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_OTH), &buf[7]);
     buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
     localtime_r(&attr.mod_time.tv_sec, &date);
@@ -217,7 +216,7 @@ static bool is_dir(const char* _Nonnull path)
 {
     fs_attr_t attr;
 
-    return (fs_attr(NULL, path, &attr) == 0 && (attr.file_type == S_IFDIR)) ? true : false;
+    return (fs_attr(NULL, path, &attr) == 0 && (attr.file_type == FS_FTYPE_DIR)) ? true : false;
 }
 
 

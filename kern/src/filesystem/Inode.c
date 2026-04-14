@@ -140,10 +140,10 @@ errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
 errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     switch (Inode_GetFileType(self)) {
-        case S_IFDIR:
+        case FS_FTYPE_DIR:
             return InodeChannel_Create(self, O_RDONLY, pOutChannel);
 
-        case S_IFREG:
+        case FS_FTYPE_REG:
             return InodeChannel_Create(self, mode, pOutChannel);
 
         default:

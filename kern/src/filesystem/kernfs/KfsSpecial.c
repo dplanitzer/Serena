@@ -25,7 +25,7 @@ errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms
         class(KfsSpecial),
         (FilesystemRef)kfs,
         inid,
-        S_IFDEV,
+        FS_FTYPE_DEV,
         fsperms,
         uid,
         gid,
@@ -53,7 +53,7 @@ void KfsSpecial_deinit(KfsSpecialRef _Nullable self)
 errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     switch (Inode_GetFileType(self)) {
-        case S_IFDEV:
+        case FS_FTYPE_DEV:
             return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
 
         default:

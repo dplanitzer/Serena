@@ -1,15 +1,13 @@
 //
-//  ext/perm.h
-//  libc, libsc
+//  kpi/fs_perms.h
+//  kpi
 //
 //  Created by Dietmar Planitzer on 5/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_PERM_H
-#define _KPI_PERM_H 1
-
-#include <kpi/_attr.h>
+#ifndef _KPI_FS_PERMS_H
+#define _KPI_FS_PERMS_H 1
 
 // File permissions. Every file and directory has 3 sets of permissions associated
 // with it (also knows as "permission classes"):
@@ -29,50 +27,69 @@
 //
 // Note that a fs_perms_t value type holds permission bits for all three
 // permission classes.
-#define S_ICWIDTH   3
-#define S_ICMASK    0x07
+#define FS_USR_RWX  0700
+#define FS_USR_R    0400
+#define FS_USR_W    0200
+#define FS_USR_X    0100
+#define FS_GRP_RWX  070
+#define FS_GRP_R    040
+#define FS_GRP_W    020
+#define FS_GRP_X    010
+#define FS_OTH_RWX  07
+#define FS_OTH_R    04
+#define FS_OTH_W    02
+#define FS_OTH_X    01
 
-#define S_ICUSR (2*S_ICWIDTH)
-#define S_ICGRP S_ICWIDTH
-#define S_ICOTH 0
+#define FS_PRM_RWX  07
+#define FS_PRM_R    04
+#define FS_PRM_W    02
+#define FS_PRM_X    01
+
+
+#define FS_PCLS_WIDTH 3
+#define FS_PCLS_MASK  0x07
+
+#define FS_PCLS_USR   (2*FS_PCLS_WIDTH)
+#define FS_PCLS_GRP   FS_PCLS_WIDTH
+#define FS_PCLS_OTH   0
 
 
 // Creates a FilePermission value with permissions for a user, group and other
 // permission class.
-#define perm_from(__user, __group, __other) \
-  (((__user) & S_ICMASK) << S_ICUSR) \
-| (((__group) & S_ICMASK) << S_ICGRP) \
-| (((__other) & S_ICMASK) << S_ICOTH)
+#define fs_perms_from(__user, __group, __other) \
+  (((__user) & FS_PCLS_MASK) << FS_PCLS_USR) \
+| (((__group) & FS_PCLS_MASK) << FS_PCLS_GRP) \
+| (((__other) & FS_PCLS_MASK) << FS_PCLS_OTH)
 
 // Creates a FilePermission value from a POSIX style octal number. This number
 // is expected to be a 3 digit number where each digit represents one of the
 // permission classes.
-#define perm_from_octal(__3_x_3_octal) \
-((__3_x_3_octal) & S_IFMP)
+#define fs_perms_from_octal(__3_x_3_octal) \
+((__3_x_3_octal) & 0777)
     
 // Returns the permission bits of '__perms' that correspond to the
 // permissions class '__class'.
-#define perm_get(__perms, __class) \
-(((__perms) >> (__class)) & S_ICMASK)
+#define fs_perms_get(__perms, __class) \
+(((__perms) >> (__class)) & FS_PCLS_MASK)
 
 // Returns true if the permission '__perm' is set in the class '__class'
 // of the permissions '__perm'.
-#define perm_has(__perms, __class, __perm) \
-((perm_get(__perms, __class) & (__perm)) == (__perm))
+#define fs_perms_has(__perms, __class, __perm) \
+((fs_perms_get(__perms, __class) & (__perm)) == (__perm))
 
 // Adds the permission bits '__bits' to the class '__class' in the file permission
 // set '__perms' 
-#define perm_add(__perms, __class, __bits) \
- (__perms) |= (((__bits) & S_ICMASK) << (__class))
+#define fs_perms_add(__perms, __class, __bits) \
+ (__perms) |= (((__bits) & FS_PCLS_MASK) << (__class))
 
 // Removes the permission bits '__bits' from the class '__class' in the file
 // permission set '__perms' 
-#define perm_remove(__perms, __class, __bits) \
- (__perms) &= ~(((__bits) & S_ICMASK) << (__class))
+#define fs_perms_remove(__perms, __class, __bits) \
+ (__perms) &= ~(((__bits) & FS_PCLS_MASK) << (__class))
 
 // Replaces all permission bits in the class '__class' of the file permission
 // set '__perms' with the new permission bits '__bits' 
-#define perm_set(__perms, __class, __bits) \
- (__perms) = ((__perms) & ~(S_ICMASK << (__class))) | (((__bits) & S_ICMASK) << (__class))
+#define fs_perms_set(__perms, __class, __bits) \
+ (__perms) = ((__perms) & ~(FS_PCLS_MASK << (__class))) | (((__bits) & FS_PCLS_MASK) << (__class))
 
-#endif /* _KPI_PERM_H */
+#endif /* _KPI_FS_PERMS_H */

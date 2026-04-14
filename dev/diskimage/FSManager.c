@@ -9,12 +9,11 @@
 #include "FSManager.h"
 #include <assert.h>
 #include <stdlib.h>
-#include <ext/perm.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <kpi/file.h>
-
+#include <kpi/fs_perms.h>
 
 errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf)
 {
@@ -30,7 +29,7 @@ errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nul
 
     try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
-    FileManager_Init(&self->fm, fh, UID_ROOT, GID_ROOT, rootDir, rootDir, perm_from_octal(0));
+    FileManager_Init(&self->fm, fh, UID_ROOT, GID_ROOT, rootDir, rootDir, fs_perms_from_octal(0));
     self->isFmUp = true;
 
     Inode_Relinquish(rootDir);

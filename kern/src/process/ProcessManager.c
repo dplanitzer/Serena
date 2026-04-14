@@ -92,7 +92,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     }
     
     utoa(pp->pid, g_pid_buf, 10);
-    try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, UID_ROOT, GID_ROOT, perm_from_octal(0444), pp, &pp->rel.cat_id));
+    try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, UID_ROOT, GID_ROOT, fs_perms_from_octal(0444), pp, &pp->rel.cat_id));
     
     if (pp->pid != pp->ppid) {
         ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);

@@ -58,7 +58,7 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
         return EOF;
     }
 
-    if (attr.file_type != S_IFREG) {
+    if (attr.file_type != FS_FTYPE_REG) {
         errno = EINVAL;
         fd_close(fd);
         return EOF;

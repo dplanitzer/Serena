@@ -10,7 +10,7 @@
 #define Catalog_h
 
 #include <kobj/Object.h>
-#include <ext/perm.h>
+#include <kpi/fs_perms.h>
 #include <filemanager/ResolvedPath.h>
 
 

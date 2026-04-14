@@ -275,8 +275,8 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 sfs_itype_t SfsITypeFromFileType(fs_ftype_t ftype)
 {
     switch (ftype) {
-        case S_IFDIR:   return kSFSInode_Directory;
-        case S_IFREG:   return kSFSInode_RegularFile;
+        case FS_FTYPE_DIR:   return kSFSInode_Directory;
+        case FS_FTYPE_REG:   return kSFSInode_RegularFile;
         default:        return 0;
     }
 }
@@ -284,8 +284,8 @@ sfs_itype_t SfsITypeFromFileType(fs_ftype_t ftype)
 fs_ftype_t SfsFileTypeFromIType(sfs_itype_t itype)
 {
     switch (itype) {
-        case kSFSInode_Directory:   return S_IFDIR;
-        case kSFSInode_RegularFile: return S_IFREG;
+        case kSFSInode_Directory:   return FS_FTYPE_DIR;
+        case kSFSInode_RegularFile: return FS_FTYPE_REG;
         default:                    abort();
     }
 }

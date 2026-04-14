@@ -9,8 +9,8 @@
 #ifndef _KPI_ATTR_H
 #define _KPI_ATTR_H 1
 
-#include <kpi/_attr.h>
 #include <kpi/_time.h>
+#include <kpi/fs_perms.h>
 #include <kpi/types.h>
 
 typedef struct fs_attr {
@@ -30,12 +30,12 @@ typedef struct fs_attr {
 } fs_attr_t;
 
 
-// Inode type.
-#define S_IFREG     0x00000000  /* A regular file that stores data */
-#define S_IFDIR     0x01000000  /* A directory which stores information about child nodes */
-#define S_IFDEV     0x02000000  /* A driver which manages a piece of hardware */
-#define S_IFPROC    0x03000000  /* A process */
-#define S_IFLNK     0x04000000
-#define S_IFIFO     0x05000000
+// File type.
+#define FS_FTYPE_REG    0x00000000  /* A regular file that stores data */
+#define FS_FTYPE_DIR    0x01000000  /* A directory which stores information about child nodes */
+#define FS_FTYPE_DEV    0x02000000  /* A driver which manages a piece of hardware */
+#define FS_FTYPE_PROC   0x03000000  /* A process */
+#define FS_FTYPE_LNK    0x04000000
+#define FS_FTYPE_FIFO   0x05000000
 
 #endif /* _KPI_ATTR_H */

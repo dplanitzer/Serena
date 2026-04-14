@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ext/perm.h>
 #include <serena/file.h>
 #include <serena/process.h>
 

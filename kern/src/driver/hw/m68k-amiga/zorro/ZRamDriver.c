@@ -36,7 +36,7 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     de.name = name;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0440);
+    de.perms = fs_perms_from_octal(0440);
     de.arg = 0;
 
     if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {

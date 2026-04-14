@@ -84,7 +84,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     de.name = self->name;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0666);
+    de.perms = fs_perms_from_octal(0666);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);

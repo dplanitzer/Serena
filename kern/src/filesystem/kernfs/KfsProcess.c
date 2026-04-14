@@ -23,7 +23,7 @@ errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms
         class(KfsProcess),
         (FilesystemRef)kfs,
         inid,
-        S_IFPROC,
+        FS_FTYPE_PROC,
         fsperms,
         uid,
         gid,

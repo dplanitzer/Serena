@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ext/perm.h>
 #include <serena/directory.h>
 
 
@@ -95,7 +94,7 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    const fs_perms_t fsperms = perm_from_octal(0755);
+    const fs_perms_t fsperms = fs_perms_from_octal(0755);
     int r = 0;
 
     clap_parse(0, params, argc, argv);

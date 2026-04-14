@@ -21,15 +21,15 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
     try(KfsDirectory_CanAcceptEntry((KfsDirectoryRef)dir, name, ftype));
 
     switch (ftype) {
-        case S_IFDIR:
+        case FS_FTYPE_DIR:
             try(KfsDirectory_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), &ip));
             break;
 
-        case S_IFDEV:
+        case FS_FTYPE_DEV:
             try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), obj, arg, &ip));
             break;
 
-        case S_IFPROC:
+        case FS_FTYPE_PROC:
             try(KfsProcess_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), (ProcessRef)obj, &ip));
             break;
 
@@ -65,13 +65,13 @@ catch:
 // Creates a new driver node in the file system.
 errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, (ObjectRef)drv, arg, uid, gid, S_IFDEV, fsperms, pOutNode);
+    return _KernFS_createNode(self, dir, name, (ObjectRef)drv, arg, uid, gid, FS_FTYPE_DEV, fsperms, pOutNode);
 }
 
 // Creates a new process node in the file system.
 errno_t KernFS_CreateProcessNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ProcessRef _Nonnull proc, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, (ObjectRef)proc, 0, uid, gid, S_IFPROC, fsperms, pOutNode);
+    return _KernFS_createNode(self, dir, name, (ObjectRef)proc, 0, uid, gid, FS_FTYPE_PROC, fsperms, pOutNode);
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)

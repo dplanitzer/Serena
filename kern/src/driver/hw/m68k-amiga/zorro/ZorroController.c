@@ -56,13 +56,13 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     be.name = "zorro-bus";
     be.uid = UID_ROOT;
     be.gid = GID_ROOT;
-    be.perms = perm_from_octal(0755);
+    be.perms = fs_perms_from_octal(0755);
 
     DriverEntry de;
     de.name = "self";
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
-    de.perms = perm_from_octal(0666);
+    de.perms = fs_perms_from_octal(0666);
     de.arg = 0;
 
     try(Driver_PublishBus((DriverRef)self, &be, &de));

@@ -12,10 +12,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <ext/perm.h>
 #include <ext/stdlib.h>
 #include <filesystem/IOChannel.h>
 #include <kpi/directory.h>
+#include <kpi/fs_perms.h>
 
 #define PINID   PRIu32
 //#define PINID   PRIu64
@@ -57,13 +57,13 @@ typedef errno_t (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull di
 
 static void file_permissions_to_text(fs_perms_t perms, char* _Nonnull buf)
 {
-    if ((perms & S_IREAD) == S_IREAD) {
+    if ((perms & FS_PRM_R) == FS_PRM_R) {
         buf[0] = 'r';
     }
-    if ((perms & S_IWRITE) == S_IWRITE) {
+    if ((perms & FS_PRM_W) == FS_PRM_W) {
         buf[1] = 'w';
     }
-    if ((perms & S_IEXEC) == S_IEXEC) {
+    if ((perms & FS_PRM_X) == FS_PRM_X) {
         buf[2] = 'x';
     }
 }
@@ -97,11 +97,11 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         char tc;
 
         switch (attr.file_type) {
-            case S_IFDEV:   tc = 'h'; break;
-            case S_IFDIR:   tc = 'd'; break;
-            case S_IFPROC:  tc = 'P'; break;
-            case S_IFIFO:   tc = 'p'; break;
-            case S_IFLNK:   tc = 'l'; break;
+            case FS_FTYPE_DEV:   tc = 'h'; break;
+            case FS_FTYPE_DIR:   tc = 'd'; break;
+            case FS_FTYPE_PROC:  tc = 'P'; break;
+            case FS_FTYPE_FIFO:   tc = 'p'; break;
+            case FS_FTYPE_LNK:   tc = 'l'; break;
             default:        tc = '-'; break;
         }
         self->buf[0] = tc;
@@ -110,9 +110,9 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->buf[i] = '-';
         }
 
-        file_permissions_to_text(perm_get(attr.permissions, S_ICUSR), &self->buf[1]);
-        file_permissions_to_text(perm_get(attr.permissions, S_ICGRP), &self->buf[4]);
-        file_permissions_to_text(perm_get(attr.permissions, S_ICOTH), &self->buf[7]);
+        file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_USR), &self->buf[1]);
+        file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_GRP), &self->buf[4]);
+        file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_OTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
@@ -209,7 +209,7 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     fs_attr_t attr;
 
-    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && (attr.file_type == S_IFDIR)) ? true : false;
+    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && (attr.file_type == FS_FTYPE_DIR)) ? true : false;
 }
 
 

@@ -15,7 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ext/perm.h>
 #include <serena/directory.h>
 #include <serena/file.h>
 #include <serena/disk.h>
@@ -258,7 +257,7 @@ static void cmd_geometry(const char* _Nonnull path)
         }
     }
 
-    if (attr.file_type == S_IFDEV) {
+    if (attr.file_type == FS_FTYPE_DEV) {
         // raw disk
         fd = open(path, O_RDONLY);
         if (fd < 0) {
@@ -360,7 +359,7 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
             return EXIT_FAILURE;
         }
 
-        out_perms->p = perm_from_octal(bits & 0777);
+        out_perms->p = fs_perms_from_octal(bits & 0777);
         out_perms->isValid = true;
     }
     else if (*arg != '\0') {
@@ -372,9 +371,9 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
 
             for (int j = 0; j < 3; j++) {
                 switch (*str++) {
-                    case 'r': t |= S_IREAD; break;
-                    case 'w': t |= S_IWRITE; break;
-                    case 'x': t |= S_IEXEC; break;
+                    case 'r': t |= FS_PRM_R; break;
+                    case 'w': t |= FS_PRM_W; break;
+                    case 'x': t |= FS_PRM_X; break;
                     case '-': break;
                     case '_': break;
                     default:
@@ -391,7 +390,7 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
             return EXIT_FAILURE;
         }
 
-        out_perms->p = perm_from(perms[0], perms[1], perms[2]);
+        out_perms->p = fs_perms_from(perms[0], perms[1], perms[2]);
         out_perms->isValid = true;
     }
     else {
@@ -494,7 +493,7 @@ int main(int argc, char* argv[])
     if (!strcmp(cmd_id, "format")) {
         // disk format
         if (!permissions.isValid) {
-            permissions.p = perm_from_octal(0777);
+            permissions.p = fs_perms_from_octal(0777);
         }
         if (!owner.isValid) {
             owner.uid = UID_ROOT;
