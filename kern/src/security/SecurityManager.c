@@ -64,13 +64,13 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     fs_perms_t finalPerms;
 
     if (Inode_GetUserId(pNode) == uid) {
-        finalPerms = fs_perms_get(fsperms, FS_PCLS_USR);
+        finalPerms = fs_perms_get(fsperms, FS_CLS_USR);
     }
     else if (Inode_GetGroupId(pNode) == gid) {
-        finalPerms = fs_perms_get(fsperms, FS_PCLS_GRP);
+        finalPerms = fs_perms_get(fsperms, FS_CLS_GRP);
     }
     else {
-        finalPerms = fs_perms_get(fsperms, FS_PCLS_OTH);
+        finalPerms = fs_perms_get(fsperms, FS_CLS_OTH);
     }
 
 

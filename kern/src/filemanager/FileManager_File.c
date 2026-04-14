@@ -111,10 +111,10 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
         if ((oflags & O_RDWR) == 0) {
             throw(EACCESS);
         }
-        if ((oflags & O_RDONLY) == O_RDONLY && !fs_perms_has(filePerms, FS_PCLS_USR, FS_PRM_R)) {
+        if ((oflags & O_RDONLY) == O_RDONLY && !fs_perms_has(filePerms, FS_CLS_USR, FS_PRM_R)) {
             throw(EACCESS);
         }
-        if ((oflags & O_WRONLY) == O_WRONLY && !fs_perms_has(filePerms, FS_PCLS_USR, FS_PRM_W)) {
+        if ((oflags & O_WRONLY) == O_WRONLY && !fs_perms_has(filePerms, FS_CLS_USR, FS_PRM_W)) {
             throw(EACCESS);
         }
 

@@ -46,20 +46,20 @@
 #define FS_PRM_X    01
 
 
-#define FS_PCLS_WIDTH 3
-#define FS_PCLS_MASK  0x07
+#define FS_CLS_WIDTH  3
+#define FS_CLS_MASK   0x07
 
-#define FS_PCLS_USR   (2*FS_PCLS_WIDTH)
-#define FS_PCLS_GRP   FS_PCLS_WIDTH
-#define FS_PCLS_OTH   0
+#define FS_CLS_USR    (2*FS_CLS_WIDTH)
+#define FS_CLS_GRP    FS_CLS_WIDTH
+#define FS_CLS_OTH    0
 
 
 // Creates a FilePermission value with permissions for a user, group and other
 // permission class.
 #define fs_perms_from(__user, __group, __other) \
-  (((__user) & FS_PCLS_MASK) << FS_PCLS_USR) \
-| (((__group) & FS_PCLS_MASK) << FS_PCLS_GRP) \
-| (((__other) & FS_PCLS_MASK) << FS_PCLS_OTH)
+  (((__user) & FS_CLS_MASK) << FS_CLS_USR) \
+| (((__group) & FS_CLS_MASK) << FS_CLS_GRP) \
+| (((__other) & FS_CLS_MASK) << FS_CLS_OTH)
 
 // Creates a FilePermission value from a POSIX style octal number. This number
 // is expected to be a 3 digit number where each digit represents one of the
@@ -70,7 +70,7 @@
 // Returns the permission bits of '__perms' that correspond to the
 // permissions class '__class'.
 #define fs_perms_get(__perms, __class) \
-(((__perms) >> (__class)) & FS_PCLS_MASK)
+(((__perms) >> (__class)) & FS_CLS_MASK)
 
 // Returns true if the permission '__perm' is set in the class '__class'
 // of the permissions '__perm'.
@@ -80,16 +80,16 @@
 // Adds the permission bits '__bits' to the class '__class' in the file permission
 // set '__perms' 
 #define fs_perms_add(__perms, __class, __bits) \
- (__perms) |= (((__bits) & FS_PCLS_MASK) << (__class))
+ (__perms) |= (((__bits) & FS_CLS_MASK) << (__class))
 
 // Removes the permission bits '__bits' from the class '__class' in the file
 // permission set '__perms' 
 #define fs_perms_remove(__perms, __class, __bits) \
- (__perms) &= ~(((__bits) & FS_PCLS_MASK) << (__class))
+ (__perms) &= ~(((__bits) & FS_CLS_MASK) << (__class))
 
 // Replaces all permission bits in the class '__class' of the file permission
 // set '__perms' with the new permission bits '__bits' 
 #define fs_perms_set(__perms, __class, __bits) \
- (__perms) = ((__perms) & ~(FS_PCLS_MASK << (__class))) | (((__bits) & FS_PCLS_MASK) << (__class))
+ (__perms) = ((__perms) & ~(FS_CLS_MASK << (__class))) | (((__bits) & FS_CLS_MASK) << (__class))
 
 #endif /* _KPI_FS_PERMS_H */

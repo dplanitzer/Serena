@@ -118,9 +118,9 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
         buf[i] = '-';
     }
 
-    file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_USR), &buf[1]);
-    file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_GRP), &buf[4]);
-    file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_OTH), &buf[7]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_USR), &buf[1]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_GRP), &buf[4]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_OTH), &buf[7]);
     buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
     localtime_r(&attr.mod_time.tv_sec, &date);

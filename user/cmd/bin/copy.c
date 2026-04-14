@@ -58,7 +58,7 @@ static int copy_file(const char* _Nonnull src_path, const fs_attr_t* _Nonnull sr
 
     // Need to ensure that the destination file has write permissions so that we
     // can actually copy the data
-    fs_perms_add(fsperms, FS_PCLS_USR, FS_PRM_W);
+    fs_perms_add(fsperms, FS_CLS_USR, FS_PRM_W);
 
 
     sfd = open(src_path, O_RDONLY);
@@ -78,7 +78,7 @@ static int copy_file(const char* _Nonnull src_path, const fs_attr_t* _Nonnull sr
 
     // Remove the write rights from the destination if the source doesn't have
     // write rights
-    if (dfd != -1 && !fs_perms_has(src_attr->permissions, FS_PCLS_USR, FS_PRM_W)) {
+    if (dfd != -1 && !fs_perms_has(src_attr->permissions, FS_CLS_USR, FS_PRM_W)) {
         //XXX use fchmod() instead once it exists
         fs_setperms(NULL, dst_path, src_attr->permissions);
     }

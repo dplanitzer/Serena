@@ -110,9 +110,9 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->buf[i] = '-';
         }
 
-        file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_USR), &self->buf[1]);
-        file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_GRP), &self->buf[4]);
-        file_permissions_to_text(fs_perms_get(attr.permissions, FS_PCLS_OTH), &self->buf[7]);
+        file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_USR), &self->buf[1]);
+        file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_GRP), &self->buf[4]);
+        file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_OTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
