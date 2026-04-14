@@ -67,9 +67,9 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const char* _Nonnull params,
     // Get the volume header block
     try(FSContainer_MapBlock(fsContainer, kSFSVolume_HeaderBno, kMapBlock_ReadOnly, &blk));
     const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)blk.data;
-    const uint32_t signature = UInt32_BigToHost(vhp->signature);
-    const uint32_t version = UInt32_BigToHost(vhp->version);
-    const uint32_t blockSize = UInt32_BigToHost(vhp->volBlockSize);
+    const uint32_t signature = be32toh(vhp->signature);
+    const uint32_t version = be32toh(vhp->version);
+    const uint32_t blockSize = be32toh(vhp->volBlockSize);
 
     if (signature != kSFSSignature_SerenaFS || version != kSFSVersion_v0_1) {
         throw(EIO);
@@ -84,7 +84,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const char* _Nonnull params,
 
     
     // Get the root directory id
-    pOutProps->rootDirectoryId = (ino_t) UInt32_BigToHost(vhp->lbaRootDir);
+    pOutProps->rootDirectoryId = (ino_t) be32toh(vhp->lbaRootDir);
     pOutProps->isReadOnly = false;
 
 

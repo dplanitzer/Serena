@@ -77,7 +77,7 @@ const struct SMG_Header* _Nullable AmigaController_getBootImage(struct AmigaCont
     const uint32_t* pe4 = (const uint32_t*)__min((const char*)(BOOT_ROM_BASE + BOOT_ROM_SIZE), ps + CPU_PAGE_SIZE);
     const uint32_t* p4 = (const uint32_t*)__Ceil_Ptr_PowerOf2(ps, 4);
     const SMG_Header* smg_hdr = NULL;
-    const uint32_t smg_sig = UInt32_HostToBig(SMG_SIGNATURE);
+    const uint32_t smg_sig = htobe32(SMG_SIGNATURE);
 
     while (p4 < pe4) {
         if (*p4 == smg_sig) {

@@ -74,7 +74,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, InodeChannelRef
         const sfs_dirent_t* sp = (const sfs_dirent_t*)(blk.b.data + blockOffset);
         while (nBytesToReadInBlock > 0 && nDstBytesToRead >= sizeof(dir_entry_t)) {
             if (sp->id > 0) {
-                dp->inid = UInt32_BigToHost(sp->id);
+                dp->inid = be32toh(sp->id);
                 memcpy(dp->name, sp->filename, sp->len);
                 dp->name[sp->len] = '\0';
                 
@@ -214,7 +214,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
                         break;
 
                     case kSFSQuery_InodeId:
-                        done = (UInt32_HostToBig(q->u.id) == sp->id) ? true : false;
+                        done = (htobe32(q->u.id) == sp->id) ? true : false;
                         break;
 
                     default:
@@ -229,7 +229,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
             }
             
             if (done) {
-                qr->id = UInt32_BigToHost(sp->id);
+                qr->id = be32toh(sp->id);
                 if (qr->mpc) {
                     MutablePathComponent_SetString(qr->mpc, sp->filename, sp->len);
                 }
@@ -312,7 +312,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     memset(dep->filename, 0, kSFSMaxFilenameLength);
     memcpy(dep->filename, name->name, name->count);
     dep->len = name->count;
-    dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
+    dep->id = htobe32(Inode_GetId(pChildNode));
 
     SfsFile_UnmapBlock((SfsFileRef)self, &blk, kWriteBlock_Deferred);
 

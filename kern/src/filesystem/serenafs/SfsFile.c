@@ -20,24 +20,24 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
     SfsFileRef self;
     nanotime_t at, mt, st;
 
-    nanotime_from(&at, UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec));
-    nanotime_from(&mt, UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec));
-    nanotime_from(&st, UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec));
+    nanotime_from(&at, be32toh(ip->accessTime.tv_sec), be32toh(ip->accessTime.tv_nsec));
+    nanotime_from(&mt, be32toh(ip->modificationTime.tv_sec), be32toh(ip->modificationTime.tv_nsec));
+    nanotime_from(&st, be32toh(ip->statusChangeTime.tv_sec), be32toh(ip->statusChangeTime.tv_nsec));
 
     err = Inode_Create(
         pClass,
         (FilesystemRef)fs,
         inid,
-        SfsFileTypeFromIType(UInt16_BigToHost(ip->type)),
-        SfsFsPermsFromPermissions(UInt16_BigToHost(ip->permissions)),
-        UInt32_BigToHost(ip->uid),
-        UInt32_BigToHost(ip->gid),
-        Int32_BigToHost(ip->linkCount),
-        Int64_BigToHost(ip->size),
+        SfsFileTypeFromIType(be16toh(ip->type)),
+        SfsFsPermsFromPermissions(be16toh(ip->permissions)),
+        be32toh(ip->uid),
+        be32toh(ip->gid),
+        be32toh(ip->linkCount),
+        be64toh(ip->size),
         &at,
         &mt,
         &st,
-        UInt32_BigToHost(ip->pnid),
+        be32toh(ip->pnid),
         (InodeRef*)&self);
 
     if (err == EOK) {
@@ -64,21 +64,21 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     const sfs_itype_t itype = SfsFile_GetIType(self);
     const sfs_perm_t iperms = SfsFile_GetPermissions(self);
 
-    ip->size = Int64_HostToBig(Inode_GetFileSize(self));
-    ip->accessTime.tv_sec = UInt32_HostToBig(atp->tv_sec);
-    ip->accessTime.tv_nsec = UInt32_HostToBig(atp->tv_nsec);
-    ip->modificationTime.tv_sec = UInt32_HostToBig(mtp->tv_sec);
-    ip->modificationTime.tv_nsec = UInt32_HostToBig(mtp->tv_nsec);
-    ip->statusChangeTime.tv_sec = UInt32_HostToBig(ctp->tv_sec);
-    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(ctp->tv_nsec);
-    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
-    ip->id = UInt32_HostToBig(Inode_GetId(pNode));
-    ip->pnid = UInt32_HostToBig(Inode_GetParentId(pNode));
-    ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(self));
-    ip->uid = UInt32_HostToBig(Inode_GetUserId(self));
-    ip->gid = UInt32_HostToBig(Inode_GetGroupId(self));
-    ip->type = UInt16_HostToBig(itype);
-    ip->permissions = UInt16_HostToBig(iperms);
+    ip->size = htobe64(Inode_GetFileSize(self));
+    ip->accessTime.tv_sec = htobe32(atp->tv_sec);
+    ip->accessTime.tv_nsec = htobe32(atp->tv_nsec);
+    ip->modificationTime.tv_sec = htobe32(mtp->tv_sec);
+    ip->modificationTime.tv_nsec = htobe32(mtp->tv_nsec);
+    ip->statusChangeTime.tv_sec = htobe32(ctp->tv_sec);
+    ip->statusChangeTime.tv_nsec = htobe32(ctp->tv_nsec);
+    ip->signature = htobe32(kSFSSignature_Inode);
+    ip->id = htobe32(Inode_GetId(pNode));
+    ip->pnid = htobe32(Inode_GetParentId(pNode));
+    ip->linkCount = htobe32(Inode_GetLinkCount(self));
+    ip->uid = htobe32(Inode_GetUserId(self));
+    ip->gid = htobe32(Inode_GetGroupId(self));
+    ip->type = htobe16(itype);
+    ip->permissions = htobe16(iperms);
 
     ip->bmap.indirect = self->bmap.indirect;
     for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
@@ -127,7 +127,7 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull fs, blkno_t lba, MapBlock mod
                 if (err == EOK) {
                     blk->lba = new_lba;
                     blk->wasAlloced = true;
-                    *pOutOnDiskLba = UInt32_HostToBig(new_lba);    
+                    *pOutOnDiskLba = htobe32(new_lba);    
                 }
                 else {
                     SfsAllocator_Deallocate(&fs->blockAllocator, new_lba);
@@ -152,7 +152,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
     sfs_bmap_t* bmap = &self->bmap;
 
     if (fba < kSFSDirectBlockPointersCount) {
-        blkno_t dat_lba = UInt32_BigToHost(bmap->direct[fba]);
+        blkno_t dat_lba = be32toh(bmap->direct[fba]);
 
         return map_disk_block(fs, dat_lba, mode, &bmap->direct[fba], blk);
     }
@@ -161,7 +161,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
     if (fba < fs->indirectBlockEntryCount) {
         SfsFileBlock i0_block;
-        blkno_t i0_lba = UInt32_BigToHost(bmap->indirect);
+        blkno_t i0_lba = be32toh(bmap->indirect);
 
         // Get the indirect block
         try(map_disk_block(fs, i0_lba, kMapBlock_Update, &bmap->indirect, &i0_block));
@@ -169,7 +169,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
         // Get the data block
         sfs_bno_t* i0_bmap = (sfs_bno_t*)i0_block.b.data;
-        blkno_t dat_lba = UInt32_BigToHost(i0_bmap[fba]);
+        blkno_t dat_lba = be32toh(i0_bmap[fba]);
 
         err = map_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
         
@@ -227,7 +227,7 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     // Trim the direct blocks
     for (size_t bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
         if (bmap->direct[bn] > 0) {
-            SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->direct[bn]));
+            SfsAllocator_Deallocate(&fs->blockAllocator, be32toh(bmap->direct[bn]));
             bmap->direct[bn] = 0;
             didTrim = true;
         }
@@ -237,7 +237,7 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     // Figure out whether indirect blocks need to be trimmed
     const size_t bn_first_i0_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
     const bool is_i0_update = (bn_first_i0_to_discard > 0) ? true : false;
-    const blkno_t i0_lba = UInt32_BigToHost(bmap->indirect);
+    const blkno_t i0_lba = be32toh(bmap->indirect);
     FSBlock blk = {0};
 
     if (i0_lba > 0) {
@@ -248,7 +248,7 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 
             for (size_t bn = bn_first_i0_to_discard; bn < fs->indirectBlockEntryCount; bn++) {
                 if (i0_bmap[bn] > 0) {
-                    SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[bn]));
+                    SfsAllocator_Deallocate(&fs->blockAllocator, be32toh(i0_bmap[bn]));
                     if (is_i0_update) i0_bmap[bn] = 0;
                     didTrim = true;
                 }

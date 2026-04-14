@@ -344,11 +344,11 @@ errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path
         SMG_Header  hdr;
 
         memset(&hdr, 0, sizeof(SMG_Header));
-        hdr.signature = UInt32_HostToBig(SMG_SIGNATURE);
-        hdr.headerSize = UInt32_HostToBig(SMG_HEADER_SIZE);
-        hdr.physicalBlockCount = UInt64_HostToBig(blockCount);
-        hdr.logicalBlockCount = UInt64_HostToBig((uint64_t)self->highestWrittenToLba + 1ull);
-        hdr.blockSize = UInt32_HostToBig(blockSize);
+        hdr.signature = htobe32(SMG_SIGNATURE);
+        hdr.headerSize = htobe32(SMG_HEADER_SIZE);
+        hdr.physicalBlockCount = htobe64(blockCount);
+        hdr.logicalBlockCount = htobe64((uint64_t)self->highestWrittenToLba + 1ull);
+        hdr.blockSize = htobe32(blockSize);
         hdr.options = 0;
 
         fwrite(&hdr, SMG_HEADER_SIZE, 1, fp);

@@ -62,14 +62,14 @@ errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull 
         throw(errno);
     }
 
-    if (smgHdr.signature == UInt32_HostToBig(SMG_SIGNATURE)) {
+    if (smgHdr.signature == htobe32(SMG_SIGNATURE)) {
         pOutInfo->format = kDiskImage_Serena;
         pOutInfo->cylindersPerDisk = 1;
         pOutInfo->headsPerCylinder = 1;
-        pOutInfo->sectorsPerTrack = UInt32_BigToHost(smgHdr.logicalBlockCount);
-        pOutInfo->bytesPerSector = UInt32_BigToHost(smgHdr.blockSize);
-        pOutInfo->physicalOffset = UInt32_BigToHost(smgHdr.headerSize);
-        pOutInfo->physicalSize = UInt32_BigToHost(smgHdr.physicalBlockCount) * pOutInfo->bytesPerSector;
+        pOutInfo->sectorsPerTrack = be32toh(smgHdr.logicalBlockCount);
+        pOutInfo->bytesPerSector = be32toh(smgHdr.blockSize);
+        pOutInfo->physicalOffset = be32toh(smgHdr.headerSize);
+        pOutInfo->physicalSize = be32toh(smgHdr.physicalBlockCount) * pOutInfo->bytesPerSector;
     }
     else if (fileSize == ADF_CYLS_PER_DISK*ADF_HEADS_PER_CYL*ADF_DD_SECS_PER_TRACK*ADF_SECTOR_DATA_SIZE) {
         pOutInfo->format = kDiskImage_Amiga_DD_Floppy;

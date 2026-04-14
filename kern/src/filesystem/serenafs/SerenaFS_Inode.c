@@ -44,10 +44,10 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 
         try(FSContainer_MapBlock(fsContainer, dirContLba, kMapBlock_Cleared, &blk));
         sfs_dirent_t* dep = (sfs_dirent_t*)blk.data;
-        dep[0].id = UInt32_HostToBig(inodeLba);
+        dep[0].id = htobe32(inodeLba);
         dep[0].len = 1;
         dep[0].filename[0] = '.';
-        dep[1].id = UInt32_HostToBig(parentInodeId);
+        dep[1].id = htobe32(parentInodeId);
         dep[1].len = 2;
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
@@ -60,22 +60,22 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 
     try(FSContainer_MapBlock(fsContainer, inodeLba, kMapBlock_Cleared, &blk));
     sfs_inode_t* ip = (sfs_inode_t*)blk.data;
-    ip->size = Int64_HostToBig(fileSize);
-    ip->accessTime.tv_sec = UInt32_HostToBig(now.tv_sec);
-    ip->accessTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
+    ip->size = htobe64(fileSize);
+    ip->accessTime.tv_sec = htobe32(now.tv_sec);
+    ip->accessTime.tv_nsec = htobe32(now.tv_nsec);
     ip->modificationTime.tv_sec = ip->accessTime.tv_sec;
     ip->modificationTime.tv_nsec = ip->accessTime.tv_nsec;
     ip->statusChangeTime.tv_sec = ip->accessTime.tv_sec;
     ip->statusChangeTime.tv_nsec = ip->accessTime.tv_nsec;
-    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
-    ip->id = UInt32_HostToBig(inodeLba);
-    ip->pnid = UInt32_HostToBig(parentInodeId);
-    ip->linkCount = Int32_HostToBig(1);
-    ip->uid = UInt32_HostToBig(uid);
-    ip->gid = UInt32_HostToBig(gid);
-    ip->type = UInt16_HostToBig(itype);
-    ip->permissions = UInt16_HostToBig(iperms);
-    ip->bmap.direct[0] = UInt32_HostToBig(dirContLba);
+    ip->signature = htobe32(kSFSSignature_Inode);
+    ip->id = htobe32(inodeLba);
+    ip->pnid = htobe32(parentInodeId);
+    ip->linkCount = htobe32(1);
+    ip->uid = htobe32(uid);
+    ip->gid = htobe32(gid);
+    ip->type = htobe16(itype);
+    ip->permissions = htobe16(iperms);
+    ip->bmap.direct[0] = htobe32(dirContLba);
     FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
     blk.token = 0;
 
@@ -124,11 +124,11 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
     try(FSContainer_MapBlock(fsContainer, lba, kMapBlock_ReadOnly, &blk));
     
     const sfs_inode_t* ip = (const sfs_inode_t*)blk.data;
-    if (UInt32_BigToHost(ip->signature) != kSFSSignature_Inode || UInt32_BigToHost(ip->id) != id) {
+    if (be32toh(ip->signature) != kSFSSignature_Inode || be32toh(ip->id) != id) {
         throw(EIO);
     }
 
-    switch (UInt16_BigToHost(ip->type)) {
+    switch (be16toh(ip->type)) {
         case kSFSInode_Directory:
             pClass = class(SfsDirectory);
             break;

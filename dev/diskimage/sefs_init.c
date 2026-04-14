@@ -75,18 +75,18 @@ errno_t sefs_init(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t
     // Write the volume header
     sfs_vol_header_t* vhp = (sfs_vol_header_t*)bp;
     memset(bp, 0, blockSize);
-    vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
-    vhp->version = UInt32_HostToBig(kSFSVersion_Current);
-    vhp->attributes = UInt32_HostToBig(0);
-    vhp->creationTime.tv_sec = UInt32_HostToBig(creatTime->tv_sec);
-    vhp->creationTime.tv_nsec = UInt32_HostToBig(creatTime->tv_nsec);
-    vhp->modificationTime.tv_sec = UInt32_HostToBig(creatTime->tv_sec);
-    vhp->modificationTime.tv_nsec = UInt32_HostToBig(creatTime->tv_nsec);
-    vhp->volBlockSize = UInt32_HostToBig(blockSize);
-    vhp->volBlockCount = UInt32_HostToBig(blockCount);
-    vhp->allocBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
-    vhp->lbaRootDir = UInt32_HostToBig(rootDirLba);
-    vhp->lbaAllocBitmap = UInt32_HostToBig(1);
+    vhp->signature = htobe32(kSFSSignature_SerenaFS);
+    vhp->version = htobe32(kSFSVersion_Current);
+    vhp->attributes = htobe32(0);
+    vhp->creationTime.tv_sec = htobe32(creatTime->tv_sec);
+    vhp->creationTime.tv_nsec = htobe32(creatTime->tv_nsec);
+    vhp->modificationTime.tv_sec = htobe32(creatTime->tv_sec);
+    vhp->modificationTime.tv_nsec = htobe32(creatTime->tv_nsec);
+    vhp->volBlockSize = htobe32(blockSize);
+    vhp->volBlockCount = htobe32(blockCount);
+    vhp->allocBitmapByteSize = htobe32(allocationBitmapByteSize);
+    vhp->lbaRootDir = htobe32(rootDirLba);
+    vhp->lbaAllocBitmap = htobe32(1);
     vhp->labelLength = strlen(label);
     memcpy(vhp->label, label, vhp->labelLength);
     try(block_write(fd, bp, 0, blockSize));
@@ -116,22 +116,22 @@ errno_t sefs_init(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t
     // Write the root directory inode
     sfs_inode_t* ip = (sfs_inode_t*)bp;
     memset(ip, 0, blockSize);
-    ip->size = Int64_HostToBig(2 * sizeof(sfs_dirent_t));
-    ip->accessTime.tv_sec = UInt32_HostToBig(creatTime->tv_sec);
-    ip->accessTime.tv_nsec = UInt32_HostToBig(creatTime->tv_nsec);
-    ip->modificationTime.tv_sec = UInt32_HostToBig(creatTime->tv_sec);
-    ip->modificationTime.tv_nsec = UInt32_HostToBig(creatTime->tv_nsec);
-    ip->statusChangeTime.tv_sec = UInt32_HostToBig(creatTime->tv_sec);
-    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(creatTime->tv_nsec);
-    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
-    ip->id = UInt32_HostToBig(rootDirLba);
-    ip->pnid = UInt32_HostToBig(rootDirLba);
-    ip->linkCount = Int32_HostToBig(1);
-    ip->uid = UInt32_HostToBig(uid);
-    ip->gid = UInt32_HostToBig(gid);
-    ip->type = UInt16_HostToBig(kSFSInode_Directory);
-    ip->permissions = UInt16_HostToBig(permissions);
-    ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);
+    ip->size = htobe64(2 * sizeof(sfs_dirent_t));
+    ip->accessTime.tv_sec = htobe32(creatTime->tv_sec);
+    ip->accessTime.tv_nsec = htobe32(creatTime->tv_nsec);
+    ip->modificationTime.tv_sec = htobe32(creatTime->tv_sec);
+    ip->modificationTime.tv_nsec = htobe32(creatTime->tv_nsec);
+    ip->statusChangeTime.tv_sec = htobe32(creatTime->tv_sec);
+    ip->statusChangeTime.tv_nsec = htobe32(creatTime->tv_nsec);
+    ip->signature = htobe32(kSFSSignature_Inode);
+    ip->id = htobe32(rootDirLba);
+    ip->pnid = htobe32(rootDirLba);
+    ip->linkCount = htobe32(1);
+    ip->uid = htobe32(uid);
+    ip->gid = htobe32(gid);
+    ip->type = htobe16(kSFSInode_Directory);
+    ip->permissions = htobe16(permissions);
+    ip->bmap.direct[0] = htobe32(rootDirContLba);
     try(block_write(fd, bp, rootDirLba, blockSize));
 
 
@@ -139,10 +139,10 @@ errno_t sefs_init(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t
     // which both point back to the root directory.
     sfs_dirent_t* dep = (sfs_dirent_t*)bp;
     memset(dep, 0, blockSize);
-    dep[0].id = UInt32_HostToBig(rootDirLba);
+    dep[0].id = htobe32(rootDirLba);
     dep[0].len = 1;
     dep[0].filename[0] = '.';
-    dep[1].id = UInt32_HostToBig(rootDirLba);
+    dep[1].id = htobe32(rootDirLba);
     dep[1].len = 2;
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';

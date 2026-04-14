@@ -28,8 +28,8 @@ void SfsAllocator_Deinit(SfsAllocator* _Nonnull self)
 errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const sfs_vol_header_t* _Nonnull vhp, size_t blockSize)
 {
     decl_try_err();
-    const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volBlockCount);
-    const uint32_t allocationBitmapByteSize = UInt32_BigToHost(vhp->allocBitmapByteSize);
+    const uint32_t volumeBlockCount = be32toh(vhp->volBlockCount);
+    const uint32_t allocationBitmapByteSize = be32toh(vhp->allocBitmapByteSize);
     FSBlock blk = {0};
 
     if (allocationBitmapByteSize < 1 || volumeBlockCount < kSFSVolume_MinBlockCount) {
@@ -37,7 +37,7 @@ errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull 
     }
 
     size_t allocBitmapByteSize = allocationBitmapByteSize;
-    self->bitmapLba = UInt32_BigToHost(vhp->lbaAllocBitmap);
+    self->bitmapLba = be32toh(vhp->lbaAllocBitmap);
     self->bitmapBlockCount = (allocBitmapByteSize + (blockSize - 1)) / blockSize;
     self->bitmapByteSize = allocBitmapByteSize;
     self->blockSize = blockSize;

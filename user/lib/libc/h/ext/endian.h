@@ -9,8 +9,7 @@
 #ifndef _EXT_ENDIAN_H
 #define _EXT_ENDIAN_H 1
 
-#include <_cmndef.h>
-#include <stdint.h>
+#include <ext/byteswap.h>
 
 __CPP_BEGIN
 
@@ -23,91 +22,43 @@ __CPP_BEGIN
 #endif
 
 
-static inline uint16_t UInt16_Swap(uint16_t w) {
-    return (w << 8) | (w >> 8);
-}
-
-static inline uint32_t UInt32_Swap(uint32_t w) {
-    w = ((w << 8) & 0xff00ff00) | ((w >> 8) & 0xff00ff); 
-    return (w << 16) | (w >> 16);
-}
-
-static inline uint64_t UInt64_Swap(uint64_t w) {
-    w = ((w << 8) & 0xff00ff00ff00ff00ull) | ((w >> 8) & 0x00ff00ff00ff00ffull);
-    w = ((w << 16) & 0xffff0000ffff0000ull) | ((w >> 16) & 0x0000ffff0000ffffull);
-    return (w << 32) | (w >> 32);
-}
-
-
 #ifdef __BYTE_ORDER_BIG__
 
-#define Int16_HostToBig(__w) (int16_t)(__w)
-#define Int32_HostToBig(__w) (int32_t)(__w)
-#define Int64_HostToBig(__w) (int64_t)(__w)
+#define htobe16(__w) (__w)
+#define htobe32(__w) (__w)
+#define htobe64(__w) (__w)
 
-#define UInt16_HostToBig(__w) (uint16_t)(__w)
-#define UInt32_HostToBig(__w) (uint32_t)(__w)
-#define UInt64_HostToBig(__w) (uint64_t)(__w)
-
-#define Int16_BigToHost(__w) (int16_t)(__w)
-#define Int32_BigToHost(__w) (int32_t)(__w)
-#define Int64_BigToHost(__w) (int64_t)(__w)
-
-#define UInt16_BigToHost(__w) (uint16_t)(__w)
-#define UInt32_BigToHost(__w) (uint32_t)(__w)
-#define UInt64_BigToHost(__w) (uint64_t)(__w)
+#define be16toh(__w) (__w)
+#define be32toh(__w) (__w)
+#define be64toh(__w) (__w)
 
 
-#define Int16_HostToLittle(__w) (int16_t)UInt16_Swap((uint16_t)__w)
-#define Int32_HostToLittle(__w) (int32_t)UInt32_Swap((uint32_t)__w)
-#define Int64_HostToLittle(__w) (int64_t)UInt64_Swap((uint64_t)__w)
+#define htole16(__w) bswap_16(__w)
+#define htole32(__w) bswap_32(__w)
+#define htole64(__w) bswap_64(__w)
 
-#define UInt16_HostToLittle(__w) UInt16_Swap(__w)
-#define UInt32_HostToLittle(__w) UInt32_Swap(__w)
-#define UInt64_HostToLittle(__w) UInt64_Swap(__w)
-
-#define Int16_LittleToHost(__w) (int16_t)UInt16_Swap((uint16_t)__w)
-#define Int32_LittleToHost(__w) (int32_t)UInt32_Swap((uint32_t)__w)
-#define Int64_LittleToHost(__w) (int64_t)UInt64_Swap((uint64_t)__w)
-
-#define UInt16_LittleToHost(__w) UInt16_Swap(__w)
-#define UInt32_LittleToHost(__w) UInt32_Swap(__w)
-#define UInt64_LittleToHost(__w) UInt64_Swap(__w)
+#define le16toh(__w) bswap_16(__w)
+#define le32toh(__w) bswap_32(__w)
+#define le64toh(__w) bswap_64(__w)
 
 #else
 
-#define Int16_HostToBig(__w) (int16_t)UInt16_Swap((uint16_t)__w)
-#define Int32_HostToBig(__w) (int32_t)UInt32_Swap((uint32_t)__w)
-#define Int64_HostToBig(__w) (int64_t)UInt64_Swap((uint64_t)__w)
+#define htobe16(__w) bswap_16(__w)
+#define htobe32(__w) bswap_32(__w)
+#define htobe64(__w) bswap_64(__w)
 
-#define UInt16_HostToBig(__w) UInt16_Swap(__w)
-#define UInt32_HostToBig(__w) UInt32_Swap(__w)
-#define UInt64_HostToBig(__w) UInt64_Swap(__w)
-
-#define Int16_BigToHost(__w) (int16_t)UInt16_Swap((uint16_t)__w)
-#define Int32_BigToHost(__w) (int32_t)UInt32_Swap((uint32_t)__w)
-#define Int64_BigToHost(__w) (int64_t)UInt64_Swap((uint64_t)__w)
-
-#define UInt16_BigToHost(__w) UInt16_Swap(__w)
-#define UInt32_BigToHost(__w) UInt32_Swap(__w)
-#define UInt64_BigToHost(__w) UInt64_Swap(__w)
+#define be16toh(__w) bswap_16(__w)
+#define be32toh(__w) bswap_32(__w)
+#define be64toh(__w) bswap_64(__w)
 
 
-#define Int16_HostToLittle(__w) (int16_t)(__w)
-#define Int32_HostToLittle(__w) (int32_t)(__w)
-#define Int64_HostToLittle(__w) (int64_t)(__w)
+#define htole16(__w) (__w)
+#define htole32(__w) (__w)
+#define htole64(__w) (__w)
 
-#define UInt16_HostToLittle(__w) (uint16_t)(__w)
-#define UInt32_HostToLittle(__w) (uint32_t)(__w)
-#define UInt64_HostToLittle(__w) (uint64_t)(__w)
-
-#define Int16_LittleToHost(__w) (int16_t)(__w)
-#define Int32_LittleToHost(__w) (int32_t)(__w)
-#define Int64_LittleToHost(__w) (int64_t)(__w)
-
-#define UInt16_LittleToHost(__w) (uint16_t)(__w)
-#define UInt32_LittleToHost(__w) (uint32_t)(__w)
-#define UInt64_LittleToHost(__w) (uint64_t)(__w)
+#define le16toh(__w) (__w)
+#define le32toh(__w) (__w)
+#define le64toh(__w) (__w)
 
 #endif
 
