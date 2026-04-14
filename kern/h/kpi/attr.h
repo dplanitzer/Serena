@@ -20,7 +20,8 @@ typedef struct fs_attr {
     off_t           size;
     uid_t           uid;
     gid_t           gid;
-    mode_t          mode;
+    fs_ftype_t      file_type;
+    fs_perms_t      permissions;
     nlink_t         nlink;
     fsid_t          fsid;
     ino_t           ino;
@@ -36,19 +37,5 @@ typedef struct fs_attr {
 #define S_IFPROC    0x03000000  /* A process */
 #define S_IFLNK     0x04000000
 #define S_IFIFO     0x05000000
-
-// Convenience macros to check for inode types
-#define S_ISREG(__mode)     (((__mode) & S_IFMT) == S_IFREG)
-#define S_ISDIR(__mode)     (((__mode) & S_IFMT) == S_IFDIR)
-#define S_ISDEV(__mode)     (((__mode) & S_IFMT) == S_IFDEV)
-#define S_ISPROC(__mode)    (((__mode) & S_IFMT) == S_IFPROC)
-#define S_ISLNK(__mode)     (((__mode) & S_IFMT) == S_IFLNK)
-#define S_ISFIFO(__mode)    (((__mode) & S_IFMT) == S_IFIFO)
-
-// Returns the file permission bits from a mode_t
-#define S_FPERM(__mode) ((__mode) & S_IFMP)
-
-// Returns the file type bits from a mode_t
-#define S_FTYPE(__mode) ((__mode) & S_IFMT)
 
 #endif /* _KPI_ATTR_H */

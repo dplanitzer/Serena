@@ -51,9 +51,7 @@ typedef size_t          ino_t;
 
 typedef unsigned int    fs_ftype_t;
 typedef unsigned int    fs_perms_t;
-
 typedef int             nlink_t;
-typedef unsigned int    mode_t;
 
 
 // Only exists for POSIX source code compatibility. Not used on Serena OS.

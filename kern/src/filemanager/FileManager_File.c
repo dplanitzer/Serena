@@ -125,7 +125,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_CreateNode(pFS, dir, name, &dih, self->ruid, self->rgid, __S_MKMODE(S_IFREG, filePerms), &ip));
+        try(Filesystem_CreateNode(pFS, dir, name, &dih, self->ruid, self->rgid, S_IFREG, filePerms, &ip));
     }
     else {
         throw(err);

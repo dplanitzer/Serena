@@ -46,30 +46,30 @@ const char* char_to_ascii(char ch, char buf[3])
 
 int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
 {
-    fs_attr_t st;
+    fs_attr_t attr;
     
     const int fd = open(path, O_RDONLY);
     if (fd < 0) {
         return EOF;
     }
 
-    if (fd_attr(fd, &st) < 0) {
+    if (fd_attr(fd, &attr) < 0) {
         fd_close(fd);
         return EOF;
     }
 
-    if (!S_ISREG(st.mode)) {
+    if (attr.file_type != S_IFREG) {
         errno = EINVAL;
         fd_close(fd);
         return EOF;
     }
-    if (st.size > (off_t)SSIZE_MAX) {
+    if (attr.size > (off_t)SSIZE_MAX) {
         errno = E2BIG;
         fd_close(fd);
         return EOF;
     }
 
-    const size_t fileSize = (size_t)st.size;
+    const size_t fileSize = (size_t)attr.size;
     char* text = malloc(fileSize + 1);
     int r;
 

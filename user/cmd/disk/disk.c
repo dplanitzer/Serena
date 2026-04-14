@@ -159,7 +159,7 @@ void cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t ro
 // and of the filesystem that owns path otherwise.
 static fsid_t get_fsid(const char* _Nonnull path)
 {
-    fs_attr_t info;
+    fs_attr_t attr;
     char* p = (char*)path;
 
     if (*p == '\0') {
@@ -168,8 +168,8 @@ static fsid_t get_fsid(const char* _Nonnull path)
     }
 
 
-    if (fs_attr(NULL, p, &info) == 0) {
-        return info.fsid;
+    if (fs_attr(NULL, p, &attr) == 0) {
+        return attr.fsid;
     }
     else {
         return -1;
@@ -245,7 +245,7 @@ static void cmd_info(const char* _Nonnull path)
 
 static void cmd_geometry(const char* _Nonnull path)
 {
-    fs_attr_t st;
+    fs_attr_t attr;
     fsid_t fsid;
     char buf[32];
     disk_info_t di;
@@ -253,12 +253,12 @@ static void cmd_geometry(const char* _Nonnull path)
     bool hasDisk = true;
 
     if (*path != '\0') {
-        if (fs_attr(NULL, path, &st) != 0) {
+        if (fs_attr(NULL, path, &attr) != 0) {
             return;
         }
     }
 
-    if (S_ISDEV(st.mode)) {
+    if (attr.file_type == S_IFDEV) {
         // raw disk
         fd = open(path, O_RDONLY);
         if (fd < 0) {

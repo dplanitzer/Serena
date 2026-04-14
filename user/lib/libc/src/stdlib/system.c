@@ -20,10 +20,10 @@ static const char* __shellPath = "/System/Commands/shell";
 
 static int __has_shell(void)
 {
-    fs_attr_t st;
+    fs_attr_t attr;
 
-    if (fs_attr(NULL, __shellPath, &st) == 0) {
-        if (S_ISREG(st.mode) && (st.mode & (S_IXUSR|S_IXGRP|S_IXOTH)) != 0) {
+    if (fs_attr(NULL, __shellPath, &attr) == 0) {
+        if ((attr.file_type == S_IFREG) && (attr.permissions & (S_IXUSR|S_IXGRP|S_IXOTH)) != 0) {
             return -1;
         }
     }

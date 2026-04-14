@@ -105,9 +105,9 @@ errno_t KernFS_onStart(KernFSRef _Nonnull self, const char* _Nonnull params, FSP
     decl_try_err();
     KfsNodeRef rootDir;
 
-    const mode_t dirOwnerPerms = S_IRWX;
-    const mode_t dirOtherPerms = S_IREAD | S_IEXEC;
-    const mode_t rootDirPerms = perm_from(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
+    const fs_perms_t dirOwnerPerms = S_IRWX;
+    const fs_perms_t dirOtherPerms = S_IREAD | S_IEXEC;
+    const fs_perms_t rootDirPerms = perm_from(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
     const ino_t rootDirInodeId = KernFS_GetNextAvailableInodeId(self);
 
     try(KfsDirectory_Create(self, rootDirInodeId, rootDirPerms, UID_ROOT, GID_ROOT, rootDirInodeId, &rootDir));

@@ -52,25 +52,25 @@ static int copy_file_contents(int sfd, int dfd)
     return 0;
 }
 
-static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull srcStat, const char* _Nonnull dstPath)
+static int copy_file(const char* _Nonnull src_path, const fs_attr_t* _Nonnull src_attr, const char* _Nonnull dst_path)
 {
     int sfd = -1, dfd = -1;
-    fs_perms_t fsperms = S_FPERM(srcStat->mode);
+    fs_perms_t fsperms = src_attr->permissions;
 
     // Need to ensure that the destination file has write permissions so that we
     // can actually copy the data
     perm_add(fsperms, S_ICUSR, S_IWRITE);
 
 
-    sfd = open(srcPath, O_RDONLY);
+    sfd = open(src_path, O_RDONLY);
     if (sfd >= 0) {
-        dfd = open(dstPath, O_CREAT|O_EXCL|O_WRONLY, fsperms);
+        dfd = open(dst_path, O_CREAT|O_EXCL|O_WRONLY, fsperms);
     }
 
     if (sfd != -1 && dfd != -1) {
         if (copy_file_contents(sfd, dfd) != 0) {
             //XXX a funlink() would be nice here...
-            fs_remove(NULL, dstPath);
+            fs_remove(NULL, dst_path);
             fd_close(dfd);
             dfd = -1;
         }
@@ -79,9 +79,9 @@ static int copy_file(const char* _Nonnull srcPath, const fs_attr_t* _Nonnull src
 
     // Remove the write rights from the destination if the source doesn't have
     // write rights
-    if (dfd != -1 && !perm_has(srcStat->mode, S_ICUSR, S_IWRITE)) {
+    if (dfd != -1 && !perm_has(src_attr->permissions, S_ICUSR, S_IWRITE)) {
         //XXX use fchmod() instead once it exists
-        fs_setperms(NULL, dstPath, srcStat->mode);
+        fs_setperms(NULL, dst_path, src_attr->permissions);
     }
 
 
@@ -118,42 +118,42 @@ static const char* _Nullable make_path(const char* _Nonnull dirPath, const char*
     return path_buf;
 }
 
-static int copy_obj(const char* _Nonnull srcPath, const char* _Nonnull dstPath)
+static int copy_obj(const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
-    fs_attr_t srcstat, dststat;
+    fs_attr_t src_attr, dst_attr;
     bool hasSrc = false, hasDst = false;
 
-    if (fs_attr(NULL, srcPath, &srcstat) == 0) {
+    if (fs_attr(NULL, src_path, &src_attr) == 0) {
         hasSrc = true;
     }
-    if (fs_attr(NULL, dstPath, &dststat) == 0) {
+    if (fs_attr(NULL, dst_path, &dst_attr) == 0) {
         hasDst = true;
     }
 
 
     // Source must be a file for now
-    if (!hasSrc || !S_ISREG(srcstat.mode)) {
+    if (!hasSrc || (src_attr.file_type != S_IFREG)) {
         errno = EINVAL;
         return -1;
     }
 
-    // Destination must not exist or be a directory
-    if (hasDst && !S_ISDIR(dststat.mode)) {
+    // Destination must not exist or not be a directory
+    if (hasDst && (dst_attr.file_type != S_IFDIR)) {
         errno = EINVAL;
         return -1;
     }
 
 
-    // Compute the final destination path if 'dstPath' points to a directory
-    if (hasDst && S_ISDIR(dststat.mode)) {
-        const char* lastSrcPathComponent = strrchr(srcPath, '/');
-        const char* fileName = (lastSrcPathComponent) ? lastSrcPathComponent + 1 : srcPath;
+    // Compute the final destination path if 'dst_path' points to a directory
+    if (hasDst && (dst_attr.file_type == S_IFDIR)) {
+        const char* lastSrcPathComponent = strrchr(src_path, '/');
+        const char* fileName = (lastSrcPathComponent) ? lastSrcPathComponent + 1 : src_path;
 
-        dstPath = make_path(dstPath, fileName);
+        dst_path = make_path(dst_path, fileName);
     }
 
 
-    return copy_file(srcPath, &srcstat, dstPath);
+    return copy_file(src_path, &src_attr, dst_path);
 }
 
 

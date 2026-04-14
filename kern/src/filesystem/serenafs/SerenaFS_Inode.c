@@ -12,7 +12,7 @@
 #include <ext/endian.h>
 
 
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -23,8 +23,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     off_t fileSize = 0ll;
     InodeRef pNode = NULL;
     FSBlock blk = {0};
-    const sfs_itype_t itype = SfsITypeFromFileType(S_FTYPE(mode));
-    const sfs_perm_t iperms = SfsPermissionsFromFsPerms(S_FPERM(mode));
+    const sfs_itype_t itype = SfsITypeFromFileType(ftype);
+    const sfs_perm_t iperms = SfsPermissionsFromFsPerms(fsperms);
 
     if (itype == 0) {
         *pOutNode = NULL;

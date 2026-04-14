@@ -74,9 +74,9 @@ errno_t KernFS_CreateProcessNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Loc
     return _KernFS_createNode(self, dir, name, (ObjectRef)proc, 0, uid, gid, S_IFPROC, fsperms, pOutNode);
 }
 
-errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, dirInsertionHint, 0, uid, gid, S_FTYPE(mode), S_FPERM(mode), pOutNode);
+    return _KernFS_createNode(self, dir, name, dirInsertionHint, 0, uid, gid, ftype, fsperms, pOutNode);
 }
 
 errno_t KernFS_onAcquireNode(KernFSRef _Nonnull self, ino_t inid, InodeRef _Nullable * _Nonnull pOutNode)

@@ -69,23 +69,23 @@ static void file_permissions_to_text(fs_perms_t fsperms, char* _Nonnull buf)
 
 static int format_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    fs_attr_t st;
+    fs_attr_t attr;
     
-    if (fs_attr(NULL, path, &st) != 0) {
+    if (fs_attr(NULL, path, &attr) != 0) {
         return -1;
     }
     
-    itoa(st.nlink, buf, 10);
+    itoa(attr.nlink, buf, 10);
     nlink_w = __max(nlink_w, strlen(buf));
-    itoa(st.uid, buf, 10);
+    itoa(attr.uid, buf, 10);
     uid_w = __max(uid_w, strlen(buf));
-    itoa(st.gid, buf, 10);
+    itoa(attr.gid, buf, 10);
     gid_w = __max(gid_w, strlen(buf));
-    lltoa(st.size, buf, 10);
+    lltoa(attr.size, buf, 10);
     size_w = __max(size_w, strlen(buf));
 
     // Show time if the date is less than 12 months old; otherwise show date
-    localtime_r(&st.mod_time.tv_sec, &date);
+    localtime_r(&attr.mod_time.tv_sec, &date);
     if (date.tm_year == cur_year || (date.tm_year == cur_year - 1 && date.tm_mon > cur_month)) {
         date_w = TIME_WIDTH;
     }
@@ -98,14 +98,14 @@ static int format_inode(const char* _Nonnull path, const char* _Nonnull entryNam
 
 static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    fs_attr_t st;
+    fs_attr_t attr;
     char tc;
 
-    if (fs_attr(NULL, path, &st) != 0) {
+    if (fs_attr(NULL, path, &attr) != 0) {
         return -1;
     }
     
-    switch (S_FTYPE(st.mode)) {
+    switch (attr.file_type) {
         case S_IFDEV:   tc = 'h'; break;
         case S_IFDIR:   tc = 'd'; break;
         case S_IFPROC:  tc = 'P'; break;
@@ -119,19 +119,19 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
         buf[i] = '-';
     }
 
-    file_permissions_to_text(perm_get(st.mode, S_ICUSR), &buf[1]);
-    file_permissions_to_text(perm_get(st.mode, S_ICGRP), &buf[4]);
-    file_permissions_to_text(perm_get(st.mode, S_ICOTH), &buf[7]);
+    file_permissions_to_text(perm_get(attr.permissions, S_ICUSR), &buf[1]);
+    file_permissions_to_text(perm_get(attr.permissions, S_ICGRP), &buf[4]);
+    file_permissions_to_text(perm_get(attr.permissions, S_ICOTH), &buf[7]);
     buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-    localtime_r(&st.mod_time.tv_sec, &date);
+    localtime_r(&attr.mod_time.tv_sec, &date);
         
     printf("%s %*d  %*u %*u  %*lld  ",
         buf,
-        nlink_w, st.nlink,
-        uid_w, st.uid,
-        gid_w, st.gid,
-        size_w, st.size);
+        nlink_w, attr.nlink,
+        uid_w, attr.uid,
+        gid_w, attr.gid,
+        size_w, attr.size);
     if (date_w == DATE_WIDTH) {
         printf("%s %d %d  ",
             __gc_abbrev_ymon(date.tm_mon + 1),
@@ -215,9 +215,9 @@ static void list_file(const char* _Nonnull path)
 
 static bool is_dir(const char* _Nonnull path)
 {
-    fs_attr_t st;
+    fs_attr_t attr;
 
-    return (fs_attr(NULL, path, &st) == 0 && S_ISDIR(st.mode)) ? true : false;
+    return (fs_attr(NULL, path, &attr) == 0 && (attr.file_type == S_IFDIR)) ? true : false;
 }
 
 

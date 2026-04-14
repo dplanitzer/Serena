@@ -96,7 +96,7 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
     if (err == EOK) {
         char tc;
 
-        switch (S_FTYPE(attr.mode)) {
+        switch (attr.file_type) {
             case S_IFDEV:   tc = 'h'; break;
             case S_IFDIR:   tc = 'd'; break;
             case S_IFPROC:  tc = 'P'; break;
@@ -110,9 +110,9 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->buf[i] = '-';
         }
 
-        file_permissions_to_text(perm_get(attr.mode, S_ICUSR), &self->buf[1]);
-        file_permissions_to_text(perm_get(attr.mode, S_ICGRP), &self->buf[4]);
-        file_permissions_to_text(perm_get(attr.mode, S_ICOTH), &self->buf[7]);
+        file_permissions_to_text(perm_get(attr.permissions, S_ICUSR), &self->buf[1]);
+        file_permissions_to_text(perm_get(attr.permissions, S_ICGRP), &self->buf[4]);
+        file_permissions_to_text(perm_get(attr.permissions, S_ICOTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
@@ -209,7 +209,7 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     fs_attr_t attr;
 
-    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && S_ISDIR(attr.mode)) ? true : false;
+    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && (attr.file_type == S_IFDIR)) ? true : false;
 }
 
 

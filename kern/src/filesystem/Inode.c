@@ -179,7 +179,8 @@ void Inode_getAttributes(InodeRef _Nonnull _Locked self, fs_attr_t* _Nonnull att
     attr->size = self->size;
     attr->uid = self->uid;
     attr->gid = self->gid;
-    attr->mode = __S_MKMODE(self->fileType, self->permissions);
+    attr->file_type = self->fileType;
+    attr->permissions = self->permissions;
     attr->nlink = self->linkCount;
     attr->fsid = Filesystem_GetId(self->filesystem);
     attr->ino = self->inid;

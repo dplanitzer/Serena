@@ -50,7 +50,6 @@ typedef unsigned int    fsid_t;
 // unique with respect to the filesystem to which it belongs.
 typedef unsigned int    ino_t;
 typedef int             nlink_t;
-typedef unsigned int    mode_t;
 typedef int             dev_t;
 typedef long long       off_t;
 

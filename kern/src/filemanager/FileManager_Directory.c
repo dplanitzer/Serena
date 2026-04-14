@@ -91,7 +91,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
         // We must have write permissions for the parent directory
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
         if (err == EOK) {
-            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, self->ruid, self->rgid, __S_MKMODE(S_IFDIR, dirPerms), &ip);
+            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, self->ruid, self->rgid, S_IFDIR, dirPerms, &ip);
         }
     }
     else if (err == EOK) {
