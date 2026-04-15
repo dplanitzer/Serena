@@ -21,10 +21,9 @@ CMDS_GENERATE_DEPS :=
 .PHONY: clean-cmds $(CMD_OBJS_DIR)
 
 
-build-cmds: $(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
+build-cmds: $(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(LIST_FILE) \
 			$(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) \
-			$(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) $(UPTIME_FILE) \
-			$(WAIT_FILE)
+			$(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE)
 
 $(CMD_OBJS_DIR):
 	$(call mkdir_if_needed,$(CMD_OBJS_DIR))
@@ -39,10 +38,6 @@ $(CPU_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/cpu.o $(LIBC_FILE) $(LIBCLAP_FILE)
 
 
 $(DELETE_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/delete.o $(LIBC_FILE) $(LIBCLAP_FILE)
-	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
-
-
-$(ID_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/id.o $(LIBC_FILE) $(LIBCLAP_FILE)
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
@@ -75,14 +70,6 @@ $(TOUCH_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/touch.o $(LIBC_FILE) $(LIBCLAP_FIL
 
 
 $(TYPE_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/type.o $(LIBC_FILE) $(LIBCLAP_FILE)
-	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
-
-
-$(UPTIME_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/uptime.o $(LIBC_FILE) $(LIBCLAP_FILE)
-	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
-
-
-$(WAIT_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/wait.o $(LIBC_FILE) $(LIBCLAP_FILE)
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 

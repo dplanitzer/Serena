@@ -1,11 +1,12 @@
 //
 //  wait.c
-//  cmds
+//  sh
 //
 //  Created by Dietmar Planitzer on 4/22/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include "Interpreter.h"
 #include <clap.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -32,7 +33,7 @@ static const tim_conv_t gConvTable[] = {
 
 static const char* ms_str = "";
 
-CLAP_DECL(params,
+static CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("wait <duration>[h,m,s,ms]"),
@@ -41,41 +42,50 @@ CLAP_DECL(params,
 );
 
 
-int main(int argc, char* argv[])
+static time_t parse_time(const char* str, char** str_end)
 {
-    clap_parse(0, params, argc, argv);
+    const time_t t = strtol(str, str_end, 10);
 
-    
-    const char* ep = "";
-    const time_t t = strtol(ms_str, &ep, 10);
-    time_t ms;
-
-    if (*ep == '\0') {
-        ms = t * 1000l;
+    if (**str_end == '\0') {
+        return t * 1000l;
     }
     else {
         const tim_conv_t* cp = gConvTable;
-        bool ok = false;
 
         while (cp->unitToMillis > 0) {
-            if (!strcmp(ep, cp->unit)) {
-                ms = t * cp->unitToMillis;
-                ok = true;
-                break;
+            if (!strcmp(*str_end, cp->unit)) {
+                return t * cp->unitToMillis;
             }
 
             cp++;
         }
-
-        if (!ok) {
-            printf("%s: unknown time unit '%s'\n", argv[0], ep);
-            return EXIT_FAILURE;    
-        }
     }
 
-    nanotime_t dur;
-    nanotime_from_ms(&dur, ms);
-    clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);
+    return -1l;
+}
 
-    return EXIT_SUCCESS;
+int cmd_wait(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    ms_str = "";
+
+    clap_parse(0, params, argc, argv);
+
+    
+    char* ep = "";
+    const time_t ms = parse_time(ms_str, &ep);
+    int r = EXIT_SUCCESS;
+
+    if (ms > 0) {
+        nanotime_t dur;
+        
+        nanotime_from_ms(&dur, ms);
+        clock_wait(CLOCK_MONOTONIC, 0, &dur, NULL);
+    }
+    else if (ms < 0) {
+        printf("%s: unknown time unit '%s'\n", argv[0], ep);
+        r = EXIT_FAILURE;
+    }
+
+    OpStack_PushVoid(ip->opStack);
+    return r;
 }

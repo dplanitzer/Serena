@@ -133,13 +133,16 @@ static void Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     NameTable_DeclareName(self->nameTable, "exists", cmd_exists);
     NameTable_DeclareName(self->nameTable, "exit", cmd_exit);
     NameTable_DeclareName(self->nameTable, "history", cmd_history);
+    NameTable_DeclareName(self->nameTable, "id", cmd_id);
     NameTable_DeclareName(self->nameTable, "input", cmd_input);
     NameTable_DeclareName(self->nameTable, "load", cmd_load);
     NameTable_DeclareName(self->nameTable, "popcd", cmd_popcd);
     NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd);
     NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd);
     NameTable_DeclareName(self->nameTable, "save", cmd_save);
+    NameTable_DeclareName(self->nameTable, "uptime", cmd_uptime);
     NameTable_DeclareName(self->nameTable, "vars", cmd_vars);
+    NameTable_DeclareName(self->nameTable, "wait", cmd_wait);
 }
 
 static void Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self)

@@ -116,7 +116,6 @@ COPY_FILE := $(PRODUCT_CMD_DIR)/copy
 CPU_FILE := $(PRODUCT_CMD_DIR)/cpu
 DELETE_FILE := $(PRODUCT_CMD_DIR)/delete
 DISK_FILE := $(PRODUCT_CMD_DIR)/disk
-ID_FILE := $(PRODUCT_CMD_DIR)/id
 LIST_FILE := $(PRODUCT_CMD_DIR)/list
 LOGIN_FILE := $(PRODUCT_CMD_DIR)/login
 MAKEDIR_FILE := $(PRODUCT_CMD_DIR)/makedir
@@ -125,8 +124,6 @@ SHUTDOWN_FILE := $(PRODUCT_CMD_DIR)/shutdown
 STATUS_FILE := $(PRODUCT_CMD_DIR)/status
 TOUCH_FILE := $(PRODUCT_CMD_DIR)/touch
 TYPE_FILE := $(PRODUCT_CMD_DIR)/type
-UPTIME_FILE := $(PRODUCT_CMD_DIR)/uptime
-WAIT_FILE := $(PRODUCT_CMD_DIR)/wait
 
 
 #---------------------------------------------------------------------------
@@ -256,10 +253,9 @@ include $(SNAKE_PROJECT_DIR)/project.mk
 build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE)
 
 build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
-				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
+				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(LIST_FILE) \
 				$(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
-				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) \
-				$(UPTIME_FILE) $(WAIT_FILE)
+				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE)
 
 build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(KERNEL_TESTS_FILE)
 
@@ -284,7 +280,6 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) push -m=rwxr-xr-x $(CPU_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(ID_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LIST_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
@@ -292,8 +287,6 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) push -m=rwxr-xr-x $(STATUS_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TOUCH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(UPTIME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(WAIT_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(KERNEL_TESTS_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/admin/ $(BOOT_DMG_FILE)
