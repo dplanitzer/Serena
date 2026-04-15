@@ -21,13 +21,12 @@
 _cpu_probe_fpu:
     inline
         movem.l a2 / d2, -(sp)
-        move.l  #44, a0     ; install the line F handler
+        move.l  #44, a0     ; install the line F-line handler
         move.l  (a0), -(sp)
-        lea     .done(pc), a1
+        lea     .no_fpu(pc), a1
         move.l  a1, (a0)
         move.l  sp, a2     ; save the stack pointer
 
-        moveq   #CPU_FPU_NONE, d0
         dc.l    $f201583a  ; ftst.b d1 - force the fsave instruction to generate an IDLE frame
         dc.w    $f327      ; fsave -(a7) - save the IDLE frame to the stack
         move.l  a2, d2
@@ -44,7 +43,9 @@ _cpu_probe_fpu:
         moveq   #CPU_FPU_68060, d0
         cmp.b   #$c, d2
         beq.s   .done
-        moveq   #CPU_FPU_NONE, d0 ; unknown FPU model
+
+.no_fpu:
+        moveq   #CPU_FPU_NONE, d0 ; unknown or no FPU
 
 .done:
         move.l  a2, sp      ; restore the stack pointer

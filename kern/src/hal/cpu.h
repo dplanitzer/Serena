@@ -23,9 +23,6 @@
 struct vcpu;
 
 
-extern const char* _Nonnull cpu_get_name(cpu_subtype_t cpu_subtype);
-extern const char* _Nonnull fpu_get_name(cpu_subtype_t cpu_subtype);
-
 extern int cpu_verify_ram_4b(void* pSrc);
 
 extern int cpu_guarded_read(void* _Nonnull src, void* _Nonnull buffer, int buffer_size);

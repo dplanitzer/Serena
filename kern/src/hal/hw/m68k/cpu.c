@@ -10,40 +10,6 @@
 #include <hal/sys_desc.h>
 
 
-// Returns the model name of the CPU
-const char* _Nonnull cpu_get_name(cpu_subtype_t cpu_subtype)
-{
-#define k68k_family_count 6
-    static const char* g_68k_cpu_name[k68k_family_count] = {
-        "68000", "68010", "68020", "68030", "68040", "68060"
-    };
-
-    const int family = cpu_68k_family(cpu_subtype) - 1;
-    if (family < k68k_family_count) {
-        return g_68k_cpu_name[family];
-    }
-    else {
-        return "??";
-    }
-}
-
-// Returns the model name of the FPU
-const char* _Nonnull fpu_get_name(cpu_subtype_t cpu_subtype)
-{
-    #define k68k_fpu_count 5
-    static const char* g_68k_fpu_name[k68k_fpu_count] = {
-        "", "68881", "68882", "68040", "68060"
-    };
-
-    const int fpu = cpu_68k_fpu(cpu_subtype) - 1;
-    if (fpu < k68k_fpu_count) {
-        return g_68k_fpu_name[fpu];
-    }
-    else {
-        return "??";
-    }
-}
-
 void cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
 {
     struct sigurgent_frame {

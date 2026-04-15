@@ -113,6 +113,7 @@ SYSTEMD_FILE := $(PRODUCT_CMD_DIR)/systemd
 
 CMD_BIN_PROJECT_DIR := $(CMD_DIR)/bin
 COPY_FILE := $(PRODUCT_CMD_DIR)/copy
+CPU_FILE := $(PRODUCT_CMD_DIR)/cpu
 DELETE_FILE := $(PRODUCT_CMD_DIR)/delete
 DISK_FILE := $(PRODUCT_CMD_DIR)/disk
 ID_FILE := $(PRODUCT_CMD_DIR)/id
@@ -255,7 +256,7 @@ include $(SNAKE_PROJECT_DIR)/project.mk
 build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE)
 
 build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
-				$(COPY_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
+				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
 				$(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
 				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) \
 				$(UPTIME_FILE) $(WAIT_FILE)
@@ -280,6 +281,7 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(COPY_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(CPU_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(ID_FILE) /System/Commands/ $(BOOT_DMG_FILE)

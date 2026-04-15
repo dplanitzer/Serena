@@ -59,6 +59,14 @@ Copies a file from its current location in the filesystem to a new location in t
 * `src_path`: relative or absolute path to the file to copy
 * `dst_path`: relative or absolute path to the file to the destination directory where teh file should be copied to. May optionally include the filename of the new file
 
+## `cpu`
+
+Prints the model name of the installed CPU and, if applicable, the FPU.
+
+### Signature
+
+`cpu`
+
 ## `delete`
 
 Deletes one or more directories or files indicated by the provided path(s). A directory must be empty to be eligible for deleting.
