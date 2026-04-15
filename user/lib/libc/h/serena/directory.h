@@ -44,31 +44,31 @@ __CPP_BEGIN
 // function to obtain an I/O channel suitable for reading the content of the
 // directory. Call IOChannel_Close() once you are done with the directory.
 // @Concurrency: Not Safe
-extern dir_t* _Nullable fs_open_directory(dir_t* _Nullable wd, const char* _Nonnull path);
+extern dir_t _Nullable fs_open_directory(dir_t _Nullable wd, const char* _Nonnull path);
 
 // Closes the given directory descriptor.
 // @Concurrency: Not Safe
-extern int fs_close_directory(dir_t* _Nullable dir);
+extern int fs_close_directory(dir_t _Nullable dir);
 
 // Reads the next directory entry and returns a pointer to it if it exists.
 // Returns NULL if no more entry exists in the directory.
 // You can rewind to the beginning of the directory listing by calling
 // rewind_dir().
 // @Concurrency: Not Safe
-extern const dir_entry_t* _Nullable fs_read_directory(dir_t* _Nonnull dir);
+extern const dir_entry_t* _Nullable fs_read_directory(dir_t _Nonnull dir);
 
 // Resets the read position of the directory identified by 'ioc' to the beginning.
 // The next read_dir() call will start reading directory entries from the
 // beginning of the directory.
 // @Concurrency: Not Safe
-extern void fs_rewind_directory(dir_t* _Nonnull dir);
+extern void fs_rewind_directory(dir_t _Nonnull dir);
 
 
 // Creates an empty directory with the name and at the filesystem location
 // specified by 'path', relative to the working directory 'wd'. 'mode'
 // specifies the permissions that should be assigned to the directory.
 // @Concurrency: Safe
-extern int fs_create_directory(dir_t* _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms);
+extern int fs_create_directory(dir_t _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms);
 
 __CPP_END
 

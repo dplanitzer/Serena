@@ -170,7 +170,7 @@ static int print_dir_entry(const char* _Nonnull dirPath, const char* _Nonnull en
     return print_inode(path_buf, entryName);
 }
 
-static int iterate_dir(dir_t* _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static int iterate_dir(dir_t _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     errno = 0;
 
@@ -193,7 +193,7 @@ static int iterate_dir(dir_t* _Nonnull dir, const char* _Nonnull path, dir_iter_
 
 static void list_dir(const char* _Nonnull path)
 {
-    dir_t* dir = fs_open_directory(NULL, path);
+    dir_t dir = fs_open_directory(NULL, path);
 
     if (dir) {
         if (iterate_dir(dir, path, format_dir_entry) == 0) {

@@ -16,7 +16,7 @@ __CPP_BEGIN
 // 2kb
 #define __DIRENT_COUNT 8
 
-struct _DIR {
+struct _fs_dir {
     // Read next set of entries if:
     // nextEntryToRead >= endOfBuffer
     dir_entry_t* _Nonnull nextEntryToRead;

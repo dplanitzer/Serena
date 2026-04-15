@@ -11,7 +11,7 @@
 #include "__readdir.h"
 
 
-int fs_setperms(dir_t* _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms)
+int fs_setperms(dir_t _Nullable wd, const char* _Nonnull path, fs_perms_t fsperms)
 {
     return (int)_syscall(SC_fs_setperms, (wd) ? _dir_fd(wd) : FD_CWD, path, fsperms);
 }
