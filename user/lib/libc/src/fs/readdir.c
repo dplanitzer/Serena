@@ -18,7 +18,7 @@ dir_t* _Nullable dir_open(const char* _Nonnull path)
     dir_t* dir = malloc(sizeof(dir_t));
 
     if (dir) {
-        if ((errno_t)_syscall(SC_dir_open, path, &dir->fd) != EOK) {
+        if (_syscall(SC_dir_open, path, &dir->fd) != 0) {
             free(dir);
             return NULL;
         }
@@ -31,16 +31,13 @@ dir_t* _Nullable dir_open(const char* _Nonnull path)
 
 int dir_close(dir_t* _Nullable dir)
 {
+    int r = 0;
+
     if (dir) {
-        const errno_t err = (errno_t)_syscall(SC_fd_close, dir->fd);
-
+        r = _syscall(SC_fd_close, dir->fd);
         free(dir);
-
-        return (err == EOK) ? 0 : -1;
     }
-    else {
-        return 0;
-    }
+    return r;
 }
 
 void dir_rewind(dir_t* _Nonnull dir)
@@ -54,9 +51,9 @@ const dir_entry_t* _Nullable dir_read(dir_t* _Nonnull dir)
 {
     if (dir->nextEntryToRead >= dir->endOfBuffer) {
         ssize_t nBytesRead;
-        const errno_t err = (errno_t)_syscall(SC_fd_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * __DIRENT_COUNT, &nBytesRead);
+        const int r = _syscall(SC_fd_read, dir->fd, dir->entbuf, sizeof(dir_entry_t) * __DIRENT_COUNT, &nBytesRead);
 
-        if (err != EOK || nBytesRead == 0) {
+        if (r != 0 || nBytesRead == 0) {
             return NULL;
         }
 
