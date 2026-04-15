@@ -138,6 +138,7 @@ static void Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     NameTable_DeclareName(self->nameTable, "input", cmd_input);
     NameTable_DeclareName(self->nameTable, "load", cmd_load);
     NameTable_DeclareName(self->nameTable, "popcd", cmd_popcd);
+    NameTable_DeclareName(self->nameTable, "proc", cmd_proc);
     NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd);
     NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd);
     NameTable_DeclareName(self->nameTable, "save", cmd_save);

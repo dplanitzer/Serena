@@ -41,7 +41,7 @@ static CLAP_DECL(params,
 );
 
 
-int file_op(InterpreterRef _Nonnull ip, const char* _Nonnull cmd, const char* _Nonnull path)
+static int file_op(InterpreterRef _Nonnull ip, const char* _Nonnull cmd, const char* _Nonnull path)
 {
     fs_attr_t attr;
 

@@ -415,6 +415,66 @@ Pops the least recently saved current directory from the current directory stack
 
 `popcd`
 
+## `proc cwd`
+
+Returns the current working directory of the process with id 'pid'.
+
+### Signature
+
+`proc cwd <pid>`
+
+### Parameters
+
+* `pid`: a process id
+
+## `proc gid`
+
+Returns the group id of the process with id 'pid'.
+
+### Signature
+
+`proc gid <pid>`
+
+### Parameters
+
+* `pid`: a process id
+
+## `proc name`
+
+Returns the name of the process with id 'pid'.
+
+### Signature
+
+`proc name <pid>`
+
+### Parameters
+
+* `pid`: a process id
+
+## `proc uid`
+
+Returns the user id of the process with id 'pid'.
+
+### Signature
+
+`proc uid <pid>`
+
+### Parameters
+
+* `pid`: a process id
+
+## `proc umask`
+
+Returns the umask of the process with id 'pid'.
+
+### Signature
+
+`proc umask <pid>`
+
+### Parameters
+
+* `pid`: a process id
+
 ## `pushcd`
 
 Saves the current directory on a stack and then makes `path` the new current directory if a path is specified.
