@@ -34,10 +34,10 @@ int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char 
     // Open/create the file
     int fd;
     if ((sm & __kStreamMode_Create) != 0) {
-        fd = fs_create_file(filename, oflags, 0666);
+        fd = fs_create_file(NULL, filename, oflags, 0666);
     }
     else {
-        fd = fs_open(filename, oflags);
+        fd = fs_open(NULL, filename, oflags);
     }
     if (fd < 0) {
         return EOF;

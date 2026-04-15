@@ -44,7 +44,7 @@ __CPP_BEGIN
 // function to obtain an I/O channel suitable for reading the content of the
 // directory. Call IOChannel_Close() once you are done with the directory.
 // @Concurrency: Not Safe
-extern dir_t* _Nullable dir_open(const char* _Nonnull path);
+extern dir_t* _Nullable dir_open(dir_t* _Nullable wd, const char* _Nonnull path);
 
 // Closes the given directory descriptor.
 // @Concurrency: Not Safe

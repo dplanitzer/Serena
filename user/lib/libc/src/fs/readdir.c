@@ -13,12 +13,12 @@
 #include <serena/fd.h>
 #include "__readdir.h"
 
-dir_t* _Nullable dir_open(const char* _Nonnull path)
+dir_t* _Nullable dir_open(dir_t* _Nullable wd, const char* _Nonnull path)
 {
     dir_t* dir = malloc(sizeof(dir_t));
 
     if (dir) {
-        if (_syscall(SC_dir_open, path, &dir->fd) != 0) {
+        if (_syscall(SC_dir_open, (wd) ? _dir_fd(wd) : FD_CWD, path, &dir->fd) != 0) {
             free(dir);
             return NULL;
         }

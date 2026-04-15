@@ -14,16 +14,26 @@
 #include <process/kio.h>
 
 
-SYSCALL_3(fs_open, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
+SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
 {
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
     return _kopen(vp->proc, pa->path, pa->oflags, pa->pOutIoc);
 }
 
-SYSCALL_4(fs_create_file, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
+SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
     IOChannelRef chan;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->fsperms, &chan);
@@ -39,11 +49,16 @@ SYSCALL_4(fs_create_file, const char* _Nonnull path, int oflags, fs_perms_t fspe
     return err;
 }
 
-SYSCALL_2(dir_open, const char* _Nonnull path, int* _Nonnull pOutIoc)
+SYSCALL_3(dir_open, int wd, const char* _Nonnull path, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
     IOChannelRef chan;
+
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
 
     mtx_lock(&pp->mtx);
     err = FileManager_OpenDirectory(&pp->fm, pa->path, &chan);

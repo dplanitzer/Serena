@@ -61,9 +61,9 @@ static int copy_file(const char* _Nonnull src_path, const fs_attr_t* _Nonnull sr
     fs_perms_add(fsperms, FS_CLS_USR, FS_PRM_W);
 
 
-    sfd = fs_open(src_path, O_RDONLY);
+    sfd = fs_open(NULL, src_path, O_RDONLY);
     if (sfd >= 0) {
-        dfd = fs_create_file(dst_path, O_EXCL|O_WRONLY, fsperms);
+        dfd = fs_create_file(NULL, dst_path, O_EXCL|O_WRONLY, fsperms);
     }
 
     if (sfd != -1 && dfd != -1) {

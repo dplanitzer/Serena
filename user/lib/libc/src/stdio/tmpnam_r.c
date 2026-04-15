@@ -114,7 +114,7 @@ char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _
         *p = '\0';
 
         if (pOutFd) {
-            const int fd = fs_create_file(filename, O_EXCL|O_RDWR, 0600);
+            const int fd = fs_create_file(NULL, filename, O_EXCL|O_RDWR, 0600);
 
             if (fd >= 0) {
                 *pOutFd = fd;

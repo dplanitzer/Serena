@@ -24,7 +24,7 @@ __CPP_BEGIN
 // data to the file. The file position is disregarded by the write function(s) in
 // this case.
 // @Concurrency: Safe
-extern int fs_open(const char* _Nonnull path, int oflags);
+extern int fs_open(dir_t* _Nullable wd, const char* _Nonnull path, int oflags);
 
 // Creates an empty regular file if it doesn't already exists or truncates the
 // contents of a file if it already exists. If the file already exists and
@@ -32,7 +32,7 @@ extern int fs_open(const char* _Nonnull path, int oflags);
 // Either way, the file is opened for reading and/or writing after it has been
 // created.
 // @Concurrency: Safe
-extern int fs_create_file(const char* _Nonnull path, int oflags, fs_perms_t fsperms);
+extern int fs_create_file(dir_t* _Nullable wd, const char* _Nonnull path, int oflags, fs_perms_t fsperms);
 
 // Returns the attributes of the filesystem object located at 'path'.
 // @Concurrency: Safe

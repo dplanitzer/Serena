@@ -193,7 +193,7 @@ static int iterate_dir(dir_t* _Nonnull dir, const char* _Nonnull path, dir_iter_
 
 static void list_dir(const char* _Nonnull path)
 {
-    dir_t* dir = dir_open(path);
+    dir_t* dir = dir_open(NULL, path);
 
     if (dir) {
         if (iterate_dir(dir, path, format_dir_entry) == 0) {
