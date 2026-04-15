@@ -32,7 +32,7 @@ SYSCALL_REF(fs_unmount);
 SYSCALL_REF(fs_sync);
 SYSCALL_REF(fs_create_file);
 SYSCALL_REF(fs_open);
-SYSCALL_REF(dir_open);
+SYSCALL_REF(fs_open_directory);
 SYSCALL_REF(fs_create_directory);
 SYSCALL_REF(fs_attr);
 SYSCALL_REF(fs_truncate);
@@ -128,7 +128,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_setumask, SC_VOID),
     SYSCALL_ENTRY(fs_create_directory, SC_ERRNO),
     SYSCALL_ENTRY(fs_attr, SC_ERRNO),
-    SYSCALL_ENTRY(dir_open, SC_ERRNO),
+    SYSCALL_ENTRY(fs_open_directory, SC_ERRNO),
     SYSCALL_ENTRY(fs_access, SC_ERRNO),
     SYSCALL_ENTRY(fd_attr, SC_ERRNO),
     SYSCALL_ENTRY(fs_unlink, SC_ERRNO),

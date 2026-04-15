@@ -49,7 +49,7 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
     return err;
 }
 
-SYSCALL_3(dir_open, int wd, const char* _Nonnull path, int* _Nonnull pOutIoc)
+SYSCALL_3(fs_open_directory, int wd, const char* _Nonnull path, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
