@@ -9,6 +9,13 @@
 #ifndef _KPI_FD_H
 #define _KPI_FD_H 1
 
+// Standard descriptors that are open when a process starts. These descriptors
+// connect the process to the terminal input and output streams.
+#define FD_STDIN    0
+#define FD_STDOUT   1
+#define FD_STDERR   2
+
+
 // File access modes and flag bits
 #define O_RDONLY    0x0001
 #define O_WRONLY    0x0002

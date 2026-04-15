@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
-    if (fd_type(STDIN_FILENO) > FD_TYPE_INVALID) {
+    if (fd_type(FD_STDIN) > FD_TYPE_INVALID) {
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }
@@ -176,9 +176,9 @@ int main(int argc, char *argv[])
     (void)fs_open(NULL, termPath, O_WRONLY);
     (void)fs_open(NULL, termPath, O_WRONLY);
 
-    fdreopen(STDIN_FILENO, "r", stdin);
-    fdreopen(STDOUT_FILENO, "w", stdout);
-    fdreopen(STDERR_FILENO, "w", stderr);
+    fdreopen(FD_STDIN, "r", stdin);
+    fdreopen(FD_STDOUT, "w", stdout);
+    fdreopen(FD_STDERR, "w", stderr);
 
 
     // Enable SIG_CHILD reception

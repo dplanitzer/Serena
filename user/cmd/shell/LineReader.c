@@ -62,8 +62,8 @@ LineReaderRef _Nonnull LineReader_Create(int x, int width)
 {
     LineReaderRef self = calloc(1, sizeof(LineReader));
 
-    self->fd_in = STDIN_FILENO;
-    self->fd_out = STDOUT_FILENO;
+    self->fd_in = FD_STDIN;
+    self->fd_out = FD_STDOUT;
 
     self->lrX = x;
     self->lrWidth = width;

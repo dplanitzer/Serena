@@ -17,13 +17,6 @@
 
 __CPP_BEGIN
 
-// Standard I/O channels that are open when a process starts. These channels
-// connect to the terminal input and output streams.
-#define STDIN_FILENO    0
-#define STDOUT_FILENO   1
-#define STDERR_FILENO   2
-
-
 // Closes the given I/O channel. All still pending data is written to the
 // underlying device and then all resources allocated to the I/O channel are
 // freed. If this function encounters an error while flushing pending data to

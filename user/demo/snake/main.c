@@ -70,7 +70,7 @@ static void setup(void)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
-    fd_setflags(STDIN_FILENO, FD_FOP_ADD, O_NONBLOCK);
+    fd_setflags(FD_STDIN, FD_FOP_ADD, O_NONBLOCK);
     cursor_on(false);
 
     game_over = false;
@@ -95,7 +95,7 @@ static void setup(void)
 static void cleanup(void)
 {
     cursor_on(true);
-    fd_setflags(STDIN_FILENO, FD_FOP_REMOVE, O_NONBLOCK);
+    fd_setflags(FD_STDIN, FD_FOP_REMOVE, O_NONBLOCK);
 }
 
 
@@ -173,7 +173,7 @@ static void draw(void)
     b = strcpy_x(b, "Press W, A, S, D to move the snake.\n");
     b = strcpy_x(b, "Press ESC to quit the game.");
 
-    (void)fd_write(STDOUT_FILENO, buf, b - buf);
+    (void)fd_write(FD_STDOUT, buf, b - buf);
 
 
     // Draw the fruit
@@ -190,7 +190,7 @@ static void draw(void)
         *b++ = 'o';
     }
 
-    (void)fd_write(STDOUT_FILENO, buf, b - buf);
+    (void)fd_write(FD_STDOUT, buf, b - buf);
 }
 
 static void logic(void)
