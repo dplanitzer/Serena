@@ -132,6 +132,7 @@ static void Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     NameTable_DeclareName(self->nameTable, "echo", cmd_echo);
     NameTable_DeclareName(self->nameTable, "exists", cmd_exists);
     NameTable_DeclareName(self->nameTable, "exit", cmd_exit);
+    NameTable_DeclareName(self->nameTable, "file", cmd_file);
     NameTable_DeclareName(self->nameTable, "history", cmd_history);
     NameTable_DeclareName(self->nameTable, "id", cmd_id);
     NameTable_DeclareName(self->nameTable, "input", cmd_input);

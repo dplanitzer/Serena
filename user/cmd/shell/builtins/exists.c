@@ -7,11 +7,8 @@
 //
 
 #include "Interpreter.h"
-#include "Utilities.h"
-#include <stdlib.h>
 #include <clap.h>
 #include <serena/file.h>
-#include <serena/process.h>
 
 
 static const char* path;

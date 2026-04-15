@@ -230,6 +230,78 @@ Exits the current shell with the exit code 'exit_code'. The exit code is passed 
 
 * `exit_code`: an integer that will be passed to the parent shell
 
+## `file fsid`
+
+Returns the filesystem id of the filesystem on which the filesystem object at path 'path' is stored.
+
+### Signature
+
+`file fsid <path>`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
+## `file gid`
+
+Returns the group id of the filesystem object at path 'path'.
+
+### Signature
+
+`file gid <path>`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
+## `file permissions`
+
+Returns the permissions of the filesystem object at path 'path'.
+
+### Signature
+
+`file permissions <path>`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
+## `file size`
+
+Returns the byte size of the filesystem object at path 'path'.
+
+### Signature
+
+`file size <path>`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
+## `file type`
+
+Returns the type of the filesystem object at path 'path'.
+
+### Signature
+
+`file type <path>`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
+## `file uid`
+
+Returns the user id of the filesystem object at path 'path'.
+
+### Signature
+
+`file uid <path>`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
 ## `history`
 
 Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.
