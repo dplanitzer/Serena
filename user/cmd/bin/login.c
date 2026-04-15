@@ -172,9 +172,9 @@ int main(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    (void)open(termPath, O_RDONLY);
-    (void)open(termPath, O_WRONLY);
-    (void)open(termPath, O_WRONLY);
+    (void)fs_open(termPath, O_RDONLY);
+    (void)fs_open(termPath, O_WRONLY);
+    (void)fs_open(termPath, O_WRONLY);
 
     fdreopen(STDIN_FILENO, "r", stdin);
     fdreopen(STDOUT_FILENO, "w", stdout);

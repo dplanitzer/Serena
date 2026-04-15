@@ -24,16 +24,6 @@ __CPP_BEGIN
 #define STDERR_FILENO   2
 
 
-// Opens an already existing file located at the filesystem location 'path'.
-// Returns an error if the file does not exist or the caller lacks the necessary
-// permissions to successfully open the file. 'mode' specifies whether the file
-// should be opened for reading and/or writing. 'O_APPEND' may be passed in
-// addition to 'O_WRONLY' to force the system to always append any newly written
-// data to the file. The file position is disregarded by the write function(s) in
-// this case.
-// @Concurrency: Safe
-extern int open(const char* _Nonnull path, int oflags, ...);
-
 // Closes the given I/O channel. All still pending data is written to the
 // underlying device and then all resources allocated to the I/O channel are
 // freed. If this function encounters an error while flushing pending data to

@@ -259,7 +259,7 @@ static void cmd_geometry(const char* _Nonnull path)
 
     if (attr.file_type == FS_FTYPE_DEV) {
         // raw disk
-        fd = open(path, O_RDONLY);
+        fd = fs_open(path, O_RDONLY);
         if (fd < 0) {
             return;
         }
@@ -302,7 +302,7 @@ static void cmd_geometry(const char* _Nonnull path)
 
 static void sense_disk(const char* _Nonnull diskPath)
 {
-    const int fd = open(diskPath, O_RDONLY);
+    const int fd = fs_open(diskPath, O_RDONLY);
 
     if (fd >= 0) {
         ioctl(fd, kDiskCommand_SenseDisk);

@@ -30,8 +30,8 @@ SYSCALL_REF(fs_setlabel);
 SYSCALL_REF(fs_mount);
 SYSCALL_REF(fs_unmount);
 SYSCALL_REF(fs_sync);
-SYSCALL_REF(mkfile);
-SYSCALL_REF(open);
+SYSCALL_REF(fs_create_file);
+SYSCALL_REF(fs_open);
 SYSCALL_REF(dir_open);
 SYSCALL_REF(fs_create_directory);
 SYSCALL_REF(fs_attr);
@@ -118,7 +118,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_terminate, SC_ERRNO),
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
     SYSCALL_ENTRY(proc_suspend, SC_ERRNO),
-    SYSCALL_ENTRY(open, SC_ERRNO),
+    SYSCALL_ENTRY(fs_open, SC_ERRNO),
     SYSCALL_ENTRY(fd_close, SC_ERRNO),
     SYSCALL_ENTRY(proc_status, SC_ERRNO),
     SYSCALL_ENTRY(fd_seek, SC_ERRNO),
@@ -136,7 +136,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(ioctl, SC_ERRNO),
     SYSCALL_ENTRY(fs_truncate, SC_ERRNO),
     SYSCALL_ENTRY(fd_truncate, SC_ERRNO),
-    SYSCALL_ENTRY(mkfile, SC_ERRNO),
+    SYSCALL_ENTRY(fs_create_file, SC_ERRNO),
     SYSCALL_ENTRY(pipe_create, SC_ERRNO),
     SYSCALL_ENTRY(wq_dispose, SC_ERRNO),
     SYSCALL_ENTRY(clock_time, SC_ERRNO),

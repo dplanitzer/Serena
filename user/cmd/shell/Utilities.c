@@ -48,7 +48,7 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
 {
     fs_attr_t attr;
     
-    const int fd = open(path, O_RDONLY);
+    const int fd = fs_open(path, O_RDONLY);
     if (fd < 0) {
         return EOF;
     }

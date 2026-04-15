@@ -7,18 +7,8 @@
 //
 
 #include "syscalldecls.h"
-//#include <limits.h>
-//#include <ext/nanotime.h>
-//#include <filesystem/IOChannel.h>
-//#include <kpi/directory.h>
-//#include <kpi/uid.h>
 #include <process/kio.h>
 
-
-SYSCALL_3(open, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
-{
-    return _kopen(vp->proc, pa->path, pa->oflags, pa->pOutIoc);
-}
 
 SYSCALL_1(fd_close, int fd)
 {

@@ -20,7 +20,7 @@
 // "w+" 	write extended      create & open for read/write    truncate file       create
 // "a+" 	append extended     open for read/write             write to end        create
 //
-// "x" may be used with "w" and "w+". It enables exclusive mode which means that open() will return with
+// "x" may be used with "w" and "w+". It enables exclusive mode which means that fs_create_file() will return with
 // an error if the file already exists.
 //
 // Modifier                     Action

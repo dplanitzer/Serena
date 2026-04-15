@@ -16,10 +16,23 @@
 
 __CPP_BEGIN
 
-// Same as open() with O_CREAT|O_WRONLY|O_TRUNC.
+// Opens an already existing file located at the filesystem location 'path'.
+// Returns an error if the file does not exist or the caller lacks the necessary
+// permissions to successfully open the file. 'oflags' specifies whether the file
+// should be opened for reading and/or writing. 'O_APPEND' may be passed in
+// addition to 'O_WRONLY' to force the system to always append any newly written
+// data to the file. The file position is disregarded by the write function(s) in
+// this case.
 // @Concurrency: Safe
-extern int creat(const char* _Nonnull path, fs_perms_t fsperms);
+extern int fs_open(const char* _Nonnull path, int oflags);
 
+// Creates an empty regular file if it doesn't already exists or truncates the
+// contents of a file if it already exists. If the file already exists and
+// O_EXCL is specified then the call fails instead of truncating the file.
+// Either way, the file is opened for reading and/or writing after it has been
+// created.
+// @Concurrency: Safe
+extern int fs_create_file(const char* _Nonnull path, int oflags, fs_perms_t fsperms);
 
 // Returns the attributes of the filesystem object located at 'path'.
 // @Concurrency: Safe

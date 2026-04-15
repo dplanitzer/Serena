@@ -11,9 +11,15 @@
 #include <kpi/directory.h>
 #include <kpi/disk.h>
 #include <kpi/filesystem.h>
+#include <process/kio.h>
 
 
-SYSCALL_4(mkfile, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
+SYSCALL_3(fs_open, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
+{
+    return _kopen(vp->proc, pa->path, pa->oflags, pa->pOutIoc);
+}
+
+SYSCALL_4(fs_create_file, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

@@ -29,13 +29,16 @@ int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char 
     if ((sm & __kStreamMode_Exclusive) != 0) {
         oflags |= O_EXCL;
     }
-    if ((sm & __kStreamMode_Create) != 0) {
-        oflags |= O_CREAT;
-    }
 
 
     // Open/create the file
-    const int fd = open(filename, oflags, 0666);
+    int fd;
+    if ((sm & __kStreamMode_Create) != 0) {
+        fd = fs_create_file(filename, oflags, 0666);
+    }
+    else {
+        fd = fs_open(filename, oflags);
+    }
     if (fd < 0) {
         return EOF;
     }

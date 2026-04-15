@@ -52,7 +52,7 @@ static int touch(const char* _Nonnull path)
     }
     else if (errno == ENOENT) {
         // File does not exist. Create one
-        int fd = open(path, O_CREAT|O_EXCL|O_RDWR, 0666);
+        int fd = fs_create_file(path, O_EXCL|O_RDWR, 0666);
 
         if (fd >= 0) {
             fd_close(fd);

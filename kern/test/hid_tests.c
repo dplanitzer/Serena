@@ -85,7 +85,7 @@ void hid_test(int argc, char *argv[])
     bool mc_vis = true;
     bool done = false;
 
-    const int fd = open("/dev/hid", O_RDONLY);
+    const int fd = fs_open("/dev/hid", O_RDONLY);
     assert_int_ge(0, fd);
     printf("Press '1' to toggle mouse cursor visibility.\n");
     printf("Press '2' to hide mouse cursor until move.\n");
