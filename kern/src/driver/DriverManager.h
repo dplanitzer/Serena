@@ -11,7 +11,6 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <Catalog.h>
 #include <driver/Driver.h>
 #include <ext/try.h>
 #include <filemanager/ResolvedPath.h>

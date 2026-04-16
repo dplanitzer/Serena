@@ -22,9 +22,6 @@ typedef struct Catalog {
 } Catalog;
 
 
-CatalogRef _Nonnull  gDriverCatalog;
-
-
 errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();

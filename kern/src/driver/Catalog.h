@@ -23,9 +23,6 @@ typedef uint32_t    CatalogId;
 #define kCatalogId_None   0
 
 
-extern CatalogRef _Nonnull  gDriverCatalog;
-
-
 extern errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);
 
 extern FilesystemRef _Nonnull Catalog_GetFilesystem(CatalogRef _Nonnull self);

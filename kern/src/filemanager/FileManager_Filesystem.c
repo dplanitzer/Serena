@@ -17,7 +17,6 @@
 #include <kpi/file.h>
 #include <kpi/filesystem.h>
 #include <process/ProcessManager.h>
-#include <Catalog.h>
 
 
 // Establishes and starts the filesystem stored on the disk managed by the disk

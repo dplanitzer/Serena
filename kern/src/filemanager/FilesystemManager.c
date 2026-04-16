@@ -17,7 +17,6 @@
 #include <filesystem/serenafs/SerenaFS.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
-#include <Catalog.h>
 
 
 typedef struct fsentry {

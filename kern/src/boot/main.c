@@ -26,7 +26,6 @@
 #include <sched/sched.h>
 #include <sched/vcpu_pool.h>
 #include <security/SecurityManager.h>
-#include <Catalog.h>
 #include <kern/kalloc.h>
 #include "BootAllocator.h"
 #include "boot_screen.h"
@@ -149,10 +148,6 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
     // Create the disk cache
     try(DiskCache_Create(512, sys_desc_getramsize(pSysDesc) >> 5, &gDiskCache));
-
-
-    // Create the driver catalog
-    try(Catalog_Create(&gDriverCatalog));
 
 
     // Create the HID and driver managers

@@ -12,7 +12,6 @@
 #include <kpi/filesystem.h>
 #include <process/ProcessPriv.h>
 #include <process/ProcessManager.h>
-#include <Catalog.h>
 
 
 errno_t kerneld_init(void)

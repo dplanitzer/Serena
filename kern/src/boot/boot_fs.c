@@ -16,7 +16,6 @@
 #include <kpi/file.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
-#include <Catalog.h>
 #include "boot_screen.h"
 
 extern void auto_discover_boot_rd(void);

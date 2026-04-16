@@ -16,7 +16,7 @@
 #include <kpi/ioctl.h>
 #include <kpi/uid.h>
 #include <sched/mtx.h>
-#include <Catalog.h>
+#include <driver/Catalog.h>
 
 struct drv_child;
 
