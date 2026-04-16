@@ -106,6 +106,8 @@ DISKTOOL_FILE := $(PRODUCT_CMD_DIR)/disk
 SH_PROJECT_DIR := $(CMD_DIR)/shell
 SH_FILE := $(PRODUCT_CMD_DIR)/shell
 
+STATUS_PROJECT_DIR := $(CMD_DIR)/status
+STATUS_FILE := $(PRODUCT_CMD_DIR)/status
 
 SYSTEMD_PROJECT_DIR := $(CMD_DIR)/systemd
 SYSTEMD_FILE := $(PRODUCT_CMD_DIR)/systemd
@@ -121,7 +123,6 @@ LOGIN_FILE := $(PRODUCT_CMD_DIR)/login
 MAKEDIR_FILE := $(PRODUCT_CMD_DIR)/makedir
 RENAME_FILE := $(PRODUCT_CMD_DIR)/rename
 SHUTDOWN_FILE := $(PRODUCT_CMD_DIR)/shutdown
-STATUS_FILE := $(PRODUCT_CMD_DIR)/status
 TOUCH_FILE := $(PRODUCT_CMD_DIR)/touch
 TYPE_FILE := $(PRODUCT_CMD_DIR)/type
 
@@ -243,6 +244,7 @@ include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
 include $(DISKTOOL_PROJECT_DIR)/project.mk
 include $(SH_PROJECT_DIR)/project.mk
+include $(STATUS_PROJECT_DIR)/project.mk
 include $(SYSTEMD_PROJECT_DIR)/project.mk
 include $(CMD_BIN_PROJECT_DIR)/project.mk
 
