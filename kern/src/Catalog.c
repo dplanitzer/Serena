@@ -23,7 +23,6 @@ typedef struct Catalog {
 
 
 CatalogRef _Nonnull  gDriverCatalog;
-CatalogRef _Nonnull  gProcCatalog;
 
 
 errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)

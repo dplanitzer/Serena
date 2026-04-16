@@ -11,7 +11,6 @@
 
 #include "Process.h"
 #include "IOChannelTable.h"
-#include <Catalog.h>
 #include <ext/rc.h>
 #include <filemanager/FileManager.h>
 #include <kpi/signal.h>
@@ -62,7 +61,6 @@ typedef struct proc_rel {
     queue_node_t            pid_qe;     // pid_table chain entry.
     queue_t/*<Process>*/    children;
     queue_node_t            child_qe;
-    CatalogId               cat_id;     // proc-fs catalog id
 } proc_rel_t;
 
 

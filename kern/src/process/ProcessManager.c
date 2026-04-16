@@ -52,11 +52,6 @@ catch:
     return EOK;
 }
 
-FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self)
-{
-    return Catalog_GetFilesystem(gProcCatalog);
-}
-
 // Returns a weak reference to the process named by 'pid'. NULL if such a process
 // does not exist.
 static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked self, pid_t pid)
@@ -75,7 +70,6 @@ static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked 
 errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     decl_try_err();
-    static char g_pid_buf[DIGIT_BUFFER_CAPACITY];
 
     mtx_lock(&self->mtx);
 
@@ -90,9 +84,6 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     if (pp->sid == 0) {
         pp->sid = pp->pid;
     }
-    
-    utoa(pp->pid, g_pid_buf, 10);
-    try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, UID_ROOT, GID_ROOT, fs_perms_from_octal(0444), pp, &pp->rel.cat_id));
     
     if (pp->pid != pp->ppid) {
         ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
@@ -119,12 +110,6 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
         mtx_unlock(&self->mtx);
         return;
     }
-
-    assert(pp->rel.cat_id != kCatalogId_None);
-
-    Catalog_Unpublish(gProcCatalog, kCatalogId_None, pp->rel.cat_id);
-    pp->rel.cat_id = kCatalogId_None;
-
 
     ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
     assert(the_parent != NULL);

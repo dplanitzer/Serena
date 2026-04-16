@@ -24,7 +24,6 @@ typedef uint32_t    CatalogId;
 
 
 extern CatalogRef _Nonnull  gDriverCatalog;
-extern CatalogRef _Nonnull  gProcCatalog;
 
 
 extern errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);

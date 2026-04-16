@@ -42,7 +42,6 @@ int main(int argc, char *argv[])
 {
     // Mount kernel object catalogs
     fs_mount(FS_MOUNT_CATALOG, FS_CATALOG_DRIVERS, "/dev", "");
-    fs_mount(FS_MOUNT_CATALOG, FS_CATALOG_PROCS, "/proc", "");
 
 
     // Startup login

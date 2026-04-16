@@ -23,10 +23,6 @@ extern ProcessManagerRef _Nonnull  gProcessManager;
 extern errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf);
 
 
-// Returns the filesystem that represents the /proc catalog.
-extern FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self);
-
-
 // Publishes the given process and assigns it a unique pid.
 // A process will only become visible to other processes after it has been
 // published.

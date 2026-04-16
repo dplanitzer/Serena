@@ -72,9 +72,6 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     if (!strcmp(catalogName, FS_CATALOG_DRIVERS)) {
         fs = DriverManager_GetCatalog(gDriverManager);
     }
-    else if (!strcmp(catalogName, FS_CATALOG_PROCS)) {
-        fs = ProcessManager_GetCatalog(gProcessManager);
-    }
     else {
         *pOutFs = NULL;
         return ENOENT;
@@ -166,9 +163,6 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
 
         if (DriverManager_GetCatalog(gDriverManager)->fsid == fsid) {
             name = FS_CATALOG_DRIVERS;
-        }
-        else if (ProcessManager_GetCatalog(gProcessManager)->fsid == fsid) {
-            name = FS_CATALOG_PROCS;
         }
         else {
             return EOK;

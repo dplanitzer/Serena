@@ -266,7 +266,6 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 
 	$(DISKIMAGE) makedir -p /System/Commands $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /dev $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxr-xr-x /proc $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /tmp $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /Users $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /Volumes $(BOOT_DMG_FILE)

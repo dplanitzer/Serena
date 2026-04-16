@@ -151,8 +151,7 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     try(DiskCache_Create(512, sys_desc_getramsize(pSysDesc) >> 5, &gDiskCache));
 
 
-    // Create the various kernel object catalogs
-    try(Catalog_Create(&gProcCatalog));
+    // Create the driver catalog
     try(Catalog_Create(&gDriverCatalog));
 
 
