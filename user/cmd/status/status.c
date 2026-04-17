@@ -8,29 +8,62 @@
 
 #include <clap.h>
 #include <errno.h>
-#include <limits.h>
+#include <ext/stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ext/stdlib.h>
-#include <serena/host.h>
-#include <serena/process.h>
+#include "run_proc.h"
+#include "table.h"
+#include "utils.h"
 
-enum {
-    kState_Running = 0,
-    kState_Sleeping,
-    kState_Stopped,
-    kState_Exiting,
-    kState_Zombie
-};
+static char num_buf[__LLONG_MAX_BASE_10_DIGITS + 1];
 
-static char path_buf[PATH_MAX];
-static char num_buf[__LONG_MAX_BASE_10_DIGITS + 1];
-static const char* state_name[5] = {
-    "running",      // kState_Running
-    "sleeping",     // kState_Sleeping
-    "stopped",      // kState_Stopped
-    "running",      // kState_Exiting
-    "zombie",       // kState_Zombie
+
+static const table_column_t g_table_cols[] = {
+    {
+        .title = "PID",
+        .width = 6,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "Command",
+        .width = 12,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "#VCPU",
+        .width = 6,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "VM Size",
+        .width = 8,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "State",
+        .width = 8,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "UID",
+        .width = 8,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "SID",
+        .width = 4,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "PGRP",
+        .width = 4,
+        .align = TABLE_ALIGN_LEFT
+    },
+    {
+        .title = "PPID",
+        .width = 4,
+        .align = TABLE_ALIGN_LEFT
+    }
 };
 
 
@@ -41,91 +74,73 @@ CLAP_DECL(params,
 );
 
 
-static void fmt_mem_size(size_t msize, char* _Nonnull buf)
+#define COL_PID     0
+#define COL_NAME    1
+#define COL_NVCPU   2
+#define COL_VMSIZ   3
+#define COL_STATE   4
+#define COL_UID     5
+#define COL_SID     6
+#define COL_PGRP    7
+#define COL_PPID    8
+
+static const char* _Nonnull run_proc_cell_func(void* ctx, int row, int col)
 {
-#define N_UNITS 4
-    static const char* postfix[N_UNITS] = { "", "K", "M", "G" };
-    int pi = 0;
+    run_proc_t* rp = run_proc_for_index(row);
 
-    for (;;) {
-        if (msize < 1024 || pi == N_UNITS) {
-            ultoa((unsigned long)msize, buf, 10);
-            strcat(buf, postfix[pi]);
-            break;
-        }
+    switch (col) {
+        case COL_PID:
+            return itoa(rp->pid, num_buf, 10);
 
-        msize >>= 10;
-        pi++;
-    }
-}
+        case COL_NAME:
+            return rp->name;
 
-static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
-{
-    switch (ip->run_state) {
-        case PROC_STATE_RESUMED:
-            return (ip->vcpu_waiting_count == ip->vcpu_count) ? kState_Sleeping : kState_Running;
+        case COL_NVCPU:
+            return itoa(rp->vcpu_count, num_buf, 10);
 
-        case PROC_STATE_SUSPENDED:
-            return kState_Stopped;
+        case COL_VMSIZ:
+            return (rp->pid > 1) ? fmt_mem_size(rp->vm_size, num_buf) : "-";
 
-        case PROC_STATE_TERMINATING:
-            return kState_Exiting;
+        case COL_STATE:
+            return run_proc_state_name(rp->state);
 
-        case PROC_STATE_TERMINATED:
-            return kState_Zombie;
+        case COL_UID:
+            return itoa(rp->uid, num_buf, 10);
+
+        case COL_SID:
+            return itoa(rp->sid, num_buf, 10);
+
+        case COL_PGRP:
+            return itoa(rp->pgrp, num_buf, 10);
+
+        case COL_PPID:
+            return itoa(rp->ppid, num_buf, 10);
 
         default:
-            return kState_Running;
+            return "";
     }
-}
-
-static void show_proc(pid_t pid)
-{
-    proc_basic_info_t basic;
-    proc_ids_info_t ids;
-    proc_user_info_t creds;
-
-    errno = 0;
-
-    proc_info(pid, PROC_INFO_BASIC, &basic);
-    proc_info(pid, PROC_INFO_IDS, &ids);
-    proc_info(pid, PROC_INFO_USER, &creds);
-    proc_property(pid, PROC_PROP_PATH, path_buf, sizeof(path_buf));
-
-    if (errno != 0) {
-        return;
-    }
-
-
-    const char* lastPathComponent = strrchr(path_buf, '/');
-    const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : path_buf;
-
-    if (pid > 1) {
-        fmt_mem_size(basic.vm_size, num_buf);
-    }
-    else {
-        strcpy(num_buf, "-");
-    }
-
-    printf("%d  %s  %zu  %s  %s  %d  %d  %d  %d\n", pid, pnam, basic.vcpu_count, num_buf, state_name[state_from_basic_info(&basic)], creds.uid, ids.session_id, ids.group_id, ids.parent_id);
 }
 
 static int show_procs(void)
 {
-#define _TMP_MAX_COUNT  33
-    static pid_t g_pid_buf[_TMP_MAX_COUNT];
+    run_procs_sample();
 
-    if (host_processes(g_pid_buf, _TMP_MAX_COUNT) < 0) {
-        return -1;
-    }
+    table_t* tp = table_create(g_table_cols, sizeof(g_table_cols) / sizeof(table_column_t));
+    table_set_cell_func(tp, (table_cell_func_t)run_proc_cell_func, NULL);
+    table_set_viewport(tp, 0, 20);
+//    table_set_fill_viewport(tp, true);
+
+    table_set_row_count(tp, run_proc_count());
+
+    //term_cls();
+
+    const run_procs_info_t* rp_info = run_procs_info();
+    printf("Processes: %zu total, %zu running, %zu sleeping\n", rp_info->proc_count, rp_info->run_proc_count, rp_info->slp_proc_count);
+    printf("VCPUs: %zu acquired    CPUs: %zu\n", rp_info->vcpu_count, rp_info->cpu_count);
+    printf("RAM: %s total\n\n", fmt_mem_size(rp_info->phys_mem_size, num_buf));
+//    printf("RAM: %llu\n\n", rp_info->phys_mem_size);
     
-    printf("PID  Command  #VP  Memory  State  UID  SID  PGRP  PPID\n");
-
-    size_t idx = 0;
-    while (g_pid_buf[idx] > 0) {
-        show_proc(g_pid_buf[idx]);
-        idx++;
-    }
+    table_draw(tp);
 
     return (errno == 0) ? 0 : -1;
 }
