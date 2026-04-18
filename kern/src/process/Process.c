@@ -331,7 +331,8 @@ static errno_t _proc_name(ProcessRef _Nonnull self, char* _Nonnull buf, size_t b
     decl_try_err();
     const proc_args_t* pa = (const proc_args_t*)self->pargs_base;
     const char* arg0 = (pa) ? pa->argv[0] : NULL;
-    const char* fname = (arg0) ? strrchr(arg0, '/') + 1 : arg0;
+    const char* lpc = (arg0) ? strrchr(arg0, '/') : NULL;
+    const char* fname = (lpc) ? lpc + 1 : arg0;
     const size_t fnameLen = (fname) ? strlen(fname) : 0;
 
     if (bufSize >= fnameLen + 1) {

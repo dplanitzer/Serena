@@ -61,3 +61,32 @@ char* fmt_mem_size(uint64_t msize, char* _Nonnull buf)
 
     return buf;
 }
+
+char* _Nonnull fmt_duration(const nanotime_t* _Nonnull dur, char* _Nonnull buf)
+{
+    time_t secs = dur->tv_sec;
+    time_t hours = secs / 3600;
+    secs -= hours * 3600;
+    time_t mins = secs / 60;
+    secs -= mins * 60;
+
+    if (hours > 99) {
+        hours = 99; //XXX for now
+    }
+
+    const div_t hd = div(hours, 10);
+    const div_t md = div(mins, 10);
+    const div_t sd = div(secs, 10);
+
+    buf[0] = '0' + hd.quot;
+    buf[1] = '0' + hd.rem;
+    buf[2] = ':';
+    buf[3] = '0' + md.quot;
+    buf[4] = '0' + md.rem;
+    buf[5] = '.';
+    buf[6] = '0' + sd.quot;
+    buf[7] = '0' + sd.rem;
+    buf[8] = '\0';
+
+    return buf;
+}

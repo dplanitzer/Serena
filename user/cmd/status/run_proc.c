@@ -11,12 +11,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <serena/clock.h>
 #include <serena/host.h>
 #include <serena/process.h>
 
-static deque_t  g_run_procs;
+static deque_t  g_run_procs;    //XXX change to hashtable keyed on pid
 static size_t   g_run_proc_count;
-static char     g_path_buf[PATH_MAX];
 const char*     g_run_proc_state_name[5] = {
     "running",      // RUN_PROC_RUNNING
     "sleeping",     // RUN_PROC_SLEEPING
@@ -115,37 +115,41 @@ static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
 
 static void run_proc_sample(pid_t pid)
 {
-    proc_basic_info_t basic;
-    proc_ids_info_t ids;
-    proc_user_info_t creds;
-
-    errno = 0;
-
-    proc_info(pid, PROC_INFO_BASIC, &basic);
-    proc_info(pid, PROC_INFO_IDS, &ids);
-    proc_info(pid, PROC_INFO_USER, &creds);
-    proc_property(pid, PROC_PROP_PATH, g_path_buf, sizeof(g_path_buf));
-
-    if (errno != 0) {
-        return;
-    }
-
-    const char* lastPathComponent = strrchr(g_path_buf, '/');
-    const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : g_path_buf;
+    static proc_basic_info_t basic;
+    static proc_ids_info_t ids;
+    static proc_user_info_t creds;
+    static proc_times_info_t times;
 
     run_proc_t* rp = run_proc_acquire(pid);
     if (rp == NULL) {
         return;
     }
 
+
+    errno = 0;
+    proc_info(pid, PROC_INFO_BASIC, &basic);
+    proc_info(pid, PROC_INFO_IDS, &ids);
+    proc_info(pid, PROC_INFO_USER, &creds);
+    proc_info(pid, PROC_INFO_TIMES, &times);
+
+    if (errno != 0) {
+        run_proc_relinquish(rp);
+        return;
+    }
+
+
     rp->pgrp = ids.group_id;
     rp->ppid = ids.parent_id;
     rp->sid = ids.session_id;
     rp->uid = creds.uid;
     rp->vcpu_count = basic.vcpu_count;
+    nanotime_sub(&g_info.current_time, &times.creation_time, &rp->run_time);
     rp->vm_size = basic.vm_size;
     rp->state = state_from_basic_info(&basic);
-    strncpy(rp->name, pnam, MAX_PROC_NAME_LEN);
+    rp->flags.alive = 1;
+    if (proc_property(pid, PROC_PROP_NAME, rp->name, sizeof(rp->name)) != 0) {
+        strcpy(rp->name, "??");
+    }
 
 
     g_info.proc_count++;
@@ -158,29 +162,74 @@ static void run_proc_sample(pid_t pid)
     g_info.vcpu_count += basic.vcpu_count;
 }
 
+static const pid_t* _Nonnull get_all_proc_pids(void)
+{
+#define INIT_PID_BUF_SIZE   128
+    static pid_t* pid_buf = NULL;
+    static size_t pid_buf_size = 0;
+
+    if (pid_buf == NULL) {
+        pid_buf = malloc(INIT_PID_BUF_SIZE * sizeof(pid_t));
+        if (pid_buf == NULL) {
+            return NULL;
+        }
+
+        pid_buf_size = INIT_PID_BUF_SIZE;
+    }
+
+    while (host_processes(pid_buf, pid_buf_size) == 1) {
+        size_t new_pid_buf_size = pid_buf_size * 2;
+        pid_t* new_pid_buf = realloc(pid_buf, new_pid_buf_size * sizeof(pid_t));
+
+        if (new_pid_buf == NULL) {
+            return NULL;
+        }
+
+        pid_buf = new_pid_buf;
+        pid_buf_size = new_pid_buf_size;
+    }
+
+    return pid_buf;
+}
+
 void run_procs_sample(void)
 {
-#define PID_BUF_SIZE  33
-    static pid_t g_pid_buf[PID_BUF_SIZE];
+    const pid_t* pids = get_all_proc_pids();
 
-    if (host_processes(g_pid_buf, PID_BUF_SIZE) < 0) {
+    if (pids == NULL) {
         return;
     }
 
+
+    // Update the global info
     memset(&g_info, 0, sizeof(struct run_procs_info));
-
-    size_t i = 0;
-    while (g_pid_buf[i] > 0) {
-        run_proc_sample(g_pid_buf[i]);
-        i++;
-    }
-
 
     host_basic_info_t host_basic;
     if (host_info(HOST_INFO_BASIC, &host_basic) == 0) {
         g_info.cpu_count = host_basic.physical_cpu_count;
         g_info.phys_mem_size = host_basic.phys_mem_size;
     }
+
+
+    clock_time(CLOCK_MONOTONIC, &g_info.current_time);
+
+
+    // Create new run procs for processes we haven't seen before, update processes
+    // we've seen before and then relinquish run procs that no longer exist.
+    deque_for_each(&g_run_procs, struct run_proc, it,
+        it->flags.alive = 0;
+    );
+
+    size_t i = 0;
+    while (pids[i] > 0) {
+        run_proc_sample(pids[i++]);
+    }
+
+    deque_for_each(&g_run_procs, struct run_proc, it,
+        if (!it->flags.alive) {
+            run_proc_relinquish(it);
+        }
+    );
 }
 
 const run_procs_info_t* _Nonnull run_procs_info()
