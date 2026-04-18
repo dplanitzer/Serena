@@ -175,7 +175,7 @@ static int iterate_dir(dir_t _Nonnull dir, const char* _Nonnull path, dir_iter_t
     errno = 0;
 
     for (;;) {
-        const dir_entry_t* dep = fs_read_directory(dir);
+        const dir_entry_t* dep = dir_next(dir);
         
         if (dep == NULL) {
             break;
@@ -197,11 +197,11 @@ static void list_dir(const char* _Nonnull path)
 
     if (dir) {
         if (iterate_dir(dir, path, format_dir_entry) == 0) {
-            fs_rewind_directory(dir);
+            dir_rewind(dir);
             iterate_dir(dir, path, print_dir_entry);
         }
     
-        fs_close_directory(dir);
+        dir_close(dir);
     }
 }
 

@@ -24,12 +24,12 @@ __CPP_BEGIN
 // Rational: adding locking to the calls would not be sufficient to make them
 // concurrency safe. Eg an app creates a dir_t and then has 8 threads of execution
 // reading the contents of the dir_t in parallel until EOF is encountered. The
-// problem is that the first thread that encounters EOF can not call close_dir()
+// problem is that the first thread that encounters EOF can not call dir_close()
 // because the 7 other threads may currently be busy doing something else (not
-// calling read_dir() because they are processing data read previously). The guy
-// who is calling close_dir() would execute the close_dir() atomically, however
-// the dir_t pointer becomes stale after close_dir() returns. If now the other 7
-// guys try to call read_dir(), then they will cause a crash because they are
+// calling dir_next() because they are processing data read previously). The guy
+// who is calling dir_close() would execute the dir_close() atomically, however
+// the dir_t pointer becomes stale after dir_close() returns. If now the other 7
+// guys try to call dir_next(), then they will cause a crash because they are
 // trying to use a stale dir_t pointer.
 // The only way to fix this is by making sure that the application code itself
 // introduces proper coordination between the 8 threads of execution. To do this
@@ -40,28 +40,27 @@ __CPP_BEGIN
 // underlying filesystem layer does with respect to other processes.
 
 
-// Opens the directory at the filesystem location 'path' for reading. Call this
-// function to obtain an I/O channel suitable for reading the content of the
-// directory. Call IOChannel_Close() once you are done with the directory.
+// Opens the directory at the filesystem location 'path' for reading. Call
+// dir_close() once you are done with the directory.
 // @Concurrency: Not Safe
 extern dir_t _Nullable fs_open_directory(dir_t _Nullable wd, const char* _Nonnull path);
 
 // Closes the given directory descriptor.
 // @Concurrency: Not Safe
-extern int fs_close_directory(dir_t _Nullable dir);
+extern int dir_close(dir_t _Nullable dir);
 
 // Reads the next directory entry and returns a pointer to it if it exists.
 // Returns NULL if no more entry exists in the directory.
-// You can rewind to the beginning of the directory listing by calling
-// rewind_dir().
+// Call dir_rewind() to rewind to the beginning of the directory listing and to
+// start over again with the reading process.
 // @Concurrency: Not Safe
-extern const dir_entry_t* _Nullable fs_read_directory(dir_t _Nonnull dir);
+extern const dir_entry_t* _Nullable dir_next(dir_t _Nonnull dir);
 
-// Resets the read position of the directory identified by 'ioc' to the beginning.
-// The next read_dir() call will start reading directory entries from the
+// Resets the read position of the directory identified by 'dir' to the beginning.
+// The next dir_next() call will start reading directory entries from the
 // beginning of the directory.
 // @Concurrency: Not Safe
-extern void fs_rewind_directory(dir_t _Nonnull dir);
+extern void dir_rewind(dir_t _Nonnull dir);
 
 
 // Creates an empty directory with the name and at the filesystem location

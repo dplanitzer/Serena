@@ -79,16 +79,16 @@ typedef void* proc_info_ref;
 #define PROC_STATE_TERMINATED   3       /* Process has terminated and parent processes hasn't reaped it yet */
 
 typedef struct proc_basic_info {
-    int run_state;
+    uint64_t    vm_size;                // size of process address space in bytes
 
-    size_t  vcpu_count;             // number of vcpus bound to process right now
-    size_t  vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
-    size_t  vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
+    size_t      argv_size;              // size of the argv vector
+    size_t      env_size;               // size of the environment variable table
 
-    size_t  vm_size;                // size of process address space in bytes
+    int         run_state;
 
-    size_t  argv_size;              // size of the argv vector
-    size_t  env_size;               // size of the environment variable table
+    size_t      vcpu_count;             // number of vcpus bound to process right now
+    size_t      vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
+    size_t      vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
 } proc_basic_info_t;
 
 

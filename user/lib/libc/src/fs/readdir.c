@@ -29,7 +29,7 @@ dir_t _Nullable fs_open_directory(dir_t _Nullable wd, const char* _Nonnull path)
     return dir;
 }
 
-int fs_close_directory(dir_t _Nullable dir)
+int dir_close(dir_t _Nullable dir)
 {
     int r = 0;
 
@@ -40,14 +40,14 @@ int fs_close_directory(dir_t _Nullable dir)
     return r;
 }
 
-void fs_rewind_directory(dir_t _Nonnull dir)
+void dir_rewind(dir_t _Nonnull dir)
 {
     (void)_syscall(SC_fd_seek, dir->fd, (off_t)0ll, NULL, SEEK_SET);
     dir->nextEntryToRead = dir->entbuf;
     dir->endOfBuffer = dir->entbuf;
 }
 
-const dir_entry_t* _Nullable fs_read_directory(dir_t _Nonnull dir)
+const dir_entry_t* _Nullable dir_next(dir_t _Nonnull dir)
 {
     if (dir->nextEntryToRead >= dir->endOfBuffer) {
         ssize_t nBytesRead;
