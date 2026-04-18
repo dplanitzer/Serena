@@ -79,7 +79,7 @@ enum {
     SC_vcpu_resume,         // int vcpu_resume(vcpuid_t vcpu)
     SC_sig_send,            // sig_send(int scope, id_t id, int signo)
     SC_sig_urgent,          // void sig_urgent(void)
-    SC_excpt_sethandler,    // int excpt_sethandler(int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
+    SC_excpt_sethandler,    // int excpt_sethandler(int scope, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
     SC_proc_exec,           // int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp)
     SC_vcpu_policy,         // int vcpu_policy(vcpuid_t id, int version, vcpu_policy_t* _Nonnull policy)
     SC_vcpu_setpolicy,      // int vcpu_setpolicy(vcpuid_t id, const vcpu_policy_t* _Nonnull policy)

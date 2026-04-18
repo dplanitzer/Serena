@@ -83,6 +83,8 @@ typedef struct Process {
     AddressSpace                    addr_space;
     char* _Nullable _Weak           pargs_base; // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
+    excpt_handler_t                 excpt_handler;  // atomic: exception handler and argument
+
     // VPs
     deque_t                         vcpu_queue;     // deque_t of VPs [mtx]
     size_t                          vcpu_count;

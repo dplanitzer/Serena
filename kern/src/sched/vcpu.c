@@ -143,7 +143,6 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     self->uerrno = 0;
     self->pending_sigs = 0;
     self->excpt_handler = (excpt_handler_t){0};
-    self->excpt_handler_flags = 0;
     self->excpt_state = (cpu_excpt_state_t){0};
     self->excpt_sa = NULL;
     self->syscall_sa = NULL;
@@ -685,9 +684,9 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
     return err;
 }
 
-errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
+errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
-    if ((flags != 0) || (handler->func == NULL && flags != 0)) {
+    if (handler->func == NULL) {
         return EINVAL;
     }
 
@@ -695,7 +694,6 @@ errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_hand
         *old_handler = self->excpt_handler;
     }
     self->excpt_handler = *handler;
-    self->excpt_handler_flags = flags;
 
     return EOK;
 }

@@ -93,4 +93,8 @@ typedef struct excpt_handler {
 #define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
 #define EXCPT_ABORT_EXECUTION       1   /* the exception was not handled and execution should be aborted and the process terminated */
 
+
+// excpt_sethandler() flags
+#define EXCPT_FLAG_PROC 1
+
 #endif /* _KERN_EXCEPTION_H */

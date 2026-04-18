@@ -19,7 +19,16 @@ SYSCALL_0(coninit)
 
 SYSCALL_3(excpt_sethandler, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
-    return vcpu_set_excpt_handler(vp, pa->flags, pa->handler, pa->old_handler);
+    if (pa->flags & ~EXCPT_FLAG_PROC) {
+        return EINVAL;
+    }
+    
+    if ((pa->flags & EXCPT_FLAG_PROC) == EXCPT_FLAG_PROC) {
+        return Process_SetExceptionHandler(vp->proc, pa->handler, pa->old_handler);
+    }
+    else {
+        return vcpu_set_excpt_handler(vp, pa->handler, pa->old_handler);
+    }
 }
 
 SYSCALL_0(nosys)

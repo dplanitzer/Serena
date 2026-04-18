@@ -310,7 +310,6 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     const bool is_f7_access_err = (cpu_family == CPU_FAMILY_68040 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 7);
     const bool is_f4_access_err = (cpu_family == CPU_FAMILY_68060 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 4);
     const bool is_nested = vcpu_is_handling_exception(vp);
-    const excpt_handler_t* ehp = vcpu_excpt_handler_ref(vp);
 
 
     // Clear branch cache, in case of a branch prediction error
@@ -319,11 +318,18 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     }
 
 
-    // get the exception code
+    // Figure out which exception handler function to call
+    excpt_handler_t eh = vp->excpt_handler;
+    if (eh.func == NULL) {
+        Process_GetExceptionHandler(vp->proc, &eh);
+    }
+
+
+    // Get the exception code
     vp->excpt_state.code = get_ecode(cpu_family, cpu_code, efp);
     vp->excpt_state.cpu_code = cpu_code;
 
-    // get the PC and fault address
+    // Get the PC and fault address
     vp->excpt_state.sp = (void*)vp->excpt_sa->b.usp;
     vp->excpt_state.pc = (void*)efp->pc;
     vp->excpt_state.fault_addr = (void*)get_fault_addr(cpu_family, efp);
@@ -354,7 +360,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     if (is_nested
         || (is_f4_access_err && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
-        || ehp == NULL) {
+        || eh.func == NULL) {
         // double fault or no exception handler -> exit
         Process_Exit(vp->proc, PROC_STATUS_EXCEPTION, vp->excpt_state.code);
         /* NOT REACHED */
@@ -384,12 +390,12 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     uep->ei.pc = vp->excpt_state.pc;
     uep->ei.fault_addr = vp->excpt_state.fault_addr;
     uep->ei_ptr = &uep->ei;
-    uep->arg = ehp->arg;
+    uep->arg = eh.arg;
     uep->ret_addr = (void*)_excpt_return;
 
 
     // Update the u-trampoline with the exception function entry point
-    utp->pc = (uintptr_t)ehp->func;
+    utp->pc = (uintptr_t)eh.func;
 
     return 1;
 }

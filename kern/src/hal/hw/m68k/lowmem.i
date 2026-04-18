@@ -146,7 +146,6 @@ vp_uerrno                               so.l    1           ; 4
 vp_udata                                so.l    1           ; 4
 vp_excpt_handler_func                   so.l    1           ; 4
 vp_excpt_handler_arg                    so.l    1           ; 4
-vp_excpt_handler_flags                  so.l    1           ; 4
 vp_excpt_sa                             so.l    1           ; 4
 vp_excpt_state_sp                       so.l    1           ; 4
 vp_excpt_state_pc                       so.l    1           ; 4
@@ -181,7 +180,7 @@ vp_wait_ticks                           so.l    1           ; 4
 vp_proc                                 so.l    1           ; 4
 vp_dispatch_worker                      so.l    1           ; 4
 vp_SIZEOF                               so
-    ifeq (vp_SIZEOF == 160)
+    ifeq (vp_SIZEOF == 156)
         fail "vcpu structure size is incorrect."
     endif
 

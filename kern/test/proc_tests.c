@@ -127,7 +127,7 @@ void proc_excpt_handler_test(int argc, char *argv[])
 
     h.func = ex_handler;
     h.arg = "exiting from handler";
-    excpt_sethandler(0, &h, NULL);
+    excpt_sethandler(EXCPT_FLAG_PROC, &h, NULL);
     
     const int r = movesr();
     // -> process should have exited with (regular) status 0

@@ -212,6 +212,30 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_unlock(&self->mtx);
 }
 
+errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
+{
+    if (handler->func == NULL) {
+        return EINVAL;
+    }
+
+    //XXX not great. Use suitable atomic functions instead
+    const int sps = preempt_disable();
+    if (old_handler) {
+        *old_handler = self->excpt_handler;
+    }
+    self->excpt_handler = *handler;
+    preempt_restore(sps);
+
+    return EOK;
+}
+
+void Process_GetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t* _Nonnull handler)
+{
+    const int sps = preempt_disable();
+    *handler = self->excpt_handler;
+    preempt_restore(sps);
+}
+
 errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {
     decl_try_err();
