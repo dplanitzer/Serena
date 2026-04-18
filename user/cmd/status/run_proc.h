@@ -59,11 +59,11 @@ typedef struct run_procs_info {
 
 extern void run_procs_sample(void);
 
-extern run_proc_t* _Nullable run_proc_for_index(size_t idx);
-extern size_t run_proc_count(void);
-
-extern const char* _Nonnull run_proc_state_name(int state);
+extern size_t run_procs_count(void);
+extern void run_procs_get_all(run_proc_t** buf, size_t bufSize);
 
 extern const run_procs_info_t* _Nonnull run_procs_info();
+
+extern const char* _Nonnull run_proc_state_name(int state);
 
 #endif /* RUN_PROC_H */

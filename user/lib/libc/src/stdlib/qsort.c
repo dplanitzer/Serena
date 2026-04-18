@@ -42,47 +42,50 @@ static void __swap_4b(uint32_t* _Nonnull p1, uint32_t* _Nonnull p2, size_t size)
     }
 }
 
-
-// Based on "Quicksort with 3-way partitioning" from the book Algorithms 4th Edition by Robert Sedgewick and Kevin Wayne, pages 299ff.
-static void __qsort(uint8_t* _Nonnull values, size_t l, size_t r, size_t size, compare_to_t _Nonnull comp, swap_t _Nonnull swap) 
+static void __swap_4b_exactly(uint32_t* _Nonnull p1, uint32_t* _Nonnull p2, size_t size) 
 {
-    if (r <= l) {
+    const uint32_t tmp = *p1;
+
+    *p1 = *p2;
+    *p2 = tmp;
+}
+
+
+// Based on "Basic Quicksort" from the book Algorithms 4th Edition by Robert Sedgewick and Kevin Wayne, pages 299ff.
+static int __partition(uint8_t* values, long lo, long hi, size_t size, compare_to_t comp, swap_t swap)
+{
+    int i = lo, j = hi + 1;
+    uint8_t* v = values + lo * size;
+
+    while (1) {
+        while (comp(values + (++i) * size, v) < 0) if (i == hi) break;
+        while (comp(v, values + (--j) * size) < 0) if (j == lo) break;
+        
+        if (i >= j) break;
+        
+        uint8_t* ip = values + i * size;
+        uint8_t* jp = values + j * size;
+        swap(ip, jp, size);
+    }
+    
+    uint8_t* p1 = values + lo * size;
+    uint8_t* p2 = values + j * size;
+    swap(p1, p2, size);
+
+    return j;
+}
+
+static void __qsort(uint8_t* values, long lo, long hi, size_t size, compare_to_t comp, swap_t swap) 
+{
+    if (hi <= lo) {
         return;
     }
-
-    size_t lt = l, i = l+1, gt = r;
-    uint8_t* v = values + l * size;
-
-    while (i <= gt) {
-        int cmp = comp(values + i * size, v);
-
-        if (cmp < 0) {
-            uint8_t* p1 = values + lt * size;
-            uint8_t* p2 = values + i * size;
-            
-            swap(p1, p2, size);
-            v = (v == p1) ? p2 : ((v == p2) ? p1 : v);
-            lt++; i++;
-        }
-        else if (cmp > 0) {
-            uint8_t* p1 = values + i * size;
-            uint8_t* p2 = values + gt * size;
-            
-            swap(p1, p2, size);
-            v = (v == p1) ? p2 : ((v == p2) ? p1 : v);
-            gt--;
-        }
-        else {
-            i++;
-        }
-    }
-
-
-    if (lt > 0) {
-        __qsort(values, l, lt - 1, size, comp, swap);
-    }
-    __qsort(values, gt + 1, r, size, comp, swap);
+    
+    const int j = __partition(values, lo, hi, size, comp, swap);
+    __qsort(values, lo, j - 1, size, comp, swap);
+    __qsort(values, j + 1, hi, size, comp, swap);
 }
+
 
 void qsort(void* values, size_t count, size_t size, int (*comp)(const void*, const void*))
 {
@@ -90,7 +93,7 @@ void qsort(void* values, size_t count, size_t size, int (*comp)(const void*, con
         swap_t swap;
 
         if (((uintptr_t)values & 0x03) == 0 && (size & 0x03) == 0) {
-            swap = (swap_t)__swap_4b;
+            swap = (size == 4) ? (swap_t)__swap_4b_exactly : (swap_t)__swap_4b;
         }
         else {
             swap = (swap_t)__swap_1b;

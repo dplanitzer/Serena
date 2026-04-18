@@ -49,26 +49,6 @@ static run_proc_t* _Nullable run_proc_for_pid(pid_t pid)
     return NULL;
 }
 
-run_proc_t* _Nullable run_proc_for_index(size_t idx)
-{
-    if (idx < g_run_proc_count) {
-        deque_for_each(&g_run_procs, struct run_proc, it,
-            if (idx == 0) {
-                return it;
-            }
-
-            idx--;
-        );
-    }
-
-    return NULL;
-}
-
-size_t run_proc_count(void)
-{
-    return g_run_proc_count;
-}
-
 static run_proc_t* _Nullable run_proc_acquire(pid_t pid)
 {
     run_proc_t* rp = run_proc_for_pid(pid);
@@ -235,4 +215,22 @@ void run_procs_sample(void)
 const run_procs_info_t* _Nonnull run_procs_info()
 {
     return &g_info;
+}
+
+size_t run_procs_count(void)
+{
+    return g_run_proc_count;
+}
+
+void run_procs_get_all(run_proc_t** buf, size_t bufSize)
+{
+    size_t i = 0;
+
+    deque_for_each(&g_run_procs, struct run_proc, it,
+        if (i >= bufSize) {
+            break;
+        }
+
+        buf[i++] = it;
+    );
 }
