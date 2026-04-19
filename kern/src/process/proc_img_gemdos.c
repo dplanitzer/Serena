@@ -46,7 +46,7 @@ static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull 
     }
 }
 
-errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _Nonnull chan)
+errno_t _proc_img_load_gemdos_file(proc_img_t* _Nonnull self, IOChannelRef _Nonnull chan)
 {
     decl_try_err();
     off_t fileOffset;
@@ -69,7 +69,7 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
 
 
     // Read the executable header
-    try(IOChannel_Read((IOChannelRef)chan, &hdr, sizeof(hdr), &nBytesRead));
+    try(IOChannel_Read(chan, &hdr, sizeof(hdr), &nBytesRead));
 
 //    printf("magic: %hx\n", hdr.magic);
 //    printf("text: %d\n", hdr.text_size);
@@ -111,8 +111,8 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
 
 
     // Read the executable header, text and data segments into memory
-    IOChannel_Seek((IOChannelRef)chan, 0ll, NULL, SEEK_SET);
-    try(IOChannel_Read((IOChannelRef)chan, img_base, nbytes_to_read, &nBytesRead));
+    IOChannel_Seek(chan, 0ll, NULL, SEEK_SET);
+    try(IOChannel_Read(chan, img_base, nbytes_to_read, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
@@ -120,8 +120,8 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
 
     // Read the relocation information into memory
     uint8_t* reloc_base = img_base + nbytes_to_read;
-    IOChannel_Seek((IOChannelRef)chan, fileOffset_to_reloc, NULL, SEEK_SET);
-    try(IOChannel_Read((IOChannelRef)chan, reloc_base, reloc_size, &nBytesRead));
+    IOChannel_Seek(chan, fileOffset_to_reloc, NULL, SEEK_SET);
+    try(IOChannel_Read(chan, reloc_base, reloc_size, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }

@@ -122,18 +122,16 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
     return err;
 }
 
-// Loads an executable from the given executable file into the process address
-// space.
+// Loads an executable from the given executable file.
 // \param self the process into which the executable image should be loaded
 // \param path path to the executable file
 // \param argv the command line arguments for the process. NULL means that the arguments are {path, NULL}
 // \param env the environment for the process. Null means that the process inherits the environment from its parent
-// XXX the executable format is GemDOS
-static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[], proc_img_t* _Nonnull pimg)
+static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerRef _Nonnull fm, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     IOChannelRef chan = NULL;
-    const char* null_sptr[1] = {NULL};
+    static const char* null_sptr[1] = {NULL};
 
     if (argv == NULL) {
         argv = null_sptr;
@@ -144,7 +142,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
     // Open the executable file and lock it
-    try(FileManager_OpenFile(&self->fm, path, O_RDONLY | _O_EXONLY, &chan));
+    try(FileManager_OpenFile(fm, path, O_RDONLY | _O_EXONLY, &chan));
 
 
     // Copy the process arguments into the process address space
@@ -152,8 +150,27 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
     // Load the executable
-    try(_proc_img_load_gemdos_exec(pimg, (InodeChannelRef)chan));
+    try(_proc_img_load_gemdos_file(pimg, chan));
     ((proc_args_t*)(pimg->pargs))->image_base = pimg->base;
+
+
+catch:
+    IOChannel_Release(chan);
+
+    return err;
+}
+
+// Initializes a new process image by loading the executable file and building
+// up the initial memory map.
+static errno_t _proc_img_init(ProcessRef _Nonnull _Locked self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[], proc_img_t* _Nonnull pimg)
+{
+    decl_try_err();
+
+    AddressSpace_Init(&pimg->as);
+    pimg->has_as = true;
+
+    // Load the executable
+    try(_proc_img_load_executable(pimg, &self->fm, path, argv, env));
 
 
     // Create the new main vcpu
@@ -161,9 +178,17 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
 catch:
-    IOChannel_Release(chan);
 
     return err;
+}
+
+static void _proc_img_deinit(proc_img_t* _Nullable pimg)
+{
+    if (pimg) {
+        if (pimg->has_as) {
+            AddressSpace_Deinit(&pimg->as);
+        }
+    }
 }
 
 static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
@@ -200,8 +225,6 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     decl_try_err();
     proc_img_t pimg = (proc_img_t){0};
 
-    AddressSpace_Init(&pimg.as);
-
     mtx_lock(&self->mtx);
 
     // We only permit calling Process_Exit() from another process if that other
@@ -218,7 +241,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
 
     // Create the new exec image
-    try(_proc_build_exec_image(self, execPath, argv, env, &pimg));
+    try(_proc_img_init(self, execPath, argv, env, &pimg));
 
     
     // We now got:
@@ -233,12 +256,11 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 catch:
     mtx_unlock(&self->mtx);
 
-    AddressSpace_Deinit(&pimg.as);
-
-
     if (resumed) {
         vcpu_resume(pimg.main_vp, false);
     }
+
+    _proc_img_deinit(&pimg);
 
     return err;
 }

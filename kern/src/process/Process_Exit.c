@@ -175,8 +175,8 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
 void _proc_zombify(ProcessRef _Nonnull self)
 {
     IOChannelTable_ReleaseAll(&self->ioChannelTable);
-    AddressSpace_UnmapAll(&self->addr_space);
     FileManager_Deinit(&self->fm);
+    AddressSpace_UnmapAll(&self->addr_space);
 
     self->run_state = PROC_STATE_TERMINATED;
 }

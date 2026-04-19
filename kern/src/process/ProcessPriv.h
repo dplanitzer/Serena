@@ -53,6 +53,7 @@ typedef struct proc_img {
     void* _Nullable     base;
     void* _Nullable     entry_point;
     char* _Nullable     pargs;
+    bool                has_as;
 } proc_img_t;
 
 

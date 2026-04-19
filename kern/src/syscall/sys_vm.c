@@ -17,7 +17,5 @@ SYSCALL_2(vm_allocate, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
         return E2BIG;
     }
 
-    return AddressSpace_Allocate(&(vp->proc->addr_space),
-            __SSizeByClampingSize(pa->nbytes),
-            pa->pOutMem);
+    return AddressSpace_Allocate(&(vp->proc->addr_space), pa->nbytes, pa->pOutMem);
 }
