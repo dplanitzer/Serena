@@ -13,9 +13,7 @@
 #include <serena/mtx.h>
 #include <vcpu/__vcpu.h>
 
-proc_args_t*    __gProcessArguments;
-kei_func_t* __gKeiTab;
-char **     environ;
+kei_func_t*     __gKeiTab;
 
 spinlock_t               __gAtExitLock;
 at_exit_func_t _Nullable __gAtExitFuncs[ATEXIT_MAX];
@@ -27,9 +25,7 @@ mtx_t __g_dtoa_mtx[2];
 
 void __stdlibc_init(proc_args_t* _Nonnull argsp)
 {
-    __gProcessArguments = argsp;
     __gKeiTab = argsp->kei_funcs;
-    environ = argsp->envp;
 
     __gAtExitFuncsCount = 0;
     __gIsExiting = false;
@@ -38,23 +34,9 @@ void __stdlibc_init(proc_args_t* _Nonnull argsp)
     mtx_init(&__g_dtoa_mtx[0]);
     mtx_init(&__g_dtoa_mtx[1]);
 
+    __env_init(argsp->envp);
     __vcpu_init();
     __malloc_init();
     __locale_init();
     __stdio_init();
-}
-
-// Returns true if the pointer is known as NOT free-able. Eg because it points
-// to the text or read-only data segments or it points into the process argument
-// area, etc.
-bool __is_pointer_NOT_freeable(void* ptr)
-{
-    if (ptr >= (void*)__gProcessArguments && ptr < (void*)(((char*) __gProcessArguments) + __gProcessArguments->pargs_size)) {
-        return true;
-    }
-
-    // XXX check text segment
-    // XXX check read-only data segment
-
-    return false;
 }

@@ -24,7 +24,8 @@ __CPP_BEGIN
 typedef void (*at_exit_func_t)(void);
 
 
-extern proc_args_t* __gProcessArguments;
+extern size_t  __gEnvironCount;
+extern char**  __gInitialEnviron;
 
 extern spinlock_t               __gAtExitLock;
 extern at_exit_func_t _Nullable __gAtExitFuncs[ATEXIT_MAX];
@@ -37,8 +38,7 @@ extern void __stdlibc_init(proc_args_t* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __locale_init(void);
 extern void __stdio_init(void);
-
-extern bool __is_pointer_NOT_freeable(void* ptr);
+extern void __env_init(char ** initial_envp);
 
 
 // environ

@@ -12,16 +12,6 @@
 
 // XXX We currently leak environment table entries because of the broken putenv() semantics
 
-// Returns the number of entries in the environment table. Does not include the
-// terminating NULL entry.
-static ssize_t __getenvsize(void)
-{
-    char** p = environ;
-
-    while (*p++);
-    return p - environ - 1;
-}
-
 // Replaces the entry at the given index in the environment table with the given
 // entry.
 static void __putenvat(char* _Nonnull entry, ssize_t idx)
@@ -33,25 +23,23 @@ static void __putenvat(char* _Nonnull entry, ssize_t idx)
 // it is full.
 static int __addenv(char* _Nonnull entry)
 {
-    const ssize_t oldSize = __getenvsize();
-    char** pDst = (char**) malloc(sizeof(char*) * (oldSize + 2));
+    char** new_environ = (char**) malloc(sizeof(char*) * (__gEnvironCount + 2));
 
-    if (pDst == NULL) {
+    if (new_environ == NULL) {
         return -1;
     }
 
-    char** pSrc = environ;
-    while (*pSrc) {
-        *pDst++ = *pSrc++;
-    }
-    *pDst++ = entry;
-    *pDst = NULL;
+    // copy old envp + trailing NULL entry
+    memcpy(new_environ, environ, sizeof(char*) * __gEnvironCount);
+    new_environ[__gEnvironCount + 0] = entry;
+    new_environ[__gEnvironCount + 1] = NULL;
 
-    if (!__is_pointer_NOT_freeable(environ)) {
+    if (environ != __gInitialEnviron) {
         free(environ);
     }
 
-    environ = pDst;
+    environ = new_environ;
+    __gEnvironCount++;
     
     return 0;
 }

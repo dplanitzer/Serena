@@ -16,7 +16,7 @@
 // stored in the table.
 char* _Nullable __getenv(const char *_Nonnull name, size_t nMaxChars, ssize_t* _Nonnull idx)
 {
-    if (name) {
+    if (name && *name != '\0') {
         const char* const * p = (const char * const *) environ;
 
         while (*p) {
