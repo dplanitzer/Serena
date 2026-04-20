@@ -23,9 +23,9 @@ volatile bool            __gIsExiting;
 mtx_t __g_dtoa_mtx[2];
 
 
-void __stdlibc_init(proc_args_t* _Nonnull argsp)
+void __stdlibc_init(proc_ctx_t* _Nonnull pctx)
 {
-    __gKeiTab = argsp->kei_funcs;
+    __gKeiTab = pctx->kei_funcs;
 
     __gAtExitFuncsCount = 0;
     __gIsExiting = false;
@@ -34,7 +34,7 @@ void __stdlibc_init(proc_args_t* _Nonnull argsp)
     mtx_init(&__g_dtoa_mtx[0]);
     mtx_init(&__g_dtoa_mtx[1]);
 
-    __env_init(argsp->envp);
+    __env_init(pctx->envc, pctx->envv);
     __vcpu_init();
     __malloc_init();
     __locale_init();

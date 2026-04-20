@@ -16,7 +16,7 @@
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
 static const char*      g_kernel_argv[2] = { "kerneld", NULL };
 static const char*      g_kernel_env[1] = { NULL };
-static proc_args_t      g_kernel_pargs;
+static proc_ctx_t       g_kernel_ctx;
 static struct Process   g_kernel_proc_storage;
 ProcessRef _Nonnull gKernelProcess;
 
@@ -85,7 +85,7 @@ static void _proc_deinit(ProcessRef _Nonnull self)
     wq_deinit(&self->siwa_queue);
     wq_deinit(&self->clk_wait_queue);
     AddressSpace_Deinit(&self->addr_space);
-    self->pargs_base = NULL;
+    self->ctx_base = NULL;
 
     self->pid = 0;
     self->ppid = 0;
@@ -333,8 +333,7 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
 static errno_t _proc_path(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
-    const proc_args_t* pa = (const proc_args_t*)self->pargs_base;
-    const char* arg0 = (pa) ? pa->argv[0] : NULL;
+    const char* arg0 = (self->ctx_base) ? self->ctx_base->argv[0] : NULL;
     const size_t arg0len = (arg0) ? strlen(arg0) : 0;
 
     if (bufSize >= arg0len + 1) {
@@ -353,8 +352,7 @@ static errno_t _proc_path(ProcessRef _Nonnull self, char* _Nonnull buf, size_t b
 static errno_t _proc_name(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
-    const proc_args_t* pa = (const proc_args_t*)self->pargs_base;
-    const char* arg0 = (pa) ? pa->argv[0] : NULL;
+    const char* arg0 = (self->ctx_base) ? self->ctx_base->argv[0] : NULL;
     const char* lpc = (arg0) ? strrchr(arg0, '/') : NULL;
     const char* fname = (lpc) ? lpc + 1 : arg0;
     const size_t fnameLen = (fname) ? strlen(fname) : 0;
@@ -394,11 +392,11 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
             err = _proc_name(self, buf, bufSize);
             break;
 
-        case PROC_PROP_ARGS: {
-            const size_t argv_size = ((proc_args_t*)self->pargs_base)->argv_size;
+        case PROC_PROP_CMDLINE: {
+            const size_t argv_size = self->ctx_base->argv_size;
 
             if (bufSize >= argv_size) {
-                memcpy(buf, ((proc_args_t*)self->pargs_base)->argv, argv_size);
+                memcpy(buf, self->ctx_base->argv, argv_size);
             }
             else {
                 *buf = '\0';
@@ -408,10 +406,10 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
         }
 
         case PROC_PROP_ENVIRON: {
-            const size_t env_size = ((proc_args_t*)self->pargs_base)->env_size;
+            const size_t envv_size = self->ctx_base->envv_size;
 
-            if (bufSize >= env_size) {
-                memcpy(buf, ((proc_args_t*)self->pargs_base)->envp, env_size);
+            if (bufSize >= envv_size) {
+                memcpy(buf, self->ctx_base->envv, envv_size);
             }
             else {
                 *buf = '\0';
@@ -453,8 +451,8 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
             ip->vcpu_waiting_count = self->vcpu_waiting_count;
             ip->vm_size = AddressSpace_GetVirtualSize(&self->addr_space);
-            ip->argv_size = ((proc_args_t*)self->pargs_base)->argv_size;
-            ip->env_size = ((proc_args_t*)self->pargs_base)->env_size;
+            ip->argv_size = self->ctx_base->argv_size;
+            ip->envv_size = self->ctx_base->envv_size;
             break;
         }
 
@@ -553,11 +551,11 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, pRootFh, UID_ROOT, GID_ROOT, rootDir, rootDir, fs_perms_from_octal(0022));
     Inode_Relinquish(rootDir);
 
-    g_kernel_pargs.version = sizeof(proc_args_t);
-    g_kernel_pargs.argc = 1;
-    g_kernel_pargs.argv = g_kernel_argv;
-    g_kernel_pargs.envp = g_kernel_env;
-    g_kernel_proc_storage.pargs_base = (char*)&g_kernel_pargs;
+    g_kernel_ctx.version = sizeof(proc_ctx_t);
+    g_kernel_ctx.argc = 1;
+    g_kernel_ctx.argv = g_kernel_argv;
+    g_kernel_ctx.envv = g_kernel_env;
+    g_kernel_proc_storage.ctx_base= &g_kernel_ctx;
 
     vcpu_t main_vp = vcpu_current();
     main_vp->proc = &g_kernel_proc_storage;

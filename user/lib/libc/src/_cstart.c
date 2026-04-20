@@ -12,9 +12,9 @@
 extern int main(int argc, char *argv[]);
 
 // start() that implements the standard C runtime startup function.
-void start(proc_args_t* _Nonnull argsp)
+void start(proc_ctx_t* _Nonnull pctx)
 {
-    __stdlibc_init(argsp);
+    __stdlibc_init(pctx);
 
-    exit(main(argsp->argc, argsp->argv));
+    exit(main(pctx->argc, pctx->argv));
 }

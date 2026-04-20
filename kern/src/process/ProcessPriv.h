@@ -48,12 +48,12 @@ typedef struct sigroute* sigroute_t;
 
 
 typedef struct proc_img {
-    AddressSpace        as;
-    vcpu_t _Nullable    main_vp;
-    void* _Nullable     base;
-    void* _Nullable     entry_point;
-    char* _Nullable     pargs;
-    bool                has_as;
+    AddressSpace            as;
+    vcpu_t _Nullable        main_vp;
+    void* _Nullable         base;
+    void* _Nullable         entry_point;
+    proc_ctx_t* _Nullable   ctx_base;
+    bool                    has_as;
 } proc_img_t;
 
 
@@ -82,7 +82,7 @@ typedef struct Process {
 
     // Process image
     AddressSpace                    addr_space;
-    char* _Nullable _Weak           pargs_base; // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
+    proc_ctx_t* _Nullable           ctx_base;       // Base address to the contiguous memory region holding the proc_ctx_t structure, command line arguments and environment
 
     excpt_handler_t                 excpt_handler;  // atomic: exception handler and argument
 

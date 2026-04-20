@@ -41,58 +41,58 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], size_
 
 static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* argv[], const char* _Nullable env[])
 {
-    size_t nArgvCount = 0;
-    size_t nEnvCount = 0;
-    const ssize_t nbytes_argv = calc_size_of_arg_table(argv, &nArgvCount);
-    const ssize_t nbytes_envp = calc_size_of_arg_table(env, &nEnvCount);
-    const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
+    size_t argc = 0;
+    size_t envc = 0;
+    const ssize_t argv_size = calc_size_of_arg_table(argv, &argc);
+    const ssize_t envv_size = calc_size_of_arg_table(env, &envc);
+    const ssize_t argv_envv_size = argv_size + envv_size;
 
-    if (nbytes_argv < 0 || nbytes_envp < 0 || nbytes_argv_envp > __ARG_MAX) {
+    if (argv_size < 0 || envv_size < 0 || argv_envv_size > __ARG_MAX) {
         return E2BIG;
     }
 
-    proc_args_t* pargs = NULL;
-    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(proc_args_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
-    const errno_t err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
+    proc_ctx_t* pctx = NULL;
+    const ssize_t ctx_size = __Ceil_PowerOf2(sizeof(proc_ctx_t) + argv_envv_size, CPU_PAGE_SIZE);
+    const errno_t err = AddressSpace_Allocate(&pimg->as, ctx_size, (void**)&pctx);
     if (err != EOK) {
         return err;
     }
 
 
-    char** proc_argv = (char**)((char*)pargs + sizeof(proc_args_t));
-    char** proc_env = (char**)&proc_argv[nArgvCount + 1];
-    char*  dst = (char*)&proc_env[nEnvCount + 1];
+    char** proc_argv = (char**)((char*)pctx + sizeof(proc_ctx_t));
+    char** proc_env = (char**)&proc_argv[argc + 1];
+    char*  dst = (char*)&proc_env[envc + 1];
 
 
     // Argv
-    for (size_t i = 0; i < nArgvCount; i++) {
+    for (size_t i = 0; i < argc; i++) {
         proc_argv[i] = dst;
         dst = strcpy_x(dst, argv[i]) + 1;
     }
-    proc_argv[nArgvCount] = NULL;
+    proc_argv[argc] = NULL;
 
 
     // Envp
-    for (size_t i = 0; i < nEnvCount; i++) {
+    for (size_t i = 0; i < envc; i++) {
         proc_env[i] = dst;
         dst = strcpy_x(dst, env[i]) + 1;
     }
-    proc_env[nEnvCount] = NULL;
+    proc_env[envc] = NULL;
 
 
     // Process Arguments
-    pargs->version = sizeof(proc_args_t);
-    pargs->reserved = 0;
-    pargs->pargs_size = nbytes_procargs;
-    pargs->argv_size = nbytes_argv;
-    pargs->env_size = nbytes_envp;
-    pargs->argc = nArgvCount;
-    pargs->argv = proc_argv;
-    pargs->envp = proc_env;
-    pargs->image_base = NULL;
-    pargs->kei_funcs = gKeiTable;
+    pctx->version = sizeof(proc_ctx_t);
+    pctx->ctx_size = ctx_size;
+    pctx->argv_size = argv_size;
+    pctx->envv_size = envv_size;
+    pctx->argc = argc;
+    pctx->argv = proc_argv;
+    pctx->envc = envc;
+    pctx->envv = proc_env;
+    pctx->image_base = NULL;
+    pctx->kei_funcs = gKeiTable;
 
-    pimg->pargs = (char*)pargs;
+    pimg->ctx_base = pctx;
 
     return EOK;
 }
@@ -151,7 +151,7 @@ static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerR
 
     // Load the executable
     try(_proc_img_load_gemdos_file(pimg, chan));
-    ((proc_args_t*)(pimg->pargs))->image_base = pimg->base;
+    pimg->ctx_base->image_base = pimg->base;
 
 
 catch:
@@ -174,7 +174,7 @@ static errno_t _proc_img_init(ProcessRef _Nonnull _Locked self, const char* _Non
 
 
     // Create the new main vcpu
-    try(_proc_img_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->pargs, &pimg->main_vp));
+    try(_proc_img_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, &pimg->main_vp));
 
 
 catch:
@@ -217,7 +217,7 @@ static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonn
     self->vcpu_count++;
     self->vcpu_lifetime_count++;
     pimg->main_vp->proc = self;
-    self->pargs_base = pimg->pargs;
+    self->ctx_base = pimg->ctx_base;
 }
 
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed)

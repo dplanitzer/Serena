@@ -16,24 +16,26 @@
 
 #define PROC_SELF    0
 
-// The process arguments descriptor is stored in the process address space and
-// it contains a pointer to the base of the command line arguments and environment
-// variables tables. These tables store pointers to nul-terminated strings and
-// the last entry in the table contains a NULL.
-// This data structure is set up by the kernel when it processes a Spawn()
-// request. Once set up the kernel neither reads nor writes to this area.
-typedef struct proc_args {
-    size_t                      version;        // sizeof(proc_args_t)
-    size_t                      reserved;
-    size_t                      pargs_size;     // Size of the area that holds all of proc_args_t + argv + envp
+// The process context contains the argument and environment vectors of the
+// process. It is set up at exec time and it is stored in the address space of
+// the process. A pointer to this data structure is passed to the first function
+// that is executed on the main vcpu. This function should store the pointer in
+// a global variable to enable easy access to the reference data.
+typedef struct proc_ctx {
+    size_t                      version;       // sizeof(proc_ctx_t)
+    size_t                      ctx_size;      // Size of the area that holds all of proc_ctx_t + argv + envp
+
     size_t                      argv_size;
-    size_t                      env_size;
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
-    char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
+
+    size_t                      envv_size;
+    size_t                      envc;
+    char* _Nullable * _Nonnull  envv;           // Pointer to the base of the environment table. Last entry holds NULL.
+
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
-    kei_func_t* _Nonnull        kei_funcs;      // Pointer to the URT function table
-} proc_args_t;
+    kei_func_t* _Nonnull        kei_funcs;      // Pointer to the KEI function table
+} proc_ctx_t;
 
 
 #define PROC_STOF_PID           0   /* Status of child process with pid */
@@ -91,7 +93,7 @@ typedef struct proc_basic_info {
     uint64_t    vm_size;                // size of process address space in bytes
 
     size_t      argv_size;              // size of the argv vector
-    size_t      env_size;               // size of the environment variable table
+    size_t      envv_size;              // size of the environment variable table
 
     size_t      vcpu_count;             // number of vcpus bound to process right now
     size_t      vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
@@ -113,10 +115,10 @@ typedef struct proc_times_info {
 
 
 // Process properties
-#define PROC_PROP_CWD       1
-#define PROC_PROP_NAME      2
-#define PROC_PROP_PATH      3
-#define PROC_PROP_ARGS      4
-#define PROC_PROP_ENVIRON   5
+#define PROC_PROP_CWD       1       /* current working directory of the process */
+#define PROC_PROP_NAME      2       /* just the filename and extension portion of the process path */
+#define PROC_PROP_PATH      3       /* path from which the process was executed */
+#define PROC_PROP_CMDLINE   4       /* argv style, NUL separated command line arguments */
+#define PROC_PROP_ENVIRON   5       /* argv style, NUL separated environment variable definitions */
 
 #endif /* _KPI_PROCESS_H */
