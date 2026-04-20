@@ -43,9 +43,9 @@ static CLAP_DECL(params,
 
 static int proc_op(InterpreterRef _Nonnull ip, const char* _Nonnull cmd, pid_t pid)
 {
-    proc_user_info_t user_info;
+    proc_basic_info_t basic;
 
-    if (proc_info(pid, PROC_INFO_USER, &user_info) != 0) {
+    if (proc_info(pid, PROC_INFO_BASIC, &basic) != 0) {
         return EXIT_FAILURE;
     }
 
@@ -65,13 +65,13 @@ static int proc_op(InterpreterRef _Nonnull ip, const char* _Nonnull cmd, pid_t p
         OpStack_PushCString(ip->opStack, str_buf);
     }
     else if (!strcmp(cmd, "uid")) {
-        OpStack_PushInteger(ip->opStack, user_info.uid);
+        OpStack_PushInteger(ip->opStack, basic.uid);
     }
     else if (!strcmp(cmd, "gid")) {
-        OpStack_PushInteger(ip->opStack, user_info.gid);
+        OpStack_PushInteger(ip->opStack, basic.gid);
     }
     else if (!strcmp(cmd, "umask")) {
-        OpStack_PushInteger(ip->opStack, user_info.umask);
+        OpStack_PushInteger(ip->opStack, basic.umask);
     }
     else {
         return EXIT_FAILURE;

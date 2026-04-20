@@ -94,6 +94,7 @@ enum {
     SC_proc_resume,         // errno_t proc_resume(pid_t pid)
     SC_fd_info,             // errno_t fd_info(int fd, int flavor, fd_info_ref _Nonnull info)
     SC_fd_dup,              // errno_t fd_dup(int fd, int min_fd, int* _Nonnull new_fd)
+    SC_proc_self,           // pid_t proc_self(void)
 };
 
 

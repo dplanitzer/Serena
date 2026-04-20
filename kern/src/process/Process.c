@@ -441,6 +441,13 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
         case PROC_INFO_BASIC: {
             proc_basic_info_t* ip = info;
 
+            ip->pid = self->pid;
+            ip->ppid = self->ppid;
+            ip->pgrp = self->pgrp;
+            ip->sid = self->sid;
+            ip->uid = FileManager_GetRealUserId(&self->fm);
+            ip->gid = FileManager_GetRealGroupId(&self->fm);
+            ip->umask = FileManager_GetUMask(&self->fm);
             ip->run_state = self->run_state;
             ip->vcpu_count = self->vcpu_count;
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
@@ -448,25 +455,6 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->vm_size = AddressSpace_GetVirtualSize(&self->addr_space);
             ip->argv_size = ((proc_args_t*)self->pargs_base)->argv_size;
             ip->env_size = ((proc_args_t*)self->pargs_base)->env_size;
-            break;
-        }
-
-        case PROC_INFO_IDS: {
-            proc_ids_info_t* ip = info;
-
-            ip->id = self->pid;
-            ip->parent_id = self->ppid;
-            ip->group_id = self->pgrp;
-            ip->session_id = self->sid;
-            break;
-        }
-
-        case PROC_INFO_USER: {
-            proc_user_info_t* ip = info;
-
-            ip->uid = FileManager_GetRealUserId(&self->fm);
-            ip->gid = FileManager_GetRealGroupId(&self->fm);
-            ip->umask = FileManager_GetUMask(&self->fm);
             break;
         }
 

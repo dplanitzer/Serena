@@ -71,6 +71,7 @@ SYSCALL_REF(proc_setumask);
 SYSCALL_REF(proc_terminate);
 SYSCALL_REF(proc_suspend);
 SYSCALL_REF(proc_resume);
+SYSCALL_REF(proc_self);
 
 
 SYSCALL_REF(vm_allocate);
@@ -106,7 +107,7 @@ SYSCALL_REF(vcpu_info);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   79
+#define SYSCALL_COUNT   80
 
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_read, SC_ERRNO),
@@ -188,6 +189,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_resume, SC_ERRNO),
     SYSCALL_ENTRY(fd_info, SC_ERRNO),
     SYSCALL_ENTRY(fd_dup, SC_ERRNO),
+    SYSCALL_ENTRY(proc_self, SC_INT),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

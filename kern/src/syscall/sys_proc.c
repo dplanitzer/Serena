@@ -11,8 +11,13 @@
 #include <process/ProcessManager.h>
 
 
+SYSCALL_0(proc_self)
+{
+    return Process_GetId(vp->proc);
+}
+
 SYSCALL_1(proc_exit, int status)
-{    
+{
     Process_Exit(vp->proc, PROC_STATUS_EXITED, pa->status);
     /* NOT REACHED */
     return 0;

@@ -96,8 +96,6 @@ static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
 static void run_proc_sample(pid_t pid)
 {
     static proc_basic_info_t basic;
-    static proc_ids_info_t ids;
-    static proc_user_info_t creds;
     static proc_times_info_t times;
 
     run_proc_t* rp = run_proc_acquire(pid);
@@ -108,8 +106,6 @@ static void run_proc_sample(pid_t pid)
 
     errno = 0;
     proc_info(pid, PROC_INFO_BASIC, &basic);
-    proc_info(pid, PROC_INFO_IDS, &ids);
-    proc_info(pid, PROC_INFO_USER, &creds);
     proc_info(pid, PROC_INFO_TIMES, &times);
 
     if (errno != 0) {
@@ -118,10 +114,10 @@ static void run_proc_sample(pid_t pid)
     }
 
 
-    rp->pgrp = ids.group_id;
-    rp->ppid = ids.parent_id;
-    rp->sid = ids.session_id;
-    rp->uid = creds.uid;
+    rp->pgrp = basic.pgrp;
+    rp->ppid = basic.ppid;
+    rp->sid = basic.sid;
+    rp->uid = basic.uid;
     rp->vcpu_count = basic.vcpu_count;
     nanotime_sub(&g_info.current_time, &times.creation_time, &rp->run_time);
     rp->vm_size = basic.vm_size;

@@ -22,11 +22,11 @@ static CLAP_DECL(params,
 
 int cmd_id(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
-    proc_user_info_t info;
+    proc_basic_info_t info;
 
     clap_parse(0, params, argc, argv);
 
-    (void)proc_info(PROC_SELF, PROC_INFO_USER, &info);
+    (void)proc_info(PROC_SELF, PROC_INFO_BASIC, &info);
     printf("uid=%u, gid=%u\n", info.uid, info.gid);
 
     OpStack_PushVoid(ip->opStack);

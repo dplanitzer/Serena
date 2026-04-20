@@ -68,9 +68,7 @@ typedef struct proc_status {
 typedef void* proc_info_ref;
 
 #define PROC_INFO_BASIC 1
-#define PROC_INFO_IDS   2
-#define PROC_INFO_USER  3
-#define PROC_INFO_TIMES 4
+#define PROC_INFO_TIMES 2
 
 
 #define PROC_STATE_RESUMED      0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something and the process is not suspended */
@@ -79,32 +77,26 @@ typedef void* proc_info_ref;
 #define PROC_STATE_TERMINATED   3       /* Process has terminated and parent processes hasn't reaped it yet */
 
 typedef struct proc_basic_info {
+    pid_t       pid;
+    pid_t       ppid;
+    pid_t       pgrp;
+    pid_t       sid;
+
+    uid_t       uid;
+    gid_t       gid;
+    fs_perms_t  umask;
+
+    int         run_state;
+
     uint64_t    vm_size;                // size of process address space in bytes
 
     size_t      argv_size;              // size of the argv vector
     size_t      env_size;               // size of the environment variable table
 
-    int         run_state;
-
     size_t      vcpu_count;             // number of vcpus bound to process right now
     size_t      vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
     size_t      vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
 } proc_basic_info_t;
-
-
-typedef struct proc_ids_info {
-    pid_t   id;
-    pid_t   parent_id;
-    pid_t   group_id;
-    pid_t   session_id;
-} proc_ids_info_t;
-
-
-typedef struct proc_user_info {
-    uid_t       uid;
-    gid_t       gid;
-    fs_perms_t  umask;
-} proc_user_info_t;
 
 
 typedef struct proc_times_info {
