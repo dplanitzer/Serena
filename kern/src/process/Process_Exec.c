@@ -14,27 +14,32 @@
 #include <sched/vcpu.h>
 
 
-static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], size_t* _Nonnull pOutCount)
+// Calculates the size of the string array that will be used to store the 'argv'
+// strings. This includes the NUL marking the end of each string and the final
+// NUL entry that marks the end of the string array. Note this is not the argv[]
+// vector that points to the string. This is a separate thing.
+static ssize_t calc_size_of_arg_strings(const char* const _Nullable argv[], size_t* _Nonnull pOutCount)
 {
     ssize_t nbytes = 0;
     size_t count = 0;
 
-    while (table[count]) {
-        const char* pa = table[count];
+    while (argv[count]) {
+        const char* pa = argv[count];
         const ssize_t slen = strnlen_s(pa, __ARG_STRLEN_MAX);
-        const ssize_t nbytes_entry = sizeof(char*) + slen + 1;
+        const ssize_t entry_size = slen + 1;
 
         if (pa[slen] != '\0') {
             return -1;
         }
-        if ((nbytes + nbytes_entry) > __ARG_MAX) {
+        if ((nbytes + entry_size) > __ARG_MAX) {
             return -1;
         }
 
-        nbytes += nbytes_entry;
+        nbytes += entry_size;
         count++;
     }
     *pOutCount = count;
+    nbytes++;   // This is for the empty string ('\0') that marks the end of teh string array
 
     return nbytes;
 }
@@ -43,52 +48,67 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
 {
     size_t argc = 0;
     size_t envc = 0;
-    const ssize_t argv_size = calc_size_of_arg_table(argv, &argc);
-    const ssize_t envv_size = calc_size_of_arg_table(env, &envc);
-    const ssize_t argv_envv_size = argv_size + envv_size;
+    const ssize_t arg_strings_size = calc_size_of_arg_strings(argv, &argc);
+    const ssize_t env_strings_size = calc_size_of_arg_strings(env, &envc);
 
-    if (argv_size < 0 || envv_size < 0 || argv_envv_size > __ARG_MAX) {
+    if (arg_strings_size < 0 || env_strings_size < 0 || (arg_strings_size + env_strings_size) > __ARG_MAX) {
         return E2BIG;
     }
 
     proc_ctx_t* pctx = NULL;
-    const ssize_t ctx_size = __Ceil_PowerOf2(sizeof(proc_ctx_t) + argv_envv_size, CPU_PAGE_SIZE);
+    const size_t argv_size = sizeof(char*) * (argc + 1);
+    const size_t envv_size = sizeof(char*) * (envc + 1);
+    const size_t pure_ctx_size = sizeof(proc_ctx_t) + argv_size + arg_strings_size + envv_size + env_strings_size;
+    const ssize_t ctx_size = __Ceil_PowerOf2(pure_ctx_size, CPU_PAGE_SIZE);
     const errno_t err = AddressSpace_Allocate(&pimg->as, ctx_size, (void**)&pctx);
     if (err != EOK) {
         return err;
     }
 
 
-    char** proc_argv = (char**)((char*)pctx + sizeof(proc_ctx_t));
-    char** proc_env = (char**)&proc_argv[argc + 1];
-    char*  dst = (char*)&proc_env[envc + 1];
+    char* p = (char*)pctx;
+    p += sizeof(proc_ctx_t);
+    char** dst_argv = (char**)p;
+    p += argv_size;
+    char* dst_arg_strings = p;
+    p += arg_strings_size;
+    char** dst_envv = (char**)p;
+    p += envv_size;
+    char* dst_env_strings = p;
+    char* dst_str;
 
 
     // Argv
+    dst_str = dst_arg_strings;
     for (size_t i = 0; i < argc; i++) {
-        proc_argv[i] = dst;
-        dst = strcpy_x(dst, argv[i]) + 1;
+        dst_argv[i] = dst_str;
+        dst_str = strcpy_x(dst_str, argv[i]) + 1;
     }
-    proc_argv[argc] = NULL;
+    *dst_str = '\0';
+    dst_argv[argc] = NULL;
 
 
     // Envp
+    dst_str = dst_env_strings;
     for (size_t i = 0; i < envc; i++) {
-        proc_env[i] = dst;
-        dst = strcpy_x(dst, env[i]) + 1;
+        dst_envv[i] = dst_str;
+        dst_str = strcpy_x(dst_str, env[i]) + 1;
     }
-    proc_env[envc] = NULL;
+    *dst_str = '\0';
+    dst_envv[envc] = NULL;
 
 
     // Process Arguments
     pctx->version = sizeof(proc_ctx_t);
     pctx->ctx_size = ctx_size;
-    pctx->argv_size = argv_size;
-    pctx->envv_size = envv_size;
+    pctx->arg_size = arg_strings_size;
+    pctx->arg_strings = dst_arg_strings;
+    pctx->env_size = env_strings_size;
+    pctx->env_strings = dst_env_strings;
     pctx->argc = argc;
-    pctx->argv = proc_argv;
+    pctx->argv = dst_argv;
     pctx->envc = envc;
-    pctx->envv = proc_env;
+    pctx->envv = dst_envv;
     pctx->image_base = NULL;
     pctx->kei_funcs = gKeiTable;
 

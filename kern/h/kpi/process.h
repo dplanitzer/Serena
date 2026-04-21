@@ -25,11 +25,13 @@ typedef struct proc_ctx {
     size_t                      version;       // sizeof(proc_ctx_t)
     size_t                      ctx_size;      // Size of the area that holds all of proc_ctx_t + argv + envp
 
-    size_t                      argv_size;
+    size_t                      arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nonnull              arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
 
-    size_t                      envv_size;
+    size_t                      env_size;       // Size of env_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nonnull              env_strings;    // Consecutive list of NUL-terminated process environment strings. End is marked by an empty string
     size_t                      envc;
     char* _Nullable * _Nonnull  envv;           // Pointer to the base of the environment table. Last entry holds NULL.
 
@@ -92,8 +94,8 @@ typedef struct proc_basic_info {
 
     uint64_t    vm_size;                // size of process address space in bytes
 
-    size_t      argv_size;              // size of the argv vector
-    size_t      envv_size;              // size of the environment variable table
+    size_t      cmdline_size;           // size of the process command line string list including the terminating '\0'
+    size_t      env_size;               // size of the process environment string list including the terminating '\0'
 
     size_t      vcpu_count;             // number of vcpus bound to process right now
     size_t      vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus

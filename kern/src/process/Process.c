@@ -393,10 +393,10 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
             break;
 
         case PROC_PROP_CMDLINE: {
-            const size_t argv_size = self->ctx_base->argv_size;
+            const size_t cmdline_size = self->ctx_base->arg_size;
 
-            if (bufSize >= argv_size) {
-                memcpy(buf, self->ctx_base->argv, argv_size);
+            if (bufSize >= cmdline_size) {
+                memcpy(buf, self->ctx_base->arg_strings, cmdline_size);
             }
             else {
                 *buf = '\0';
@@ -406,10 +406,10 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
         }
 
         case PROC_PROP_ENVIRON: {
-            const size_t envv_size = self->ctx_base->envv_size;
+            const size_t env_size = self->ctx_base->env_size;
 
-            if (bufSize >= envv_size) {
-                memcpy(buf, self->ctx_base->envv, envv_size);
+            if (bufSize >= env_size) {
+                memcpy(buf, self->ctx_base->env_strings, env_size);
             }
             else {
                 *buf = '\0';
@@ -451,8 +451,8 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
             ip->vcpu_waiting_count = self->vcpu_waiting_count;
             ip->vm_size = AddressSpace_GetVirtualSize(&self->addr_space);
-            ip->argv_size = self->ctx_base->argv_size;
-            ip->envv_size = self->ctx_base->envv_size;
+            ip->cmdline_size = self->ctx_base->arg_size;
+            ip->env_size = self->ctx_base->env_size;
             break;
         }
 
