@@ -16,6 +16,21 @@
 
 #define PROC_SELF    0
 
+
+// proc_ctx_t aux array entry types. Ignore types that you don't recognize. The
+// array is terminated with a PROC_AUX_END entry.
+#define PROC_AUX_END        0
+#define PROC_AUX_EXEC_HDR   1   /* Pointer to the executable header */
+#define PROC_AUX_KEI        2   /* Pointer to the KEI function table */
+
+typedef struct proc_aux_entry {
+    int     type;
+    union {
+        ssize_t i;
+        void*   p;
+    }       u;
+} proc_aux_entry_t;
+
 // The process context contains the argument and environment vectors of the
 // process. It is set up at exec time and it is stored in the address space of
 // the process. A pointer to this data structure is passed to the first function
@@ -24,11 +39,11 @@
 typedef struct proc_ctx {
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
+
     size_t                      envc;
     char* _Nullable * _Nonnull  envv;           // Pointer to the base of the environment table. Last entry holds NULL.
 
-    void* _Nonnull              image_base;     // Pointer to the base of the executable header
-    kei_func_t* _Nonnull        kei_funcs;      // Pointer to the KEI function table
+    proc_aux_entry_t* _Nonnull  aux;            // Pointer to an array of proc_aux_entry_t entries
 } proc_ctx_t;
 
 

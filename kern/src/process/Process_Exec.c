@@ -54,6 +54,18 @@ static void _copyin_table(const char* tb[], const proc_ctx_table_t* _Nonnull ctb
     dst_tbv[ctb->tbc] = NULL;
 }
 
+static void _copyin_aux_array(proc_aux_entry_t* _Nonnull aux, void* _Nonnull exec_hdr)
+{
+    aux[0].type = PROC_AUX_EXEC_HDR;
+    aux[0].u.p = exec_hdr;
+
+    aux[1].type = PROC_AUX_KEI;
+    aux[1].u.p = gKeiTable;
+    
+    aux[2].type = PROC_AUX_END;
+    aux[2].u.p = NULL;
+}
+
 static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
 {
     decl_try_err();
@@ -94,36 +106,42 @@ static errno_t _proc_img_create_ctx(proc_img_t* _Nonnull pimg, const char* _Null
 
     // Build the proc_ctx_t region. Data is laid out like this to ensure proper
     // alignment:
-    // proc_ctx_t, argv_table, envv_table, arg_strings, env_strings
+    // proc_ctx_t, argv_table, envv_table, aux_array, arg_strings, env_strings
+    //
+    // Layout of the aux entries:
+    // exec_hdr, kei_ptr, aux_end
     proc_ctx_table_t dst_argv;
     proc_ctx_table_t dst_env;
+    proc_aux_entry_t* aux_array;
 
     try(_get_table_size(argv, &dst_argv));
     try(_get_table_size(env, &dst_env));
 
+#define AUX_ENTRY_COUNT 3
     proc_ctx_t* pctx = NULL;
     const size_t argv_size = sizeof(char*) * (dst_argv.tbc + 1);
     const size_t envv_size = sizeof(char*) * (dst_env.tbc + 1);
-    const size_t pure_ctx_rgn_size = sizeof(proc_ctx_t) + argv_size + envv_size + dst_argv.tb_strings_size + dst_env.tb_strings_size;
+    const size_t aux_size = sizeof(proc_aux_entry_t) * AUX_ENTRY_COUNT;
+    const size_t pure_ctx_rgn_size = sizeof(proc_ctx_t) + argv_size + envv_size + aux_size + dst_argv.tb_strings_size + dst_env.tb_strings_size;
     const ssize_t ctx_rgn_size = __Ceil_PowerOf2(pure_ctx_rgn_size, CPU_PAGE_SIZE);
 
     try(AddressSpace_Allocate(&pimg->as, ctx_rgn_size, (void**)&pctx));
 
     dst_argv.tbv = (char**)((char*)pctx + sizeof(proc_ctx_t));
     dst_env.tbv = (char**)((char*)dst_argv.tbv + argv_size);
-    dst_argv.tb_strings = (char*)dst_env.tbv + envv_size;
+    aux_array = (proc_aux_entry_t*)((char*)dst_env.tbv + envv_size);
+    dst_argv.tb_strings = (char*)aux_array + aux_size;
     dst_env.tb_strings = dst_argv.tb_strings + dst_argv.tb_strings_size;
 
     _copyin_table(argv, &dst_argv);
     _copyin_table(env, &dst_env);
+    _copyin_aux_array(aux_array, pimg->base);
 
     pctx->argc = dst_argv.tbc;
     pctx->argv = dst_argv.tbv;
     pctx->envc = dst_env.tbc;
     pctx->envv = dst_env.tbv;
-    pctx->image_base = NULL;
-    pctx->kei_funcs = gKeiTable;
-    pctx->image_base = pimg->base;
+    pctx->aux = aux_array;
 
     pimg->ctx_base = pctx;
     pimg->arg_size = dst_argv.tb_strings_size;

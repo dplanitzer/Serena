@@ -27,7 +27,23 @@ mtx_t __g_dtoa_mtx[2];
 void __stdlibc_init(proc_ctx_t* _Nonnull pctx)
 {
     __gProcCtx = pctx;
-    __gKeiTab = pctx->kei_funcs;
+
+
+    const proc_aux_entry_t* ae = pctx->aux;
+    for (;;) {
+        if (ae->type == PROC_AUX_END) {
+            break;
+        }
+        else if (ae->type == PROC_AUX_KEI) {
+            __gKeiTab = ae->u.p;
+        }
+        
+        ae++;
+    }
+    if (__gKeiTab == NULL) {
+        for(;;);    // just hang
+    }
+
 
     __gAtExitFuncsCount = 0;
     __gIsExiting = false;
