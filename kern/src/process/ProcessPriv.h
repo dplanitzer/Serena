@@ -47,6 +47,13 @@ struct sigroute {
 typedef struct sigroute* sigroute_t;
 
 
+typedef struct proc_ctx_table {
+    ssize_t                     tb_strings_size;    // Size of arg_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nonnull              tb_strings;         // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
+    size_t                      tbc;                // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
+    char* _Nullable * _Nonnull  tbv;                // Pointer to the base of the command line arguments table. Last entry is NULL
+} proc_ctx_table_t;
+
 typedef struct proc_img {
     AddressSpace            as;
     vcpu_t _Nullable        main_vp;

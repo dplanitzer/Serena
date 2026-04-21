@@ -24,6 +24,8 @@ __CPP_BEGIN
 typedef void (*at_exit_func_t)(void);
 
 
+extern const proc_ctx_t* _Nonnull __gProcCtx;
+
 extern size_t  __gEnvironCount;
 extern char**  __gInitialEnviron;
 

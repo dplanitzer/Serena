@@ -18,6 +18,10 @@ __CPP_BEGIN
 // Returns the process id of the calling process.
 extern pid_t proc_self(void);
 
+// Returns the process context. This data structure holds pointers to the
+// command line arguments, environment variables, etc.
+const proc_ctx_t* _Nonnull proc_context(void);
+
 
 // Gets/sets the current working directory of the process.
 extern int proc_cwd(char* _Nonnull buffer, size_t bufferSize);

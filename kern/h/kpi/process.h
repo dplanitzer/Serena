@@ -23,7 +23,6 @@
 // a global variable to enable easy access to the reference data.
 typedef struct proc_ctx {
     size_t                      version;       // sizeof(proc_ctx_t)
-    size_t                      ctx_size;      // Size of the area that holds all of proc_ctx_t + argv + envp
 
     size_t                      arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
     char* _Nonnull              arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  

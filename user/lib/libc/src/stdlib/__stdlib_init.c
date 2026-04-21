@@ -13,6 +13,7 @@
 #include <serena/mtx.h>
 #include <vcpu/__vcpu.h>
 
+const proc_ctx_t* _Nonnull __gProcCtx;
 kei_func_t*     __gKeiTab;
 
 spinlock_t               __gAtExitLock;
@@ -25,6 +26,7 @@ mtx_t __g_dtoa_mtx[2];
 
 void __stdlibc_init(proc_ctx_t* _Nonnull pctx)
 {
+    __gProcCtx = pctx;
     __gKeiTab = pctx->kei_funcs;
 
     __gAtExitFuncsCount = 0;

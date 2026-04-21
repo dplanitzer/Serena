@@ -18,103 +18,40 @@
 // strings. This includes the NUL marking the end of each string and the final
 // NUL entry that marks the end of the string array. Note this is not the argv[]
 // vector that points to the string. This is a separate thing.
-static ssize_t calc_size_of_arg_strings(const char* const _Nullable argv[], size_t* _Nonnull pOutCount)
+static errno_t _get_table_size(const char* const _Nullable tb[], proc_ctx_table_t* _Nonnull ctb)
 {
     ssize_t nbytes = 0;
     size_t count = 0;
 
-    while (argv[count]) {
-        const char* pa = argv[count];
-        const ssize_t slen = strnlen_s(pa, __ARG_STRLEN_MAX);
+    while (tb[count]) {
+        const char* p = tb[count];
+        const ssize_t slen = strnlen_s(p, __ARG_STRLEN_MAX);
         const ssize_t entry_size = slen + 1;
 
-        if (pa[slen] != '\0') {
-            return -1;
-        }
-        if ((nbytes + entry_size) > __ARG_MAX) {
-            return -1;
+        if (p[slen] != '\0' || (nbytes + entry_size) > __ARG_MAX) {
+            return E2BIG;
         }
 
         nbytes += entry_size;
         count++;
     }
-    *pOutCount = count;
-    nbytes++;   // This is for the empty string ('\0') that marks the end of teh string array
-
-    return nbytes;
-}
-
-static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* argv[], const char* _Nullable env[])
-{
-    size_t argc = 0;
-    size_t envc = 0;
-    const ssize_t arg_strings_size = calc_size_of_arg_strings(argv, &argc);
-    const ssize_t env_strings_size = calc_size_of_arg_strings(env, &envc);
-
-    if (arg_strings_size < 0 || env_strings_size < 0 || (arg_strings_size + env_strings_size) > __ARG_MAX) {
-        return E2BIG;
-    }
-
-    proc_ctx_t* pctx = NULL;
-    const size_t argv_size = sizeof(char*) * (argc + 1);
-    const size_t envv_size = sizeof(char*) * (envc + 1);
-    const size_t pure_ctx_size = sizeof(proc_ctx_t) + argv_size + arg_strings_size + envv_size + env_strings_size;
-    const ssize_t ctx_size = __Ceil_PowerOf2(pure_ctx_size, CPU_PAGE_SIZE);
-    const errno_t err = AddressSpace_Allocate(&pimg->as, ctx_size, (void**)&pctx);
-    if (err != EOK) {
-        return err;
-    }
-
-
-    char* p = (char*)pctx;
-    p += sizeof(proc_ctx_t);
-    char** dst_argv = (char**)p;
-    p += argv_size;
-    char* dst_arg_strings = p;
-    p += arg_strings_size;
-    char** dst_envv = (char**)p;
-    p += envv_size;
-    char* dst_env_strings = p;
-    char* dst_str;
-
-
-    // Argv
-    dst_str = dst_arg_strings;
-    for (size_t i = 0; i < argc; i++) {
-        dst_argv[i] = dst_str;
-        dst_str = strcpy_x(dst_str, argv[i]) + 1;
-    }
-    *dst_str = '\0';
-    dst_argv[argc] = NULL;
-
-
-    // Envp
-    dst_str = dst_env_strings;
-    for (size_t i = 0; i < envc; i++) {
-        dst_envv[i] = dst_str;
-        dst_str = strcpy_x(dst_str, env[i]) + 1;
-    }
-    *dst_str = '\0';
-    dst_envv[envc] = NULL;
-
-
-    // Process Arguments
-    pctx->version = sizeof(proc_ctx_t);
-    pctx->ctx_size = ctx_size;
-    pctx->arg_size = arg_strings_size;
-    pctx->arg_strings = dst_arg_strings;
-    pctx->env_size = env_strings_size;
-    pctx->env_strings = dst_env_strings;
-    pctx->argc = argc;
-    pctx->argv = dst_argv;
-    pctx->envc = envc;
-    pctx->envv = dst_envv;
-    pctx->image_base = NULL;
-    pctx->kei_funcs = gKeiTable;
-
-    pimg->ctx_base = pctx;
+    ctb->tbc = count;
+    ctb->tb_strings_size = nbytes + 1;   // +1 is for the empty string ('\0') that marks the end of the string array
 
     return EOK;
+}
+
+static void _copyin_table(const char* tb[], const proc_ctx_table_t* _Nonnull ctb)
+{
+    char** dst_tbv = ctb->tbv;
+    char* p = ctb->tb_strings;
+
+    for (size_t i = 0; i < ctb->tbc; i++) {
+        dst_tbv[i] = p;
+        p = strcpy_x(p, tb[i]) + 1;
+    }
+    *p = '\0';
+    dst_tbv[ctb->tbc] = NULL;
 }
 
 static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
@@ -142,15 +79,9 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
     return err;
 }
 
-// Loads an executable from the given executable file.
-// \param self the process into which the executable image should be loaded
-// \param path path to the executable file
-// \param argv the command line arguments for the process. NULL means that the arguments are {path, NULL}
-// \param env the environment for the process. Null means that the process inherits the environment from its parent
-static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerRef _Nonnull fm, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
+static errno_t _proc_img_create_ctx(proc_img_t* _Nonnull pimg, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
     static const char* null_sptr[1] = {NULL};
 
     if (argv == NULL) {
@@ -161,17 +92,72 @@ static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerR
     }
 
 
+    // Build the proc_ctx_t region. Data is laid out like this to ensure proper
+    // alignment:
+    // proc_ctx_t, argv_table, envv_table, arg_strings, env_strings
+    proc_ctx_table_t dst_argv;
+    proc_ctx_table_t dst_env;
+
+    try(_get_table_size(argv, &dst_argv));
+    try(_get_table_size(env, &dst_env));
+
+    proc_ctx_t* pctx = NULL;
+    const size_t argv_size = sizeof(char*) * (dst_argv.tbc + 1);
+    const size_t envv_size = sizeof(char*) * (dst_env.tbc + 1);
+    const size_t pure_ctx_rgn_size = sizeof(proc_ctx_t) + argv_size + envv_size + dst_argv.tb_strings_size + dst_env.tb_strings_size;
+    const ssize_t ctx_rgn_size = __Ceil_PowerOf2(pure_ctx_rgn_size, CPU_PAGE_SIZE);
+
+    try(AddressSpace_Allocate(&pimg->as, ctx_rgn_size, (void**)&pctx));
+
+    dst_argv.tbv = (char**)((char*)pctx + sizeof(proc_ctx_t));
+    dst_env.tbv = (char**)((char*)dst_argv.tbv + argv_size);
+    dst_argv.tb_strings = (char*)dst_env.tbv + envv_size;
+    dst_env.tb_strings = dst_argv.tb_strings + dst_argv.tb_strings_size;
+
+    _copyin_table(argv, &dst_argv);
+    _copyin_table(env, &dst_env);
+
+    pctx->version = sizeof(proc_ctx_t);
+    pctx->arg_size = dst_argv.tb_strings_size;
+    pctx->arg_strings = dst_argv.tb_strings;
+    pctx->env_size = dst_env.tb_strings_size;
+    pctx->env_strings = dst_env.tb_strings;
+    pctx->argc = dst_argv.tbc;
+    pctx->argv = dst_argv.tbv;
+    pctx->envc = dst_env.tbc;
+    pctx->envv = dst_env.tbv;
+    pctx->image_base = NULL;
+    pctx->kei_funcs = gKeiTable;
+    pctx->image_base = pimg->base;
+
+    pimg->ctx_base = pctx;
+
+
+catch:
+    return err;
+}
+
+// Loads an executable from the given executable file.
+// \param self the process into which the executable image should be loaded
+// \param path path to the executable file
+// \param argv the command line arguments for the process. NULL means that the arguments are {path, NULL}
+// \param env the environment for the process. Null means that the process inherits the environment from its parent
+static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerRef _Nonnull fm, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
+{
+    decl_try_err();
+    IOChannelRef chan = NULL;
+
+
     // Open the executable file and lock it
     try(FileManager_OpenFile(fm, path, O_RDONLY | _O_EXONLY, &chan));
 
 
-    // Copy the process arguments into the process address space
-    try(_proc_img_copy_args_env(pimg, argv, env));
-
-
     // Load the executable
     try(_proc_img_load_gemdos_file(pimg, chan));
-    pimg->ctx_base->image_base = pimg->base;
+
+
+    // Create the proc context
+    try(_proc_img_create_ctx(pimg, argv, env));
 
 
 catch:
