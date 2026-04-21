@@ -117,11 +117,6 @@ static errno_t _proc_img_create_ctx(proc_img_t* _Nonnull pimg, const char* _Null
     _copyin_table(argv, &dst_argv);
     _copyin_table(env, &dst_env);
 
-    pctx->version = sizeof(proc_ctx_t);
-    pctx->arg_size = dst_argv.tb_strings_size;
-    pctx->arg_strings = dst_argv.tb_strings;
-    pctx->env_size = dst_env.tb_strings_size;
-    pctx->env_strings = dst_env.tb_strings;
     pctx->argc = dst_argv.tbc;
     pctx->argv = dst_argv.tbv;
     pctx->envc = dst_env.tbc;
@@ -131,7 +126,10 @@ static errno_t _proc_img_create_ctx(proc_img_t* _Nonnull pimg, const char* _Null
     pctx->image_base = pimg->base;
 
     pimg->ctx_base = pctx;
-
+    pimg->arg_size = dst_argv.tb_strings_size;
+    pimg->arg_strings = dst_argv.tb_strings;
+    pimg->env_size = dst_env.tb_strings_size;
+    pimg->env_strings = dst_env.tb_strings;
 
 catch:
     return err;
@@ -219,11 +217,17 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
 static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg)
 {
     AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
+
+    pimg->main_vp->proc = self;
     deque_add_last(&self->vcpu_queue, &pimg->main_vp->owner_qe);
     self->vcpu_count++;
     self->vcpu_lifetime_count++;
-    pimg->main_vp->proc = self;
+
     self->ctx_base = pimg->ctx_base;
+    self->arg_size = pimg->arg_size;
+    self->arg_strings = pimg->arg_strings;
+    self->env_size = pimg->env_size;
+    self->env_strings = pimg->env_strings;
 }
 
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed)

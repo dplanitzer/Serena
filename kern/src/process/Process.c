@@ -392,31 +392,25 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
             err = _proc_name(self, buf, bufSize);
             break;
 
-        case PROC_PROP_CMDLINE: {
-            const size_t cmdline_size = self->ctx_base->arg_size;
-
-            if (bufSize >= cmdline_size) {
-                memcpy(buf, self->ctx_base->arg_strings, cmdline_size);
+        case PROC_PROP_CMDLINE:
+            if (bufSize >= self->arg_size) {
+                memcpy(buf, self->arg_strings, self->arg_size);
             }
             else {
                 *buf = '\0';
                 err = ERANGE;
             }
             break;
-        }
 
-        case PROC_PROP_ENVIRON: {
-            const size_t env_size = self->ctx_base->env_size;
-
-            if (bufSize >= env_size) {
-                memcpy(buf, self->ctx_base->env_strings, env_size);
+        case PROC_PROP_ENVIRON:
+            if (bufSize >= self->env_size) {
+                memcpy(buf, self->env_strings, self->env_size);
             }
             else {
                 *buf = '\0';
                 err = ERANGE;
             }
             break;
-        }
 
         default:
             err = EINVAL;
@@ -451,8 +445,8 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
             ip->vcpu_waiting_count = self->vcpu_waiting_count;
             ip->vm_size = AddressSpace_GetVirtualSize(&self->addr_space);
-            ip->cmdline_size = self->ctx_base->arg_size;
-            ip->env_size = self->ctx_base->env_size;
+            ip->cmdline_size = self->arg_size;
+            ip->env_size = self->env_size;
             break;
         }
 
@@ -551,7 +545,6 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, pRootFh, UID_ROOT, GID_ROOT, rootDir, rootDir, fs_perms_from_octal(0022));
     Inode_Relinquish(rootDir);
 
-    g_kernel_ctx.version = sizeof(proc_ctx_t);
     g_kernel_ctx.argc = 1;
     g_kernel_ctx.argv = g_kernel_argv;
     g_kernel_ctx.envv = g_kernel_env;

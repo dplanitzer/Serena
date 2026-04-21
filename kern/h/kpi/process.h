@@ -22,15 +22,8 @@
 // that is executed on the main vcpu. This function should store the pointer in
 // a global variable to enable easy access to the reference data.
 typedef struct proc_ctx {
-    size_t                      version;       // sizeof(proc_ctx_t)
-
-    size_t                      arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
-    char* _Nonnull              arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
-
-    size_t                      env_size;       // Size of env_strings in terms of bytes. Includes the trailing '\0'
-    char* _Nonnull              env_strings;    // Consecutive list of NUL-terminated process environment strings. End is marked by an empty string
     size_t                      envc;
     char* _Nullable * _Nonnull  envv;           // Pointer to the base of the environment table. Last entry holds NULL.
 

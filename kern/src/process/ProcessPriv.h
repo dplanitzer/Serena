@@ -60,6 +60,10 @@ typedef struct proc_img {
     void* _Nullable         base;
     void* _Nullable         entry_point;
     proc_ctx_t* _Nullable   ctx_base;
+    size_t                  arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nonnull          arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
+    size_t                  env_size;       // Size of env_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nonnull          env_strings;    // Consecutive list of NUL-terminated process environment strings. End is marked by an empty string
     bool                    has_as;
 } proc_img_t;
 
@@ -90,6 +94,10 @@ typedef struct Process {
     // Process image
     AddressSpace                    addr_space;
     proc_ctx_t* _Nullable           ctx_base;       // Base address to the contiguous memory region holding the proc_ctx_t structure, command line arguments and environment
+    size_t                          arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nullable                 arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
+    size_t                          env_size;       // Size of env_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nullable                 env_strings;    // Consecutive list of NUL-terminated process environment strings. End is marked by an empty string
 
     excpt_handler_t                 excpt_handler;  // atomic: exception handler and argument
 
