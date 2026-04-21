@@ -37,9 +37,51 @@ static CLAP_DECL(params,
         CLAP_POSITIONAL_STRING(&pid_str),
 
     CLAP_REQUIRED_COMMAND("umask", &cmd_id, "<path>", "Returns the umask of the process 'pid'."),
+        CLAP_POSITIONAL_STRING(&pid_str),
+
+    CLAP_REQUIRED_COMMAND("cmdline", &cmd_id, "<path>", "Returns the command line arguments of the process 'pid'."),
+        CLAP_POSITIONAL_STRING(&pid_str),
+
+    CLAP_REQUIRED_COMMAND("environ", &cmd_id, "<path>", "Returns the environment of the process 'pid'."),
         CLAP_POSITIONAL_STRING(&pid_str)
 );
 
+
+static int print_com_strings(pid_t pid, const proc_basic_info_t* _Nonnull info, int property)
+{
+    size_t blksiz;
+
+    switch (property) {
+        case PROC_PROP_CMDLINE:     blksiz = info->cmdline_size; break;
+        case PROC_PROP_ENVIRON:     blksiz = info->env_size; break;
+        default:                    return -1;
+    }
+
+    char* buf = malloc(blksiz);
+    if (buf == NULL) {
+        return -1;
+    }
+
+    if (proc_property(pid, property, buf, blksiz) != 0) {
+        free(buf);
+        return -1;
+    }
+
+
+    char* p = buf;
+    for (;;) {
+        size_t len = strlen(p);
+
+        if (len == 0) {
+            break;
+        }
+
+        puts(p);
+        p += (len + 1);
+    }
+
+    free(buf);
+}
 
 static int proc_op(InterpreterRef _Nonnull ip, const char* _Nonnull cmd, pid_t pid)
 {
@@ -72,6 +114,16 @@ static int proc_op(InterpreterRef _Nonnull ip, const char* _Nonnull cmd, pid_t p
     }
     else if (!strcmp(cmd, "umask")) {
         OpStack_PushInteger(ip->opStack, basic.umask);
+    }
+    else if (!strcmp(cmd, "cmdline")) {
+        //XXX this should return an array once this is supported by the shell
+        print_com_strings(pid, &basic, PROC_PROP_CMDLINE);
+        OpStack_PushVoid(ip->opStack);
+    }
+    else if (!strcmp(cmd, "environ")) {
+        //XXX this should return an array once this is supported by the shell
+        print_com_strings(pid, &basic, PROC_PROP_ENVIRON);
+        OpStack_PushVoid(ip->opStack);
     }
     else {
         return EXIT_FAILURE;

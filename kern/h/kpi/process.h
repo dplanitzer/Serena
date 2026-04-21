@@ -44,7 +44,7 @@ typedef struct proc_ctx {
 #define PROC_STOF_ANY_FELLOW    1   /* Status of any member of the specified child process group */
 #define PROC_STOF_ANY           2   /* Status of any of the process' child processes */
 
-#define PROC_STF_NONBLOCKING   1    /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
+#define PROC_STF_NONBLOCKING    1    /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
 
 #define PROC_STATUS_EXITED      1
 #define PROC_STATUS_SIGNALED    2
