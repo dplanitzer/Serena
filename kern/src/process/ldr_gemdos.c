@@ -9,6 +9,7 @@
 #include "ldr_gemdos.h"
 #include <string.h>
 #include <filesystem/InodeChannel.h>
+#include <machine/cpu.h>
 
 
 static void _gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_base, uint8_t* txt_base)

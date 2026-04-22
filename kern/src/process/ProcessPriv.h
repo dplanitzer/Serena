@@ -47,19 +47,6 @@ struct sigroute {
 typedef struct sigroute* sigroute_t;
 
 
-// Executable image builder
-typedef struct proc_img {
-    AddressSpace            as;
-    void* _Nullable         base;
-    void* _Nullable         entry_point;
-    proc_ctx_t* _Nullable   ctx_base;
-    size_t                  arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
-    char* _Nonnull          arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
-    size_t                  env_size;       // Size of env_strings in terms of bytes. Includes the trailing '\0'
-    char* _Nonnull          env_strings;    // Consecutive list of NUL-terminated process environment strings. End is marked by an empty string
-} proc_img_t;
-
-
 // Process relationship information (owned & protected by ProcessManager)
 typedef struct proc_rel {
     queue_node_t            pid_qe;     // pid_table chain entry.

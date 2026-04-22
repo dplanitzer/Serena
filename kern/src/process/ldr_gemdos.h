@@ -9,7 +9,7 @@
 #ifndef _LDR_GEMDOS_H
 #define _LDR_GEMDOS_H
 
-#include "ProcessPriv.h"
+#include "proc_img.h"
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
 // Why?? 'cause it's easy
