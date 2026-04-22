@@ -1,17 +1,17 @@
 //
-//  proc_img_gemdos.c
+//  ldr_gemdos.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/25/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "proc_img_gemdos.h"
+#include "ldr_gemdos.h"
 #include <string.h>
 #include <filesystem/InodeChannel.h>
 
 
-static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_base, uint8_t* txt_base)
+static void _gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_base, uint8_t* txt_base)
 {
     const int32_t firstRelocOffset = *((uint32_t*)reloc_base);
 
@@ -46,7 +46,7 @@ static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull 
     }
 }
 
-errno_t _proc_img_load_gemdos_file(proc_img_t* _Nonnull self, IOChannelRef _Nonnull chan)
+errno_t ldr_gemdos_load(proc_img_t* _Nonnull self, IOChannelRef _Nonnull chan)
 {
     decl_try_err();
     off_t fileOffset;
@@ -129,7 +129,7 @@ errno_t _proc_img_load_gemdos_file(proc_img_t* _Nonnull self, IOChannelRef _Nonn
 
     // Relocate the executable
     uint8_t* txt_base = img_base + sizeof(gemdos_hdr_t);
-    _proc_img_gemdos_reloc(self, reloc_base, txt_base);
+    _gemdos_reloc(self, reloc_base, txt_base);
 
 
     // Initialize the BSS segment

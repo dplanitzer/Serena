@@ -1,13 +1,13 @@
 //
-//  proc_img_gemdos.h
+//  ldr_gemdos.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/25/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _PROC_IMG_GEMDOS_H
-#define _PROC_IMG_GEMDOS_H
+#ifndef _LDR_GEMDOS_H
+#define _LDR_GEMDOS_H
 
 #include "ProcessPriv.h"
 
@@ -30,6 +30,6 @@ typedef struct gemdos_hdr {
 // into a newly allocated memory area in the address space for which this loader
 // was created. Returns the base address of the in-core executable image and the
 // entry address of the executable.
-extern errno_t _proc_img_load_gemdos_file(proc_img_t* _Nonnull pimg, IOChannelRef _Nonnull chan);
+extern errno_t ldr_gemdos_load(proc_img_t* _Nonnull pimg, IOChannelRef _Nonnull chan);
 
-#endif /* _PROC_IMG_GEMDOS_H */
+#endif /* _LDR_GEMDOS_H */

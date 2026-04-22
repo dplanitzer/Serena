@@ -7,18 +7,27 @@
 //
 
 #include "ProcessPriv.h"
-#include "proc_img_gemdos.h"
+#include "ldr_gemdos.h"
 #include <assert.h>
 #include <ext/string.h>
 #include <kei/kei.h>
+#include <kern/kalloc.h>
 #include <sched/vcpu.h>
+
+typedef struct ctx_table {
+    ssize_t                     tb_strings_size;    // Size of arg_strings in terms of bytes. Includes the trailing '\0'
+    char* _Nonnull              tb_strings;         // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
+    size_t                      tbc;                // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
+    char* _Nullable * _Nonnull  tbv;                // Pointer to the base of the command line arguments table. Last entry is NULL
+} ctx_table_t;
+
 
 
 // Calculates the size of the string array that will be used to store the 'argv'
 // strings. This includes the NUL marking the end of each string and the final
 // NUL entry that marks the end of the string array. Note this is not the argv[]
 // vector that points to the string. This is a separate thing.
-static errno_t _get_table_size(const char* const _Nullable tb[], proc_ctx_table_t* _Nonnull ctb)
+static errno_t _get_table_size(const char* const _Nullable tb[], ctx_table_t* _Nonnull ctb)
 {
     ssize_t nbytes = 0;
     size_t count = 0;
@@ -41,7 +50,7 @@ static errno_t _get_table_size(const char* const _Nullable tb[], proc_ctx_table_
     return EOK;
 }
 
-static void _copyin_table(const char* tb[], const proc_ctx_table_t* _Nonnull ctb)
+static void _copyin_table(const char* tb[], const ctx_table_t* _Nonnull ctb)
 {
     char** dst_tbv = ctb->tbv;
     char* p = ctb->tb_strings;
@@ -66,32 +75,7 @@ static void _copyin_aux_array(proc_aux_entry_t* _Nonnull aux, void* _Nonnull exe
     aux[2].u.p = NULL;
 }
 
-static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
-{
-    decl_try_err();
-    vcpu_t vp = NULL;
-    vcpu_acquisition_t ac;
-
-    ac.func = (VoidFunc_1)entryPoint;
-    ac.arg = procargs;
-    ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
-    ac.kernelStackBase = NULL;
-    ac.kernelStackSize = 0;
-    ac.userStackSize = PROC_DEFAULT_USER_STACK_SIZE;
-    ac.id = VCPUID_MAIN;
-    ac.group_id = VCPUID_MAIN_GROUP;
-    ac.policy.version = sizeof(vcpu_policy_t);
-    ac.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    ac.policy.qos.priority = VCPU_PRI_NORMAL;
-    ac.isUser = true;
-
-    err = vcpu_acquire(&ac, &vp);
-
-    *pOutVcpu = vp;
-    return err;
-}
-
-static errno_t _proc_img_create_ctx(proc_img_t* _Nonnull pimg, const char* _Nullable argv[], const char* _Nullable env[])
+static errno_t proc_img_build_ctx(proc_img_t* _Nonnull pimg, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     static const char* null_sptr[1] = {NULL};
@@ -110,8 +94,8 @@ static errno_t _proc_img_create_ctx(proc_img_t* _Nonnull pimg, const char* _Null
     //
     // Layout of the aux entries:
     // exec_hdr, kei_ptr, aux_end
-    proc_ctx_table_t dst_argv;
-    proc_ctx_table_t dst_env;
+    ctx_table_t dst_argv;
+    ctx_table_t dst_env;
     proc_aux_entry_t* aux_array;
 
     try(_get_table_size(argv, &dst_argv));
@@ -158,7 +142,7 @@ catch:
 // \param path path to the executable file
 // \param argv the command line arguments for the process. NULL means that the arguments are {path, NULL}
 // \param env the environment for the process. Null means that the process inherits the environment from its parent
-static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerRef _Nonnull fm, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
+static errno_t proc_img_load(proc_img_t* _Nonnull pimg, FileManagerRef _Nonnull fm, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -169,11 +153,11 @@ static errno_t _proc_img_load_executable(proc_img_t* _Nonnull pimg, FileManagerR
 
 
     // Load the executable
-    try(_proc_img_load_gemdos_file(pimg, chan));
+    try(ldr_gemdos_load(pimg, chan));
 
 
     // Create the proc context
-    try(_proc_img_create_ctx(pimg, argv, env));
+    try(proc_img_build_ctx(pimg, argv, env));
 
 
 catch:
@@ -184,36 +168,55 @@ catch:
 
 // Initializes a new process image by loading the executable file and building
 // up the initial memory map.
-static errno_t _proc_img_init(ProcessRef _Nonnull _Locked self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[], proc_img_t* _Nonnull pimg)
+static errno_t proc_img_create(ProcessRef _Nonnull _Locked self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[], proc_img_t* _Nullable * _Nonnull pOutImg)
 {
     decl_try_err();
+    proc_img_t* pimg;
 
+    try(kalloc_cleared(sizeof(struct proc_img), (void**)&pimg));
     AddressSpace_Init(&pimg->as);
-    pimg->has_as = true;
-
-    // Load the executable
-    try(_proc_img_load_executable(pimg, &self->fm, path, argv, env));
-
-
-    // Create the new main vcpu
-    try(_proc_img_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, &pimg->main_vp));
-
-
+    
 catch:
+    *pOutImg = pimg;
 
     return err;
 }
 
-static void _proc_img_deinit(proc_img_t* _Nullable pimg)
+static void proc_img_destroy(proc_img_t* _Nullable pimg)
 {
     if (pimg) {
-        if (pimg->has_as) {
-            AddressSpace_Deinit(&pimg->as);
-        }
+        AddressSpace_Deinit(&pimg->as);
+        kfree(pimg);
     }
 }
 
-static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
+
+static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
+{
+    decl_try_err();
+    vcpu_t vp = NULL;
+    vcpu_acquisition_t ac;
+
+    ac.func = (VoidFunc_1)entryPoint;
+    ac.arg = procargs;
+    ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
+    ac.kernelStackBase = NULL;
+    ac.kernelStackSize = 0;
+    ac.userStackSize = PROC_DEFAULT_USER_STACK_SIZE;
+    ac.id = VCPUID_MAIN;
+    ac.group_id = VCPUID_MAIN_GROUP;
+    ac.policy.version = sizeof(vcpu_policy_t);
+    ac.policy.qos.grade = VCPU_QOS_INTERACTIVE;
+    ac.policy.qos.priority = VCPU_PRI_NORMAL;
+    ac.isUser = true;
+
+    err = vcpu_acquire(&ac, &vp);
+
+    *pOutVcpu = vp;
+    return err;
+}
+
+static void _proc_destroy_pimg(ProcessRef _Nonnull self)
 {
     if (deque_empty(&self->vcpu_queue)) {
         return;
@@ -232,12 +235,12 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
     IOChannelTable_ReleaseExecChannels(&self->ioChannelTable);
 }
 
-static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg)
+static void _proc_install_pimg(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg, vcpu_t new_main_vcpu)
 {
     AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
 
-    pimg->main_vp->proc = self;
-    deque_add_last(&self->vcpu_queue, &pimg->main_vp->owner_qe);
+    new_main_vcpu->proc = self;
+    deque_add_last(&self->vcpu_queue, &new_main_vcpu->owner_qe);
     self->vcpu_count++;
     self->vcpu_lifetime_count++;
 
@@ -251,7 +254,8 @@ static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonn
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed)
 {
     decl_try_err();
-    proc_img_t pimg = (proc_img_t){0};
+    proc_img_t* pimg = NULL;
+    vcpu_t new_main_vcpu = NULL;
 
     mtx_lock(&self->mtx);
 
@@ -269,7 +273,15 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
 
     // Create the new exec image
-    try(_proc_img_init(self, execPath, argv, env, &pimg));
+    try(proc_img_create(self, execPath, argv, env, &pimg));
+
+
+    // Load the executable
+    try(proc_img_load(pimg, &self->fm, execPath, argv, env));
+
+
+    // Create the new main vcpu
+    try(_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, &new_main_vcpu));
 
     
     // We now got:
@@ -277,18 +289,18 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     // - a new vcpu suitable to act as a main vcpu
     // we'll now demolish the existing executable image and install the new
     // address map and main vcpu
-    _proc_img_deactivate_current(self);
-    _proc_img_activate(self, &pimg);
+    _proc_destroy_pimg(self);
+    _proc_install_pimg(self, pimg, new_main_vcpu);
 
 
 catch:
     mtx_unlock(&self->mtx);
 
-    if (resumed) {
-        vcpu_resume(pimg.main_vp, false);
-    }
+    proc_img_destroy(pimg);
 
-    _proc_img_deinit(&pimg);
+    if (err == EOK && new_main_vcpu && resumed) {
+        vcpu_resume(new_main_vcpu, false);
+    }
 
     return err;
 }
