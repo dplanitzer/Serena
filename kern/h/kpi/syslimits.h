@@ -9,12 +9,6 @@
 #ifndef _KPI_SYSLIMITS_H
 #define _KPI_SYSLIMITS_H 1
 
-// Maximum size of a single command line argument or environment entry
-#define __ARG_STRLEN_MAX 16384
-
-// Maximum size of the command line arguments and environment that can be passed to a process
-#define __ARG_MAX 262144
-
 // Max length of a path including the terminating NUL character
 #define PATH_MAX 1024
 
@@ -23,5 +17,12 @@
 
 // Max number of times an inode can be linked into a file hierarchy
 #define NLINK_MAX ((int)0x7fffffff)
+
+
+// Maximum size of a single command line argument or environment entry
+#define __ARG_STRLEN_MAX PATH_MAX
+
+// Maximum size of the command line arguments and environment that can be passed to a process
+#define __ARG_MAX 98304
 
 #endif /* _KPI_SYSLIMITS_H */
