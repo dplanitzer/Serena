@@ -23,15 +23,26 @@ SYSCALL_1(proc_exit, int status)
     return 0;
 }
 
-SYSCALL_4(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const proc_spawn_t* _Nonnull options, pid_t* _Nullable pOutPid)
+SYSCALL_5(proc_spawn, int wd, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const proc_spawn_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
     return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
 }
 
-SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
+SYSCALL_4(proc_exec, int wd, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
 {
-    const errno_t err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp, true);
+    decl_try_err();
 
+    if (pa->wd != FD_CWD) {
+        //XXX not yet
+        return EINVAL;
+    }
+
+    err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp, true);
     if (err == EOK) {
         vcpu_relinquish(vp);
         /* NOT REACHED */

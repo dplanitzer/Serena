@@ -11,7 +11,8 @@
 #include <ext/errno.h>
 #include <kpi/syscall.h>
 #include <serena/fd.h>
-#include "__readdir.h"
+#include <__readdir.h>
+
 
 dir_t _Nullable fs_open_directory(dir_t _Nullable wd, const char* _Nonnull path)
 {

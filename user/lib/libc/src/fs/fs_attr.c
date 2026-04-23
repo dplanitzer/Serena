@@ -8,7 +8,7 @@
 
 #include <serena/file.h>
 #include <kpi/syscall.h>
-#include "__readdir.h"
+#include <__readdir.h>
 
 int fs_attr(dir_t _Nullable wd, const char* _Nonnull path, fs_attr_t* _Nonnull attr)
 {

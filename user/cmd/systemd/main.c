@@ -35,7 +35,7 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
     argv[2] = NULL;
 
     // Spawn the process
-    return proc_spawn(procPath, argv, &opts, NULL);
+    return proc_spawn(NULL, procPath, argv, &opts, NULL);
 }
 
 int main(int argc, char *argv[])

@@ -264,7 +264,6 @@ errno_t proc_img_load(proc_img_t* _Nonnull pimg)
     decl_try_err();
     int ldr_idx = 0;
 
-#if 1
     // Open the original executable file
     try(proc_img_open_file(pimg, pimg->orig_path));
 
@@ -287,19 +286,6 @@ errno_t proc_img_load(proc_img_t* _Nonnull pimg)
     if (err == EOK) {
         err = _build_ctx(pimg, pimg->orig_argv, pimg->orig_env);
     }
-
-#else
-    // Open the executable file and lock it
-    try(proc_img_open_file(pimg, pimg->orig_path));
-
-
-    // Load the executable
-    try(ldr_gemdos_load(pimg));
-
-    
-    // Create the proc context
-    try(_build_ctx(pimg, pimg->orig_argv, pimg->orig_env));
-#endif
 
 catch:
     _proc_img_close_file(pimg);

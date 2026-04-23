@@ -241,7 +241,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Spawn the external command
-    if (proc_spawn(cmdPath, argv, &opts, &childPid) != 0) {
+    if (proc_spawn(NULL, cmdPath, argv, &opts, &childPid) != 0) {
         throw(errno);
     }
 

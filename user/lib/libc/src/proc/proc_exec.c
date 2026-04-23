@@ -8,9 +8,10 @@
 
 #include <kpi/syscall.h>
 #include <serena/process.h>
+#include <__readdir.h>
 
 
-int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp)
+int proc_exec(dir_t _Nullable wd, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp)
 {
-    return (int)_syscall(SC_proc_exec, path, argv, envp);
+    return (int)_syscall(SC_proc_exec, (wd) ? _dir_fd(wd) : FD_CWD, path, argv, envp);
 }

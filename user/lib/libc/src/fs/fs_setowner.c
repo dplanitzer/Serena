@@ -8,7 +8,7 @@
 
 #include <kpi/syscall.h>
 #include <serena/file.h>
-#include "__readdir.h"
+#include <__readdir.h>
 
 
 int fs_setowner(dir_t _Nullable wd, const char* _Nonnull path, uid_t uid, gid_t gid)

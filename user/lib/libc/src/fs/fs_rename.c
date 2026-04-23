@@ -8,7 +8,7 @@
 
 #include <serena/file.h>
 #include <kpi/syscall.h>
-#include "__readdir.h"
+#include <__readdir.h>
 
 
 int fs_rename(dir_t _Nullable owd, const char* _Nonnull oldpath, dir_t _Nullable nwd, const char* _Nonnull newpath)

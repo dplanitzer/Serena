@@ -8,7 +8,7 @@
 
 #include <kpi/syscall.h>
 #include <serena/file.h>
-#include "__readdir.h"
+#include <__readdir.h>
 
 
 int fs_access(dir_t _Nullable wd, const char* _Nonnull path, int mode)

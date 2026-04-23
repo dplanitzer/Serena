@@ -188,7 +188,7 @@ void proc_exec_test(int argc, char *argv[])
     argv2[1] = "list";
     argv2[2] = NULL;
 
-    assert_ok(proc_exec("test", argv2, NULL));
+    assert_ok(proc_exec(NULL, "test", argv2, NULL));
 }
 
 
