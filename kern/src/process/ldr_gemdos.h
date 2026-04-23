@@ -30,6 +30,6 @@ typedef struct gemdos_hdr {
 // into a newly allocated memory area in the address space for which this loader
 // was created. Returns the base address of the in-core executable image and the
 // entry address of the executable.
-extern errno_t ldr_gemdos_load(proc_img_t* _Nonnull pimg, IOChannelRef _Nonnull chan);
+extern errno_t ldr_gemdos_load(proc_img_t* _Nonnull pimg);
 
 #endif /* _LDR_GEMDOS_H */

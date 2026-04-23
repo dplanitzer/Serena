@@ -8,6 +8,7 @@
 
 #include "proc_img.h"
 #include "ldr_gemdos.h"
+#include "ldr_script.h"
 #include <ext/math.h>
 #include <ext/string.h>
 #include <filemanager/FileManager.h>
@@ -18,6 +19,7 @@
 #include <kpi/syslimits.h>
 #include <machine/cpu.h>
 
+
 typedef struct ctx_table {
     ssize_t                     tb_strings_size;    // Size of arg_strings in terms of bytes. Includes the trailing '\0'
     char* _Nonnull              tb_strings;         // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
@@ -25,6 +27,16 @@ typedef struct ctx_table {
     char* _Nullable * _Nonnull  tbv;                // Pointer to the base of the command line arguments table. Last entry is NULL
 } ctx_table_t;
 
+static void _proc_img_close_file(proc_img_t* _Nonnull pimg);
+
+
+typedef errno_t (*ldr_func_t)(proc_img_t* _Nonnull pimg);
+#define LDR_COUNT 2
+
+static const ldr_func_t ldr_table[LDR_COUNT] = {
+    ldr_script_load,
+    ldr_gemdos_load
+};
 
 
 // Calculates the size of the string array that will be used to store the 'argv'
@@ -147,8 +159,14 @@ errno_t proc_img_create(FileManagerRef _Nonnull fm, const char* _Nonnull path, c
 {
     decl_try_err();
     proc_img_t* pimg;
+    size_t argc = 0; 
 
-    try(kalloc_cleared(sizeof(struct proc_img), (void**)&pimg));
+    while (argv[argc]) {
+        argc++;
+    }
+    const size_t img_size = sizeof(struct proc_img) + sizeof(char*) * (argc + 1);
+
+    try(kalloc_cleared(img_size, (void**)&pimg));
 
     pimg->orig_path = path;
     pimg->orig_argv = argv;
@@ -157,6 +175,13 @@ errno_t proc_img_create(FileManagerRef _Nonnull fm, const char* _Nonnull path, c
 
     AddressSpace_Init(&pimg->as);
     
+    argc = 0;
+    while(argv[argc]) {
+        pimg->argv_buf[2 + argc] = argv[argc];
+        argc++;
+    }
+    pimg->orig_argv = &pimg->argv_buf[2];
+
 catch:
     *pOutImg = pimg;
 
@@ -166,32 +191,118 @@ catch:
 void proc_img_destroy(proc_img_t* _Nullable pimg)
 {
     if (pimg) {
+        _proc_img_close_file(pimg);
         AddressSpace_Deinit(&pimg->as);
         kfree(pimg);
     }
 }
 
-// Loads an executable from the given executable file.
+errno_t proc_img_replace_arg0(proc_img_t* _Nonnull pimg, const char* _Nonnull interp, const char* _Nullable interp_arg, const char* _Nonnull script_path)
+{
+    if (pimg->orig_argv == &pimg->argv_buf[0]) {
+        // already replaced arg0
+        return EINVAL;
+    }
+
+    if (interp_arg) {
+        pimg->argv_buf[0] = interp;
+        pimg->argv_buf[1] = interp_arg;
+        pimg->argv_buf[2] = script_path;
+        pimg->orig_argv = &pimg->argv_buf[0];
+    }
+    else {
+        pimg->argv_buf[1] = interp;
+        pimg->argv_buf[2] = script_path;
+        pimg->orig_argv = &pimg->argv_buf[1];
+    }
+}
+
+errno_t proc_img_open_file(proc_img_t* _Nonnull pimg, const char* _Nonnull path)
+{
+    decl_try_err();
+
+    _proc_img_close_file(pimg);
+    pimg->orig_path = path;
+
+
+    try(FileManager_OpenFile(pimg->fm, pimg->orig_path, O_RDONLY | _O_EXONLY, &pimg->file));
+    try(IOChannel_GetAttributes(pimg->file, &pimg->file_attr));
+
+    // Do some basic file validation
+    if (pimg->file_attr.file_type != FS_FTYPE_REG) {
+        throw(EACCESS);
+    }
+    if (pimg->file_attr.size < 2) {
+        throw(ENOEXEC);
+    }
+    else if (pimg->file_attr.size > SIZE_MAX) {
+        throw(ENOMEM);
+    }
+
+
+    // Read the file prefix and leave the seek position at the end of the prefix.
+    err = IOChannel_Read(pimg->file, pimg->prefix_buf, PROC_IMG_PREFIX_SIZE, &pimg->prefix_length);
+
+catch:
+    if (err != EOK) {
+        _proc_img_close_file(pimg);
+    }
+
+    return err;
+}
+
+static void _proc_img_close_file(proc_img_t* _Nonnull pimg)
+{
+    if (pimg->file) {
+        IOChannel_Release(pimg->file);
+        pimg->file = NULL;
+    }
+}
+
 errno_t proc_img_load(proc_img_t* _Nonnull pimg)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    int ldr_idx = 0;
+
+#if 1
+    // Open the original executable file
+    try(proc_img_open_file(pimg, pimg->orig_path));
 
 
-    // Open the executable file and lock it
-    try(FileManager_OpenFile(pimg->fm, pimg->orig_path, O_RDONLY | _O_EXONLY, &chan));
+    // Find a loader that can handle the file type and let it do its magic
+    while (ldr_idx < LDR_COUNT) {
+        ldr_func_t loader = ldr_table[ldr_idx];
 
+        err = loader(pimg);
+        if (err == EOK || err != ENOEXEC || (err == ENOEXEC && ldr_idx == LDR_COUNT-1)) {
+            break;
+        }
 
-    // Load the executable
-    try(ldr_gemdos_load(pimg, chan));
+        // try next loader
+        ldr_idx++;
+    }
 
 
     // Create the proc context
-    try(_build_ctx(pimg, pimg->orig_argv, pimg->orig_env));
+    if (err == EOK) {
+        err = _build_ctx(pimg, pimg->orig_argv, pimg->orig_env);
+    }
 
+#else
+    // Open the executable file and lock it
+    try(proc_img_open_file(pimg, pimg->orig_path));
+
+
+    // Load the executable
+    try(ldr_gemdos_load(pimg));
+
+    
+    // Create the proc context
+    try(_build_ctx(pimg, pimg->orig_argv, pimg->orig_env));
+#endif
 
 catch:
-    IOChannel_Release(chan);
+    _proc_img_close_file(pimg);
 
     return err;
 }

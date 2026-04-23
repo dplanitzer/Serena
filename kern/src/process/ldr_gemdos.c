@@ -8,7 +8,7 @@
 
 #include "ldr_gemdos.h"
 #include <string.h>
-#include <filesystem/InodeChannel.h>
+#include <filesystem/IOChannel.h>
 #include <machine/cpu.h>
 
 
@@ -47,73 +47,56 @@ static void _gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_bas
     }
 }
 
-errno_t ldr_gemdos_load(proc_img_t* _Nonnull self, IOChannelRef _Nonnull chan)
+errno_t ldr_gemdos_load(proc_img_t* _Nonnull self)
 {
     decl_try_err();
+    IOChannelRef fp = self->file;
+    const gemdos_hdr_t* hdr = (const gemdos_hdr_t*)self->prefix_buf;
     off_t fileOffset;
-    fs_attr_t attr;
-    gemdos_hdr_t hdr;
     ssize_t nBytesRead;
 
-    try(IOChannel_GetAttributes(chan, &attr));
-
-    // Do some basic file validation
-    if (attr.file_type != FS_FTYPE_REG) {
-        throw(EACCESS);
-    }
-    if (attr.size < sizeof(gemdos_hdr_t)) {
-        throw(ENOEXEC);
-    }
-    else if (attr.size > SIZE_MAX) {
-        throw(ENOMEM);
-    }
-
-
-    // Read the executable header
-    try(IOChannel_Read(chan, &hdr, sizeof(hdr), &nBytesRead));
-
-//    printf("magic: %hx\n", hdr.magic);
-//    printf("text: %d\n", hdr.text_size);
-//    printf("data: %d\n", hdr.data_size);
-//    printf("bss: %d\n", hdr.bss_size);
-//    printf("symbols: %d\n", hdr.symbol_table_size);
+//    printf("magic: %hx\n", hdr->magic);
+//    printf("text: %d\n", hdr->text_size);
+//    printf("data: %d\n", hdr->data_size);
+//    printf("bss: %d\n", hdr->bss_size);
+//    printf("symbols: %d\n", hdr->symbol_table_size);
 //    printf("file-size: %lld\n", fileSize);
 //    while(true);
 
 
     // Validate the header (somewhat anyway)
-    if (nBytesRead < sizeof(gemdos_hdr_t)) {
+    if (self->prefix_length < sizeof(gemdos_hdr_t)) {
         throw(ENOEXEC);
     }
 
-    if (hdr.magic != GEMDOS_EXEC_MAGIC) {
+    if (hdr->magic != GEMDOS_EXEC_MAGIC) {
         throw(ENOEXEC);
     }
-    if (hdr.text_size <= 0) {
+    if (hdr->text_size <= 0) {
         throw(EINVAL);
     }
-    if (hdr.data_size < 0
-        || hdr.bss_size < 0
-        || hdr.symbol_table_size < 0) {
+    if (hdr->data_size < 0
+        || hdr->bss_size < 0
+        || hdr->symbol_table_size < 0) {
         throw(EINVAL);   // these fields are really unsigned
     }
-    if (hdr.is_absolute != 0) {
+    if (hdr->is_absolute != 0) {
         throw(EINVAL);
     }
 
 
     // Allocate the text, data and BSS segments 
-    const size_t nbytes_to_read = sizeof(gemdos_hdr_t) + hdr.text_size + hdr.data_size;
-    const size_t fileOffset_to_reloc = nbytes_to_read + hdr.symbol_table_size;
-    const size_t reloc_size = (size_t)(attr.size - fileOffset_to_reloc);
-    const size_t nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_read + __max(hdr.bss_size, reloc_size), CPU_PAGE_SIZE);
+    const size_t nbytes_to_read = sizeof(gemdos_hdr_t) + hdr->text_size + hdr->data_size;
+    const size_t fileOffset_to_reloc = nbytes_to_read + hdr->symbol_table_size;
+    const size_t reloc_size = (size_t)(self->file_attr.size - fileOffset_to_reloc);
+    const size_t nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_read + __max(hdr->bss_size, reloc_size), CPU_PAGE_SIZE);
     uint8_t* img_base = NULL;
     try(AddressSpace_Allocate(&self->as, nbytes_to_alloc, (void**)&img_base));
 
 
     // Read the executable header, text and data segments into memory
-    IOChannel_Seek(chan, 0ll, NULL, SEEK_SET);
-    try(IOChannel_Read(chan, img_base, nbytes_to_read, &nBytesRead));
+    IOChannel_Seek(fp, 0ll, NULL, SEEK_SET);
+    try(IOChannel_Read(fp, img_base, nbytes_to_read, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
@@ -121,8 +104,8 @@ errno_t ldr_gemdos_load(proc_img_t* _Nonnull self, IOChannelRef _Nonnull chan)
 
     // Read the relocation information into memory
     uint8_t* reloc_base = img_base + nbytes_to_read;
-    IOChannel_Seek(chan, fileOffset_to_reloc, NULL, SEEK_SET);
-    try(IOChannel_Read(chan, reloc_base, reloc_size, &nBytesRead));
+    IOChannel_Seek(fp, fileOffset_to_reloc, NULL, SEEK_SET);
+    try(IOChannel_Read(fp, reloc_base, reloc_size, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }
@@ -134,7 +117,7 @@ errno_t ldr_gemdos_load(proc_img_t* _Nonnull self, IOChannelRef _Nonnull chan)
 
 
     // Initialize the BSS segment
-    memset(img_base + nbytes_to_read, 0, hdr.bss_size);
+    memset(img_base + nbytes_to_read, 0, hdr->bss_size);
 
 
     // Return the result pointers

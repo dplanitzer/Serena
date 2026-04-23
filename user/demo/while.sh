@@ -1,3 +1,4 @@
+#!/System/Commands/shell
 echo "Counting from 1 to 10:\n"
 
 var $i = 0

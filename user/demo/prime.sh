@@ -1,3 +1,4 @@
+#!/System/Commands/shell
 var $n = 0
 let $limit = 100
 
