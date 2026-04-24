@@ -43,25 +43,19 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
 
     wq_init(&self->clk_wait_queue);
     wq_init(&self->siwa_queue);
+   
     _proc_init_default_sigroutes(self);
+
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
 }
 
-errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    ProcessRef self;
-    
-    err = kalloc_cleared(sizeof(Process), (void**)&self);
-    if (err == EOK) {
-        Process_Init(self, ppid, pgrp, sid, fh, uid, gid, pRootDir, pWorkingDir, umask);
-    }
-
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
+// Creates a new process. 'ppid' is the id of the parent process and must be
+// provided. 'pgrp' is an exiting process group id if > 0; if == 0
+// then the new process will be the leader of a new process group with a group
+// id equal to its pid. Same for 'sid'. The actual process id is assigned when
+// the new process is published to the process manager. Until then its process
+// id is 0.
+errno_t Process_CreateChild(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
     ProcessRef cp = NULL;
@@ -89,7 +83,8 @@ errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const proc_spawn_t* 
     InodeRef rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);
     InodeRef workDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.workingDirectory);
 
-    try(Process_Create(self->pid, ch_pgrp, ch_sid, fh, ch_uid, ch_gid, rootDir, workDir, ch_umask, &cp));
+    try(kalloc_cleared(sizeof(Process), (void**)&cp));
+    Process_Init(cp, self->pid, ch_pgrp, ch_sid, fh, ch_uid, ch_gid, rootDir, workDir, ch_umask);
     Inode_Relinquish(workDir);
     Inode_Relinquish(rootDir);
 

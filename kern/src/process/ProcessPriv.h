@@ -130,17 +130,7 @@ extern void uwq_destroy(u_wait_queue_t _Nullable self);
 
 
 extern void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask);
-
-// Creates a new process. 'ppid' is the id of the parent process and must be
-// provided. 'pgrp' is an exiting process group id if > 0; if == 0
-// then the new process will be the leader of a new process group with a group
-// id equal to its pid. Same for 'sid'. The actual process id is assigned when
-// the new process is published to the process manager. Until then its process
-// id is 0.
-extern errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
-extern void Process_deinit(ProcessRef _Nonnull self);
-
-extern errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
+extern errno_t Process_CreateChild(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
 
 
 // Returns true if the process is the root process
