@@ -140,6 +140,8 @@ extern void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t
 extern errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
+extern errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
+
 
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)

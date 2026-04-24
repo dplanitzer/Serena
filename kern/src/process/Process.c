@@ -14,54 +14,6 @@
 #include <kern/kalloc.h>
 
 
-void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask)
-{
-    assert(ppid > 0);
-
-    mtx_init(&self->mtx);
-    AddressSpace_Init(&self->addr_space);
-
-    self->retainCount = RC_INIT;
-    self->run_state = PROC_STATE_RESUMED;
-    self->pid = 0;
-    self->ppid = ppid;
-    self->pgrp = pgrp;
-    self->sid = sid;
-
-    self->vcpu_queue = DEQUE_INIT;
-    self->next_avail_vcpuid = VCPUID_MAIN + 1;
-
-    self->exit_reason = 0;
-    
-    IOChannelTable_Init(&self->ioChannelTable);
-
-    for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        self->waitQueueTable[i] = DEQUE_INIT;
-    }
-    self->nextAvailWaitQueueId = 0;
-
-    clock_gettime(g_mono_clock, &self->creation_time);
-
-    wq_init(&self->clk_wait_queue);
-    wq_init(&self->siwa_queue);
-    _proc_init_default_sigroutes(self);
-    FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
-}
-
-errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    ProcessRef self;
-    
-    err = kalloc_cleared(sizeof(Process), (void**)&self);
-    if (err == EOK) {
-        Process_Init(self, ppid, pgrp, sid, fh, uid, gid, pRootDir, pWorkingDir, umask);
-    }
-
-    *pOutSelf = self;
-    return err;
-}
-
 static void _proc_deinit(ProcessRef _Nonnull self)
 {
     IOChannelTable_Deinit(&self->ioChannelTable);

@@ -12,6 +12,7 @@
 #include <ext/string.h>
 #include <kei/kei.h>
 #include <kern/kalloc.h>
+#include <process/ProcessManager.h>
 #include <sched/vcpu.h>
 
 
@@ -132,4 +133,53 @@ catch:
 void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self)
 {
     vcpu_resume(vcpu_from_owner_qe(self->vcpu_queue.first), false);
+}
+
+errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid)
+{
+    decl_try_err();
+    ProcessRef cp = NULL;
+
+    if (*path == '\0') {
+        return EINVAL;
+    }
+    
+    // Create the child process
+    mtx_lock(&self->mtx);
+    if (!vcpu_is_aborting(vcpu_current())) {
+        err = proc_create_child(self, opts, ovrFh, &cp);
+    }
+    else {
+        err = EINTR;
+    }
+    mtx_unlock(&self->mtx);
+    throw_iferr(err);
+
+
+    // Prepare the executable image
+    try(Process_Exec(cp, path, argv, opts->envp, false));
+
+
+    // Register the new process with the process manager
+    try(ProcessManager_Publish(gProcessManager, cp));
+    Process_Release(cp);
+
+
+    // Start the child process running
+    Process_ResumeMainVirtualProcessor(cp);
+
+catch:
+    if (err == EOK) {
+        if (pOutPid) {
+            *pOutPid = cp->pid;
+        }
+    }
+    else {
+        Process_Release(cp);
+        if (pOutPid) {
+            *pOutPid = 0;
+        }
+    }
+
+    return err;
 }
