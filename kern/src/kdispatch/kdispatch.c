@@ -8,7 +8,7 @@
 
 #include "kdispatch_priv.h"
 #include <string.h>
-#include <process/Process.h>
+#include <process/kerneld.h>
 
 
 // Expects:

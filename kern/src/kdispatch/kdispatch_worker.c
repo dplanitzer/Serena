@@ -7,7 +7,7 @@
 //
 
 #include "kdispatch_priv.h"
-#include <process/Process.h>
+#include <process/kerneld.h>
 
 
 static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)

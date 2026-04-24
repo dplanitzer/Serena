@@ -21,20 +21,8 @@
 #include <security/SecurityManager.h>
 
 
-extern ProcessRef _Nonnull  gKernelProcess;
-
-#define PID_KERNEL  1
-
 #define Process_GetCurrent() \
 g_sched->running->proc
-
-
-// Initializes the kerneld process and adopts the calling vcpu as kerneld's main
-// vcpu.
-extern void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
-
-// Spawns systemd from the kernel process context.
-extern errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh);
 
 
 extern ProcessRef _Nonnull Process_Retain(ProcessRef _Nonnull self);

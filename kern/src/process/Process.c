@@ -7,22 +7,14 @@
 //
 
 #include "ProcessPriv.h"
+#include "kerneld.h"
 #include <assert.h>
 #include <string.h>
 #include <filemanager/FileHierarchy.h>
 #include <kern/kalloc.h>
 
 
-static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
-static const char*      g_kernel_argv[2] = { "kerneld", NULL };
-static const char*      g_kernel_env[1] = { NULL };
-static proc_ctx_t       g_kernel_ctx;
-static struct Process   g_kernel_proc_storage;
-ProcessRef _Nonnull gKernelProcess;
-
-
-
-static void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask)
+void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask)
 {
     assert(ppid > 0);
 
@@ -531,40 +523,4 @@ void Process_Resume(ProcessRef _Nonnull self)
     mtx_lock(&self->mtx);
     _proc_resume(self);
     mtx_unlock(&self->mtx);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Kernel Process
-
-void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
-{
-    InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    
-    Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, pRootFh, UID_ROOT, GID_ROOT, rootDir, rootDir, fs_perms_from_octal(0022));
-    Inode_Relinquish(rootDir);
-
-    g_kernel_ctx.argc = 1;
-    g_kernel_ctx.argv = g_kernel_argv;
-    g_kernel_ctx.envv = g_kernel_env;
-    g_kernel_proc_storage.ctx_base= &g_kernel_ctx;
-
-    vcpu_t main_vp = vcpu_current();
-    main_vp->proc = &g_kernel_proc_storage;
-    main_vp->id = VCPUID_MAIN;
-    main_vp->group_id = VCPUID_MAIN_GROUP;
-    deque_add_last(&g_kernel_proc_storage.vcpu_queue, &main_vp->owner_qe);
-    g_kernel_proc_storage.vcpu_count++;
-
-    *pOutSelf = &g_kernel_proc_storage;
-}
-
-errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh)
-{
-    proc_spawn_t opts = (proc_spawn_t){0};
-
-    opts.options = PROC_SPAWN_GROUP_LEADER | PROC_SPAWN_SESSION_LEADER;
-
-    return Process_SpawnChild(self, g_systemd_argv[0], g_systemd_argv, &opts, fh, NULL);
 }

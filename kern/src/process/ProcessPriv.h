@@ -129,6 +129,8 @@ typedef struct Process {
 extern void uwq_destroy(u_wait_queue_t _Nullable self);
 
 
+extern void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask);
+
 // Creates a new process. 'ppid' is the id of the parent process and must be
 // provided. 'pgrp' is an exiting process group id if > 0; if == 0
 // then the new process will be the leader of a new process group with a group

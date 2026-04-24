@@ -12,6 +12,7 @@
 #include <kern/kalloc.h>
 #include <kpi/file.h>
 #include <kpi/hid.h>
+#include <process/kerneld.h>
 
 IOCATS_DEF(g_cats, IOVID_FB);
 

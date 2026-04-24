@@ -7,6 +7,7 @@
 //
 
 #include "ProcessPriv.h"
+#include "kerneld.h"
 #include <assert.h>
 #include <kern/kalloc.h>
 #include <kern/signal.h>

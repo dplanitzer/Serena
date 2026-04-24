@@ -20,7 +20,7 @@
 #include <kei/kei.h>
 #include <kern/log.h>
 #include <kpi/filesystem.h>
-#include <process/Process.h>
+#include <process/kerneld.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>
 #include <sched/sched.h>
@@ -185,7 +185,7 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Spawn systemd
-    try(KernelProcess_SpawnSystemd(gKernelProcess, pRootFh));
+    try(kerneld_spawn_systemd(gKernelProcess, pRootFh));
     Object_Release(pRootFh);
 
     
