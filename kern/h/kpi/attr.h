@@ -34,8 +34,7 @@ typedef struct fs_attr {
 #define FS_FTYPE_REG    0   /* A regular file that stores data */
 #define FS_FTYPE_DIR    1   /* A directory which stores information about child nodes */
 #define FS_FTYPE_DEV    2   /* A driver which manages a piece of hardware */
-#define FS_FTYPE_PROC   3   /* A process */
-#define FS_FTYPE_LNK    4
-#define FS_FTYPE_FIFO   5
+#define FS_FTYPE_LNK    3
+#define FS_FTYPE_FIFO   4
 
 #endif /* _KPI_ATTR_H */

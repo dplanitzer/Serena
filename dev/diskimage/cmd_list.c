@@ -99,7 +99,6 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         switch (attr.file_type) {
             case FS_FTYPE_DEV:   tc = 'h'; break;
             case FS_FTYPE_DIR:   tc = 'd'; break;
-            case FS_FTYPE_PROC:  tc = 'P'; break;
             case FS_FTYPE_FIFO:   tc = 'p'; break;
             case FS_FTYPE_LNK:   tc = 'l'; break;
             default:        tc = '-'; break;

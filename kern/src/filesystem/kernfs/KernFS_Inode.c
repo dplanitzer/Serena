@@ -8,7 +8,6 @@
 
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
-#include "KfsProcess.h"
 #include "KfsSpecial.h"
 #include <kpi/attr.h>
 
@@ -27,10 +26,6 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
 
         case FS_FTYPE_DEV:
             try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), obj, arg, &ip));
-            break;
-
-        case FS_FTYPE_PROC:
-            try(KfsProcess_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), (ProcessRef)obj, &ip));
             break;
 
         default:
@@ -66,12 +61,6 @@ catch:
 errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return _KernFS_createNode(self, dir, name, (ObjectRef)drv, arg, uid, gid, FS_FTYPE_DEV, fsperms, pOutNode);
-}
-
-// Creates a new process node in the file system.
-errno_t KernFS_CreateProcessNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ProcessRef _Nonnull proc, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    return _KernFS_createNode(self, dir, name, (ObjectRef)proc, 0, uid, gid, FS_FTYPE_PROC, fsperms, pOutNode);
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)

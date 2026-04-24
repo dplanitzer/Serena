@@ -107,7 +107,6 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
     switch (attr.file_type) {
         case FS_FTYPE_DEV:   tc = 'h'; break;
         case FS_FTYPE_DIR:   tc = 'd'; break;
-        case FS_FTYPE_PROC:  tc = 'P'; break;
         case FS_FTYPE_FIFO:   tc = 'p'; break;
         case FS_FTYPE_LNK:   tc = 'l'; break;
         default:        tc = '-'; break;

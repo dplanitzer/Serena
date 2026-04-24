@@ -187,29 +187,3 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
 
     return err;
 }
-
-errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId)
-{
-    decl_try_err();
-    InodeRef pDir = NULL;
-    InodeRef pNode = NULL;
-    PathComponent pc;
-
-    *pOutCatalogId = kCatalogId_None;
-
-    pc.name = name;
-    pc.count = strlen(name);
-
-    err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
-    if (err == EOK) {
-        err = KernFS_CreateProcessNode((KernFSRef)self->fs, pDir, &pc, proc, uid, gid, fsperms, &pNode);
-        if (err == EOK) {
-            *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
-        }
-    }
-
-    Inode_Relinquish(pNode);
-    Inode_Relinquish(pDir);
-
-    return err;
-}

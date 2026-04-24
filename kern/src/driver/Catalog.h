@@ -61,9 +61,4 @@ extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, C
 // when the driver needs to be opened.
 extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
 
-// Publish the process 'proc' with the name 'name' in the root directory of the
-// catalog. Returns a suitable error if another entry with the same name already
-// exists.
-extern errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId);
-
 #endif /* Catalog_h */
