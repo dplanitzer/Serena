@@ -381,10 +381,14 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->ppid = self->ppid;
             ip->pgrp = self->pgrp;
             ip->sid = self->sid;
+
             ip->uid = FileManager_GetRealUserId(&self->fm);
             ip->gid = FileManager_GetRealGroupId(&self->fm);
             ip->umask = FileManager_GetUMask(&self->fm);
+            
             ip->run_state = self->run_state;
+            ip->flags = self->flags;
+            
             ip->vcpu_count = self->vcpu_count;
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
             ip->vcpu_waiting_count = self->vcpu_waiting_count;

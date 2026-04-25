@@ -42,7 +42,7 @@ SYSCALL_4(proc_exec, int wd, const char* _Nonnull path, const char* _Nullable * 
         return EINVAL;
     }
 
-    err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp, true);
+    err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp);
     if (err == EOK) {
         vcpu_relinquish(vp);
         /* NOT REACHED */

@@ -55,13 +55,13 @@ extern errno_t Process_GetStatus(ProcessRef _Nonnull self, int of, pid_t id, int
 // and environment it will receive and which descriptors it will inherit.
 extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid);
 
-// Prepares the image of the process by replacing the current image with a new
-// executable image loaded from 'execPath'. Note that this function does not
-// relinquish the calling vcpu. This must be done by the caller.
+// Replaces the current executable image of the process with a new executable
+// image loaded from 'execPath' and starts it executing right away. Note that
+// this function does not relinquish the calling vcpu. This must be done by the
+// caller.
 // \param self the process into which the executable image should be loaded
-// \param execPath path to a GemDOS executable file
-extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed);
-extern void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self);
+// \param execPath path to an executable file
+extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp);
 extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);

@@ -17,6 +17,7 @@
 
 
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
+static proc_spawn_t     g_systemd_spawn;
 static const char*      g_kernel_argv[2] = { "kerneld", NULL };
 static const char*      g_kernel_env[1] = { NULL };
 static proc_ctx_t       g_kernel_ctx;
@@ -70,9 +71,16 @@ catch:
 
 errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh)
 {
-    proc_spawn_t opts = (proc_spawn_t){0};
+    decl_try_err();
+    ProcessRef cp = NULL;
 
-    opts.options = PROC_SPAWN_GROUP_LEADER | PROC_SPAWN_SESSION_LEADER;
+    g_systemd_spawn.options = PROC_SPAWN_GROUP_LEADER | PROC_SPAWN_SESSION_LEADER;
 
-    return Process_SpawnChild(self, g_systemd_argv[0], g_systemd_argv, &opts, fh, NULL);
+    try(Process_CreateChild(self, &g_systemd_spawn, fh, &cp));
+    try(Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL));
+
+catch:
+    Process_Release(cp);
+
+    return err;
 }

@@ -76,11 +76,15 @@ static void _proc_install_pimg(ProcessRef _Nonnull self, const proc_img_t* _Nonn
     self->env_strings = pimg->env_strings;
 }
 
-errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed)
+errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     proc_img_t* pimg = NULL;
     vcpu_t new_main_vcpu = NULL;
+
+    if (*execPath == '\0') {
+        return EINVAL;
+    }
 
     mtx_lock(&self->mtx);
 
@@ -89,12 +93,6 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     // point).
     assert(deque_empty(&self->vcpu_queue)
         || (!deque_empty(&self->vcpu_queue) && vcpu_current()->proc == self));
-
-    
-    // Don't do an exec() if we are in the process of being shut down
-    if (vcpu_is_aborting(vcpu_current())) {
-        throw(EINTR);
-    }
 
 
     // Create the new exec image
@@ -119,20 +117,19 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
 
 catch:
-    mtx_unlock(&self->mtx);
-
     proc_img_destroy(pimg);
 
-    if (err == EOK && new_main_vcpu && resumed) {
-        vcpu_resume(new_main_vcpu, false);
+    if (err == EOK) {
+        self->flags &= ~PROC_FLAG_INCUBATING;
+        
+        if (self->run_state == PROC_STATE_RESUMED) {
+            vcpu_resume(new_main_vcpu, false);
+        }
     }
 
-    return err;
-}
+    mtx_unlock(&self->mtx);
 
-void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self)
-{
-    vcpu_resume(vcpu_from_owner_qe(self->vcpu_queue.first), false);
+    return err;
 }
 
 errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid)
@@ -145,28 +142,12 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
     }
     
     // Create the child process
-    mtx_lock(&self->mtx);
-    if (!vcpu_is_aborting(vcpu_current())) {
-        err = Process_CreateChild(self, opts, ovrFh, &cp);
-    }
-    else {
-        err = EINTR;
-    }
-    mtx_unlock(&self->mtx);
-    throw_iferr(err);
+    try(Process_CreateChild(self, opts, ovrFh, &cp));
 
 
     // Prepare the executable image
-    try(Process_Exec(cp, path, argv, opts->envp, false));
-
-
-    // Register the new process with the process manager
-    try(ProcessManager_Publish(gProcessManager, cp));
+    try(Process_Exec(cp, path, argv, opts->envp));
     Process_Release(cp);
-
-
-    // Start the child process running
-    Process_ResumeMainVirtualProcessor(cp);
 
 catch:
     if (err == EOK) {

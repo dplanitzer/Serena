@@ -221,7 +221,7 @@ static bool init(void)
     }
 
     table_set_cell_func(g_table, (table_cell_func_t)display_rp, NULL);
-    table_set_viewport(g_table, 0, 20);
+    table_set_viewport(g_table, 0, 18); //XXX hard coded display height for NTSC. Should dynamically adjust with true terminal height 
     table_set_fill_viewport(g_table, true);
 
     term_cursor_on(false);

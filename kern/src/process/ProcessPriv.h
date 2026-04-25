@@ -67,8 +67,9 @@ typedef struct Process {
     pid_t                           pgrp;       // Group id. I'm the group leader if pgrp == pid
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
 
-    // Process lifecycle state
+    // Process run state and flags
     int                             run_state;
+    unsigned int                    flags;
 
     // Process image
     AddressSpace                    addr_space;
@@ -130,11 +131,14 @@ extern void uwq_destroy(u_wait_queue_t _Nullable self);
 
 
 extern void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask);
-extern errno_t Process_CreateChild(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
+extern errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
 
 
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
+
+#define _proc_is_incubating(__self) \
+(((__self)->flags & PROC_FLAG_INCUBATING) == PROC_FLAG_INCUBATING)
 
 extern void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo);
 extern void _proc_suspend(ProcessRef _Nonnull _Locked self);

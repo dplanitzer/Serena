@@ -82,31 +82,37 @@ typedef void* proc_info_ref;
 #define PROC_INFO_TIMES 2
 
 
+// Process run state
 #define PROC_STATE_RESUMED      0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something and the process is not suspended */
 #define PROC_STATE_SUSPENDED    1       /* Process was explicitly suspended */
 #define PROC_STATE_TERMINATING  2       /* Process has started executing an exit() call and is in the process of terminating */
 #define PROC_STATE_TERMINATED   3       /* Process has terminated and parent processes hasn't reaped it yet */
 
+// Process flags
+#define PROC_FLAG_INCUBATING    1       /* Process is still in incubating state and will remain in this state until proc_exec() is called */
+
+
 typedef struct proc_basic_info {
-    pid_t       pid;
-    pid_t       ppid;
-    pid_t       pgrp;
-    pid_t       sid;
+    pid_t           pid;
+    pid_t           ppid;
+    pid_t           pgrp;
+    pid_t           sid;
 
-    uid_t       uid;
-    gid_t       gid;
-    fs_perms_t  umask;
+    uid_t           uid;
+    gid_t           gid;
+    fs_perms_t      umask;
 
-    int         run_state;
+    int             run_state;
+    unsigned int    flags;
 
-    uint64_t    vm_size;                // size of process address space in bytes
+    uint64_t        vm_size;                // size of process address space in bytes
 
-    size_t      cmdline_size;           // size of the process command line string list including the terminating '\0'
-    size_t      env_size;               // size of the process environment string list including the terminating '\0'
+    size_t          cmdline_size;           // size of the process command line string list including the terminating '\0'
+    size_t          env_size;               // size of the process environment string list including the terminating '\0'
 
-    size_t      vcpu_count;             // number of vcpus bound to process right now
-    size_t      vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
-    size_t      vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
+    size_t          vcpu_count;             // number of vcpus bound to process right now
+    size_t          vcpu_lifetime_count;    // number of vcpus that have been bound to the process over its whole lifetime. Includes no longer acquired vcpus
+    size_t          vcpu_waiting_count;     // number of vcpus that are currently bound to the process and in waiting or suspended state
 } proc_basic_info_t;
 
 

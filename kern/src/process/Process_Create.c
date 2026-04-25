@@ -49,20 +49,24 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
 }
 
-// Creates a new process. 'ppid' is the id of the parent process and must be
-// provided. 'pgrp' is an exiting process group id if > 0; if == 0
-// then the new process will be the leader of a new process group with a group
-// id equal to its pid. Same for 'sid'. The actual process id is assigned when
-// the new process is published to the process manager. Until then its process
-// id is 0.
-errno_t Process_CreateChild(ProcessRef _Locked _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
+// Creates a new child process and publishes it to the process manager. This
+// function returns a strong reference to the new process. The caller should
+// release this strong reference when no longer needed. Note that the process
+// manager maintains a strong reference to all living processes. This reference
+// keeps them alive.
+errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
     ProcessRef cp = NULL;
 
+    mtx_lock(&self->mtx);
+
+    self->flags |= PROC_FLAG_INCUBATING;
+    
     uid_t ch_uid = self->fm.ruid;
     gid_t ch_gid = self->fm.rgid;
     fs_perms_t ch_umask = FileManager_GetUMask(&self->fm);
+
     if ((opts->options & PROC_SPAWN_UMASK) == PROC_SPAWN_UMASK) {
         ch_umask = opts->umask & 0777;
     }
@@ -85,6 +89,7 @@ errno_t Process_CreateChild(ProcessRef _Locked _Nonnull self, const proc_spawn_t
 
     try(kalloc_cleared(sizeof(Process), (void**)&cp));
     Process_Init(cp, self->pid, ch_pgrp, ch_sid, fh, ch_uid, ch_gid, rootDir, workDir, ch_umask);
+
     Inode_Relinquish(workDir);
     Inode_Relinquish(rootDir);
 
@@ -103,12 +108,18 @@ errno_t Process_CreateChild(ProcessRef _Locked _Nonnull self, const proc_spawn_t
     }
 
 catch:
-    if (err != EOK) {
-        Process_Release(cp);
-        cp = NULL;
-    }
+    mtx_unlock(&self->mtx);
 
-    *pOutChild = cp;
+    if (err == EOK) {
+        // Register the new process with the process manager. This assigns a
+        // unique PID to our new process
+        ProcessManager_Publish(gProcessManager, cp);
+        *pOutChild = cp;
+    }
+    else {
+        Process_Release(cp);
+        *pOutChild = NULL;
+    }
 
     return err;
 }
