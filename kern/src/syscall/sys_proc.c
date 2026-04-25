@@ -16,21 +16,28 @@ SYSCALL_0(proc_self)
     return Process_GetId(vp->proc);
 }
 
-SYSCALL_1(proc_exit, int status)
-{
-    Process_Exit(vp->proc, PROC_STATUS_EXITED, pa->status);
-    /* NOT REACHED */
-    return 0;
-}
-
 SYSCALL_5(proc_spawn, int wd, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const proc_spawn_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
+    decl_try_err();
+    ProcessRef cp = NULL;
+
     if (pa->wd != FD_CWD) {
         //XXX not yet
         return EINVAL;
     }
+    
 
-    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
+    err = Process_CreateChild(vp->proc, pa->options, NULL, &cp);
+    if (err == EOK) {
+        err = Process_Exec(cp, pa->path, pa->argv, pa->options->envp);
+    }
+    Process_Release(cp);
+
+    if (err == EOK && pa->pOutPid) {
+        *(pa->pOutPid) = cp->pid;
+    }
+
+    return err;
 }
 
 SYSCALL_4(proc_exec, int wd, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
@@ -51,9 +58,11 @@ SYSCALL_4(proc_exec, int wd, const char* _Nonnull path, const char* _Nullable * 
     return err;
 }
 
-SYSCALL_4(proc_status, int of, pid_t id, int flags, proc_status_t* _Nonnull ps)
+SYSCALL_1(proc_exit, int status)
 {
-    return Process_GetStatus(vp->proc, pa->of, pa->id, pa->flags, pa->ps);
+    Process_Exit(vp->proc, PROC_STATUS_EXITED, pa->status);
+    /* NOT REACHED */
+    return 0;
 }
 
 SYSCALL_1(proc_terminate, pid_t pid)
@@ -123,6 +132,11 @@ SYSCALL_1(proc_resume, pid_t pid)
     }
 
     return err;
+}
+
+SYSCALL_4(proc_status, int of, pid_t id, int flags, proc_status_t* _Nonnull ps)
+{
+    return Process_GetStatus(vp->proc, pa->of, pa->id, pa->flags, pa->ps);
 }
 
 SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)

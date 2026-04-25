@@ -50,11 +50,6 @@ extern _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int cod
 // PROC_STF_NONBLOCKING set.
 extern errno_t Process_GetStatus(ProcessRef _Nonnull self, int of, pid_t id, int flags, proc_status_t* _Nonnull ps);
 
-// Spawns a new process that will be a child of the given process. The spawn
-// arguments specify how the child process should be created, which arguments
-// and environment it will receive and which descriptors it will inherit.
-extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid);
-
 // Replaces the current executable image of the process with a new executable
 // image loaded from 'execPath' and starts it executing right away. Note that
 // this function does not relinquish the calling vcpu. This must be done by the

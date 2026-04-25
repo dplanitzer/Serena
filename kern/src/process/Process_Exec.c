@@ -131,36 +131,3 @@ catch:
 
     return err;
 }
-
-errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid)
-{
-    decl_try_err();
-    ProcessRef cp = NULL;
-
-    if (*path == '\0') {
-        return EINVAL;
-    }
-    
-    // Create the child process
-    try(Process_CreateChild(self, opts, ovrFh, &cp));
-
-
-    // Prepare the executable image
-    try(Process_Exec(cp, path, argv, opts->envp));
-    Process_Release(cp);
-
-catch:
-    if (err == EOK) {
-        if (pOutPid) {
-            *pOutPid = cp->pid;
-        }
-    }
-    else {
-        Process_Release(cp);
-        if (pOutPid) {
-            *pOutPid = 0;
-        }
-    }
-
-    return err;
-}
