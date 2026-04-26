@@ -16,20 +16,18 @@ SYSCALL_0(proc_self)
     return Process_GetId(vp->proc);
 }
 
-SYSCALL_5(proc_spawn, int wd, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const proc_spawn_t* _Nonnull options, pid_t* _Nullable pOutPid)
+SYSCALL_5(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp, const proc_spawn_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
     decl_try_err();
     ProcessRef cp = NULL;
 
-    if (pa->wd != FD_CWD) {
-        //XXX not yet
+    if (*(pa->path) == '\0') {
         return EINVAL;
     }
-    
 
     err = Process_CreateChild(vp->proc, pa->options, NULL, &cp);
     if (err == EOK) {
-        err = Process_Exec(cp, pa->path, pa->argv, pa->options->envp);
+        err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
     }
     Process_Release(cp);
 
@@ -40,14 +38,9 @@ SYSCALL_5(proc_spawn, int wd, const char* _Nonnull path, const char* _Nullable *
     return err;
 }
 
-SYSCALL_4(proc_exec, int wd, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
+SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
 {
     decl_try_err();
-
-    if (pa->wd != FD_CWD) {
-        //XXX not yet
-        return EINVAL;
-    }
 
     err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp);
     if (err == EOK) {

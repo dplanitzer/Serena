@@ -34,20 +34,13 @@
 #define PROC_SPAWN_SESSION_LEADER   0x0020
 
 
-// The 'envp' pointer points to a table of nul-terminated strings of the form
-// 'key=value'. The last entry in the table has to be NULL. All these strings
-// are the enviornment variables that should be passed to the new process.
-// 'envp' may be NULL pointer. A NULL pointer is equivalent to a table with a
-// single entry that is the NULL pointer. So a NULL 'envp' means that the child
-// process receives an empty environment.
 typedef struct proc_spawn {
-    const char* _Nullable * _Nullable   envp;
-    const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
-    const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
-    fs_perms_t                          umask;                  // Override umask
-    uid_t                               uid;                    // Override user ID
-    gid_t                               gid;                    // Override group ID
-    unsigned int                        options;
+    const char* _Nullable   root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
+    const char* _Nullable   cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
+    fs_perms_t              umask;                  // Override umask
+    uid_t                   uid;                    // Override user ID
+    gid_t                   gid;                    // Override group ID
+    unsigned int            options;
 } proc_spawn_t;
 
 #endif /* _KPI_SPAWN_H */

@@ -48,7 +48,7 @@ static int __system(const char *string)
     // Enable SIG_CHILD reception
     sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
 
-    if (proc_spawn(NULL, __shellPath, argv, &opts, &sh_pid) != 0) {
+    if (proc_spawn(__shellPath, argv, NULL, &opts, &sh_pid) != 0) {
         r = -1;
         goto out;
     }

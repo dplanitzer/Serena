@@ -67,7 +67,6 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     envp[3] = env_alloc("TMPDIR", "/tmp");
     envp[4] = NULL;
 
-    opts.envp = envp;
     opts.umask = 0022;  // XXX hardcoded for now
     opts.uid = 1000;    // XXX hardcoded for now
     opts.gid = 1000;    // XXX hardcoded for now
@@ -80,7 +79,7 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
 
     // Spawn the shell
     pid_t childPid;
-    const int r = proc_spawn(NULL, shellPath, argv, &opts, &childPid);
+    const int r = proc_spawn(shellPath, argv, envp, &opts, &childPid);
 
 
     char** ep = envp;

@@ -76,10 +76,10 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
 
     g_systemd_spawn.options = PROC_SPAWN_GROUP_LEADER | PROC_SPAWN_SESSION_LEADER;
 
-    try(Process_CreateChild(self, &g_systemd_spawn, fh, &cp));
-    try(Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL));
-
-catch:
+    err = Process_CreateChild(self, &g_systemd_spawn, fh, &cp);
+    if (err == EOK) {
+        err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
+    }
     Process_Release(cp);
 
     return err;

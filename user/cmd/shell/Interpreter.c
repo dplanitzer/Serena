@@ -237,11 +237,9 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
         strcpy(cmdPath, argv[0]);
     }
 
-    opts.envp = envp;
-
 
     // Spawn the external command
-    if (proc_spawn(NULL, cmdPath, argv, &opts, &childPid) != 0) {
+    if (proc_spawn(cmdPath, argv, envp, &opts, &childPid) != 0) {
         throw(errno);
     }
 
