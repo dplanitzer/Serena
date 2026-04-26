@@ -11,8 +11,7 @@
 
 #include <stdnoreturn.h>
 #include <kpi/process.h>
-#include <kpi/spawn.h>
-#include <serena/types.h>
+#include <kpi/types.h>
 
 __CPP_BEGIN
 
@@ -57,17 +56,14 @@ extern int proc_property(pid_t pid, int flavor, char* _Nonnull buf, size_t bufSi
 extern int proc_vcpus(vcpuid_t* _Nonnull buf, size_t bufSize);
 
 
+// Replaces the currently executing process image with the executable image stored
+// at 'path'. All open I/O channels except channels 0, 1 and 2 are closed.
+extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[]);
+
 // Exits the current process. This call is different from exit() in the sense
 // that it does not invoke atexit() callbacks.
 extern _Noreturn void proc_exit(int status);
 
-
-extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawn_t* _Nonnull options, pid_t* _Nullable rpid);
-
-
-// Replaces the currently executing process image with the executable image stored
-// at 'path'. All open I/O channels except channels 0, 1 and 2 are closed.
-extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[]);
 
 // Checks whether the specified child process or a member of the specified child
 // process group has undergone a state change. If so, then this function fills 

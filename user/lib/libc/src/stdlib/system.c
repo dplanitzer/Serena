@@ -12,6 +12,7 @@
 #include <serena/file.h>
 #include <serena/process.h>
 #include <serena/signal.h>
+#include <serena/spawn.h>
 #include <serena/vcpu.h>
 
 
@@ -36,9 +37,11 @@ static int __system(const char *string)
     pid_t sh_pid;
     vcpuid_t vp_id = vcpu_id(vcpu_self());
     int r = 0;
-    proc_spawn_t opts = {0};
+    proc_spawnattr_t sa;
     const char* argv[4];
     proc_status_t ps;
+
+    proc_spawnattr_init(&sa);
 
     argv[0] = __shellPath;
     argv[1] = "-c";
@@ -48,18 +51,15 @@ static int __system(const char *string)
     // Enable SIG_CHILD reception
     sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
 
-    if (proc_spawn(__shellPath, argv, NULL, &opts, &sh_pid) != 0) {
-        r = -1;
-        goto out;
+    
+    r = proc_spawn(__shellPath, argv, NULL, &sa, &sh_pid);
+    if (r == 0) {
+        r = proc_status(PROC_STOF_PID, sh_pid, 0, &ps);
     }
 
-    if (proc_status(PROC_STOF_PID, sh_pid, 0, &ps) < 0) {
-        r = -1;
-        goto out;
-    }
-
-out:
+    
     sig_route(SIG_ROUTE_DEL, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
+    proc_spawnattr_destroy(&sa);
 
     return (r == 0) ? (ps.reason == PROC_STATUS_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
 }

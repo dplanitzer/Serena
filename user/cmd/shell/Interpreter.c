@@ -16,6 +16,7 @@
 #include <ext/stdlib.h>
 #include <serena/exception.h>
 #include <serena/process.h>
+#include <serena/spawn.h>
 
 //
 // Notes:
@@ -221,7 +222,6 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     char* cmdPath = NULL;
     const bool needsSearchPath = should_use_search_path(argv[0]);
     const size_t searchPathLen = (needsSearchPath) ? strlen(gSearchPath) : 0;
-    proc_spawn_t opts = {0};
     
     const size_t cmdPathLen = searchPathLen + strlen(argv[0]);
     if (cmdPathLen > PATH_MAX - 1) {
@@ -239,9 +239,14 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Spawn the external command
-    if (proc_spawn(cmdPath, argv, envp, &opts, &childPid) != 0) {
+    proc_spawnattr_t sa;
+    proc_spawnattr_init(&sa);
+
+    if (proc_spawn(cmdPath, argv, envp, &sa, &childPid) != 0) {
         throw(errno);
     }
+
+    proc_spawnattr_destroy(&sa);
 
 
     // Wait for the command to complete its task

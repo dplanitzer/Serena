@@ -54,7 +54,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
 // release this strong reference when no longer needed. Note that the process
 // manager maintains a strong reference to all living processes. This reference
 // keeps them alive.
-errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawn_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
+errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _Nonnull attr, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
     ProcessRef cp = NULL;
@@ -67,22 +67,44 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawn_t* _Nonnu
     gid_t ch_gid = self->fm.rgid;
     fs_perms_t ch_umask = FileManager_GetUMask(&self->fm);
 
-    if ((opts->options & PROC_SPAWN_UMASK) == PROC_SPAWN_UMASK) {
-        ch_umask = opts->umask & 0777;
+    if ((attr->options & PROC_SPAWN_UMASK) == PROC_SPAWN_UMASK) {
+        ch_umask = attr->umask & 0777;
     }
-    if ((opts->options & (PROC_SPAWN_UID|PROC_SPAWN_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
+    if ((attr->options & (PROC_SPAWN_UID|PROC_SPAWN_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
         throw(EPERM);
     }
-    if ((opts->options & PROC_SPAWN_UID) == PROC_SPAWN_UID) {
-        ch_uid = opts->uid;
+    if ((attr->options & PROC_SPAWN_UID) == PROC_SPAWN_UID) {
+        ch_uid = attr->uid;
     }
-    if ((opts->options & PROC_SPAWN_GID) == PROC_SPAWN_GID) {
-        ch_gid = opts->gid;
+    if ((attr->options & PROC_SPAWN_GID) == PROC_SPAWN_GID) {
+        ch_gid = attr->gid;
     }
 
 
-    const pid_t ch_pgrp = (opts->options & PROC_SPAWN_GROUP_LEADER) == PROC_SPAWN_GROUP_LEADER ? 0 : self->pgrp;
-    const pid_t ch_sid = (opts->options & PROC_SPAWN_SESSION_LEADER) == PROC_SPAWN_SESSION_LEADER ? 0 : self->sid;
+    pid_t ch_pgrp = self->pgrp;
+    pid_t ch_sid = self->sid;
+    switch (attr->type) {
+        case PROC_SPAWN_GROUP_MEMBER:
+            //XXX not quite right. Check whether the provided pgrp id exists and reject if not
+            if (attr->pgrp > 0) {
+                ch_pgrp = attr->pgrp;
+            }
+            break;
+
+        case PROC_SPAWN_GROUP_LEADER:
+            ch_pgrp = 0;
+            break;
+
+        case PROC_SPAWN_SESSION_LEADER:
+            ch_pgrp = 0;
+            ch_sid = 0;
+            break;
+
+        default:
+            throw(EINVAL);
+            break;
+    }
+
     FileHierarchyRef fh = (ovrFh) ? ovrFh : self->fm.fileHierarchy;
     InodeRef rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);
     InodeRef workDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.workingDirectory);
@@ -100,11 +122,11 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawn_t* _Nonnu
 
     IOChannelTable_DupFrom(&cp->ioChannelTable, &self->ioChannelTable);
 
-    if (opts->root_dir && opts->root_dir[0] != '\0') {
-        try(FileManager_SetRootDirectoryPath(&cp->fm, opts->root_dir));
+    if (attr->root_dir && attr->root_dir[0] != '\0') {
+        try(FileManager_SetRootDirectoryPath(&cp->fm, attr->root_dir));
     }
-    if (opts->cw_dir && opts->cw_dir[0] != '\0') {
-        try(FileManager_SetWorkingDirectoryPath(&cp->fm, opts->cw_dir));
+    if (attr->cw_dir && attr->cw_dir[0] != '\0') {
+        try(FileManager_SetWorkingDirectoryPath(&cp->fm, attr->cw_dir));
     }
 
 catch:

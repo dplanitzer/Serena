@@ -12,6 +12,14 @@
 #include <_cmndef.h>
 #include <kpi/types.h>
 
+
+// proc_spawnattr_settype()
+#define PROC_SPAWN_GROUP_MEMBER     0   /* Child process will be a member of the parent process group or the process group with the id given by the proc_spawnattr_setpgrp() */
+#define PROC_SPAWN_GROUP_LEADER     1   /* Child process will be the leader of a new process group */
+#define PROC_SPAWN_SESSION_LEADER   2   /* Child process will be the leader of a new session and the leader of a new process group */
+
+
+//XXX
 // Instructs the proc_spawn() call to set the umask of the newly spawned
 // process to the umask field in the spawn arguments struct rather than the
 // umask field of the parent process.
@@ -24,23 +32,21 @@
 // The new process should use the provided group id rather than the parent process
 // group id. Parent process must be the superuser (XXX for now).
 #define PROC_SPAWN_GID              0x0004
+//XXX
 
-// A new process group should be created with the new process being the group
-// leader. The id of the new group will be equal to the pid of the new process.
-#define PROC_SPAWN_GROUP_LEADER     0x0010
-
-// A new session should be created with the new process being the session leader.
-// The id of the new session will be equal to the pid of the new process.
-#define PROC_SPAWN_SESSION_LEADER   0x0020
+typedef struct proc_spawnattr {
+    size_t                  version;
+    int                     type;
+    pid_t                   pgrp;
 
 
-typedef struct proc_spawn {
+    //XXX
     const char* _Nullable   root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable   cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
     fs_perms_t              umask;                  // Override umask
     uid_t                   uid;                    // Override user ID
     gid_t                   gid;                    // Override group ID
     unsigned int            options;
-} proc_spawn_t;
+} proc_spawnattr_t;
 
 #endif /* _KPI_SPAWN_H */
