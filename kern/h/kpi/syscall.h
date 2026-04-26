@@ -20,7 +20,7 @@ enum {
     SC_clock_wait,          // errno_t clock_wait(clockid_t clock, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
     SC_vm_allocate,         // errno_t vm_allocate(size_t nbytes, void **pOutMem)
     SC_proc_exit,           // _Noreturn void proc_exit(int status)
-    SC_proc_spawn,          // errno_t proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], , const char* _Nullable envp[], proc_spawnattr_t * _Nullable options, pid_t * _Nullable rpid)
+    SC_proc_spawn,          // errno_t proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], , const char* _Nullable envp[], proc_spawnattr_t * _Nonnull options, const proc_spawn_actions_t* _Nullable actions, pid_t * _Nullable rpid)
     SC_proc_terminate,      // errno_t proc_terminate(pid_t pid)
     SC_proc_vcpus,          // int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize)
     SC_proc_suspend,        // errno_t proc_suspend(pid_t pid)

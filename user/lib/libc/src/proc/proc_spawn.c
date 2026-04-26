@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawnattr_t* _Nullable attr, pid_t* _Nullable rpid)
+int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, pid_t* _Nullable rpid)
 {
-    return (int)_syscall(SC_proc_spawn, path, argv, envp, attr, rpid);
+    return (int)_syscall(SC_proc_spawn, path, argv, envp, attr, actions, rpid);
 }

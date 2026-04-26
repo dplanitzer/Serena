@@ -80,7 +80,7 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
 
     // Spawn the shell
     pid_t childPid;
-    const int r = proc_spawn(shellPath, argv, envp, &sa, &childPid);
+    const int r = proc_spawn(shellPath, argv, envp, &sa, NULL, &childPid);
 
 
     proc_spawnattr_destroy(&sa);

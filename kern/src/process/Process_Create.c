@@ -59,6 +59,10 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     decl_try_err();
     ProcessRef cp = NULL;
 
+    if (attr == NULL || attr->version < sizeof(struct proc_spawnattr)) {
+        return EINVAL;
+    }
+
     mtx_lock(&self->mtx);
 
     self->flags |= PROC_FLAG_INCUBATING;
@@ -122,13 +126,6 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
 
     IOChannelTable_DupFrom(&cp->ioChannelTable, &self->ioChannelTable);
 
-    if (attr->root_dir && attr->root_dir[0] != '\0') {
-        try(FileManager_SetRootDirectoryPath(&cp->fm, attr->root_dir));
-    }
-    if (attr->cw_dir && attr->cw_dir[0] != '\0') {
-        try(FileManager_SetWorkingDirectoryPath(&cp->fm, attr->cw_dir));
-    }
-
 catch:
     mtx_unlock(&self->mtx);
 
@@ -142,6 +139,40 @@ catch:
         Process_Release(cp);
         *pOutChild = NULL;
     }
+
+    return err;
+}
+
+// Applies the given list of spawn actions to the process.
+errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions)
+{
+    decl_try_err();
+
+    if (actions->version < sizeof(struct proc_spawn_actions)) {
+        return EINVAL;
+    }
+
+    mtx_lock(&self->mtx);
+
+    for (size_t i = 0; i < actions->count; i++) {
+        const _proc_spawn_action_t* act = &actions->action[i];
+
+        switch (act->type) {
+            case _PROC_SPACT_SETCWD:
+                err = FileManager_SetWorkingDirectoryPath(&self->fm, act->u.path);
+                break;
+
+            case _PROC_SPACT_SETROOTDIR:
+                err = FileManager_SetRootDirectoryPath(&self->fm, act->u.path);
+                break;
+
+            default:
+                err = EINVAL;
+                break;
+        }
+    }
+
+    mtx_unlock(&self->mtx);
 
     return err;
 }

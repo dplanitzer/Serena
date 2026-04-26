@@ -16,7 +16,7 @@ SYSCALL_0(proc_self)
     return Process_GetId(vp->proc);
 }
 
-SYSCALL_5(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp, const proc_spawnattr_t* _Nonnull attr, pid_t* _Nullable pOutPid)
+SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp, const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, pid_t* _Nullable pOutPid)
 {
     decl_try_err();
     ProcessRef cp = NULL;
@@ -27,7 +27,13 @@ SYSCALL_5(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
 
     err = Process_CreateChild(vp->proc, pa->attr, NULL, &cp);
     if (err == EOK) {
-        err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
+        if (pa->actions) {
+            err = Process_ApplyActions(cp, pa->actions);
+        }
+        
+        if (err == EOK) {
+            err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
+        }
     }
     Process_Release(cp);
 

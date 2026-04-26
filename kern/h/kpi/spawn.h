@@ -41,12 +41,30 @@ typedef struct proc_spawnattr {
 
 
     //XXX
-    const char* _Nullable   root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
-    const char* _Nullable   cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
     fs_perms_t              umask;                  // Override umask
     uid_t                   uid;                    // Override user ID
     gid_t                   gid;                    // Override group ID
     unsigned int            options;
 } proc_spawnattr_t;
+
+
+
+#define _PROC_SPACT_SETCWD      1
+#define _PROC_SPACT_SETROOTDIR  2
+
+typedef struct _proc_spawn_action {
+    int     type;
+    union {
+        char* _Nonnull  path;
+    }       u;
+} _proc_spawn_action_t;
+
+
+typedef struct proc_spawn_actions {
+    size_t                  version;
+    size_t                  capacity;
+    size_t                  count;
+    _proc_spawn_action_t*   action;
+} proc_spawn_actions_t;
 
 #endif /* _KPI_SPAWN_H */

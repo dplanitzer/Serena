@@ -37,7 +37,7 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 
     // Spawn the process
     proc_spawnattr_init(&sa);
-    const int r = proc_spawn(procPath, argv, NULL, &sa, NULL);
+    const int r = proc_spawn(procPath, argv, NULL, &sa, NULL, NULL);
     proc_spawnattr_destroy(&sa);
 
     return r;

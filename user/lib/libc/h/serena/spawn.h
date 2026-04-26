@@ -37,6 +37,15 @@ extern pid_t proc_spawnattr_pgrp(const proc_spawnattr_t* _Nonnull attr);
 extern int proc_spawnattr_setpgrp(proc_spawnattr_t * _Nonnull attr, pid_t pgrp);
 
 
-extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawnattr_t* _Nonnull attr, pid_t* _Nullable rpid);
+
+extern int proc_spawn_actions_init(proc_spawn_actions_t* _Nonnull actions);
+extern int proc_spawn_actions_destroy(proc_spawn_actions_t* _Nullable actions);
+
+extern int proc_spawn_actions_setcwd(proc_spawn_actions_t* _Nonnull actions, const char* _Nonnull path);
+extern int proc_spawn_actions_setrootdir(proc_spawn_actions_t* _Nonnull actions, const char* _Nonnull path);
+
+
+
+extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, pid_t* _Nullable rpid);
 
 #endif /* _SERENA_SPAWN_H */
