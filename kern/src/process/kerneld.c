@@ -75,8 +75,8 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
     ProcessRef cp = NULL;
 
     g_systemd_spawn.version = sizeof(struct proc_spawnattr);
-    g_systemd_spawn.options = PROC_SPAWN_GROUP_LEADER | PROC_SPAWN_SESSION_LEADER;
-
+    g_systemd_spawn.type = PROC_SPAWN_SESSION_LEADER;
+    
     err = Process_CreateChild(self, &g_systemd_spawn, fh, &cp);
     if (err == EOK) {
         err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);

@@ -70,14 +70,11 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
 
     proc_spawnattr_init(&sa);
     proc_spawnattr_settype(&sa, PROC_SPAWN_SESSION_LEADER);
-    sa.umask = 0022;  // XXX hardcoded for now
-    sa.uid = 1000;    // XXX hardcoded for now
-    sa.gid = 1000;    // XXX hardcoded for now
-    sa.options = PROC_SPAWN_UID
-        | PROC_SPAWN_GID
-        | PROC_SPAWN_UMASK;
+    proc_spawnattr_setumask(&sa, 0022); //XXX hardcoded for now
+    proc_spawnattr_setuid(&sa, 1000);   //XXX hardcoded for now
+    proc_spawnattr_setgid(&sa, 1000);   //XXX hardcoded for now
 
-
+    
     // Spawn the shell
     pid_t childPid;
     const int r = proc_spawn(shellPath, argv, envp, &sa, NULL, &childPid);

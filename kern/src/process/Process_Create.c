@@ -71,16 +71,16 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     gid_t ch_gid = self->fm.rgid;
     fs_perms_t ch_umask = FileManager_GetUMask(&self->fm);
 
-    if ((attr->options & PROC_SPAWN_UMASK) == PROC_SPAWN_UMASK) {
+    if ((attr->flags & _PROC_SPAFL_UMASK) == _PROC_SPAFL_UMASK) {
         ch_umask = attr->umask & 0777;
     }
-    if ((attr->options & (PROC_SPAWN_UID|PROC_SPAWN_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
+    if ((attr->flags & (_PROC_SPAFL_UID|_PROC_SPAFL_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
         throw(EPERM);
     }
-    if ((attr->options & PROC_SPAWN_UID) == PROC_SPAWN_UID) {
+    if ((attr->flags & _PROC_SPAFL_UID) == _PROC_SPAFL_UID) {
         ch_uid = attr->uid;
     }
-    if ((attr->options & PROC_SPAWN_GID) == PROC_SPAWN_GID) {
+    if ((attr->flags & _PROC_SPAFL_GID) == _PROC_SPAFL_GID) {
         ch_gid = attr->gid;
     }
 

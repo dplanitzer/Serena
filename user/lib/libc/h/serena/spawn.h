@@ -36,6 +36,21 @@ extern int proc_spawnattr_settype(proc_spawnattr_t* _Nonnull attr, int type);
 extern pid_t proc_spawnattr_pgrp(const proc_spawnattr_t* _Nonnull attr);
 extern int proc_spawnattr_setpgrp(proc_spawnattr_t * _Nonnull attr, pid_t pgrp);
 
+// Instructs the proc_spawn() call to set the umask of the newly spawned
+// process to the provided umask rather than the parent's umask.
+extern fs_perms_t proc_spawnattr_umask(const proc_spawnattr_t* _Nonnull attr);
+extern int proc_spawnattr_setumask(proc_spawnattr_t* _Nonnull attr, fs_perms_t umask);
+
+// The new process should use the provided user id rather than the parent process
+// user id. Parent process must be the superuser (XXX for now).
+extern uid_t proc_spawnattr_uid(const proc_spawnattr_t* _Nonnull attr);
+extern int proc_spawnattr_setuid(proc_spawnattr_t* _Nonnull attr, uid_t uid);
+
+// The new process should use the provided group id rather than the parent
+// process group id. Parent process must be the superuser (XXX for now).
+extern gid_t proc_spawnattr_gid(const proc_spawnattr_t* _Nonnull attr);
+extern int proc_spawnattr_setgid(proc_spawnattr_t* _Nonnull attr, gid_t gid);
+
 
 
 extern int proc_spawn_actions_init(proc_spawn_actions_t* _Nonnull actions);
