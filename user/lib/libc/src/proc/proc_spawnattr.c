@@ -102,3 +102,19 @@ int proc_spawnattr_setgid(proc_spawnattr_t* _Nonnull attr, gid_t gid)
     attr->flags |= _PROC_SPAFL_GID;
     return 0;
 }
+
+
+bool proc_spawnattr_suspended(const proc_spawnattr_t* _Nonnull attr)
+{
+    return (attr->flags & _PROC_SPAFL_SUSPENDED) == _PROC_SPAFL_SUSPENDED ? true : false;
+}
+
+void proc_spawnattr_setsuspended(proc_spawnattr_t* _Nonnull attr, bool flag)
+{
+    if (flag) {
+        attr->flags |= _PROC_SPAFL_SUSPENDED;
+    }
+    else {
+        attr->flags &= ~_PROC_SPAFL_SUSPENDED;
+    }
+}

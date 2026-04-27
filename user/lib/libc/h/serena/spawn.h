@@ -10,6 +10,7 @@
 #define _SERENA_SPAWN_H 1
 
 #include <_cmndef.h>
+#include <stdbool.h>
 #include <kpi/spawn.h>
 
 // Initializes a spawn attribute object such that a child process will be created
@@ -19,6 +20,7 @@
 // - inherits the parent's umask
 // - inherits the parent's root directory
 // - inherits the parent's current working directory
+// - child process is automatically resumed
 extern int proc_spawnattr_init(proc_spawnattr_t* _Nonnull attr);
 extern int proc_spawnattr_destroy(proc_spawnattr_t* _Nullable attr);
 
@@ -50,6 +52,11 @@ extern int proc_spawnattr_setuid(proc_spawnattr_t* _Nonnull attr, uid_t uid);
 // process group id. Parent process must be the superuser (XXX for now).
 extern gid_t proc_spawnattr_gid(const proc_spawnattr_t* _Nonnull attr);
 extern int proc_spawnattr_setgid(proc_spawnattr_t* _Nonnull attr, gid_t gid);
+
+// The new process should start out in suspended state and the parent process
+// will resume it by calling proc_resume() when it is ready to do so.
+extern bool proc_spawnattr_suspended(const proc_spawnattr_t* _Nonnull attr);
+extern void proc_spawnattr_setsuspended(proc_spawnattr_t* _Nonnull attr, bool flag);
 
 
 

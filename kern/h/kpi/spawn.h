@@ -19,9 +19,10 @@
 #define PROC_SPAWN_SESSION_LEADER   2   /* Child process will be the leader of a new session and the leader of a new process group */
 
 
-#define _PROC_SPAFL_UMASK   1
-#define _PROC_SPAFL_UID     2
-#define _PROC_SPAFL_GID     4
+#define _PROC_SPAFL_UMASK       1
+#define _PROC_SPAFL_UID         2
+#define _PROC_SPAFL_GID         4
+#define _PROC_SPAFL_SUSPENDED   8
 
 
 typedef struct proc_spawnattr {
