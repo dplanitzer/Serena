@@ -25,4 +25,8 @@
 // Maximum size of the command line arguments and environment that can be passed to a process
 #define __ARG_MAX 98304
 
+
+// Max number of spawn actions allowed per spawn operation
+#define __SPAWN_ACTIONS_MAX 32
+
 #endif /* _KPI_SYSLIMITS_H */

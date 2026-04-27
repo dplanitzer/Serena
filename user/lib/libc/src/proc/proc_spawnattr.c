@@ -11,7 +11,7 @@
 
 int proc_spawnattr_init(proc_spawnattr_t* _Nonnull attr)
 {
-    attr->version = sizeof(struct proc_spawnattr);
+    attr->version = _PROC_SPAWNATTR_VERSION;
     attr->type = PROC_SPAWN_GROUP_MEMBER;
     attr->pgrp = 0;
     attr->umask = 0;

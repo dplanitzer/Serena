@@ -13,7 +13,7 @@
 
 int proc_spawn_actions_init(proc_spawn_actions_t* _Nonnull actions)
 {
-    actions->version = sizeof(struct proc_spawn_actions);
+    actions->version = _PROC_SPAWN_ACTIONS_VERSION;
     actions->action = NULL;
     actions->count = 0;
     actions->capacity = 0;

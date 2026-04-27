@@ -83,7 +83,7 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     mtx_lock(&self->mtx);
 
     // Validate the spawn attributes and bail out if something is wrong
-    if (attr == NULL || attr->version < sizeof(struct proc_spawnattr)) {
+    if (attr == NULL || attr->version < _PROC_SPAWNATTR_VERSION) {
         throw(EINVAL);
     }
     if (attr->type < PROC_SPAWN_GROUP_MEMBER || attr->type > PROC_SPAWN_SESSION_LEADER) {
@@ -162,9 +162,13 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
 {
     decl_try_err();
 
-    if (actions->version < sizeof(struct proc_spawn_actions)) {
+    if (actions->version < _PROC_SPAWN_ACTIONS_VERSION) {
         return EINVAL;
     }
+    if (actions->count > __SPAWN_ACTIONS_MAX) {
+        return ERANGE;
+    }
+
 
     mtx_lock(&self->mtx);
 

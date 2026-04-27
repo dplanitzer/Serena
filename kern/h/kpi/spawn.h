@@ -24,6 +24,8 @@
 #define _PROC_SPAFL_GID         4
 #define _PROC_SPAFL_SUSPENDED   8
 
+#define _PROC_SPAWNATTR_VERSION 1
+
 
 typedef struct proc_spawnattr {
     size_t          version;
@@ -39,6 +41,8 @@ typedef struct proc_spawnattr {
 
 #define _PROC_SPACT_SETCWD      1
 #define _PROC_SPACT_SETROOTDIR  2
+
+#define _PROC_SPAWN_ACTIONS_VERSION 1
 
 typedef struct _proc_spawn_action {
     int     type;
