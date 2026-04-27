@@ -32,11 +32,14 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
         }
 
         if (err == EOK) {
-            // Register the new process with the process manager. This assigns a
-            // unique PID to our new process
-            ProcessManager_Publish(gProcessManager, cp);
-            
             err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
+            if (err == EOK) {
+                // Register the new process with the process manager. This assigns a
+                // unique PID to our new process
+                ProcessManager_Publish(gProcessManager, cp);
+
+                Process_Resume(cp);
+            }
         }
     }
     Process_Release(cp);

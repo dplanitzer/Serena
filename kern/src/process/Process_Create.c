@@ -23,7 +23,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     AddressSpace_Init(&self->addr_space);
 
     self->retainCount = RC_INIT;
-    self->run_state = PROC_STATE_RESUMED;
+    self->run_state = PROC_STATE_SUSPENDED;
     self->pid = 0;
 
     if (parent) {
