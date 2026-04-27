@@ -89,7 +89,6 @@ typedef void* proc_info_ref;
 #define PROC_STATE_TERMINATED   3       /* Process has terminated and parent processes hasn't reaped it yet */
 
 // Process flags
-#define PROC_FLAG_INCUBATING    1       /* Process is still in incubating state and will remain in this state until proc_exec() is called */
 
 
 typedef struct proc_basic_info {

@@ -100,6 +100,12 @@ typedef struct cpu_excpt_state {
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
 #define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 
 
+#define VCPU_CLAMPED_QUANTUM_BOOST(__boost) \
+__max(__min(__boost, INT8_MAX), 0)
+
+#define VCPU_CLAMPED_NICE_PRIORITY(__nice) \
+__max(__min(__nice, VCPU_QOS_URGENT * VCPU_PRI_COUNT), 0)
+
 
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 struct vcpu {

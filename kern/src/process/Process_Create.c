@@ -94,8 +94,6 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     }
 
 
-    self->flags |= PROC_FLAG_INCUBATING;
-    
     // Create the new process and let it inherit its basic state from us (the parent)
     FileHierarchyRef fh = (ovrFh) ? ovrFh : self->fm.fileHierarchy;
     rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);

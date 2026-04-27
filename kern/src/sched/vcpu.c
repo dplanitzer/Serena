@@ -82,6 +82,10 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     preempt_restore(sps);
 
     
+    //
+    // The vcpu is guaranteed to be suspended at this point
+    //
+    
     // Configure the vcpu
     try(_vcpu_reset_machine_state(vp, ac, true));
     vcpu_set_policy(vp, &ac->policy);
@@ -174,12 +178,12 @@ void vcpu_destroy(vcpu_t _Nullable self)
 
 void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost)
 {
-    self->quantum_boost = __max(__min(boost, INT8_MAX), 0);
+    self->quantum_boost = VCPU_CLAMPED_QUANTUM_BOOST(boost);
 }
 
 void vcpu_set_nice(vcpu_t _Nonnull self, int nice)
 {
-    const int new_nice = __max(__min(nice, VCPU_QOS_URGENT * VCPU_PRI_COUNT), 0);
+    const int new_nice = VCPU_CLAMPED_NICE_PRIORITY(nice);
 
     if (self->sched_nice != new_nice) {
         self->sched_nice = new_nice;

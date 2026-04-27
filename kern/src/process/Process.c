@@ -245,28 +245,35 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
     mtx_lock(&self->mtx);
     switch (type) {
         case PROC_SCHED_QUANTUM_BOOST:
-            deque_for_each(&self->vcpu_queue, vcpu_t, it,
-                vcpu_t cvp = vcpu_from_owner_qe(it);
-                const int sps = preempt_disable();
-
-                vcpu_set_quantum_boost(cvp, *param);
-                preempt_restore(sps);
-            );
+            self->quantum_boost = VCPU_CLAMPED_QUANTUM_BOOST(*param);
             break;
 
         case PROC_SCHED_NICE:
-            deque_for_each(&self->vcpu_queue, vcpu_t, it,
-                vcpu_t cvp = vcpu_from_owner_qe(it);
-                const int sps = preempt_disable();
-
-                vcpu_set_nice(cvp, *param);
-                preempt_restore(sps);
-            );
+            self->sched_nice = VCPU_CLAMPED_NICE_PRIORITY(*param);
             break;
 
         default:
             err = EINVAL;
             break;
+    }
+
+    if (err == EOK) {
+        deque_for_each(&self->vcpu_queue, vcpu_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
+            const int sps = preempt_disable();
+
+            switch (type) {
+                case PROC_SCHED_QUANTUM_BOOST:
+                    vcpu_set_quantum_boost(cvp, self->quantum_boost);
+                    break;
+
+                case PROC_SCHED_NICE:
+                    vcpu_set_nice(cvp, self->sched_nice);
+                    break;
+            }
+
+            preempt_restore(sps);
+        );
     }
     mtx_unlock(&self->mtx);
 

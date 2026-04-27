@@ -138,9 +138,6 @@ extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_a
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 
-#define _proc_is_incubating(__self) \
-(((__self)->flags & PROC_FLAG_INCUBATING) == PROC_FLAG_INCUBATING)
-
 extern void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo);
 extern void _proc_suspend(ProcessRef _Nonnull _Locked self);
 extern void _proc_resume(ProcessRef _Nonnull _Locked self);
