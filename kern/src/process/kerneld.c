@@ -79,6 +79,8 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
     
     err = Process_CreateChild(self, &g_systemd_spawn, fh, &cp);
     if (err == EOK) {
+        ProcessManager_Publish(gProcessManager, cp);
+
         err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
     }
     Process_Release(cp);

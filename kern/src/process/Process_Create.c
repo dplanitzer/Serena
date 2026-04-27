@@ -147,9 +147,6 @@ catch:
     mtx_unlock(&self->mtx);
 
     if (err == EOK) {
-        // Register the new process with the process manager. This assigns a
-        // unique PID to our new process
-        ProcessManager_Publish(gProcessManager, cp);
         *pOutChild = cp;
     }
     else {
