@@ -68,6 +68,6 @@ extern int proc_spawn_actions_setrootdir(proc_spawn_actions_t* _Nonnull actions,
 
 
 
-extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, pid_t* _Nullable rpid);
+extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable envp[], const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, proc_spawnres_t* _Nullable result);
 
 #endif /* _SERENA_SPAWN_H */

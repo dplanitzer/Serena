@@ -12,6 +12,9 @@
 #include <_cmndef.h>
 #include <kpi/types.h>
 
+//
+// Spawn attributes
+//
 
 // proc_spawnattr_settype()
 #define PROC_SPAWN_GROUP_MEMBER     0   /* Child process will be a member of the parent process group or the process group with the id given by the proc_spawnattr_setpgrp() */
@@ -39,6 +42,10 @@ typedef struct proc_spawnattr {
 
 
 
+//
+// Spawn actions
+//
+
 #define _PROC_SPACT_SETCWD      1
 #define _PROC_SPACT_SETROOTDIR  2
 
@@ -58,5 +65,21 @@ typedef struct proc_spawn_actions {
     size_t                          count;
     _proc_spawn_action_t* _Nullable action;
 } proc_spawn_actions_t;
+
+
+
+//
+// Spawn result
+//
+
+#define PROC_SPAWN_PHASE_CREATE     1
+#define PROC_SPAWN_PHASE_ACTIONS    2
+#define PROC_SPAWN_PHASE_EXEC       3
+
+typedef struct proc_spawnres {
+    pid_t   pid;
+    int     err_phase;      // if called failed, phase in which the error happened
+    int     err_info;       // if called failed and phase is ACTIONS, the index of the action that failed
+} proc_spawnres_t;
 
 #endif /* _KPI_SPAWN_H */

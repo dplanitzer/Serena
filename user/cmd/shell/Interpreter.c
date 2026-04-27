@@ -218,7 +218,6 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     static const char* gSearchPath = "/System/Commands/";
 
     decl_try_err();
-    pid_t childPid;
     char* cmdPath = NULL;
     const bool needsSearchPath = should_use_search_path(argv[0]);
     const size_t searchPathLen = (needsSearchPath) ? strlen(gSearchPath) : 0;
@@ -239,10 +238,11 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Spawn the external command
+    proc_spawnres_t sres;
     proc_spawnattr_t sa;
     proc_spawnattr_init(&sa);
 
-    if (proc_spawn(cmdPath, argv, envp, &sa, NULL, &childPid) != 0) {
+    if (proc_spawn(cmdPath, argv, envp, &sa, NULL, &sres) != 0) {
         throw(errno);
     }
 
@@ -251,7 +251,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
     // Wait for the command to complete its task
     proc_status_t ps;
-    proc_status(PROC_STOF_PID, childPid, 0, &ps);
+    proc_status(PROC_STOF_PID, sres.pid, 0, &ps);
     if (ps.reason == PROC_STATUS_EXCEPTION) {
         if (ps.u.excptno == EXCPT_FORCED_ABORT) {
             fprintf(stderr, "%s aborted.\n", argv[0]);

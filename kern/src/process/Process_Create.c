@@ -158,9 +158,11 @@ catch:
 }
 
 // Applies the given list of spawn actions to the process.
-errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions)
+errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, size_t* _Nonnull pOutFailedActionIndex)
 {
     decl_try_err();
+
+    *pOutFailedActionIndex = 0;
 
     if (actions->version < _PROC_SPAWN_ACTIONS_VERSION) {
         return EINVAL;
@@ -187,6 +189,11 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
             default:
                 err = EINVAL;
                 break;
+        }
+
+        if (err != EOK) {
+            *pOutFailedActionIndex = i;
+            break;
         }
     }
 

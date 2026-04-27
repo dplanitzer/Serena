@@ -34,10 +34,10 @@ static int __has_shell(void)
 
 static int __system(const char *string)
 {
-    pid_t sh_pid;
     vcpuid_t vp_id = vcpu_id(vcpu_self());
     int r = 0;
     proc_spawnattr_t sa;
+    proc_spawnres_t sres;
     const char* argv[4];
     proc_status_t ps;
 
@@ -52,9 +52,9 @@ static int __system(const char *string)
     sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
 
 
-    r = proc_spawn(__shellPath, argv, NULL, &sa, NULL, &sh_pid);
+    r = proc_spawn(__shellPath, argv, NULL, &sa, NULL, &sres);
     if (r == 0) {
-        r = proc_status(PROC_STOF_PID, sh_pid, 0, &ps);
+        r = proc_status(PROC_STOF_PID, sres.pid, 0, &ps);
     }
 
     

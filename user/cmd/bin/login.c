@@ -55,6 +55,7 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
 static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
     proc_spawnattr_t sa;
+    proc_spawnres_t sres;
     const char* argv[3];
     const char* envp[5];
     
@@ -76,8 +77,7 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
 
     
     // Spawn the shell
-    pid_t childPid;
-    const int r = proc_spawn(shellPath, argv, envp, &sa, NULL, &childPid);
+    const int r = proc_spawn(shellPath, argv, envp, &sa, NULL, &sres);
 
 
     proc_spawnattr_destroy(&sa);
@@ -93,7 +93,7 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     // XXX because this proc_status() here consumes the pid and the proc_status()
     // XXX in on_shell_termination() can't get the pid anymore.
     proc_status_t ps;
-    proc_status(PROC_STOF_PID, childPid, 0, &ps);
+    proc_status(PROC_STOF_PID, sres.pid, 0, &ps);
     on_shell_termination(NULL);
     // XXX enable dispatch queue based notifications again
 

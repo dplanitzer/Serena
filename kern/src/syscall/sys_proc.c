@@ -16,23 +16,28 @@ SYSCALL_0(proc_self)
     return Process_GetId(vp->proc);
 }
 
-SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp, const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, pid_t* _Nullable pOutPid)
+SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp, const proc_spawnattr_t* _Nonnull attr, const proc_spawn_actions_t* _Nullable actions, proc_spawnres_t* _Nullable sres)
 {
     decl_try_err();
     ProcessRef cp = NULL;
+    size_t failedActionIndex;
+    int err_phase = PROC_SPAWN_PHASE_CREATE;
 
     if (*(pa->path) == '\0') {
-        return EINVAL;
+        throw(EINVAL);
     }
 
     err = Process_CreateChild(vp->proc, pa->attr, NULL, &cp);
     if (err == EOK) {
         if (pa->actions) {
-            err = Process_ApplyActions(cp, pa->actions);
+            err_phase = PROC_SPAWN_PHASE_ACTIONS;
+            err = Process_ApplyActions(cp, pa->actions, &failedActionIndex);
         }
 
         if (err == EOK) {
+            err_phase = PROC_SPAWN_PHASE_EXEC;
             err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
+            
             if (err == EOK) {
                 // Register the new process with the process manager. This assigns a
                 // unique PID to our new process
@@ -46,8 +51,13 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
     }
     Process_Release(cp);
 
-    if (err == EOK && pa->pOutPid) {
-        *(pa->pOutPid) = cp->pid;
+catch:
+    if (pa->sres) {
+        if (err == EOK) {
+            pa->sres->pid = cp->pid;
+        }
+        pa->sres->err_phase = err_phase;
+        pa->sres->err_info = (int)failedActionIndex;
     }
 
     return err;
