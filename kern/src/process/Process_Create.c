@@ -37,7 +37,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     }
     else {
         // kerneld
-        self->ppid = PROC_KERNELD_PID;
+        self->ppid = PROC_PID_KERNELD;
         self->pgrp = 0;
         self->sid = 0;
 

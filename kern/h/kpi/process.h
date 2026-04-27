@@ -137,7 +137,9 @@ typedef struct proc_times_info {
 #define PROC_PROP_ENVIRON   5       /* argv style, NUL separated environment variable definitions */
 
 
-// kerneld PID
-#define PROC_KERNELD_PID    1
+// Well-known PIDs. These PIDs are guaranteed to remain stable and locked in
+// from OS release to OS release 
+#define PROC_PID_KERNELD    1
+#define PROC_PID_SYSTEMD    2
 
 #endif /* _KPI_PROCESS_H */
