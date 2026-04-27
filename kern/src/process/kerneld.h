@@ -11,10 +11,7 @@
 
 #include <process/Process.h>
 
-
 extern ProcessRef _Nonnull  gKernelProcess;
-
-#define PID_KERNEL  1
 
 
 // Initializes the kerneld process and adopts the calling vcpu as kerneld's main

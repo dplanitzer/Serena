@@ -13,9 +13,11 @@
 #include <kern/kalloc.h>
 
 
-void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask)
+void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent, FileHierarchyRef _Nonnull fh, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir)
 {
-    assert(ppid > 0);
+    uid_t uid;
+    gid_t gid;
+    fs_perms_t umask;
 
     mtx_init(&self->mtx);
     AddressSpace_Init(&self->addr_space);
@@ -23,9 +25,27 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     self->retainCount = RC_INIT;
     self->run_state = PROC_STATE_RESUMED;
     self->pid = 0;
-    self->ppid = ppid;
-    self->pgrp = pgrp;
-    self->sid = sid;
+
+    if (parent) {
+        self->ppid = parent->pid;
+        self->pgrp = parent->pgrp;
+        self->sid = parent->sid;
+
+        uid = parent->fm.ruid;
+        gid = parent->fm.rgid;
+        umask = parent->fm.umask;
+    }
+    else {
+        // kerneld
+        self->ppid = PROC_KERNELD_PID;
+        self->pgrp = 0;
+        self->sid = 0;
+
+        uid = UID_ROOT;
+        gid = GID_ROOT;
+        umask = fs_perms_from_octal(0022); 
+    }
+
 
     self->vcpu_queue = DEQUE_INIT;
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
@@ -45,7 +65,6 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     wq_init(&self->siwa_queue);
    
     _proc_init_default_sigroutes(self);
-
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
 }
 
@@ -58,67 +77,62 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
 {
     decl_try_err();
     ProcessRef cp = NULL;
-
-    if (attr == NULL || attr->version < sizeof(struct proc_spawnattr)) {
-        return EINVAL;
-    }
+    InodeRef rootDir = NULL;
+    InodeRef workDir = NULL;
 
     mtx_lock(&self->mtx);
 
-    self->flags |= PROC_FLAG_INCUBATING;
-    
-    uid_t ch_uid = self->fm.ruid;
-    gid_t ch_gid = self->fm.rgid;
-    fs_perms_t ch_umask = FileManager_GetUMask(&self->fm);
-
-    if ((attr->flags & _PROC_SPAFL_UMASK) == _PROC_SPAFL_UMASK) {
-        ch_umask = attr->umask & 0777;
+    // Validate the spawn attributes and bail out if something is wrong
+    if (attr == NULL || attr->version < sizeof(struct proc_spawnattr)) {
+        throw(EINVAL);
+    }
+    if (attr->type < PROC_SPAWN_GROUP_MEMBER || attr->type > PROC_SPAWN_SESSION_LEADER) {
+        throw(EINVAL);
     }
     if ((attr->flags & (_PROC_SPAFL_UID|_PROC_SPAFL_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
         throw(EPERM);
     }
+
+
+    self->flags |= PROC_FLAG_INCUBATING;
+    
+    // Create the new process and let it inherit its basic state from us (the parent)
+    FileHierarchyRef fh = (ovrFh) ? ovrFh : self->fm.fileHierarchy;
+    rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);
+    workDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.workingDirectory);
+
+    try(kalloc_cleared(sizeof(Process), (void**)&cp));
+    Process_Init(cp, self, fh, rootDir, workDir);
+
+
+    // Now override the inherited state based on the spawn attributes
+    if ((attr->flags & _PROC_SPAFL_UMASK) == _PROC_SPAFL_UMASK) {
+        cp->fm.umask = attr->umask & 0777;
+    }
     if ((attr->flags & _PROC_SPAFL_UID) == _PROC_SPAFL_UID) {
-        ch_uid = attr->uid;
+        cp->fm.ruid = attr->uid;
     }
     if ((attr->flags & _PROC_SPAFL_GID) == _PROC_SPAFL_GID) {
-        ch_gid = attr->gid;
+        cp->fm.rgid = attr->gid;
     }
 
-
-    pid_t ch_pgrp = self->pgrp;
-    pid_t ch_sid = self->sid;
     switch (attr->type) {
         case PROC_SPAWN_GROUP_MEMBER:
             //XXX not quite right. Check whether the provided pgrp id exists and reject if not
             if (attr->pgrp > 0) {
-                ch_pgrp = attr->pgrp;
+                cp->pgrp = attr->pgrp;
             }
             break;
 
         case PROC_SPAWN_GROUP_LEADER:
-            ch_pgrp = 0;
+            cp->pgrp = 0;
             break;
 
         case PROC_SPAWN_SESSION_LEADER:
-            ch_pgrp = 0;
-            ch_sid = 0;
-            break;
-
-        default:
-            throw(EINVAL);
+            cp->pgrp = 0;
+            cp->sid = 0;
             break;
     }
-
-    FileHierarchyRef fh = (ovrFh) ? ovrFh : self->fm.fileHierarchy;
-    InodeRef rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);
-    InodeRef workDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.workingDirectory);
-
-    try(kalloc_cleared(sizeof(Process), (void**)&cp));
-    Process_Init(cp, self->pid, ch_pgrp, ch_sid, fh, ch_uid, ch_gid, rootDir, workDir, ch_umask);
-
-    Inode_Relinquish(workDir);
-    Inode_Relinquish(rootDir);
-
 
     // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
@@ -127,6 +141,9 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     IOChannelTable_DupFrom(&cp->ioChannelTable, &self->ioChannelTable);
 
 catch:
+    Inode_Relinquish(workDir);
+    Inode_Relinquish(rootDir);
+
     mtx_unlock(&self->mtx);
 
     if (err == EOK) {
@@ -136,7 +153,7 @@ catch:
         *pOutChild = cp;
     }
     else {
-        Process_Release(cp);
+        kfree(cp);
         *pOutChild = NULL;
     }
 

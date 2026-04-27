@@ -54,7 +54,7 @@ static int _proc_spawn_actions_add(proc_spawn_actions_t* _Nonnull actions, _proc
 {
     if (actions->count == actions->capacity) {
         const size_t new_capacity = (actions->capacity > 0) ? actions->capacity * 2 : 4;
-        _proc_spawn_action_t* new_act = realloc(actions->action, new_capacity);
+        _proc_spawn_action_t* new_act = realloc(actions->action, new_capacity * sizeof(struct _proc_spawn_action));
 
         if (new_act == NULL) {
             return -1;
@@ -76,7 +76,7 @@ static int _proc_spawn_actions_addpathaction(proc_spawn_actions_t* _Nonnull acti
         errno = EINVAL;
         return -1;
     }
-    
+
     act.type = type;
     act.u.path = strdup(path);
     if (act.u.path == NULL) {

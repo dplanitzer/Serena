@@ -39,7 +39,7 @@ errno_t kerneld_init(void)
 
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(kfh);
     
-    Process_Init(&g_kernel_proc_storage, PID_KERNEL, 0, 0, kfh, UID_ROOT, GID_ROOT, rootDir, rootDir, fs_perms_from_octal(0022));
+    Process_Init(&g_kernel_proc_storage, NULL, kfh, rootDir, rootDir);
     Inode_Relinquish(rootDir);
 
     g_kernel_ctx.argc = 1;

@@ -136,4 +136,8 @@ typedef struct proc_times_info {
 #define PROC_PROP_CMDLINE   4       /* argv style, NUL separated command line arguments */
 #define PROC_PROP_ENVIRON   5       /* argv style, NUL separated environment variable definitions */
 
+
+// kerneld PID
+#define PROC_KERNELD_PID    1
+
 #endif /* _KPI_PROCESS_H */
