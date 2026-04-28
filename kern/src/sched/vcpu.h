@@ -40,6 +40,8 @@ typedef struct vcpu_acquisition {
     vcpuid_t                id;
     vcpuid_t                group_id;
     vcpu_policy_t           policy;
+    int                     sched_nice;
+    int                     sched_quantum_boost;
     bool                    isUser;
 } vcpu_acquisition_t;
 
@@ -349,6 +351,7 @@ SCHED_QOS_GRADE((__self)->cur_priority)
 extern void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost);
 
 // Sets the scheduling nice value. The value is clamped to the range 0..64.
+// Note: call vcpu_on_sched_param_changed() next to update the sched state.
 // @Entry Condition: preemption disabled
 extern void vcpu_set_nice(vcpu_t _Nonnull self, int nice);
 

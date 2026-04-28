@@ -109,11 +109,12 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     ac.id = self->next_avail_vcpuid++;
     ac.group_id = attr->group_id;
     ac.policy = attr->policy;
+    ac.sched_nice = self->sched_nice;
+    ac.sched_quantum_boost = self->quantum_boost;
     ac.isUser = is_uproc;
 
     try(vcpu_acquire(&ac, &vp));
-    vcpu_set_quantum_boost(vp, self->quantum_boost);
-
+    
     vp->proc = self;
     vp->udata = attr->data;
     deque_add_last(&self->vcpu_queue, &vp->owner_qe);
@@ -241,23 +242,30 @@ errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _Nonnull 
 errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _Nonnull param)
 {
     decl_try_err();
+    bool hasChanged = false;
 
     mtx_lock(&self->mtx);
     switch (type) {
-        case PROC_SCHED_QUANTUM_BOOST:
-            self->quantum_boost = VCPU_CLAMPED_QUANTUM_BOOST(*param);
+        case PROC_SCHED_QUANTUM_BOOST: {
+            const int new_boost = VCPU_CLAMPED_QUANTUM_BOOST(*param);
+            hasChanged = new_boost != self->quantum_boost;
+            self->quantum_boost = new_boost;
             break;
+        }
 
-        case PROC_SCHED_NICE:
-            self->sched_nice = VCPU_CLAMPED_NICE_PRIORITY(*param);
+        case PROC_SCHED_NICE: {
+            const int new_nice = VCPU_CLAMPED_NICE_PRIORITY(*param);
+            hasChanged = new_nice != self->sched_nice;
+            self->sched_nice = new_nice;
             break;
+        }
 
         default:
             err = EINVAL;
             break;
     }
 
-    if (err == EOK) {
+    if (err == EOK && hasChanged) {
         deque_for_each(&self->vcpu_queue, vcpu_t, it,
             vcpu_t cvp = vcpu_from_owner_qe(it);
             const int sps = preempt_disable();
@@ -272,6 +280,7 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
                     break;
             }
 
+            vcpu_on_sched_param_changed(cvp);
             preempt_restore(sps);
         );
     }

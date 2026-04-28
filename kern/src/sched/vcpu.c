@@ -20,6 +20,9 @@
 #include <kern/kernlib.h>
 #include <kern/kalloc.h>
 
+static void _vcpu_reset_penalties_and_boosts(vcpu_t _Nonnull self);
+static bool _vcpu_set_base_priority(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
+static errno_t _validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
 static void _vcpu_yield(vcpu_t _Nonnull self);
 
 
@@ -46,8 +49,9 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     self->flags = 0;
     self->flags |= (cpu_68k_fpu(g_sys_desc->cpu_subtype) != CPU_FPU_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->flags |= (cpu_68k_family(g_sys_desc->cpu_subtype) == CPU_FAMILY_68060) ? VP_FLAG_HAS_BC : 0;
-    self->base_priority = SCHED_PRI_FROM_QOS(policy->qos.grade, policy->qos.priority);
 
+    _vcpu_set_base_priority(self, policy);
+    vcpu_reset_quantum(self);
     vcpu_on_sched_param_changed(self);
 }
 
@@ -55,6 +59,13 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
 {
     decl_try_err();
     bool doFree = false;
+
+
+    // Validate the acquisition record
+    try(_validate_vcpu_policy(&ac->policy));
+    if (ac->func == NULL) {
+        throw(EINVAL);
+    }
 
 
     // Try to get a vcpu from the global pool
@@ -85,11 +96,17 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     //
     // The vcpu is guaranteed to be suspended at this point
     //
-    
+
     // Configure the vcpu
     try(_vcpu_reset_machine_state(vp, ac, true));
-    vcpu_set_policy(vp, &ac->policy);
+
+    _vcpu_reset_penalties_and_boosts(vp);
+    _vcpu_set_base_priority(vp, &ac->policy);
+    vcpu_set_nice(vp, ac->sched_nice);
+    vcpu_set_quantum_boost(vp, ac->sched_quantum_boost);
     vcpu_reset_quantum(vp);
+    vcpu_on_sched_param_changed(vp);
+
     
     if (ac->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
@@ -130,10 +147,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     
     // Reset priority penalty and boost
     const int sps = preempt_disable();
-    self->priority_boost = 0;
-    self->priority_penalty = 0;
-    self->quantum_boost = 0;
-    self->sched_nice = 0;
+    _vcpu_reset_penalties_and_boosts(self);
     vcpu_on_sched_param_changed(self);
     preempt_restore(sps);
 
@@ -176,26 +190,61 @@ void vcpu_destroy(vcpu_t _Nullable self)
     }
 }
 
+// @Entry Condition: preemption disabled
+static void _vcpu_reset_penalties_and_boosts(vcpu_t _Nonnull self)
+{
+    self->priority_boost = 0;
+    self->priority_penalty = 0;
+    self->quantum_boost = 0;
+    self->sched_nice = 0;
+}
+
+static int8_t _vcpu_effective_quantum_length(vcpu_t _Nonnull self)
+{
+    register const int8_t qos_class = SCHED_QOS_GRADE(self->cur_priority);
+    register const int8_t base_len = g_quantum_base_length[qos_class];
+    register const int8_t max_len = g_quantum_max_length[qos_class];
+
+    return __min(base_len + self->quantum_boost, max_len);
+}
+
+// @Entry Condition: preemption disabled
+void vcpu_reset_quantum(vcpu_t _Nonnull self)
+{
+    self->quantum_countdown = _vcpu_effective_quantum_length(self);
+}
+
+// @Entry Condition: preemption disabled
 void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost)
 {
     self->quantum_boost = VCPU_CLAMPED_QUANTUM_BOOST(boost);
 }
 
+// @Entry Condition: preemption disabled
 void vcpu_set_nice(vcpu_t _Nonnull self, int nice)
 {
     const int new_nice = VCPU_CLAMPED_NICE_PRIORITY(nice);
 
-    if (self->sched_nice != new_nice) {
-        self->sched_nice = new_nice;
-        if (self->sched_nice > 0) {
-            // we give this guy a second chance
-            self->priority_penalty = 0;
-        }
-
-        vcpu_on_sched_param_changed(self);
+    self->sched_nice = new_nice;
+    if (self->sched_nice > 0) {
+        // we give this guy a second chance
+        self->priority_penalty = 0;
     }
 }
 
+// @Entry Condition: preemption disabled
+static bool _vcpu_set_base_priority(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
+{
+    const int new_base_pri = SCHED_PRI_FROM_QOS(policy->qos.grade, policy->qos.priority);
+
+    if (self->base_priority != new_base_pri) {
+        self->base_priority = new_base_pri;
+        return true;
+    }
+    return false;
+}
+
+// @Entry Condition: preemption disabled
 void vcpu_on_sched_param_changed(vcpu_t _Nonnull self)
 {
     const int base_qos_class = SCHED_QOS_GRADE(self->base_priority);
@@ -229,20 +278,6 @@ void vcpu_on_sched_param_changed(vcpu_t _Nonnull self)
     self->cur_priority = (int8_t)eff_pri;
 }
 
-static int8_t _vcpu_effective_quantum_length(vcpu_t _Nonnull self)
-{
-    register const int8_t qos_class = SCHED_QOS_GRADE(self->cur_priority);
-    register const int8_t base_len = g_quantum_base_length[qos_class];
-    register const int8_t max_len = g_quantum_max_length[qos_class];
-
-    return __min(base_len + self->quantum_boost, max_len);
-}
-
-void vcpu_reset_quantum(vcpu_t _Nonnull self)
-{
-    self->quantum_countdown = _vcpu_effective_quantum_length(self);
-}
-
 errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull policy)
 {
     if (version != sizeof(vcpu_policy_t)) {
@@ -258,10 +293,8 @@ errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull p
     return EOK;
 }
 
-errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
+static errno_t _validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy)
 {
-    decl_try_err();
-
     if (policy->version != sizeof(vcpu_policy_t)) {
         return EINVAL;
     }
@@ -280,41 +313,52 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
         return EPERM;
     }
 
+    return EOK;
+}
 
-    const int new_base_pri = SCHED_PRI_FROM_QOS(policy->qos.grade, policy->qos.priority);
+errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
+{
+    decl_try_err();
+
+    err = _validate_vcpu_policy(policy);
+    if (err != EOK) {
+        return err;
+    }
+
+
     const int sps = preempt_disable();
-    
-    if (self->base_priority != new_base_pri) {
-        switch (self->run_state) {
-            case VCPU_RUST_INITIATED:
-                self->base_priority = new_base_pri;
+    switch (self->run_state) {
+        case VCPU_RUST_INITIATED:
+            if (_vcpu_set_base_priority(self, policy)) {
                 vcpu_on_sched_param_changed(self);
-                break;
+            }
+            break;
 
-            case VCPU_RUST_READY:
-                sched_set_unready(g_sched, self, false);
-                self->base_priority = new_base_pri;
+        case VCPU_RUST_READY:
+            sched_set_unready(g_sched, self, false);
+            if (_vcpu_set_base_priority(self, policy)) {
                 vcpu_on_sched_param_changed(self);
-                sched_set_ready(g_sched, self, true);
-                break;
+            }
+            sched_set_ready(g_sched, self, true);
+            break;
                 
-            case VCPU_RUST_RUNNING:
-            case VCPU_RUST_WAITING:
-            case VCPU_RUST_SUSPENDED:
-                self->base_priority = new_base_pri;
+        case VCPU_RUST_RUNNING:
+        case VCPU_RUST_WAITING:
+        case VCPU_RUST_SUSPENDED:
+            if (_vcpu_set_base_priority(self, policy)) {
                 if (self->run_state == VCPU_RUST_RUNNING) {
                     vcpu_reset_quantum(self);
                 }
                 vcpu_on_sched_param_changed(self);
-                break;
+            }
+            break;
 
-            case VCPU_RUST_TERMINATING:
-                err = ESRCH;
-                break;
+        case VCPU_RUST_TERMINATING:
+            err = ESRCH;
+            break;
 
-            default:
-                abort();
-        }
+        default:
+            abort();
     }
     preempt_restore(sps);
 

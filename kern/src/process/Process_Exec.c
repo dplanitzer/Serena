@@ -16,14 +16,14 @@
 #include <sched/vcpu.h>
 
 
-static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
+static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull arg, int nice, int quantum_boost, vcpu_t _Nonnull * _Nullable pOutVcpu)
 {
     decl_try_err();
     vcpu_t vp = NULL;
     vcpu_acquisition_t ac;
 
     ac.func = (VoidFunc_1)entryPoint;
-    ac.arg = procargs;
+    ac.arg = arg;
     ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
     ac.kernelStackBase = NULL;
     ac.kernelStackSize = 0;
@@ -33,6 +33,8 @@ static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnul
     ac.policy.version = sizeof(vcpu_policy_t);
     ac.policy.qos.grade = VCPU_QOS_INTERACTIVE;
     ac.policy.qos.priority = VCPU_PRI_NORMAL;
+    ac.sched_nice = nice;
+    ac.sched_quantum_boost = quantum_boost;
     ac.isUser = true;
 
     err = vcpu_acquire(&ac, &vp);
@@ -104,7 +106,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
 
     // Create the new main vcpu
-    try(_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, &new_main_vcpu));
+    try(_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, self->sched_nice, self->quantum_boost, &new_main_vcpu));
 
     
     // We now got:
