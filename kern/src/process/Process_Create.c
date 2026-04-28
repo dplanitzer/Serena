@@ -132,6 +132,14 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
             break;
     }
 
+    if (attr->quantum_boost > 0) {
+        cp->quantum_boost = VCPU_CLAMPED_QUANTUM_BOOST(attr->quantum_boost);
+    }
+    if (attr->nice > 0) {
+        cp->sched_nice = VCPU_CLAMPED_NICE_PRIORITY(attr->nice);
+    }
+
+
     // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.

@@ -7,6 +7,7 @@
 //
 
 #include <errno.h>
+#include <kpi/process.h>
 #include <serena/spawn.h>
 
 int proc_spawnattr_init(proc_spawnattr_t* _Nonnull attr)
@@ -18,6 +19,8 @@ int proc_spawnattr_init(proc_spawnattr_t* _Nonnull attr)
     attr->uid = 0;
     attr->gid = 0;
     attr->flags = 0;
+    attr->quantum_boost = 0;
+    attr->nice = 0;
 
     return 0;
 }
@@ -116,5 +119,45 @@ void proc_spawnattr_setsuspended(proc_spawnattr_t* _Nonnull attr, bool flag)
     }
     else {
         attr->flags &= ~_PROC_SPAFL_SUSPENDED;
+    }
+}
+
+
+int proc_spawnattr_schedparam(const proc_spawnattr_t* _Nonnull attr, int type, int* _Nonnull param)
+{
+    switch (type) {
+        case PROC_SCHED_QUANTUM_BOOST:
+            *param = attr->quantum_boost;
+            return 0;
+
+        case PROC_SCHED_NICE:
+            *param = attr->nice;
+            return 0;
+
+        default:
+            errno = EINVAL;
+            return -1;
+    }
+}
+
+int proc_spawnattr_setschedparam(proc_spawnattr_t* _Nonnull attr, int type, const int* _Nonnull param)
+{
+    if (*param < 0) {
+        errno = ERANGE;
+        return -1;
+    }
+    
+    switch (type) {
+        case PROC_SCHED_QUANTUM_BOOST:
+            attr->quantum_boost = *param;
+            return 0;
+
+        case PROC_SCHED_NICE:
+            attr->nice = *param;
+            return 0;
+
+        default:
+            errno = EINVAL;
+            return -1;
     }
 }

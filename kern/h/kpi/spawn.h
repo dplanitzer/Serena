@@ -38,6 +38,8 @@ typedef struct proc_spawnattr {
     uid_t           uid;
     gid_t           gid;
     unsigned int    flags;
+    int             quantum_boost;
+    int             nice;
 } proc_spawnattr_t;
 
 

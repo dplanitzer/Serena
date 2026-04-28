@@ -58,6 +58,10 @@ extern int proc_spawnattr_setgid(proc_spawnattr_t* _Nonnull attr, gid_t gid);
 extern bool proc_spawnattr_suspended(const proc_spawnattr_t* _Nonnull attr);
 extern void proc_spawnattr_setsuspended(proc_spawnattr_t* _Nonnull attr, bool flag);
 
+// Specify scheduling parameters for the new process.
+extern int proc_spawnattr_schedparam(const proc_spawnattr_t* _Nonnull attr, int type, int* _Nonnull param);
+extern int proc_spawnattr_setschedparam(proc_spawnattr_t* _Nonnull attr, int type, const int* _Nonnull param);
+
 
 
 extern int proc_spawn_actions_init(proc_spawn_actions_t* _Nonnull actions);
