@@ -66,16 +66,12 @@ static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked 
     return NULL;
 }
 
-errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+void ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
-    decl_try_err();
+    assert(pp->pid == 0);
 
     mtx_lock(&self->mtx);
-
-    if (pp->pid != 0) {
-        throw(EBUSY);
-    }
-
+    
     pp->pid = self->next_pid++;
     if (pp->pgrp == 0) {
         pp->pgrp = pp->pid;
@@ -95,10 +91,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     Process_Retain(pp);
     self->proc_count++;
 
-catch:
     mtx_unlock(&self->mtx);
-
-    return err;
 }
 
 void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)

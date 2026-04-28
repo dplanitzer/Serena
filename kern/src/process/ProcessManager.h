@@ -26,7 +26,7 @@ extern errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOut
 // Publishes the given process and assigns it a unique pid.
 // A process will only become visible to other processes after it has been
 // published.
-extern errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
+extern void ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
 // Unpublishes the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't

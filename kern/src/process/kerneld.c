@@ -64,7 +64,7 @@ errno_t kerneld_init(void)
 
 
     // Finally publish kerneld
-    try(ProcessManager_Publish(gProcessManager, gKernelProcess));
+    ProcessManager_Publish(gProcessManager, gKernelProcess);
 
 catch:
     return err;
