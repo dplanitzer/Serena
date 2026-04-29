@@ -41,6 +41,7 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
     // need to make sure that the default behavior (sharing stdio) doesn't kick
     // in. 
     proc_spawnattr_init(&attr);
+    proc_spawnattr_settype(&attr, PROC_SPAWN_SESSION_LEADER);
     proc_spawn_actions_init(&actions);
 
     const int r = proc_spawn(procPath, argv, NULL, &attr, &actions, NULL);
