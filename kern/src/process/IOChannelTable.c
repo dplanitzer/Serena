@@ -225,28 +225,44 @@ errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int fd, int min
     return err;
 }
 
-// Assigns a new reference of the existing channel 'fd' to 'target_fd'. If
-// 'target_fd" names an existing I/O channel then this channel is implicitly
-// closed.
-errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, int target_fd)
+// Assigns a new strong reference of the existing channel 'fd' from 'self' to
+// 'target_fd' in the table 'other'. If 'target_fd" names an existing
+// I/O channel then this channel is implicitly closed.
+errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, IOChannelTable* _Nonnull other, int target_fd)
 {
     decl_try_err();
     IOChannelRef ch_to_close = NULL;
 
     mtx_lock(&self->mtx);
+    if (self != other) {
+        mtx_lock(&other->mtx);
+    }
 
-    if ((fd >= 0 && fd <= self->max_fd_num && self->table[fd])
-        && (target_fd >= 0 && target_fd <= self->max_fd_num)) {
-        
-        ch_to_close = self->table[target_fd];
-        self->table[target_fd] = IOChannel_Retain(self->table[fd]);
+    if (fd < 0 || fd > self->max_fd_num || self->table[fd] == NULL) {
+        throw(EBADF);
+    }
+    if (target_fd < 0) {
+        throw(EBADF);
+    }
 
-        self->max_fd_num = __max(self->max_fd_num, target_fd);
+
+    if (target_fd <= other->max_fd_num) {
+        // target-fd slot exists: close the existing fd and replace with the new one
+        ch_to_close = other->table[target_fd];
     }
     else {
-        err = EBADF;
+        // target_fd slot does not exist: allocate it
+        try(_ioct_ensure_size(other, other->table_size + 1));
+        other->max_fd_num = __max(other->max_fd_num, target_fd);
     }
 
+    other->table[target_fd] = IOChannel_Retain(self->table[fd]);
+
+
+catch:
+    if (self != other) {
+        mtx_unlock(&other->mtx);
+    }
     mtx_unlock(&self->mtx);
 
     // We release the old channel outside the table lock because the release can
@@ -256,32 +272,6 @@ errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, int t
     if (ch_to_close) {
         IOChannel_Release(ch_to_close);
     }
-
-    return err;
-}
-
-// Dups all I/O channels from 'other' to self. Expects that self is empty.
-errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull other)
-{
-    decl_try_err();
-
-    mtx_lock(&self->mtx);
-    mtx_lock(&other->mtx);
-
-    assert(self->max_fd_num == -1);
-
-    err = _ioct_ensure_size(self, other->max_fd_num);
-    if (err == EOK) {
-        for (int other_i = 0, my_i = 0; other_i <= other->max_fd_num; other_i++) {
-            if (other->table[other_i]) {
-                self->table[my_i++] = IOChannel_Retain(other->table[other_i]);
-                self->max_fd_num = __max(self->max_fd_num, my_i);
-            }
-        }
-    }
-
-    mtx_unlock(&other->mtx);
-    mtx_unlock(&self->mtx);
 
     return err;
 }

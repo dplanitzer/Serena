@@ -50,13 +50,21 @@ typedef struct proc_spawnattr {
 
 #define _PROC_SPACT_SETCWD      1
 #define _PROC_SPACT_SETROOTDIR  2
+#define _PROC_SPACT_PASSFD      3
+#define _PROC_SPACT_SHAREFD     4
 
 #define _PROC_SPAWN_ACTIONS_VERSION 1
+
+struct _proc_spawn_fd_map {
+    int fd;
+    int to_fd;
+};
 
 typedef struct _proc_spawn_action {
     int     type;
     union {
-        char* _Nonnull  path;
+        char* _Nonnull              path;
+        struct _proc_spawn_fd_map   fd_map;
     }       u;
 } _proc_spawn_action_t;
 

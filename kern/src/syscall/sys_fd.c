@@ -66,5 +66,5 @@ SYSCALL_3(fd_dup_to, int fd, int target_fd, int* _Nonnull new_fd)
 {
     ProcessRef pp = vp->proc;
 
-    return IOChannelTable_DupChannelTo(&pp->ioChannelTable, pa->fd, pa->target_fd);
+    return IOChannelTable_DupChannelTo(&pp->ioChannelTable, pa->fd, &pp->ioChannelTable, pa->target_fd);
 }

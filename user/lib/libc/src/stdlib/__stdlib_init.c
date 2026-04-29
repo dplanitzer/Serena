@@ -56,5 +56,6 @@ void __stdlibc_init(proc_ctx_t* _Nonnull pctx)
     __vcpu_init();
     __malloc_init();
     __locale_init();
+    __proc_init();
     __stdio_init();
 }

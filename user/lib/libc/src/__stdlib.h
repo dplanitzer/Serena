@@ -39,6 +39,7 @@ extern volatile bool            __gIsExiting;
 extern void __stdlibc_init(proc_ctx_t* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __locale_init(void);
+extern void __proc_init(void);
 extern void __stdio_init(void);
 extern void __env_init(size_t envc, char ** initial_envp);
 

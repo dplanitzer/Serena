@@ -31,7 +31,7 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
     if (err == EOK) {
         if (pa->actions) {
             err_phase = PROC_SPAWN_PHASE_ACTIONS;
-            err = Process_ApplyActions(cp, pa->actions, &failedActionIndex);
+            err = Process_ApplyActions(cp, pa->actions, vp->proc, &failedActionIndex);
         }
 
         if (err == EOK) {

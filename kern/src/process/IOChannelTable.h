@@ -51,10 +51,7 @@ extern errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int fd, 
 // Assigns a new reference of the existing channel 'fd' to 'target_fd'. If
 // 'target_fd" names an existing I/O channel then this channel is implicitly
 // closed.
-extern errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, int target_fd);
-
-// Dups all I/O channels from 'other' to self. Expects that self is empty.
-extern errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull other);
+extern errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, IOChannelTable* _Nonnull other, int target_fd);
 
 // Release all I/O channels.
 extern void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self);

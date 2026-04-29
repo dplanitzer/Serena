@@ -140,12 +140,6 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     }
 
 
-    // Note that we do not lock the child process although we're reaching directly
-    // into its state. Locking isn't necessary because nobody outside this function
-    // here can see the child process yet and thus call functions on it.
-
-    IOChannelTable_DupFrom(&cp->ioChannelTable, &self->ioChannelTable);
-
 catch:
     Inode_Relinquish(workDir);
     Inode_Relinquish(rootDir);
@@ -164,7 +158,7 @@ catch:
 }
 
 // Applies the given list of spawn actions to the process.
-errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, size_t* _Nonnull pOutFailedActionIndex)
+errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex)
 {
     decl_try_err();
 
@@ -190,6 +184,11 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
 
             case _PROC_SPACT_SETROOTDIR:
                 err = FileManager_SetRootDirectoryPath(&self->fm, act->u.path);
+                break;
+
+            case _PROC_SPACT_PASSFD:
+            case _PROC_SPACT_SHAREFD:
+                err = IOChannelTable_DupChannelTo(&parent->ioChannelTable, act->u.fd_map.fd, &self->ioChannelTable, act->u.fd_map.to_fd);
                 break;
 
             default:

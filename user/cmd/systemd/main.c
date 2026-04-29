@@ -28,17 +28,25 @@ static _Noreturn void halt_machine(void)
 
 static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 {
-    proc_spawnattr_t sa;
+    proc_spawnattr_t attr;
+    proc_spawn_actions_t actions;
     const char* argv[3];
 
     argv[0] = procPath;
     argv[1] = arg1;
     argv[2] = NULL;
 
-    // Spawn the process
-    proc_spawnattr_init(&sa);
-    const int r = proc_spawn(procPath, argv, NULL, &sa, NULL, NULL);
-    proc_spawnattr_destroy(&sa);
+    // Spawn the process. Note that we create an empty spawn actions array
+    // because we do not want to pass any fds to our child process and thus we
+    // need to make sure that the default behavior (sharing stdio) doesn't kick
+    // in. 
+    proc_spawnattr_init(&attr);
+    proc_spawn_actions_init(&actions);
+
+    const int r = proc_spawn(procPath, argv, NULL, &attr, &actions, NULL);
+    
+    proc_spawn_actions_destroy(&actions);
+    proc_spawnattr_destroy(&attr);
 
     return r;
 }
