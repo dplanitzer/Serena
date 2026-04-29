@@ -11,11 +11,11 @@
 #include <limits.h>
 #include <string.h>
 #include <kern/kalloc.h>
+#include <kpi/syslimits.h>
 
 
-#define INITIAL_SIZE    32
-#define GROW_SIZE       64
-#define MAX_FD_COUNT    512
+#define FDTAB_PAGE_SHIFT    7
+#define FDTAB_PAGE_SIZE     (1 << FDTAB_PAGE_SHIFT)
 
 
 void IOChannelTable_Init(IOChannelTable* _Nonnull self)
@@ -46,6 +46,7 @@ void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
     self->max_fd_num = -1;
     mtx_unlock(&self->mtx);
 
+
     for (int i = 0; i < max_fd_num; i++) {
         if (table[i]) {
             IOChannel_Release(table[i]);
@@ -55,86 +56,71 @@ void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
     kfree(table);
 }
 
-static errno_t _ioct_ensure_size(IOChannelTable* _Nonnull _Locked self, int max_fd_needed)
+static errno_t _ensure_fd_slot_exists(IOChannelTable* _Nonnull _Locked self, int fd_slot)
 {
-    if (self->table_size > max_fd_needed) {
+    decl_try_err();
+    void* new_table;
+
+    if (self->table_size > fd_slot) {
         return EOK;
     }
-
-
-    int new_table_size;
-    if (self->table) {
-        new_table_size = self->table_size + __max(max_fd_needed + 1 - self->table_size, GROW_SIZE);
-    }
-    else {
-        new_table_size = __max(max_fd_needed + 1, INITIAL_SIZE);
-    }
-
-    new_table_size = __min(new_table_size, MAX_FD_COUNT);
-    if (max_fd_needed >= new_table_size) {
+    if (fd_slot > __FDNO_MAX) {
         return EMFILE;
     }
 
 
-    void* new_table = NULL;
-    const errno_t err = kalloc_cleared(sizeof(IOChannelRef) * new_table_size, &new_table);
-    if (err != EOK) {
-        return err;
+    const int new_page_count = (fd_slot >> FDTAB_PAGE_SHIFT) + 1;
+    const int new_table_size = new_page_count * FDTAB_PAGE_SIZE;
+    const int new_memblk_size = new_table_size * sizeof(IOChannelRef);
+    if (new_memblk_size < 0) {
+        // overflow
+        return EMFILE;
     }
 
 
-    if (self->table) {
-        memcpy(new_table, self->table, sizeof(IOChannelRef) * self->table_size);
-        kfree(self->table);
-    }
-    self->table = new_table;
-    self->table_size = new_table_size;
+    err = kalloc_cleared(new_memblk_size, &new_table);
+    if (err == EOK) {
+        if (self->table) {
+            memcpy(new_table, self->table, sizeof(IOChannelRef) * (self->max_fd_num + 1));
+            kfree(self->table);
+        }
 
-    return EOK;
+        self->table = new_table;
+        self->table_size = new_table_size;
+    }
+
+    return err;
 }
 
-static errno_t _ioct_alloc_fd(IOChannelTable* _Nonnull _Locked self, int min_fd, int* _Nonnull out_fd)
+static errno_t _alloc_fd_slot(IOChannelTable* _Nonnull _Locked self, int min_fd, int* _Nonnull out_fd)
 {
+    decl_try_err();
     int new_fd = -1;
 
-    for (;;) {
+    do {
         for (int i = min_fd; i < self->table_size; i++) {
             if (self->table[i] == NULL) {
-                new_fd = i;
-                break;
+                *out_fd = i;
+                self->max_fd_num = __max(self->max_fd_num, i);
+                return EOK;
             }
         }
 
-        if (new_fd >= 0) {
-            break;
-        }
+        err = _ensure_fd_slot_exists(self, self->table_size);
+    } while (err == EOK);
 
-
-        const errno_t err = _ioct_ensure_size(self, self->table_size + 1);
-        if (err != EOK) {
-            *out_fd = -1;
-            return err;
-        }
-    }
-
-    self->max_fd_num = __max(self->max_fd_num, new_fd);
-    *out_fd = new_fd;
-    return EOK;
+    return err;
 }
 
-static IOChannelRef _Nullable _ioct_free_fd(IOChannelTable* _Nonnull _Locked self, int fd)
+static void _clear_fd_slot(IOChannelTable* _Nonnull _Locked self, int fd)
 {
-    IOChannelRef ch = self->table[fd];
-
     self->table[fd] = NULL;
 
     if (fd == self->max_fd_num) {
-        for (int i = self->max_fd_num; i >= 0 && self->table[i] == NULL; i--) {
+        while (self->table[self->max_fd_num] == NULL) {
             self->max_fd_num--;
         }
     }
-
-    return ch;
 }
 
 // Finds an empty slot in the I/O channel table and stores the I/O channel there.
@@ -143,10 +129,12 @@ static IOChannelRef _Nullable _ioct_free_fd(IOChannelTable* _Nonnull _Locked sel
 // channel.
 errno_t IOChannelTable_AdoptChannel(IOChannelTable* _Nonnull self, IOChannelRef _Consuming _Nonnull pChannel, int * _Nonnull pOutIoc)
 {
+    decl_try_err();
+    int new_fd = -1;
+
     mtx_lock(&self->mtx);
 
-    int new_fd = -1;
-    const errno_t err = _ioct_alloc_fd(self, 0, &new_fd);
+    err = _alloc_fd_slot(self, 0, &new_fd);
     if (err == EOK) {
         self->table[new_fd] = pChannel;
     }
@@ -173,7 +161,8 @@ errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int fd)
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        ch = _ioct_free_fd(self, fd);
+        ch = self->table[fd];
+        _clear_fd_slot(self, fd);
     }
 
     mtx_unlock(&self->mtx);
@@ -213,7 +202,7 @@ errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int fd, int min
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        err = _ioct_alloc_fd(self, min_fd, &new_fd);
+        err = _alloc_fd_slot(self, min_fd, &new_fd);
         if (err == EOK) {
             self->table[new_fd] = IOChannel_Retain(self->table[fd]);
         }
@@ -252,11 +241,11 @@ errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, IOCha
     }
     else {
         // target_fd slot does not exist: allocate it
-        try(_ioct_ensure_size(other, other->table_size + 1));
-        other->max_fd_num = __max(other->max_fd_num, target_fd);
+        try(_ensure_fd_slot_exists(other, target_fd));
     }
 
     other->table[target_fd] = IOChannel_Retain(self->table[fd]);
+    other->max_fd_num = __max(other->max_fd_num, target_fd);
 
 
 catch:

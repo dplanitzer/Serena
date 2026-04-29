@@ -29,4 +29,7 @@
 // Max number of spawn actions allowed per spawn operation
 #define __SPAWN_ACTIONS_MAX 32
 
+// Highest allowed fd number
+#define __FDNO_MAX  2048
+
 #endif /* _KPI_SYSLIMITS_H */
