@@ -129,6 +129,11 @@ errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
     return EOK;
 }
 
+int IOChannel_GetFlags(IOChannelRef _Nonnull self)
+{
+    return self->mode & O_FLAGS; //XXX use atomic_get_int() here
+}
+
 errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags)
 {
     if ((flags & ~O_FLAGS) != 0) {

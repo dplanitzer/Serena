@@ -171,9 +171,9 @@ int main(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    (void)fs_open(NULL, termPath, O_RDONLY);
-    (void)fs_open(NULL, termPath, O_WRONLY);
-    (void)fs_open(NULL, termPath, O_WRONLY);
+    (void)fs_open(NULL, termPath, O_RDONLY | O_PRSVEXEC);
+    (void)fs_open(NULL, termPath, O_WRONLY | O_PRSVEXEC);
+    (void)fs_open(NULL, termPath, O_WRONLY | O_PRSVEXEC);
 
     fdreopen(FD_STDIN, "r", stdin);
     fdreopen(FD_STDOUT, "w", stdout);

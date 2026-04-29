@@ -24,11 +24,12 @@
 #define O_TRUNC     0x0008
 #define O_APPEND    0x0010
 #define O_NONBLOCK  0x0020
-#define _O_EXONLY   0x0040
+#define O_PRSVEXEC  0x0040
+#define _O_EXONLY   0x0080
 
 // File access mode and flag masks
 #define O_ACCMODE   (O_RDONLY | O_WRONLY | O_RDWR)
-#define O_FLAGS     (O_APPEND | O_NONBLOCK)
+#define O_FLAGS     (O_APPEND | O_NONBLOCK | O_PRSVEXEC)
 
 
 // fd_setflags() operation modes

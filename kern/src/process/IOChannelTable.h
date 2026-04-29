@@ -56,8 +56,7 @@ extern errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd
 // Release all I/O channels.
 extern void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self);
 
-// Release and close all I/O channels that should be closed on a proc_exec()
-// call.
-extern void IOChannelTable_ReleaseExecChannels(IOChannelTable* _Nonnull self);
+// Releases and closes all I/O channels that don't have the O_PRSVEXEC flag set.
+extern void IOChannelTable_ReleaseChannelsOnExec(IOChannelTable* _Nonnull self);
 
 #endif /* IOChannelTable_h */

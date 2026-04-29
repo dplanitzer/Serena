@@ -178,6 +178,9 @@ any_subclass_funcs(IOChannel,
 #define IOChannel_IsWritable(__self) \
 ((((IOChannelRef)__self)->mode & O_WRONLY) == O_WRONLY)
 
+// Returns a copy of the flags
+extern int IOChannel_GetFlags(IOChannelRef _Nonnull self);
+
 
 // Returns the resource to which the I/O channel is connected
 #define IOChannel_GetResource(__self) \

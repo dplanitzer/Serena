@@ -59,7 +59,7 @@ static void _proc_destroy_pimg(ProcessRef _Nonnull self)
     mtx_lock(&self->mtx);
 
     _proc_destroy_sigroutes(self);
-    IOChannelTable_ReleaseExecChannels(&self->ioChannelTable);
+    IOChannelTable_ReleaseChannelsOnExec(&self->ioChannelTable);
 }
 
 static void _proc_install_pimg(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg, vcpu_t new_main_vcpu)

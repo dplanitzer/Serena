@@ -265,21 +265,26 @@ catch:
     return err;
 }
 
-void IOChannelTable_ReleaseExecChannels(IOChannelTable* _Nonnull self)
+void IOChannelTable_ReleaseChannelsOnExec(IOChannelTable* _Nonnull self)
 {
+    int fd;
+
     mtx_lock(&self->mtx);
-    for (int i = 3; i <= self->max_fd_num; i++) {
-        if (self->table[i]) {
-            IOChannel_Release(self->table[i]);
-            self->table[i] = NULL;
+    fd = self->max_fd_num;
+
+    while (fd >= 0) {
+        IOChannelRef fh = self->table[fd];
+
+        if (fh && (IOChannel_GetFlags(fh) & O_PRSVEXEC) == 0) {
+            IOChannel_Release(fh);
+            self->table[fd] = NULL;
         }
+        fd--;
     }
 
-    self->max_fd_num = -1;
-    for (int i = 0; i < 3; i++) {
-        if (self->table[i]) {
-            self->max_fd_num = __max(self->max_fd_num, i);
-        }
+    while (self->max_fd_num >= 0 && self->table[self->max_fd_num] == NULL) {
+        self->max_fd_num--;
     }
+
     mtx_unlock(&self->mtx);
 }
