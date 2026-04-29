@@ -117,7 +117,7 @@ static void _clear_fd_slot(IOChannelTable* _Nonnull _Locked self, int fd)
     self->table[fd] = NULL;
 
     if (fd == self->max_fd_num) {
-        while (self->table[self->max_fd_num] == NULL) {
+        while (self->max_fd_num >= 0 && self->table[self->max_fd_num] == NULL) {
             self->max_fd_num--;
         }
     }
