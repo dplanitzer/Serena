@@ -66,12 +66,44 @@ static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked 
     return NULL;
 }
 
-void ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+static bool _has_group_leader(ProcessManagerRef _Nonnull _Locked self, pid_t pgrp)
 {
-    assert(pp->pid == 0);
+    ProcessRef p = _get_proc_by_pid(self, pgrp);
+
+    return (p->pgrp == pgrp) ? true : false;
+}
+
+static bool _has_session_leader(ProcessManagerRef _Nonnull _Locked self, pid_t sid)
+{
+    ProcessRef p = _get_proc_by_pid(self, sid);
+
+    return (p->sid == sid) ? true : false;
+}
+
+errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+{
+    decl_try_err();
 
     mtx_lock(&self->mtx);
-    
+
+    // Validate parameters:
+    // pp->pid == 0
+    // pp->ppid >= 1
+    // pp->pgrp == 0 || group leader exists
+    // pp->sid == 0 || session leader exists
+    assert(pp->pid == 0);
+
+    if (pp->pgrp != 0) {
+        if (!_has_group_leader(self, pp->pgrp)) {
+            throw(ESRCH);
+        }
+    }
+    if (pp->sid != 0) {
+        assert(_has_session_leader(self, pp->sid));
+    }
+
+
+    // Assign pid; pgrp and sid if needed
     pp->pid = self->next_pid++;
     if (pp->pgrp == 0) {
         pp->pgrp = pp->pid;
@@ -80,6 +112,8 @@ void ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull
         pp->sid = pp->pid;
     }
     
+
+    // Add the new process to our relationship lists
     if (pp->pid != pp->ppid) {
         ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
         assert(the_parent != NULL);
@@ -88,10 +122,16 @@ void ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull
     }
 
     queue_add_first(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
+
+
+    // Take a strong reference out on the new process
     Process_Retain(pp);
     self->proc_count++;
 
+catch:
     mtx_unlock(&self->mtx);
+
+    return err;
 }
 
 void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)

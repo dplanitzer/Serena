@@ -64,7 +64,7 @@ errno_t kerneld_init(void)
 
 
     // Finally publish kerneld
-    ProcessManager_Publish(gProcessManager, gKernelProcess);
+    (void)ProcessManager_Publish(gProcessManager, gKernelProcess);
 
 catch:
     return err;
@@ -82,7 +82,7 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
     if (err == EOK) {
         err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
         if (err == EOK) {
-            ProcessManager_Publish(gProcessManager, cp);
+            (void)ProcessManager_Publish(gProcessManager, cp);
             Process_Resume(cp);
         }
     }

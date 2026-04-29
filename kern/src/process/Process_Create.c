@@ -116,8 +116,9 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
 
     switch (attr->type) {
         case PROC_SPAWN_GROUP_MEMBER:
-            //XXX not quite right. Check whether the provided pgrp id exists and reject if not
             if (attr->pgrp > 0) {
+                // ProcessManager_Publish() will atomically validate that the
+                // group leader for this group exists
                 cp->pgrp = attr->pgrp;
             }
             break;

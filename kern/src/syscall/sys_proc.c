@@ -41,9 +41,9 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
             if (err == EOK) {
                 // Register the new process with the process manager. This assigns a
                 // unique PID to our new process
-                ProcessManager_Publish(gProcessManager, cp);
+                err = ProcessManager_Publish(gProcessManager, cp);
 
-                if ((pa->attr->flags & _PROC_SPAFL_SUSPENDED) == 0) {
+                if (err == EOK && (pa->attr->flags & _PROC_SPAFL_SUSPENDED) == 0) {
                     Process_Resume(cp);
                 }
             }
