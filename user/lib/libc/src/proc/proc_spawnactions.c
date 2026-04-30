@@ -15,7 +15,7 @@
 
 int proc_spawn_actions_init(proc_spawn_actions_t* _Nonnull actions)
 {
-    actions->version = _PROC_SPAWN_ACTIONS_VERSION;
+    actions->version = _SPAWN_ACTIONS_VERSION;
     actions->action = NULL;
     actions->count = 0;
     actions->capacity = 0;
@@ -26,8 +26,8 @@ int proc_spawn_actions_init(proc_spawn_actions_t* _Nonnull actions)
 static void _proc_spawn_actions_free(_proc_spawn_action_t* _Nonnull act)
 {
     switch (act->type) {
-        case _PROC_SPACT_SETCWD:
-        case _PROC_SPACT_SETROOTDIR:
+        case _SPAWN_AT_SETCWD:
+        case _SPAWN_AT_SETROOTDIR:
             free(act->u.path);
             break;
 
@@ -98,19 +98,19 @@ static int _proc_spawn_actions_addpathaction(proc_spawn_actions_t* _Nonnull acti
 
 int proc_spawn_actions_setcwd(proc_spawn_actions_t* _Nonnull actions, const char* _Nonnull path)
 {
-    return _proc_spawn_actions_addpathaction(actions, _PROC_SPACT_SETCWD, path);
+    return _proc_spawn_actions_addpathaction(actions, _SPAWN_AT_SETCWD, path);
 }
 
 int proc_spawn_actions_setrootdir(proc_spawn_actions_t* _Nonnull actions, const char* _Nonnull path)
 {
-    return _proc_spawn_actions_addpathaction(actions, _PROC_SPACT_SETROOTDIR, path);
+    return _proc_spawn_actions_addpathaction(actions, _SPAWN_AT_SETROOTDIR, path);
 }
 
 int proc_spawn_actions_pass_fd(proc_spawn_actions_t* _Nonnull actions, int fd, int to_fd)
 {
     _proc_spawn_action_t act;
 
-    act.type = _PROC_SPACT_PASSFD;
+    act.type = _SPAWN_AT_PASSFD;
     act.u.fd_map.fd = fd;
     act.u.fd_map.to_fd = fd;
 
@@ -121,7 +121,7 @@ int proc_spawn_actions_share_fd(proc_spawn_actions_t* _Nonnull actions, int fd, 
 {
     _proc_spawn_action_t act;
 
-    act.type = _PROC_SPACT_SHAREFD;
+    act.type = _SPAWN_AT_SHAREFD;
     act.u.fd_map.fd = fd;
     act.u.fd_map.to_fd = fd;
 
@@ -132,15 +132,15 @@ int proc_spawn_actions_share_stdio(proc_spawn_actions_t* _Nonnull actions)
 {
     _proc_spawn_action_t act[3];
 
-    act[0].type = _PROC_SPACT_SHAREFD;
+    act[0].type = _SPAWN_AT_SHAREFD;
     act[0].u.fd_map.fd = FD_STDIN;
     act[0].u.fd_map.to_fd = FD_STDIN;
 
-    act[1].type = _PROC_SPACT_SHAREFD;
+    act[1].type = _SPAWN_AT_SHAREFD;
     act[1].u.fd_map.fd = FD_STDOUT;
     act[1].u.fd_map.to_fd = FD_STDOUT;
 
-    act[2].type = _PROC_SPACT_SHAREFD;
+    act[2].type = _SPAWN_AT_SHAREFD;
     act[2].u.fd_map.fd = FD_STDERR;
     act[2].u.fd_map.to_fd = FD_STDERR;
 

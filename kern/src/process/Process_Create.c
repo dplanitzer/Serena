@@ -83,13 +83,13 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     mtx_lock(&self->mtx);
 
     // Validate the spawn attributes and bail out if something is wrong
-    if (attr == NULL || attr->version < _PROC_SPAWNATTR_VERSION) {
+    if (attr == NULL || attr->version < _SPAWNATTR_VERSION) {
         throw(EINVAL);
     }
-    if (attr->type < PROC_SPAWN_GROUP_MEMBER || attr->type > PROC_SPAWN_SESSION_LEADER) {
+    if (attr->type < SPAWN_GROUP_MEMBER || attr->type > SPAWN_SESSION_LEADER) {
         throw(EINVAL);
     }
-    if ((attr->flags & (_PROC_SPAFL_UID|_PROC_SPAFL_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
+    if ((attr->flags & (_SPAWN_UID|_SPAWN_GID)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
         throw(EPERM);
     }
 
@@ -104,18 +104,18 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
 
 
     // Now override the inherited state based on the spawn attributes
-    if ((attr->flags & _PROC_SPAFL_UMASK) == _PROC_SPAFL_UMASK) {
+    if ((attr->flags & _SPAWN_UMASK) == _SPAWN_UMASK) {
         cp->fm.umask = attr->umask & 0777;
     }
-    if ((attr->flags & _PROC_SPAFL_UID) == _PROC_SPAFL_UID) {
+    if ((attr->flags & _SPAWN_UID) == _SPAWN_UID) {
         cp->fm.ruid = attr->uid;
     }
-    if ((attr->flags & _PROC_SPAFL_GID) == _PROC_SPAFL_GID) {
+    if ((attr->flags & _SPAWN_GID) == _SPAWN_GID) {
         cp->fm.rgid = attr->gid;
     }
 
     switch (attr->type) {
-        case PROC_SPAWN_GROUP_MEMBER:
+        case SPAWN_GROUP_MEMBER:
             if (attr->pgrp > 0) {
                 // ProcessManager_Publish() will atomically validate that the
                 // group leader for this group exists
@@ -123,11 +123,11 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
             }
             break;
 
-        case PROC_SPAWN_GROUP_LEADER:
+        case SPAWN_GROUP_LEADER:
             cp->pgrp = 0;
             break;
 
-        case PROC_SPAWN_SESSION_LEADER:
+        case SPAWN_SESSION_LEADER:
             cp->pgrp = 0;
             cp->sid = 0;
             break;
@@ -165,7 +165,7 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
 
     *pOutFailedActionIndex = 0;
 
-    if (actions->version < _PROC_SPAWN_ACTIONS_VERSION) {
+    if (actions->version < _SPAWN_ACTIONS_VERSION) {
         return EINVAL;
     }
     if (actions->count > __SPAWN_ACTIONS_MAX) {
@@ -179,16 +179,16 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
         const _proc_spawn_action_t* act = &actions->action[i];
 
         switch (act->type) {
-            case _PROC_SPACT_SETCWD:
+            case _SPAWN_AT_SETCWD:
                 err = FileManager_SetWorkingDirectoryPath(&self->fm, act->u.path);
                 break;
 
-            case _PROC_SPACT_SETROOTDIR:
+            case _SPAWN_AT_SETROOTDIR:
                 err = FileManager_SetRootDirectoryPath(&self->fm, act->u.path);
                 break;
 
-            case _PROC_SPACT_PASSFD:
-            case _PROC_SPACT_SHAREFD:
+            case _SPAWN_AT_PASSFD:
+            case _SPAWN_AT_SHAREFD:
                 err = IOChannelTable_DupChannelTo(&parent->ioChannelTable, act->u.fd_map.fd, &self->ioChannelTable, act->u.fd_map.to_fd);
                 break;
 

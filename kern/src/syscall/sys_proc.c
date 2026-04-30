@@ -21,7 +21,7 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
     decl_try_err();
     ProcessRef cp = NULL;
     size_t failedActionIndex;
-    int err_phase = PROC_SPAWN_PHASE_CREATE;
+    int err_phase = SPAWN_PHASE_CREATE;
 
     if (*(pa->path) == '\0') {
         throw(EINVAL);
@@ -30,12 +30,12 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
     err = Process_CreateChild(vp->proc, pa->attr, NULL, &cp);
     if (err == EOK) {
         if (pa->actions) {
-            err_phase = PROC_SPAWN_PHASE_ACTIONS;
+            err_phase = SPAWN_PHASE_ACTIONS;
             err = Process_ApplyActions(cp, pa->actions, vp->proc, &failedActionIndex);
         }
 
         if (err == EOK) {
-            err_phase = PROC_SPAWN_PHASE_EXEC;
+            err_phase = SPAWN_PHASE_EXEC;
             err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
             
             if (err == EOK) {
@@ -43,7 +43,7 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
                 // unique PID to our new process
                 err = ProcessManager_Publish(gProcessManager, cp);
 
-                if (err == EOK && (pa->attr->flags & _PROC_SPAFL_SUSPENDED) == 0) {
+                if (err == EOK && (pa->attr->flags & _SPAWN_SUSPENDED) == 0) {
                     Process_Resume(cp);
                 }
             }

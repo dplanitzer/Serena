@@ -27,7 +27,7 @@ int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], const ch
         for (size_t i = 0; i < actions->count; i++) {
             const _proc_spawn_action_t* act = &actions->action[i];
 
-            if (act->type == _PROC_SPACT_PASSFD) {
+            if (act->type == _SPAWN_AT_PASSFD) {
                 fd_close(act->u.fd_map.fd);
             }
         }

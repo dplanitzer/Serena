@@ -70,7 +70,7 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     envp[4] = NULL;
 
     proc_spawnattr_init(&sa);
-    proc_spawnattr_settype(&sa, PROC_SPAWN_GROUP_LEADER);
+    proc_spawnattr_settype(&sa, SPAWN_GROUP_LEADER);
     proc_spawnattr_setumask(&sa, 0022); //XXX hardcoded for now
     proc_spawnattr_setuid(&sa, 1000);   //XXX hardcoded for now
     proc_spawnattr_setgid(&sa, 1000);   //XXX hardcoded for now

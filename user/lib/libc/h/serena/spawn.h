@@ -31,13 +31,13 @@ extern int proc_spawnattr_destroy(proc_spawnattr_t* _Nullable attr);
 // process should become the member of an existing process group, the leader of
 // a new process group or the leader of a new user session. Note that this
 // function resets the process group id to 0, which means that the child process
-// will join the parent's process group if PROC_SPAWN_GROUP_MEMBER is set. Use
+// will join the parent's process group if SPAWN_GROUP_MEMBER is set. Use
 // the proc_spawnattr_setpgrp() API to set the desired process group id. 
 extern int proc_spawnattr_type(const proc_spawnattr_t* _Nonnull attr);
 extern int proc_spawnattr_settype(proc_spawnattr_t* _Nonnull attr, int type);
 
 // Sets the id of the process group that the child process should join if the
-// spawn type was set to PROC_SPAWN_GROUP_MEMBER.
+// spawn type was set to SPAWN_GROUP_MEMBER.
 extern pid_t proc_spawnattr_pgrp(const proc_spawnattr_t* _Nonnull attr);
 extern int proc_spawnattr_setpgrp(proc_spawnattr_t * _Nonnull attr, pid_t pgrp);
 

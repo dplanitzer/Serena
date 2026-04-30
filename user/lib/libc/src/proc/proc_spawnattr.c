@@ -12,8 +12,8 @@
 
 int proc_spawnattr_init(proc_spawnattr_t* _Nonnull attr)
 {
-    attr->version = _PROC_SPAWNATTR_VERSION;
-    attr->type = PROC_SPAWN_GROUP_MEMBER;
+    attr->version = _SPAWNATTR_VERSION;
+    attr->type = SPAWN_GROUP_MEMBER;
     attr->pgrp = 0;
     attr->umask = 0;
     attr->uid = 0;
@@ -42,7 +42,7 @@ int proc_spawnattr_type(const proc_spawnattr_t* _Nonnull attr)
 
 int proc_spawnattr_settype(proc_spawnattr_t* _Nonnull attr, int type)
 {
-    if (type < PROC_SPAWN_GROUP_MEMBER || type > PROC_SPAWN_SESSION_LEADER) {
+    if (type < SPAWN_GROUP_MEMBER || type > SPAWN_SESSION_LEADER) {
         errno = EINVAL;
         return -1;
     }
@@ -76,7 +76,7 @@ fs_perms_t proc_spawnattr_umask(const proc_spawnattr_t* _Nonnull attr)
 int proc_spawnattr_setumask(proc_spawnattr_t* _Nonnull attr, fs_perms_t umask)
 {
     attr->umask = umask & 0777;
-    attr->flags |= _PROC_SPAFL_UMASK;
+    attr->flags |= _SPAWN_UMASK;
     return 0;
 }
 
@@ -89,7 +89,7 @@ uid_t proc_spawnattr_uid(const proc_spawnattr_t* _Nonnull attr)
 int proc_spawnattr_setuid(proc_spawnattr_t* _Nonnull attr, uid_t uid)
 {
     attr->uid = uid;
-    attr->flags |= _PROC_SPAFL_UID;
+    attr->flags |= _SPAWN_UID;
     return 0;
 }
 
@@ -102,23 +102,23 @@ gid_t proc_spawnattr_gid(const proc_spawnattr_t* _Nonnull attr)
 int proc_spawnattr_setgid(proc_spawnattr_t* _Nonnull attr, gid_t gid)
 {
     attr->gid = gid;
-    attr->flags |= _PROC_SPAFL_GID;
+    attr->flags |= _SPAWN_GID;
     return 0;
 }
 
 
 bool proc_spawnattr_suspended(const proc_spawnattr_t* _Nonnull attr)
 {
-    return (attr->flags & _PROC_SPAFL_SUSPENDED) == _PROC_SPAFL_SUSPENDED ? true : false;
+    return (attr->flags & _SPAWN_SUSPENDED) == _SPAWN_SUSPENDED ? true : false;
 }
 
 void proc_spawnattr_setsuspended(proc_spawnattr_t* _Nonnull attr, bool flag)
 {
     if (flag) {
-        attr->flags |= _PROC_SPAFL_SUSPENDED;
+        attr->flags |= _SPAWN_SUSPENDED;
     }
     else {
-        attr->flags &= ~_PROC_SPAFL_SUSPENDED;
+        attr->flags &= ~_SPAWN_SUSPENDED;
     }
 }
 
