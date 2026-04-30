@@ -54,14 +54,14 @@ static int __system(const char *string)
 
     r = proc_spawn(__shellPath, argv, NULL, &sa, NULL, &sres);
     if (r == 0) {
-        r = proc_status(PROC_STOF_PID, sres.pid, 0, &ps);
+        r = proc_status(STATUS_OF_PID, sres.pid, 0, &ps);
     }
 
     
     sig_route(SIG_ROUTE_DEL, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
     proc_spawnattr_destroy(&sa);
 
-    return (r == 0) ? (ps.reason == PROC_STATUS_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
+    return (r == 0) ? (ps.reason == STATUS_REASON_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
 }
 
 int system(const char *string)

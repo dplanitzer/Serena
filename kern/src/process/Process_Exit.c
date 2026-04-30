@@ -8,12 +8,6 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
-#include <assert.h>
-#include <ext/nanotime.h>
-#include <hal/clock.h>
-#include <hal/sched.h>
-#include <kern/log.h>
-#include <kpi/process.h>
 
 // Operations that are mutual exclusive in the context of exiting a process:
 // - exit
@@ -27,83 +21,6 @@
 // Thus operation like 'spawn child', 'acquire vcpu' should take 'mtx' and then
 // check whether SIG_TERMINATE is pending. If it is return with EINTR since the vcpu is
 // in the process of getting shot down.
-
-
-static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int of, pid_t id, bool* _Nonnull pOutExists)
-{
-    switch (of) {
-        case PROC_STOF_PID:
-            return ProcessManager_CopyZombieOfParent(gProcessManager, self->pid, id, pOutExists);
-
-        case PROC_STOF_ANY_FELLOW:
-            return ProcessManager_CopyGroupZombieOfParent(gProcessManager, self->pid, id, pOutExists);
-
-        case PROC_STOF_ANY:
-            return ProcessManager_CopyAnyZombieOfParent(gProcessManager, self->pid, pOutExists);
-
-        default:
-            return NULL;
-    }
-}
-
-errno_t Process_GetStatus(ProcessRef _Nonnull self, int of, pid_t id, int flags, proc_status_t* _Nonnull ps)
-{
-    decl_try_err();
-    ProcessRef zp = NULL;
-
-    switch (of) {
-        case PROC_STOF_PID:
-        case PROC_STOF_ANY_FELLOW:
-        case PROC_STOF_ANY:
-            break;
-
-        default:
-            return EINVAL;
-    }
-
-    if ((flags & ~(PROC_STF_NONBLOCKING)) != 0) {
-        return EINVAL;
-    }
-
-
-    for (;;) {
-        bool exists = false;
-
-        zp = _find_matching_zombie(self, of, id, &exists);
-
-        if (zp) {
-            break;
-        }
-
-        if (!exists) {
-            return ECHILD;
-        }
-        
-        if ((flags & PROC_STF_NONBLOCKING) == PROC_STF_NONBLOCKING) {
-            return EAGAIN;
-        }
-
-
-        sigset_t hot_sigs = sig_bit(SIG_CHILD);
-        int signo;
-
-        err = vcpu_wait_for_signal(&self->siwa_queue, &hot_sigs, &signo);
-        if (err != EOK) {
-            return err;
-        }
-    }
-
-
-    ps->pid = zp->pid;
-    ps->reason = zp->exit_reason;
-    ps->u.status = zp->exit_code;
-
-    ProcessManager_Unpublish(gProcessManager, zp);
-    Process_Release(zp); // necessary because of the _find_matching_zombie() above
-
-    return EOK;
-}
-
 
 
 // Force quit all child processes and reap their corpses. Do not return to the
@@ -123,7 +40,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     for (;;) {
         proc_status_t ps;
 
-        if (Process_GetStatus(self, PROC_STOF_ANY, 0, 0, &ps) == ECHILD) {
+        if (Process_GetStatus(self, STATUS_OF_ANY, 0, 0, &ps) == ECHILD) {
             break;
         }
     }
@@ -155,18 +72,6 @@ void _proc_reap_vcpus(ProcessRef _Nonnull self)
             done = true;
         }
         mtx_unlock(&self->mtx);
-    }
-}
-
-// Let our parent know that we're dead now and that it should remember us by
-// commissioning a beautiful tombstone for us.
-static void _proc_notify_parent(ProcessRef _Nonnull self)
-{
-    if (!Process_IsRoot(self)) {
-        sigcred_t sc;
-
-        Process_GetSigcred(self, &sc);
-        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
     }
 }
 

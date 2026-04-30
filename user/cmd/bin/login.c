@@ -93,7 +93,7 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     // XXX because this proc_status() here consumes the pid and the proc_status()
     // XXX in on_shell_termination() can't get the pid anymore.
     proc_status_t ps;
-    proc_status(PROC_STOF_PID, sres.pid, 0, &ps);
+    proc_status(STATUS_OF_PID, sres.pid, 0, &ps);
     on_shell_termination(NULL);
     // XXX enable dispatch queue based notifications again
 
@@ -127,7 +127,7 @@ static void login_user(void)
 static void on_shell_termination(void* _Nullable ignore)
 {
     proc_status_t ps;
-    const int r = proc_status(PROC_STOF_ANY, 0, PROC_STF_NONBLOCKING, &ps);
+    const int r = proc_status(STATUS_OF_ANY, 0, STATUS_NONBLOCKING, &ps);
 
     if (r == -1) {
         printf("Error: %s.\n", strerror(errno));
@@ -135,7 +135,7 @@ static void on_shell_termination(void* _Nullable ignore)
         /* NOT REACHED */
     }
 
-    if ((ps.reason == PROC_STATUS_EXITED && ps.u.status != EXIT_SUCCESS) || ps.reason != PROC_STATUS_EXITED) {
+    if ((ps.reason == STATUS_REASON_EXITED && ps.u.status != EXIT_SUCCESS) || ps.reason != STATUS_REASON_EXITED) {
         gFailedCounter++;
     }
 

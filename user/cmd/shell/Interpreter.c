@@ -251,8 +251,8 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
     // Wait for the command to complete its task
     proc_status_t ps;
-    proc_status(PROC_STOF_PID, sres.pid, 0, &ps);
-    if (ps.reason == PROC_STATUS_EXCEPTION) {
+    proc_status(STATUS_OF_PID, sres.pid, 0, &ps);
+    if (ps.reason == STATUS_REASON_EXCEPTION) {
         if (ps.u.excptno == EXCPT_FORCED_ABORT) {
             fprintf(stderr, "%s aborted.\n", argv[0]);
         }

@@ -222,11 +222,11 @@ errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _Nonnull 
 
     mtx_lock(&self->mtx);
     switch (type) {
-        case PROC_SCHED_QUANTUM_BOOST:
+        case SCHED_QUANTUM_BOOST:
             *param = self->quantum_boost;
             break;
 
-        case PROC_SCHED_NICE:
+        case SCHED_NICE:
             *param = self->sched_nice;
             break;
 
@@ -246,14 +246,14 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
 
     mtx_lock(&self->mtx);
     switch (type) {
-        case PROC_SCHED_QUANTUM_BOOST: {
+        case SCHED_QUANTUM_BOOST: {
             const int new_boost = VCPU_CLAMPED_QUANTUM_BOOST(*param);
             hasChanged = new_boost != self->quantum_boost;
             self->quantum_boost = new_boost;
             break;
         }
 
-        case PROC_SCHED_NICE: {
+        case SCHED_NICE: {
             const int new_nice = VCPU_CLAMPED_NICE_PRIORITY(*param);
             hasChanged = new_nice != self->sched_nice;
             self->sched_nice = new_nice;
@@ -271,11 +271,11 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
             const int sps = preempt_disable();
 
             switch (type) {
-                case PROC_SCHED_QUANTUM_BOOST:
+                case SCHED_QUANTUM_BOOST:
                     vcpu_set_quantum_boost(cvp, self->quantum_boost);
                     break;
 
-                case PROC_SCHED_NICE:
+                case SCHED_NICE:
                     vcpu_set_nice(cvp, self->sched_nice);
                     break;
             }
@@ -444,7 +444,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
 
 void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
 {
-    _proc_set_exit_reason(self, PROC_STATUS_SIGNALED, signo)
+    _proc_set_exit_reason(self, STATUS_REASON_SIGNALED, signo)
     vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
 }
 

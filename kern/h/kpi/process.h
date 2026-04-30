@@ -18,10 +18,10 @@
 
 
 // proc_ctx_t aux array entry types. Ignore types that you don't recognize. The
-// array is terminated with a PROC_AUX_END entry.
-#define PROC_AUX_END        0
-#define PROC_AUX_EXEC_HDR   1   /* Pointer to the executable header */
-#define PROC_AUX_KEI        2   /* Pointer to the KEI function table */
+// array is terminated with a AT_END entry.
+#define AT_END      0
+#define AT_EXEC_HDR 1   /* Pointer to the executable header */
+#define AT_KEI      2   /* Pointer to the KEI function table */
 
 typedef struct proc_aux_entry {
     int     type;
@@ -47,21 +47,30 @@ typedef struct proc_ctx {
 } proc_ctx_t;
 
 
-#define PROC_STOF_PID           0   /* Status of child process with pid */
-#define PROC_STOF_ANY_FELLOW    1   /* Status of any member of the specified child process group */
-#define PROC_STOF_ANY           2   /* Status of any of the process' child processes */
+// proc_status() match type
+#define STATUS_OF_PID   0   /* Status of child process with pid */
+#define STATUS_OF_GROUP 1   /* Status of any member of the specified child process group */
+#define STATUS_OF_ANY   2   /* Status of any of the process' child processes */
 
-#define PROC_STF_NONBLOCKING    1    /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
+// proc_status() flags
+#define STATUS_NONBLOCKING  1   /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
 
-#define PROC_STATUS_EXITED      1
-#define PROC_STATUS_SIGNALED    2
-#define PROC_STATUS_EXCEPTION   3
+// Type of status change
+#define STATUS_TERMINATED    1
+#define STATUS_SUSPENDED     2
+#define STATUS_RESUMED       3
+
+// Reason for a status change
+#define STATUS_REASON_EXITED      1
+#define STATUS_REASON_SIGNALED    2
+#define STATUS_REASON_EXCEPTION   3
 
 
 // Result of a proc_status() call.
 typedef struct proc_status {
     pid_t   pid;        // pid of the child process
-    int     reason;     // termination reason
+    int     status;     // new process status
+    int     reason;     // reason for change in status
     union {
         int status;     // child process exit status
         int signo;      // signal that caused the process to terminate
@@ -71,8 +80,8 @@ typedef struct proc_status {
 
 
 // Scheduling parameters that apply to a process as a whole
-#define PROC_SCHED_QUANTUM_BOOST    1       /* param range: 0..15 */
-#define PROC_SCHED_NICE             2       /* param range: 0..63 */
+#define SCHED_QUANTUM_BOOST 1       /* param range: 0..15 */
+#define SCHED_NICE          2       /* param range: 0..63 */
 
 
 // Information about a process
@@ -137,8 +146,9 @@ typedef struct proc_times_info {
 
 
 // Well-known PIDs. These PIDs are guaranteed to remain stable and locked in
-// from OS release to OS release 
-#define PROC_PID_KERNELD    1
-#define PROC_PID_SYSTEMD    2
+// from OS release to OS release
+#define PID_SELF    0
+#define PID_KERNELD 1
+#define PID_SYSTEMD 2
 
 #endif /* _KPI_PROCESS_H */

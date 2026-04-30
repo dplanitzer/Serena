@@ -66,11 +66,11 @@ extern _Noreturn void proc_exit(int status);
 
 
 // Checks whether the specified child process or a member of the specified child
-// process group has undergone a state change. If so, then this function fills 
-// in the process status record 'ps' and returns 0. Otherwise EAGAIN is returned
-// if PROC_STF_NONBLOCKING is set in 'flags' or it waits until a process or the
+// process group has undergone a status change. If so, then this function fills 
+// in the status record 'status' and returns 0. Otherwise EAGAIN is returned
+// if STATUS_NONBLOCKING is set in 'flags' or it waits until a process or the
 // specified process changes its state again.  
-extern int proc_status(int of, pid_t id, int flags, proc_status_t* _Nonnull ps);
+extern int proc_status(int match, pid_t id, int flags, proc_status_t* _Nonnull status);
 
 extern int proc_terminate(pid_t pid);
 extern int proc_suspend(pid_t pid);

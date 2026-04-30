@@ -126,11 +126,11 @@ void proc_spawnattr_setsuspended(proc_spawnattr_t* _Nonnull attr, bool flag)
 int proc_spawnattr_schedparam(const proc_spawnattr_t* _Nonnull attr, int type, int* _Nonnull param)
 {
     switch (type) {
-        case PROC_SCHED_QUANTUM_BOOST:
+        case SCHED_QUANTUM_BOOST:
             *param = attr->quantum_boost;
             return 0;
 
-        case PROC_SCHED_NICE:
+        case SCHED_NICE:
             *param = attr->nice;
             return 0;
 
@@ -148,11 +148,11 @@ int proc_spawnattr_setschedparam(proc_spawnattr_t* _Nonnull attr, int type, cons
     }
     
     switch (type) {
-        case PROC_SCHED_QUANTUM_BOOST:
+        case SCHED_QUANTUM_BOOST:
             attr->quantum_boost = *param;
             return 0;
 
-        case PROC_SCHED_NICE:
+        case SCHED_NICE:
             attr->nice = *param;
             return 0;
 

@@ -31,10 +31,10 @@ void __stdlibc_init(proc_ctx_t* _Nonnull pctx)
 
     const proc_aux_entry_t* ae = pctx->aux;
     for (;;) {
-        if (ae->type == PROC_AUX_END) {
+        if (ae->type == AT_END) {
             break;
         }
-        else if (ae->type == PROC_AUX_KEI) {
+        else if (ae->type == AT_KEI) {
             __gKeiTab = ae->u.p;
         }
         

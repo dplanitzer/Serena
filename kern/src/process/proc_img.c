@@ -81,13 +81,13 @@ static void _copyin_table(const char* tb[], const ctx_table_t* _Nonnull ctb)
 
 static void _copyin_aux_array(proc_aux_entry_t* _Nonnull aux, void* _Nonnull exec_hdr)
 {
-    aux[0].type = PROC_AUX_EXEC_HDR;
+    aux[0].type = AT_EXEC_HDR;
     aux[0].u.p = exec_hdr;
 
-    aux[1].type = PROC_AUX_KEI;
+    aux[1].type = AT_KEI;
     aux[1].u.p = gKeiTable;
     
-    aux[2].type = PROC_AUX_END;
+    aux[2].type = AT_END;
     aux[2].u.p = NULL;
 }
 

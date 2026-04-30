@@ -144,7 +144,7 @@ extern void _proc_resume(ProcessRef _Nonnull _Locked self);
 
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
-
+extern void _proc_notify_parent(ProcessRef _Nonnull self);
 
 extern void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self);
 extern void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self);
