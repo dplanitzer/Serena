@@ -80,12 +80,8 @@ static bool _has_session_leader(ProcessManagerRef _Nonnull _Locked self, pid_t s
     return (p->sid == sid) ? true : false;
 }
 
-errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+static errno_t _publish_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull pp)
 {
-    decl_try_err();
-
-    mtx_lock(&self->mtx);
-
     // Validate parameters:
     // pp->pid == 0
     // pp->ppid >= 1
@@ -95,7 +91,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
 
     if (pp->pgrp != 0) {
         if (!_has_group_leader(self, pp->pgrp)) {
-            throw(ESRCH);
+            return ESRCH;
         }
     }
     if (pp->sid != 0) {
@@ -122,24 +118,14 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     }
 
     queue_add_first(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
-
-
-    // Take a strong reference out on the new process
-    Process_Retain(pp);
     self->proc_count++;
 
-catch:
-    mtx_unlock(&self->mtx);
-
-    return err;
+    return EOK;
 }
 
-void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+static void _unpublish_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull pp)
 {
-    mtx_lock(&self->mtx);
-
     if (pp->pid == 0) {
-        mtx_unlock(&self->mtx);
         return;
     }
 
@@ -170,8 +156,30 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
         prev_p = cp;
     )
     self->proc_count--;
+}
 
+errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    err = _publish_process(self, pp);
+    if (err == EOK) {
+        // Take a strong reference out on the new process
+        Process_Retain(pp);
+    }
     mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+{
+    mtx_lock(&self->mtx);
+    _unpublish_process(self, pp);
+    mtx_unlock(&self->mtx);
+
+    // Drop our strong reference on the process
     Process_Release(pp);
 }
 
