@@ -40,7 +40,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     for (;;) {
         proc_waitres_t ps;
 
-        if (Process_WaitForState(self, PROC_STATE_TERMINATED, WAIT_ANY, 0, 0, &ps) == ECHILD) {
+        if (Process_WaitForState(self, WAIT_FOR_TERMINATED, WAIT_ANY, 0, 0, &ps) == ECHILD) {
             break;
         }
     }
@@ -77,13 +77,11 @@ void _proc_reap_vcpus(ProcessRef _Nonnull self)
 
 // Zombify the process by freeing resources we no longer need at this point. The
 // calling VP is the only one left touching the process. So this is safe.
-void _proc_zombify(ProcessRef _Nonnull self)
+static void _proc_zombify(ProcessRef _Nonnull self)
 {
     IOChannelTable_ReleaseAll(&self->ioChannelTable);
     FileManager_Deinit(&self->fm);
     AddressSpace_UnmapAll(&self->addr_space);
-
-    self->run_state = PROC_STATE_TERMINATED;
 }
 
 _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
@@ -98,8 +96,8 @@ _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     const int isExitCoordinator = self->run_state < PROC_STATE_TERMINATING;
     
     if (isExitCoordinator) {
-        self->run_state = PROC_STATE_TERMINATING;
         _proc_set_exit_reason(self, reason, code)
+        _proc_setstate(self, PROC_STATE_TERMINATING, false);
         self->exit_coordinator = vcpu_current();
 
 
@@ -129,7 +127,7 @@ _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     _proc_terminate_and_reap_children(self);
     _proc_zombify(self);
 
-    _proc_notify_parent(self);
+    _proc_setstate(self, PROC_STATE_TERMINATED, true);
 
     
     // Finally relinquish myself

@@ -89,18 +89,13 @@ SYSCALL_1(proc_terminate, pid_t pid)
     ProcessRef pp = vp->proc;
 
     if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
-        Process_Terminate(pp);
+        Process_SendSignal(pp, SIG_SCOPE_PROC, pp->pid, SIG_TERMINATE);
     }
     else {
-        ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
+        sigcred_t sndr;
+        Process_GetSigcred(pp, &sndr);
 
-        if (the_pp) {
-            Process_Terminate(the_pp);
-            Process_Release(the_pp);
-        }
-        else {
-            err = ESRCH;
-        }
+        err = ProcessManager_SendSignal(gProcessManager, &sndr, SIG_SCOPE_PROC, pa->pid, SIG_TERMINATE); 
     }
 
     return err;

@@ -10,6 +10,27 @@
 #include "ProcessManager.h"
 
 
+int Process_GetState(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const int state = self->run_state;
+    mtx_unlock(&self->mtx);
+
+    return state;
+}
+
+void _proc_setstate(ProcessRef _Nonnull _Locked self, int state, bool signal)
+{
+    self->run_state = state;
+
+    if (signal) {
+        sigcred_t sc;
+
+        Process_GetSigcred(self, &sc);
+        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
+    }
+}
+
 static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int match, pid_t id, bool* _Nonnull pOutExists)
 {
     switch (match) {
@@ -31,6 +52,17 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
 {
     decl_try_err();
     ProcessRef zp = NULL;
+
+    switch (wstate) {
+        case WAIT_FOR_ANY:
+        case WAIT_FOR_RESUMED:
+        case WAIT_FOR_SUSPENDED:
+        case WAIT_FOR_TERMINATED:
+            break;
+
+        default:
+            return EINVAL;
+    }
 
     switch (match) {
         case WAIT_PID:
@@ -84,16 +116,4 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
     Process_Release(zp); // necessary because of the _find_matching_zombie() above
 
     return EOK;
-}
-
-// Let our parent know that we're dead now and that it should remember us by
-// commissioning a beautiful tombstone for us.
-void _proc_notify_parent(ProcessRef _Nonnull self)
-{
-    if (!Process_IsRoot(self)) {
-        sigcred_t sc;
-
-        Process_GetSigcred(self, &sc);
-        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
-    }
 }

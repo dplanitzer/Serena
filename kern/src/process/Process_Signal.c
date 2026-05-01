@@ -203,6 +203,12 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
     return (hasMatch) ? EOK : ESRCH;
 }
 
+void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
+{
+    _proc_set_exit_reason(self, WAIT_REASON_SIGNALED, signo)
+    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
+}
+
 static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t id, int signo)
 {
     switch (signo) {

@@ -51,15 +51,6 @@ void Process_Release(ProcessRef _Nullable self)
     }
 }
 
-int Process_GetState(ProcessRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    const int state = self->run_state;
-    mtx_unlock(&self->mtx);
-
-    return state;
-}
-
 pid_t Process_GetId(ProcessRef _Nonnull self)
 {
     return self->pid;
@@ -442,19 +433,6 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
     return err;
 }
 
-void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
-{
-    _proc_set_exit_reason(self, WAIT_REASON_SIGNALED, signo)
-    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
-}
-
-void Process_Terminate(ProcessRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    _proc_terminate(self, SIG_TERMINATE);
-    mtx_unlock(&self->mtx);
-}
-
 // Suspend all vcpus in the process if the process is currently in running state.
 // Otherwise does nothing. Nesting is not supported.
 void _proc_suspend(ProcessRef _Nonnull _Locked self)
@@ -465,7 +443,7 @@ void _proc_suspend(ProcessRef _Nonnull _Locked self)
 
             vcpu_suspend(cvp);
         )
-        self->run_state = PROC_STATE_SUSPENDED;
+        _proc_setstate(self, PROC_STATE_SUSPENDED, false);
     }
 }
 
@@ -486,7 +464,7 @@ void _proc_resume(ProcessRef _Nonnull _Locked self)
 
             vcpu_resume(cvp, false);
         )
-        self->run_state = PROC_STATE_RESUMED;
+        _proc_setstate(self, PROC_STATE_RESUMED, false);
     }
 }
 
