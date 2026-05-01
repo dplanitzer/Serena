@@ -19,7 +19,7 @@ int Process_GetState(ProcessRef _Nonnull self)
     return state;
 }
 
-void _proc_setstate(ProcessRef _Nonnull _Locked self, int state, bool signal)
+void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, bool signal)
 {
     self->run_state = state;
 
@@ -29,6 +29,30 @@ void _proc_setstate(ProcessRef _Nonnull _Locked self, int state, bool signal)
         Process_GetSigcred(self, &sc);
         ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
     }
+}
+
+void _proc_set_state_with_reason(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool signal)
+{
+    self->run_state_reason.reason = reason;
+
+    switch (reason) {
+        case WAIT_REASON_EXITED:
+            self->run_state_reason.u.exit_code = (int)arg;
+            break;
+
+        case WAIT_REASON_SIGNALED:
+            self->run_state_reason.u.signo = (int)arg;
+            break;
+
+        case WAIT_REASON_EXCEPTION:
+            self->run_state_reason.u.excptno = (int)arg;
+            break;
+
+        default:
+            abort();
+    }
+
+    _proc_set_state(self, state, signal);
 }
 
 static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int match, pid_t id, bool* _Nonnull pOutExists)
@@ -109,8 +133,21 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
 
     res->pid = zp->pid;
     res->state = PROC_STATE_TERMINATED;
-    res->reason = zp->exit_reason;
-    res->u.status = zp->exit_code;
+    res->reason = zp->run_state_reason.reason;
+
+    switch (zp->run_state_reason.reason) {
+        case WAIT_REASON_EXITED:
+            res->u.status = zp->run_state_reason.u.exit_code;
+            break;
+
+        case WAIT_REASON_SIGNALED:
+            res->u.signo = zp->run_state_reason.u.signo;
+            break;
+
+        case WAIT_REASON_EXCEPTION:
+            res->u.excptno = zp->run_state_reason.u.excptno;
+            break;
+    }
 
     ProcessManager_Unpublish(gProcessManager, zp);
     Process_Release(zp); // necessary because of the _find_matching_zombie() above

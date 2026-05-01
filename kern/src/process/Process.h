@@ -39,11 +39,12 @@ extern void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cre
 // Returns the current process state.
 extern int Process_GetState(ProcessRef _Nonnull self);
 
-// Terminates the calling process and stores 'reason' and 'code' as the exit
-// reason and code respectively. Note that this function never returns. It turns
-// the calling process into a zombie and notifies the parent process so that it
-// will eventually reap the zombie and free the it for good.
-extern _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code);
+// Terminates the calling process and stores 'reason' and 'arg' as the exit
+// reason and associated argument (i.e. exit code) respectively. Note that this
+// function never returns. It turns the calling process into a zombie and
+// notifies the parent process so that it will eventually reap the zombie and
+// free the it for good.
+extern _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg);
 
 // Waits for the process 'self' to enter the state 'wstate'. Does not block the
 // caller and returns immediately with EAGAIN if 'flags' has NONBLOCKING set and

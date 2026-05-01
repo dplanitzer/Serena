@@ -24,6 +24,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
 
     self->retainCount = RC_INIT;
     self->run_state = PROC_STATE_SUSPENDED;
+    self->run_state_reason.reason = 0;
     self->pid = 0;
 
     if (parent) {
@@ -49,8 +50,6 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
 
     self->vcpu_queue = DEQUE_INIT;
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
-
-    self->exit_reason = 0;
     
     IOChannelTable_Init(&self->ioChannelTable);
 

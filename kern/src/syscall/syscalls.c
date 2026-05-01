@@ -199,7 +199,7 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
     const sigset_t sigs = vp->pending_sigs;
 
     if ((sigs & sig_bit(SIG_TERMINATE)) != 0) {
-        Process_Exit(vp->proc, WAIT_REASON_SIGNALED, SIG_TERMINATE);
+        Process_Terminate(vp->proc, WAIT_REASON_SIGNALED, vp->proc->signo_causing_termination);
         /* NOT REACHED */
     }
 

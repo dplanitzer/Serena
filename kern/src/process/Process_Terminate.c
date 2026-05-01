@@ -1,5 +1,5 @@
 //
-//  Process_Exit.c
+//  Process_Terminate.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/12/23.
@@ -84,7 +84,7 @@ static void _proc_zombify(ProcessRef _Nonnull self)
     AddressSpace_UnmapAll(&self->addr_space);
 }
 
-_Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
+_Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
 {
     // We do not allow exiting the root process
     if (Process_IsRoot(self)) {
@@ -96,8 +96,7 @@ _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     const int isExitCoordinator = self->run_state < PROC_STATE_TERMINATING;
     
     if (isExitCoordinator) {
-        _proc_set_exit_reason(self, reason, code)
-        _proc_setstate(self, PROC_STATE_TERMINATING, false);
+        _proc_set_state(self, PROC_STATE_TERMINATING, false);
         self->exit_coordinator = vcpu_current();
 
 
@@ -127,7 +126,7 @@ _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     _proc_terminate_and_reap_children(self);
     _proc_zombify(self);
 
-    _proc_setstate(self, PROC_STATE_TERMINATED, true);
+    _proc_set_state_with_reason(self, PROC_STATE_TERMINATED, reason, arg, true);
 
     
     // Finally relinquish myself

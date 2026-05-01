@@ -47,6 +47,17 @@ struct sigroute {
 typedef struct sigroute* sigroute_t;
 
 
+// The reason for a state change
+typedef struct state_change_reason {
+    int      reason;    // reason for state change; 0 if no reason has been recorded yet or proc_waitstate() has already consumed it
+    union {
+        int exit_code;  // child process exit code
+        int signo;      // signal that caused the process to terminate
+        int excptno;    // exception that caused the process to terminate
+    }           u;
+} state_change_reason_t;
+
+
 // Process relationship information (owned & protected by ProcessManager)
 typedef struct proc_rel {
     queue_node_t            pid_qe;     // pid_table chain entry.
@@ -67,9 +78,12 @@ typedef struct Process {
     pid_t                           pgrp;       // Group id. I'm the group leader if pgrp == pid
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
 
-    // Process run state and flags
-    int                             run_state;
-    unsigned int                    flags;
+    // Process state management
+    vcpu_t _Nullable                exit_coordinator;
+    int8_t                          run_state;
+    state_change_reason_t           run_state_reason;   // reason why we entered the current run state
+    int8_t                          signo_causing_termination;  // original signal that will lead to a SIG_TERMINATE
+    uint8_t                         flags;
 
     // Process image
     AddressSpace                    addr_space;
@@ -120,11 +134,6 @@ typedef struct Process {
     
     // Signal routes
     queue_t/*struct sigroute>*/     sig_route[SIG_MAX];
-    
-    // Process termination
-    int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
-    int16_t                         exit_code;
-    vcpu_t _Nullable                exit_coordinator;
 } Process;
 
 extern void uwq_destroy(u_wait_queue_t _Nullable self);
@@ -138,7 +147,8 @@ extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_a
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 
-extern void _proc_setstate(ProcessRef _Nonnull _Locked self, int state, bool signal);
+extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, bool signal);
+extern void _proc_set_state_with_reason(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool signal);
 
 extern void _proc_suspend(ProcessRef _Nonnull _Locked self);
 extern void _proc_resume(ProcessRef _Nonnull _Locked self);
@@ -148,11 +158,5 @@ extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 
 extern void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self);
 extern void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self);
-
-#define _proc_set_exit_reason(__self, __reason, __code) \
-if ((__self)->exit_reason == 0) {\
-    (__self)->exit_reason = __reason; \
-    (__self)->exit_code = __code; \
-}
 
 #endif /* ProcessPriv_h */

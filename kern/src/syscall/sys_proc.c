@@ -78,7 +78,7 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
 
 SYSCALL_1(proc_exit, int code)
 {
-    Process_Exit(vp->proc, WAIT_REASON_EXITED, pa->code);
+    Process_Terminate(vp->proc, WAIT_REASON_EXITED, pa->code);
     /* NOT REACHED */
     return 0;
 }

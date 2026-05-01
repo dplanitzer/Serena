@@ -90,7 +90,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
     mtx_lock(&self->mtx);
 
-    // We only permit calling Process_Exit() from another process if that other
+    // We only permit calling Process_Terminate() from another process if that other
     // process is building us (thus there's no vcpu assigned to 'self' at this
     // point).
     assert(deque_empty(&self->vcpu_queue)

@@ -394,7 +394,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ip->umask = FileManager_GetUMask(&self->fm);
             
             ip->run_state = self->run_state;
-            ip->flags = self->flags;
+            ip->flags = 0;
             
             ip->vcpu_count = self->vcpu_count;
             ip->vcpu_lifetime_count = self->vcpu_lifetime_count;
@@ -443,7 +443,7 @@ void _proc_suspend(ProcessRef _Nonnull _Locked self)
 
             vcpu_suspend(cvp);
         )
-        _proc_setstate(self, PROC_STATE_SUSPENDED, false);
+        _proc_set_state(self, PROC_STATE_SUSPENDED, false);
     }
 }
 
@@ -464,7 +464,7 @@ void _proc_resume(ProcessRef _Nonnull _Locked self)
 
             vcpu_resume(cvp, false);
         )
-        _proc_setstate(self, PROC_STATE_RESUMED, false);
+        _proc_set_state(self, PROC_STATE_RESUMED, false);
     }
 }
 

@@ -362,7 +362,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         || (is_f4_access_err && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
         || eh.func == NULL) {
         // double fault or no exception handler -> exit
-        Process_Exit(vp->proc, WAIT_REASON_EXCEPTION, vp->excpt_state.code);
+        Process_Terminate(vp->proc, WAIT_REASON_EXCEPTION, vp->excpt_state.code);
         /* NOT REACHED */
     }
 
@@ -409,7 +409,7 @@ void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
 
 
     if (excpt_hand_ret != EXCPT_CONTINUE_EXECUTION) {
-        Process_Exit(vp->proc, WAIT_REASON_EXCEPTION, ecode);
+        Process_Terminate(vp->proc, WAIT_REASON_EXCEPTION, ecode);
         /* NOT REACHED */
     }
 
