@@ -78,7 +78,7 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
 
 SYSCALL_1(proc_exit, int code)
 {
-    Process_Exit(vp->proc, STATUS_REASON_EXITED, pa->code);
+    Process_Exit(vp->proc, WAIT_REASON_EXITED, pa->code);
     /* NOT REACHED */
     return 0;
 }
@@ -152,9 +152,9 @@ SYSCALL_1(proc_resume, pid_t pid)
     return err;
 }
 
-SYSCALL_4(proc_status, int match, pid_t id, int flags, proc_status_t* _Nonnull status)
+SYSCALL_5(proc_waitstate, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
-    return Process_GetStatus(vp->proc, pa->match, pa->id, pa->flags, pa->status);
+    return Process_WaitForState(vp->proc, pa->wstate, pa->match, pa->id, pa->flags, pa->res);
 }
 
 SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)

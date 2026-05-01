@@ -1,5 +1,5 @@
 //
-//  Process_Status.c
+//  Process_State.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/12/23.
@@ -13,13 +13,13 @@
 static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int match, pid_t id, bool* _Nonnull pOutExists)
 {
     switch (match) {
-        case STATUS_OF_PID:
+        case WAIT_PID:
             return ProcessManager_CopyZombieOfParent(gProcessManager, self->pid, id, pOutExists);
 
-        case STATUS_OF_GROUP:
+        case WAIT_GROUP:
             return ProcessManager_CopyGroupZombieOfParent(gProcessManager, self->pid, id, pOutExists);
 
-        case STATUS_OF_ANY:
+        case WAIT_ANY:
             return ProcessManager_CopyAnyZombieOfParent(gProcessManager, self->pid, pOutExists);
 
         default:
@@ -27,22 +27,22 @@ static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int 
     }
 }
 
-errno_t Process_GetStatus(ProcessRef _Nonnull self, int match, pid_t id, int flags, proc_status_t* _Nonnull status)
+errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
     decl_try_err();
     ProcessRef zp = NULL;
 
     switch (match) {
-        case STATUS_OF_PID:
-        case STATUS_OF_GROUP:
-        case STATUS_OF_ANY:
+        case WAIT_PID:
+        case WAIT_GROUP:
+        case WAIT_ANY:
             break;
 
         default:
             return EINVAL;
     }
 
-    if ((flags & ~(STATUS_NONBLOCKING)) != 0) {
+    if ((flags & ~(WAIT_NONBLOCKING)) != 0) {
         return EINVAL;
     }
 
@@ -60,7 +60,7 @@ errno_t Process_GetStatus(ProcessRef _Nonnull self, int match, pid_t id, int fla
             return ECHILD;
         }
         
-        if ((flags & STATUS_NONBLOCKING) == STATUS_NONBLOCKING) {
+        if ((flags & WAIT_NONBLOCKING) == WAIT_NONBLOCKING) {
             return EAGAIN;
         }
 
@@ -75,10 +75,10 @@ errno_t Process_GetStatus(ProcessRef _Nonnull self, int match, pid_t id, int fla
     }
 
 
-    status->pid = zp->pid;
-    status->state = PROC_STATE_TERMINATED;
-    status->reason = zp->exit_reason;
-    status->u.status = zp->exit_code;
+    res->pid = zp->pid;
+    res->state = PROC_STATE_TERMINATED;
+    res->reason = zp->exit_reason;
+    res->u.status = zp->exit_code;
 
     ProcessManager_Unpublish(gProcessManager, zp);
     Process_Release(zp); // necessary because of the _find_matching_zombie() above

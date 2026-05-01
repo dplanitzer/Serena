@@ -45,10 +45,11 @@ extern int Process_GetState(ProcessRef _Nonnull self);
 // will eventually reap the zombie and free the it for good.
 extern _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code);
 
-// Returns the most recent status change of the receiver. Blocks by default until
-// the next status change if non is currently pending and 'flags' doesn't have
-// STATUS_NONBLOCKING set.
-extern errno_t Process_GetStatus(ProcessRef _Nonnull self, int match, pid_t id, int flags, proc_status_t* _Nonnull status);
+// Waits for the process 'self' to enter the state 'wstate'. Does not block the
+// caller and returns immediately with EAGAIN if 'flags' has NONBLOCKING set and
+// the current process state is not 'state'; otherwise returns EOK and a suitable
+// status report. Returns ECHILD if the requested child process does not exist.
+extern errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res);
 
 // Replaces the current executable image of the process with a new executable
 // image loaded from 'execPath' and starts it executing right away. Note that

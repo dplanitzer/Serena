@@ -39,7 +39,7 @@ static int __system(const char *string)
     proc_spawnattr_t sa;
     proc_spawnres_t sres;
     const char* argv[4];
-    proc_status_t ps;
+    proc_waitres_t ps;
 
     proc_spawnattr_init(&sa);
 
@@ -54,14 +54,14 @@ static int __system(const char *string)
 
     r = proc_spawn(__shellPath, argv, NULL, &sa, NULL, &sres);
     if (r == 0) {
-        r = proc_status(STATUS_OF_PID, sres.pid, 0, &ps);
+        r = proc_waitstate(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
     }
 
     
     sig_route(SIG_ROUTE_DEL, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
     proc_spawnattr_destroy(&sa);
 
-    return (r == 0) ? (ps.reason == STATUS_REASON_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
+    return (r == 0) ? (ps.reason == WAIT_REASON_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
 }
 
 int system(const char *string)

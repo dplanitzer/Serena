@@ -65,12 +65,13 @@ extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], co
 extern _Noreturn void proc_exit(int status);
 
 
-// Checks whether the specified child process or a member of the specified child
-// process group has undergone a status change. If so, then this function fills 
-// in the status record 'status' and returns 0. Otherwise EAGAIN is returned
-// if STATUS_NONBLOCKING is set in 'flags' or it waits until a process or the
-// specified process changes its state again.  
-extern int proc_status(int match, pid_t id, int flags, proc_status_t* _Nonnull status);
+// Waits until the specified child, any child or member of a child process group
+// changes its state to 'wstate' or any new state. The function remains blocked
+// until then if 'flags' does not have WAIT_NONBLOCKING set. If it has then this
+// function returns immediately with EOK and the state change information or it
+// returns EAGAIN if no state change has occurred. ECHILD is returned if the
+// specified child does not exist.
+extern int proc_waitstate(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res);
 
 extern int proc_terminate(pid_t pid);
 extern int proc_suspend(pid_t pid);

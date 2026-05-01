@@ -61,7 +61,7 @@ SYSCALL_REF(proc_exit);
 SYSCALL_REF(proc_spawn);
 SYSCALL_REF(proc_property);
 SYSCALL_REF(proc_setcwd);
-SYSCALL_REF(proc_status);
+SYSCALL_REF(proc_waitstate);
 SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
 SYSCALL_REF(proc_setschedparam);
@@ -121,7 +121,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_suspend, SC_ERRNO),
     SYSCALL_ENTRY(fs_open, SC_ERRNO),
     SYSCALL_ENTRY(fd_close, SC_ERRNO),
-    SYSCALL_ENTRY(proc_status, SC_ERRNO),
+    SYSCALL_ENTRY(proc_waitstate, SC_ERRNO),
     SYSCALL_ENTRY(fd_seek, SC_ERRNO),
     SYSCALL_ENTRY(proc_property, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),
@@ -199,7 +199,7 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
     const sigset_t sigs = vp->pending_sigs;
 
     if ((sigs & sig_bit(SIG_TERMINATE)) != 0) {
-        Process_Exit(vp->proc, STATUS_REASON_SIGNALED, SIG_TERMINATE);
+        Process_Exit(vp->proc, WAIT_REASON_SIGNALED, SIG_TERMINATE);
         /* NOT REACHED */
     }
 

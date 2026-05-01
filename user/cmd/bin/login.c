@@ -90,10 +90,10 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     
     // XXX enable dispatch queue based notifications again
     // XXX broken for now. Typing exit in the login shell will throw an error
-    // XXX because this proc_status() here consumes the pid and the proc_status()
+    // XXX because this proc_waitstate() here consumes the pid and the proc_waitstate()
     // XXX in on_shell_termination() can't get the pid anymore.
-    proc_status_t ps;
-    proc_status(STATUS_OF_PID, sres.pid, 0, &ps);
+    proc_waitres_t ps;
+    proc_waitstate(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
     on_shell_termination(NULL);
     // XXX enable dispatch queue based notifications again
 
@@ -126,8 +126,8 @@ static void login_user(void)
 // row.
 static void on_shell_termination(void* _Nullable ignore)
 {
-    proc_status_t ps;
-    const int r = proc_status(STATUS_OF_ANY, 0, STATUS_NONBLOCKING, &ps);
+    proc_waitres_t ps;
+    const int r = proc_waitstate(WAIT_FOR_TERMINATED, WAIT_ANY, 0, WAIT_NONBLOCKING, &ps);
 
     if (r == -1) {
         printf("Error: %s.\n", strerror(errno));
@@ -135,7 +135,7 @@ static void on_shell_termination(void* _Nullable ignore)
         /* NOT REACHED */
     }
 
-    if ((ps.reason == STATUS_REASON_EXITED && ps.u.status != EXIT_SUCCESS) || ps.reason != STATUS_REASON_EXITED) {
+    if ((ps.reason == WAIT_REASON_EXITED && ps.u.status != EXIT_SUCCESS) || ps.reason != WAIT_REASON_EXITED) {
         gFailedCounter++;
     }
 

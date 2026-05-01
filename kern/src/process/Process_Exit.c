@@ -38,9 +38,9 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     // Reap all zombies. There may have been zombies before we came here. That's
     // why we unconditionally execute this loop.
     for (;;) {
-        proc_status_t ps;
+        proc_waitres_t ps;
 
-        if (Process_GetStatus(self, STATUS_OF_ANY, 0, 0, &ps) == ECHILD) {
+        if (Process_WaitForState(self, PROC_STATE_TERMINATED, WAIT_ANY, 0, 0, &ps) == ECHILD) {
             break;
         }
     }
