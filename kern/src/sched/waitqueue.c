@@ -49,7 +49,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
     ticks_t deadline_ticks;
     bool armTimeout = false;
 
-    assert(vp->run_state == VCPU_RUST_RUNNING);
+    assert(vp->run_state == VCPU_STATE_RUNNING);
 
     if (rmtp) {
         nanotime_clear(rmtp);
@@ -83,7 +83,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
     // FIFO order.
     deque_add_last(&self->q, &vp->rewa_qe);
     
-    vp->run_state = VCPU_RUST_WAITING;
+    vp->run_state = VCPU_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
     vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
@@ -160,7 +160,7 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, i
 void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason, int pri_boost)
 {
     // Nothing to do if we are not waiting
-    if (vp->run_state != VCPU_RUST_WAITING) {
+    if (vp->run_state != VCPU_STATE_WAITING) {
         return;
     }
     

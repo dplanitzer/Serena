@@ -122,12 +122,12 @@ typedef struct vcpu_stack_info {
 } vcpu_stack_info_t;
 
 
-#define VCPU_RUST_INITIATED     0   /* VP was just created and has not been scheduled yet */
-#define VCPU_RUST_READY         1   /* VP is able to run and is currently sitting on the ready queue */
-#define VCPU_RUST_RUNNING       2   /* VP is running */
-#define VCPU_RUST_WAITING       3   /* VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc) */
-#define VCPU_RUST_SUSPENDED     4   /* VP was running or ready and is now suspended (it is not on any queue) */
-#define VCPU_RUST_TERMINATING   5   /* VP is in the process of terminating and being reaped (it's on the finalizer queue) */
+#define VCPU_STATE_INITIATED    0   /* VP was just created and has not been scheduled yet */
+#define VCPU_STATE_READY        1   /* VP is able to run and is currently sitting on the ready queue */
+#define VCPU_STATE_RUNNING      2   /* VP is running */
+#define VCPU_STATE_WAITING      3   /* VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc) */
+#define VCPU_STATE_SUSPENDED    4   /* VP was running or ready and is now suspended (it is not on any queue) */
+#define VCPU_STATE_TERMINATING  5   /* VP is in the process of terminating and being reaped (it's on the finalizer queue) */
 
 #define VCPU_HAS_PRIORITY_BOOST     0x01
 #define VCPU_HAS_QUANTUM_BOOST      0x02

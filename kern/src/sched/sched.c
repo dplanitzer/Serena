@@ -80,7 +80,7 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAddToTail
     assert(vp->rewa_qe.next == NULL);
     
 
-    vp->run_state = VCPU_RUST_READY;
+    vp->run_state = VCPU_STATE_READY;
     const unsigned int pri = vp->cur_priority;
 
     if (doAddToTail) {
@@ -112,7 +112,7 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
             abort();
         }
 
-        vp->run_state = VCPU_RUST_RUNNING;
+        vp->run_state = VCPU_STATE_RUNNING;
     }
 
 
@@ -187,7 +187,7 @@ _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     (void) preempt_disable();
 
 
-    vp->run_state = VCPU_RUST_TERMINATING;
+    vp->run_state = VCPU_STATE_TERMINATING;
     deque_add_last(&self->finalizer_queue, &vp->owner_qe);
     
     

@@ -117,12 +117,12 @@ sched_SIZEOF                        so
 
 
 ; The vcpu
-VCPU_RUST_INITIATED       equ 0   ; VP was just created and has not been scheduled yet
-VCPU_RUST_READY           equ 1   ; VP is able to run and is currently sitting on the ready queue
-VCPU_RUST_RUNNING         equ 2   ; VP is running
-VCPU_RUST_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-VCPU_RUST_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
-VCPU_RUST_TERMINATING     equ 5   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
+VCPU_STATE_INITIATED       equ 0   ; VP was just created and has not been scheduled yet
+VCPU_STATE_READY           equ 1   ; VP is able to run and is currently sitting on the ready queue
+VCPU_STATE_RUNNING         equ 2   ; VP is running
+VCPU_STATE_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+VCPU_STATE_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
+VCPU_STATE_TERMINATING     equ 5   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
 
 
 ; vcpu flags (keep in sync with vcpu.h)

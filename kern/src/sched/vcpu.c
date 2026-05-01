@@ -44,7 +44,7 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     stk_init(&self->user_stack);
     
     self->timeout = CLOCK_DEADLINE_INIT;    
-    self->run_state = VCPU_RUST_INITIATED;
+    self->run_state = VCPU_STATE_INITIATED;
 
     self->flags = 0;
     self->flags |= (cpu_68k_fpu(g_sys_desc->cpu_subtype) != CPU_FPU_NONE) ? VP_FLAG_HAS_FPU : 0;
@@ -87,7 +87,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // proceed with reconfiguring it. We only become the owner of the vcpu once
     // it has entered suspended state.
     const int sps = preempt_disable();
-    while (vp->run_state != VCPU_RUST_SUSPENDED) {
+    while (vp->run_state != VCPU_STATE_SUSPENDED) {
         _vcpu_yield(vcpu_current());
     }
     preempt_restore(sps);
@@ -328,13 +328,13 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
 
     const int sps = preempt_disable();
     switch (self->run_state) {
-        case VCPU_RUST_INITIATED:
+        case VCPU_STATE_INITIATED:
             if (_vcpu_set_base_priority(self, policy)) {
                 vcpu_on_sched_param_changed(self);
             }
             break;
 
-        case VCPU_RUST_READY:
+        case VCPU_STATE_READY:
             sched_set_unready(g_sched, self, false);
             if (_vcpu_set_base_priority(self, policy)) {
                 vcpu_on_sched_param_changed(self);
@@ -342,18 +342,18 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
             sched_set_ready(g_sched, self, true);
             break;
                 
-        case VCPU_RUST_RUNNING:
-        case VCPU_RUST_WAITING:
-        case VCPU_RUST_SUSPENDED:
+        case VCPU_STATE_RUNNING:
+        case VCPU_STATE_WAITING:
+        case VCPU_STATE_SUSPENDED:
             if (_vcpu_set_base_priority(self, policy)) {
-                if (self->run_state == VCPU_RUST_RUNNING) {
+                if (self->run_state == VCPU_STATE_RUNNING) {
                     vcpu_reset_quantum(self);
                 }
                 vcpu_on_sched_param_changed(self);
             }
             break;
 
-        case VCPU_RUST_TERMINATING:
+        case VCPU_STATE_TERMINATING:
             err = ESRCH;
             break;
 
@@ -368,7 +368,7 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
 // @Entry Condition: preemption disabled
 static void _vcpu_yield(vcpu_t _Nonnull self)
 {
-    if (self->run_state == VCPU_RUST_RUNNING) {
+    if (self->run_state == VCPU_STATE_RUNNING) {
         if (!vcpu_is_fixed_pri(self) && self->priority_penalty > 0) {
             // Half the priority penalty, if any
             self->priority_penalty /= 2;
@@ -395,10 +395,10 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     decl_try_err();
     const int sps = preempt_disable();
 
-    if (self->run_state == VCPU_RUST_TERMINATING || self == g_sched->idle_vp || self == g_sched->boot_vp) {
+    if (self->run_state == VCPU_STATE_TERMINATING || self == g_sched->idle_vp || self == g_sched->boot_vp) {
         throw(ESRCH);
     }
-    if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->run_state != VCPU_RUST_INITIATED && self->run_state != VCPU_RUST_RUNNING)) {
+    if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->run_state != VCPU_STATE_INITIATED && self->run_state != VCPU_STATE_RUNNING)) {
         // no involuntary suspension of kernel owned VPs
         throw(EPERM);
     }
@@ -407,19 +407,19 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     }
 
 
-    if (self->run_state == VCPU_RUST_SUSPENDED || (self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0) {
+    if (self->run_state == VCPU_STATE_SUSPENDED || (self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0) {
         // 'self' has at least a suspension request pending or may already have entered suspended state
         self->suspension_count++;
     }
-    else if (self->run_state == VCPU_RUST_INITIATED) {
+    else if (self->run_state == VCPU_STATE_INITIATED) {
         // 'self' was just created. Move it to suspended state immediately
         self->suspension_count++;
-        self->run_state = VCPU_RUST_SUSPENDED;
+        self->run_state = VCPU_STATE_SUSPENDED;
     }
     else if (vcpu_current() == self) {
         // 'self' is currently running. Move it to suspended state immediately
         self->suspension_count++;
-        self->run_state = VCPU_RUST_SUSPENDED;
+        self->run_state = VCPU_STATE_SUSPENDED;
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
     else {
@@ -444,11 +444,11 @@ void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
     // state to suspended to ensure that there's no gap between suspension
     // request and suspension state.
     // Note that it is crucial that we check the SIG_VCPU_SUSPEND flag, consume it and
-    // change our scheduler state to VCPU_RUST_SUSPENDED in an atomic
+    // change our scheduler state to VCPU_STATE_SUSPENDED in an atomic
     // operation to ensure that vcpu_resume() can not see the transition and
     // get potentially confused by it.
     if ((self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0) {
-        self->run_state = VCPU_RUST_SUSPENDED;
+        self->run_state = VCPU_STATE_SUSPENDED;
         self->pending_sigs &= ~sig_bit(SIG_VCPU_SUSPEND);
 
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
@@ -483,7 +483,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 
 
     // Move the vcpu out of suspended state if it is suspended
-    if (self->run_state == VCPU_RUST_SUSPENDED) {
+    if (self->run_state == VCPU_STATE_SUSPENDED) {
         _vcpu_resume(self, force);
     }
 
@@ -497,7 +497,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
 {
     for (;;) {
-        if (self->run_state == VCPU_RUST_SUSPENDED || (self->run_state == VCPU_RUST_WAITING && (self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0)) {
+        if (self->run_state == VCPU_STATE_SUSPENDED || (self->run_state == VCPU_STATE_WAITING && (self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0)) {
             // Wait until the target vcpu has entered suspended state or it is
             // waiting and has a deferred suspension request pending.
             break;

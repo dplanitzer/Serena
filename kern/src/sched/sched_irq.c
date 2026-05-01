@@ -31,7 +31,7 @@ void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         run->quantum_countdown -= SCHED_QUANTUM_SCALE;
     }
 
-    if (run->run_state != VCPU_RUST_TERMINATING) {
+    if (run->run_state != VCPU_STATE_TERMINATING) {
         if (excpt_frame_isuser(efp)) {
             run->user_ticks++;
             if (run->proc) {
