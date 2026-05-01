@@ -21,9 +21,9 @@ enum {
     SC_vm_allocate,         // errno_t vm_allocate(size_t nbytes, void **pOutMem)
     SC_proc_exit,           // _Noreturn void proc_exit(int code)
     SC_proc_spawn,          // errno_t proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], , const char* _Nullable envp[], proc_spawnattr_t * _Nonnull options, const proc_spawn_actions_t* _Nullable actions, proc_spawnres_t * _Nullable result)
-    SC_proc_terminate,      // errno_t proc_terminate(pid_t pid)
+    SC_unused1,             // UNUSED
     SC_proc_vcpus,          // int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize)
-    SC_proc_suspend,        // errno_t proc_suspend(pid_t pid)
+    SC_unused2,             // UNUSED
     SC_fs_open,             // errno_t fs_open(int wd, const char * _Nonnull path, int oflags, int* _Nonnull fd)
     SC_fd_close,            // errno_t fd_close(int fd)
     SC_proc_waitstate,      // errno_t proc_waitstate(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull status)
@@ -91,7 +91,7 @@ enum {
     SC_vcpu_state,          // int vcpu_state(vcpuid_t id, int flavor, vcpu_state_ref _Nonnull state)
     SC_vcpu_setstate,       // int vcpu_setstate(vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull state)
     SC_fs_setlabel,         // errno_t fs_setlabel(fsid_t fsid, const char* _Nonnull label)
-    SC_proc_resume,         // errno_t proc_resume(pid_t pid)
+    SC_unused3,             // UNUSED
     SC_fd_info,             // errno_t fd_info(int fd, int flavor, fd_info_ref _Nonnull info)
     SC_fd_dup,              // errno_t fd_dup(int fd, int min_fd, int* _Nonnull new_fd)
     SC_proc_self,           // pid_t proc_self(void)

@@ -36,8 +36,6 @@ extern uid_t Process_GetUserId(ProcessRef _Nonnull self);
 
 extern void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred);
 
-// Returns the current process state.
-extern int Process_GetState(ProcessRef _Nonnull self);
 
 // Terminates the calling process and stores 'reason' and 'arg' as the exit
 // reason and associated argument (i.e. exit code) respectively. Note that this
@@ -45,6 +43,13 @@ extern int Process_GetState(ProcessRef _Nonnull self);
 // notifies the parent process so that it will eventually reap the zombie and
 // free the it for good.
 extern _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg);
+
+extern void Process_Suspend(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
+extern void Process_Resume(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
+
+
+// Returns the current process state.
+extern int Process_GetState(ProcessRef _Nonnull self);
 
 // Waits for the process 'self' to enter the state 'wstate'. Does not block the
 // caller and returns immediately with EAGAIN if 'flags' has NONBLOCKING set and
@@ -90,8 +95,5 @@ extern errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_r
 
 // Returns an array of vcpuid_t's corresponding to the currently acquired vcpus.
 extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
-
-extern void Process_Suspend(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
-extern void Process_Resume(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
 
 #endif /* Process_h */

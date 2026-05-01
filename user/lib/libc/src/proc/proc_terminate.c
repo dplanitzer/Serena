@@ -7,10 +7,10 @@
 //
 
 #include <serena/process.h>
-#include <kpi/syscall.h>
+#include <serena/signal.h>
 
 
 int proc_terminate(pid_t pid)
 {
-    return (int)_syscall(SC_proc_terminate, pid);
+    return sig_send(SIG_SCOPE_PROC, pid, SIG_TERMINATE);
 }

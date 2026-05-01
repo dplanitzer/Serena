@@ -68,9 +68,6 @@ SYSCALL_REF(proc_setschedparam);
 SYSCALL_REF(proc_info);
 SYSCALL_REF(proc_vcpus);
 SYSCALL_REF(proc_setumask);
-SYSCALL_REF(proc_terminate);
-SYSCALL_REF(proc_suspend);
-SYSCALL_REF(proc_resume);
 SYSCALL_REF(proc_self);
 
 
@@ -116,9 +113,9 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(proc_spawn, SC_ERRNO),
-    SYSCALL_ENTRY(proc_terminate, SC_ERRNO),
+    SYSCALL_ENTRY(nosys, SC_ERRNO),                 // UNUSED
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
-    SYSCALL_ENTRY(proc_suspend, SC_ERRNO),
+    SYSCALL_ENTRY(nosys, SC_ERRNO),                 // UNUSED
     SYSCALL_ENTRY(fs_open, SC_ERRNO),
     SYSCALL_ENTRY(fd_close, SC_ERRNO),
     SYSCALL_ENTRY(proc_waitstate, SC_ERRNO),
@@ -186,7 +183,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_state, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setstate, SC_ERRNO),
     SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
-    SYSCALL_ENTRY(proc_resume, SC_ERRNO),
+    SYSCALL_ENTRY(nosys, SC_ERRNO),
     SYSCALL_ENTRY(fd_info, SC_ERRNO),
     SYSCALL_ENTRY(fd_dup, SC_ERRNO),
     SYSCALL_ENTRY(proc_self, SC_INT),
