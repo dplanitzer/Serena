@@ -57,6 +57,8 @@ typedef struct state_change_reason {
     }           u;
 } state_change_reason_t;
 
+#define _WAIT_REASON_NONE  0
+
 
 // Process relationship information (owned & protected by ProcessManager)
 typedef struct proc_rel {
@@ -147,11 +149,10 @@ extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_a
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 
-extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, bool signal);
-extern void _proc_set_state_with_reason(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool signal);
+extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 
-extern void _proc_suspend(ProcessRef _Nonnull _Locked self);
-extern void _proc_resume(ProcessRef _Nonnull _Locked self);
+extern void _proc_suspend(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
+extern void _proc_resume(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
 
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);

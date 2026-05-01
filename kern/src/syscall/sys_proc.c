@@ -44,7 +44,11 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
                 err = ProcessManager_Publish(gProcessManager, cp);
 
                 if (err == EOK && (pa->attr->flags & _SPAWN_SUSPENDED) == 0) {
-                    Process_Resume(cp);
+                    // Note that this resume is silent because the fact that we
+                    // start out suspended and then resume is more of an
+                    // implementation detail than something that the parent
+                    // cares about when they didn't ask for a suspended spawn.
+                    Process_Resume(cp, _WAIT_REASON_NONE, 0, false);
                 }
             }
         }
@@ -107,13 +111,13 @@ SYSCALL_1(proc_suspend, pid_t pid)
     ProcessRef pp = vp->proc;
 
     if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
-        Process_Suspend(pp);
+        Process_Suspend(pp, WAIT_REASON_SIGNALED, SIG_FORCE_SUSPEND, true);
     }
     else {
         ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
         if (the_pp) {
-            Process_Suspend(the_pp);
+            Process_Suspend(the_pp, WAIT_REASON_SIGNALED, SIG_FORCE_SUSPEND, true);
             Process_Release(the_pp);
         }
         else {
@@ -130,13 +134,13 @@ SYSCALL_1(proc_resume, pid_t pid)
     ProcessRef pp = vp->proc;
 
     if (pa->pid == PROC_SELF || pa->pid == pp->pid) {
-        Process_Resume(pp);
+        Process_Resume(pp, WAIT_REASON_SIGNALED, SIG_RESUME, true);
     }
     else {
         ProcessRef the_pp = ProcessManager_CopyProcessForPid(gProcessManager, pa->pid);
 
         if (the_pp) {
-            Process_Resume(the_pp);
+            Process_Resume(the_pp, WAIT_REASON_SIGNALED, SIG_RESUME, true);
             Process_Release(the_pp);
         }
         else {

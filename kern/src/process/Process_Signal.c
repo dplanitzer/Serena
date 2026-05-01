@@ -203,7 +203,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
     return (hasMatch) ? EOK : ESRCH;
 }
 
-void _proc_terminate(ProcessRef _Nonnull _Locked self, int signo)
+static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int signo)
 {
     self->signo_causing_termination = signo;
     vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
@@ -213,15 +213,15 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 {
     switch (signo) {
         case SIG_TERMINATE:
-            _proc_terminate(self, signo);
+            _proc_trigger_termination(self, signo);
             break;
 
         case SIG_FORCE_SUSPEND:
-            _proc_suspend(self);
+            _proc_suspend(self, WAIT_REASON_SIGNALED, signo, true);
             break;
 
         case SIG_RESUME:
-            _proc_resume(self);
+            _proc_resume(self, WAIT_REASON_SIGNALED, signo, true);
             break;
 
         default:
@@ -246,13 +246,13 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
                     case SIG_CPU_LIMIT:
                     case SIG_LOGOUT:
                     case SIG_QUIT:
-                        _proc_terminate(self, signo);
+                        _proc_trigger_termination(self, signo);
                         break;
 
                     case SIG_BKG_READ:
                     case SIG_BKG_WRITE:
                     case SIG_SUSPEND:
-                        _proc_suspend(self);
+                        _proc_suspend(self, WAIT_REASON_SIGNALED, signo, true);
                         break;
 
                     default:

@@ -435,7 +435,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
 
 // Suspend all vcpus in the process if the process is currently in running state.
 // Otherwise does nothing. Nesting is not supported.
-void _proc_suspend(ProcessRef _Nonnull _Locked self)
+void _proc_suspend(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent)
 {
     if (self->run_state == PROC_STATE_RESUMED) {
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
@@ -443,20 +443,20 @@ void _proc_suspend(ProcessRef _Nonnull _Locked self)
 
             vcpu_suspend(cvp);
         )
-        _proc_set_state(self, PROC_STATE_SUSPENDED, false);
+        _proc_set_state(self, PROC_STATE_SUSPENDED, reason, arg, notify_parent);
     }
 }
 
-void Process_Suspend(ProcessRef _Nonnull self)
+void Process_Suspend(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent)
 {
     mtx_lock(&self->mtx);
-    _proc_suspend(self);
+    _proc_suspend(self, reason, arg, notify_parent);
     mtx_unlock(&self->mtx);
 }
 
 // Resume all vcpus in the process if the process is currently in stopped state.
 // Otherwise does nothing.
-void _proc_resume(ProcessRef _Nonnull _Locked self)
+void _proc_resume(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent)
 {
     if (self->run_state == PROC_STATE_SUSPENDED) {
         deque_for_each(&self->vcpu_queue, deque_node_t, it,
@@ -464,13 +464,13 @@ void _proc_resume(ProcessRef _Nonnull _Locked self)
 
             vcpu_resume(cvp, false);
         )
-        _proc_set_state(self, PROC_STATE_RESUMED, false);
+        _proc_set_state(self, PROC_STATE_RESUMED, reason, arg, notify_parent);
     }
 }
 
-void Process_Resume(ProcessRef _Nonnull self)
+void Process_Resume(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent)
 {
     mtx_lock(&self->mtx);
-    _proc_resume(self);
+    _proc_resume(self, reason, arg, notify_parent);
     mtx_unlock(&self->mtx);
 }

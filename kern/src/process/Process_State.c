@@ -19,23 +19,15 @@ int Process_GetState(ProcessRef _Nonnull self)
     return state;
 }
 
-void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, bool signal)
+void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent)
 {
     self->run_state = state;
-
-    if (signal) {
-        sigcred_t sc;
-
-        Process_GetSigcred(self, &sc);
-        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
-    }
-}
-
-void _proc_set_state_with_reason(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool signal)
-{
     self->run_state_reason.reason = reason;
 
     switch (reason) {
+        case _WAIT_REASON_NONE:
+            break;
+
         case WAIT_REASON_EXITED:
             self->run_state_reason.u.exit_code = (int)arg;
             break;
@@ -52,7 +44,12 @@ void _proc_set_state_with_reason(ProcessRef _Nonnull _Locked self, int state, in
             abort();
     }
 
-    _proc_set_state(self, state, signal);
+    if (notify_parent) {
+        sigcred_t sc;
+
+        Process_GetSigcred(self, &sc);
+        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
+    }
 }
 
 static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int match, pid_t id, bool* _Nonnull pOutExists)

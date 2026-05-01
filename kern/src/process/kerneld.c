@@ -83,7 +83,7 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
         err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
         if (err == EOK) {
             (void)ProcessManager_Publish(gProcessManager, cp);
-            Process_Resume(cp);
+            Process_Resume(cp, _WAIT_REASON_NONE, 0, false);
         }
     }
     Process_Release(cp);
