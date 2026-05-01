@@ -76,7 +76,7 @@ errno_t Process_GetStatus(ProcessRef _Nonnull self, int match, pid_t id, int fla
 
 
     status->pid = zp->pid;
-    status->status = STATUS_TERMINATED;
+    status->state = PROC_STATE_TERMINATED;
     status->reason = zp->exit_reason;
     status->u.status = zp->exit_code;
 

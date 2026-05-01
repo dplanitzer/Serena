@@ -55,11 +55,6 @@ typedef struct proc_ctx {
 // proc_status() flags
 #define STATUS_NONBLOCKING  1   /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
 
-// Type of status change
-#define STATUS_TERMINATED    1
-#define STATUS_SUSPENDED     2
-#define STATUS_RESUMED       3
-
 // Reason for a status change
 #define STATUS_REASON_EXITED      1
 #define STATUS_REASON_SIGNALED    2
@@ -69,8 +64,8 @@ typedef struct proc_ctx {
 // Result of a proc_status() call.
 typedef struct proc_status {
     pid_t   pid;        // pid of the child process
-    int     status;     // new process status
-    int     reason;     // reason for change in status
+    int     state;      // new process state (see PROC_STATE_XXX)
+    int     reason;     // reason for state change
     union {
         int status;     // child process exit status
         int signo;      // signal that caused the process to terminate
