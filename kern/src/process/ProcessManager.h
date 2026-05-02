@@ -35,24 +35,13 @@ extern errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRe
 extern void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
 
+extern errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef _Nonnull self, int mstate, pid_t ppid, int match, pid_t id, proc_waitres_t* _Nonnull res);
+
 // Looks up the process for the given PID. Returns NULL if no such process is
 // registered with the process manager and otherwise returns a strong reference
 // to the process object. The caller is responsible for releasing the reference
 // once no longer needed.
 extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, int pid);
-
-// Returns the process 'pid' if it is a child of 'ppid' and it is in a zombie
-// state.
-extern ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pid, bool* _Nonnull pOutExists);
-
-// Returns the first member of the process group 'pgrp' that is a child of the
-// process 'ppid' and which is in zombie state.
-extern ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists);
-
-// Returns the first process that is a child of 'ppid' and which is in a
-// zombie state.
-extern ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, bool* _Nonnull pOutAnyExists);
-
 
 extern errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 

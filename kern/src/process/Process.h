@@ -48,8 +48,11 @@ extern void Process_Suspend(ProcessRef _Nonnull self, int reason, int arg, bool 
 extern void Process_Resume(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
 
 
-// Returns the current process state.
-extern int Process_GetState(ProcessRef _Nonnull self);
+// Checks whether the current process state matches the provide criteria 'mstate'
+// If so then the state and the reason for transitioning to this state is returned
+// and we note the fact that the status has been consumed. Otherwise EAGAIN is
+// returned.
+extern errno_t Process_GetMatchingState(ProcessRef _Nonnull self, int mstate, proc_waitres_t* _Nonnull res);
 
 // Waits for the process 'self' to enter the state 'wstate'. Does not block the
 // caller and returns immediately with EAGAIN if 'flags' has NONBLOCKING set and

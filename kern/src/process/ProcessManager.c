@@ -198,77 +198,118 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
     return the_p;
 }
 
-ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pid, bool* _Nonnull pOutExists)
+
+static errno_t _get_matching_state_of_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull p, int mstate, proc_waitres_t* _Nonnull res)
 {
-    mtx_lock(&self->mtx);
-    ProcessRef child_p = _get_proc_by_pid(self, pid);
-    ProcessRef the_p = NULL;
+    const errno_t err = Process_GetMatchingState(p, mstate, res);
 
-    if (child_p && child_p->ppid == ppid) {
-        *pOutExists = true;
-
-        if (Process_GetState(child_p) == PROC_STATE_TERMINATED) {
-            the_p = Process_Retain(child_p);
-        }
-    }
-    else {
-        *pOutExists = false;
+    // Reap the process if it has reached terminated state
+    if (err == EOK && res->state == PROC_STATE_TERMINATED) {
+        _unpublish_process(self, p);
+        Process_Release(p);
     }
 
-    mtx_unlock(&self->mtx);
-
-    return the_p;
+    return err;
 }
 
-static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull _Locked self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists)
+static errno_t _get_status_for_pid_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, pid_t pid, proc_waitres_t* _Nonnull res)
 {
-    ProcessRef parent_p = _get_proc_by_pid(self, ppid);
+    ProcessRef cp = _get_proc_by_pid(self, pid);
 
-    *pOutAnyExists = false;
-    if (parent_p) {
-        queue_for_each(&parent_p->rel.children, queue_node_t, it,
-            ProcessRef child_p = proc_from_child_qe(it);
+    if (cp && cp->ppid == ppid) {
+        return _get_matching_state_of_process(self, cp, mstate, res);
+    }
 
-            if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
-                *pOutAnyExists = true;
+    return ECHILD;
+}
 
-                if (Process_GetState(child_p) == PROC_STATE_TERMINATED) {
-                    return child_p;
-                }
+static errno_t _get_status_for_pgrp_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, pid_t pgrp, proc_waitres_t* _Nonnull res)
+{
+    decl_try_err();
+    ProcessRef pp = _get_proc_by_pid(self, ppid);
+    size_t child_cnt = 0;
+
+    if (pp == NULL) {
+        return ESRCH;
+    }
+
+    queue_for_each(&pp->rel.children, queue_node_t, it,
+        ProcessRef cp = proc_from_child_qe(it);
+
+        if (cp->pgrp == pgrp) {
+            child_cnt++;
+
+            err = _get_matching_state_of_process(self, cp, mstate, res);
+            if (err == EOK || err != EAGAIN) {
+                return err;
             }
-        )
-    }
+        }
+    )
 
-    return NULL;
+    return (child_cnt > 0) ? EAGAIN : ECHILD;
 }
 
-ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists)
+static errno_t _get_status_for_any_child_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, proc_waitres_t* _Nonnull res)
 {
-    mtx_lock(&self->mtx);
+    ProcessRef pp = _get_proc_by_pid(self, ppid);
 
-    ProcessRef the_p = _get_any_zombie_of_parent(self, ppid, pgrp, pOutAnyExists);
-    if (the_p) {
-        Process_Retain(the_p);
+    if (pp == NULL) {
+        return ESRCH;
+    }
+    if (queue_empty(&pp->rel.children)) {
+        return ECHILD;
     }
 
+    queue_for_each(&pp->rel.children, queue_node_t, it,
+        ProcessRef cp = proc_from_child_qe(it);
+        const errno_t err = _get_matching_state_of_process(self, cp, mstate, res);
+
+        if (err == EOK || err != EAGAIN) {
+            return err;
+        }
+    )
+
+    return EAGAIN;
+}
+
+errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef _Nonnull self, int mstate, pid_t ppid, int match, pid_t id, proc_waitres_t* _Nonnull res)
+{
+    decl_try_err();
+
+    switch (mstate) {
+        case WAIT_FOR_ANY:
+        case WAIT_FOR_RESUMED:
+        case WAIT_FOR_SUSPENDED:
+        case WAIT_FOR_TERMINATED:
+            break;
+
+        default:
+            return EINVAL;
+    }
+
+    mtx_lock(&self->mtx);
+    switch (match) {
+        case WAIT_PID:
+            err = _get_status_for_pid_matching_state(self, mstate, ppid, id, res);
+            break;
+
+        case WAIT_GROUP:
+            err = _get_status_for_pgrp_matching_state(self, mstate, ppid, id, res);
+            break;
+
+        case WAIT_ANY:
+            err = _get_status_for_any_child_matching_state(self, mstate, ppid, res);
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
     mtx_unlock(&self->mtx);
 
-    return the_p;
+    return err;
 }
 
-ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, bool* _Nonnull pOutAnyExists)
-{
-    mtx_lock(&self->mtx);
-
-    ProcessRef the_p = _get_any_zombie_of_parent(self, ppid, 0, pOutAnyExists);
-    if (the_p) {
-        Process_Retain(the_p);
-    }
-
-    mtx_unlock(&self->mtx);
-
-    return the_p;
-}
 
 errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore)
 {

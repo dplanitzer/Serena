@@ -9,14 +9,68 @@
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
 
-
-int Process_GetState(ProcessRef _Nonnull self)
+errno_t Process_GetMatchingState(ProcessRef _Nonnull self, int mstate, proc_waitres_t* _Nonnull res)
 {
+    decl_try_err();
+    bool hasMatch = false;
+
     mtx_lock(&self->mtx);
-    const int state = self->run_state;
+    if (self->run_state_reason.reason != _WAIT_REASON_NONE) {
+        // We only match (and care) if a reason for the most recent state change
+        // has been provided.
+
+        switch (mstate) {
+            case WAIT_FOR_ANY:
+                hasMatch = true;
+                break;
+
+            case WAIT_FOR_RESUMED:
+                hasMatch = (self->run_state == PROC_STATE_RESUMED);
+                break;
+
+            case WAIT_FOR_SUSPENDED:
+                hasMatch = (self->run_state == PROC_STATE_SUSPENDED);
+                break;
+
+            case WAIT_FOR_TERMINATED:
+                hasMatch = (self->run_state == PROC_STATE_TERMINATED);
+                break;
+
+            default:
+                err = EINVAL;
+                break;
+        }
+    }
+
+    if (hasMatch) {
+        res->pid = self->pid;
+        res->state = self->run_state;
+        res->reason = self->run_state_reason.reason;
+
+        switch (self->run_state_reason.reason) {
+            case WAIT_REASON_EXITED:
+                res->u.status = self->run_state_reason.u.exit_code;
+                break;
+
+            case WAIT_REASON_SIGNALED:
+                res->u.signo = self->run_state_reason.u.signo;
+                break;
+
+            case WAIT_REASON_EXCEPTION:
+                res->u.excptno = self->run_state_reason.u.excptno;
+                break;
+        }
+
+        // Consume the status
+        self->run_state_reason.reason = _WAIT_REASON_NONE;
+        err = EOK;
+    }
+    else {
+        err = EAGAIN;
+    }
     mtx_unlock(&self->mtx);
 
-    return state;
+    return err;
 }
 
 void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent)
@@ -52,48 +106,9 @@ void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, in
     }
 }
 
-static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int match, pid_t id, bool* _Nonnull pOutExists)
-{
-    switch (match) {
-        case WAIT_PID:
-            return ProcessManager_CopyZombieOfParent(gProcessManager, self->pid, id, pOutExists);
-
-        case WAIT_GROUP:
-            return ProcessManager_CopyGroupZombieOfParent(gProcessManager, self->pid, id, pOutExists);
-
-        case WAIT_ANY:
-            return ProcessManager_CopyAnyZombieOfParent(gProcessManager, self->pid, pOutExists);
-
-        default:
-            return NULL;
-    }
-}
-
 errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
     decl_try_err();
-    ProcessRef zp = NULL;
-
-    switch (wstate) {
-        case WAIT_FOR_ANY:
-        case WAIT_FOR_RESUMED:
-        case WAIT_FOR_SUSPENDED:
-        case WAIT_FOR_TERMINATED:
-            break;
-
-        default:
-            return EINVAL;
-    }
-
-    switch (match) {
-        case WAIT_PID:
-        case WAIT_GROUP:
-        case WAIT_ANY:
-            break;
-
-        default:
-            return EINVAL;
-    }
 
     if ((flags & ~(WAIT_NONBLOCKING)) != 0) {
         return EINVAL;
@@ -101,16 +116,10 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
 
 
     for (;;) {
-        bool exists = false;
+        err = ProcessManager_GetStatusForProcessMatchingState(gProcessManager, wstate, self->pid, match, id, res);
 
-        zp = _find_matching_zombie(self, match, id, &exists);
-
-        if (zp) {
+        if (err == EOK || err != EAGAIN) {
             break;
-        }
-
-        if (!exists) {
-            return ECHILD;
         }
         
         if ((flags & WAIT_NONBLOCKING) == WAIT_NONBLOCKING) {
@@ -127,27 +136,5 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
         }
     }
 
-
-    res->pid = zp->pid;
-    res->state = PROC_STATE_TERMINATED;
-    res->reason = zp->run_state_reason.reason;
-
-    switch (zp->run_state_reason.reason) {
-        case WAIT_REASON_EXITED:
-            res->u.status = zp->run_state_reason.u.exit_code;
-            break;
-
-        case WAIT_REASON_SIGNALED:
-            res->u.signo = zp->run_state_reason.u.signo;
-            break;
-
-        case WAIT_REASON_EXCEPTION:
-            res->u.excptno = zp->run_state_reason.u.excptno;
-            break;
-    }
-
-    ProcessManager_Unpublish(gProcessManager, zp);
-    Process_Release(zp); // necessary because of the _find_matching_zombie() above
-
-    return EOK;
+    return err;
 }
