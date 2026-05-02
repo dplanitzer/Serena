@@ -23,12 +23,14 @@ typedef void* host_info_ref;
 typedef struct host_basic_info {
     cpu_type_t      cpu_type;
     cpu_subtype_t   cpu_subtype;
+    
     size_t          physical_cpu_count;		// number of physical cpus available now
     size_t          physical_max_cpu_count;	// max number of phys cpus available
     size_t          logical_cpu_count;		// number of log cpus available now
     size_t          logical_max_cpu_count;	// max number of log cpus available
 
     uint64_t        phys_mem_size;
+    size_t          page_size;
 } host_basic_info_t;
 
 

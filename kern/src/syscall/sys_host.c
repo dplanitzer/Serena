@@ -28,6 +28,7 @@ SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
             ip->logical_cpu_count = 1;
             ip->logical_max_cpu_count = 1;
             ip->phys_mem_size = sys_desc_getramsize(g_sys_desc);
+            ip->page_size = CPU_PAGE_SIZE;
             break;
         }
 
