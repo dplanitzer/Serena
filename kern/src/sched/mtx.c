@@ -10,7 +10,7 @@
 #include "vcpu.h"
 #include <assert.h>
 #include <kern/kernlib.h>
-#include <kern/signal.h>
+#include <kern/sigset.h>
 
 extern errno_t _mtx_unlock(mtx_t* _Nonnull self);
 extern errno_t _mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq);

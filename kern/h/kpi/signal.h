@@ -12,6 +12,9 @@
 typedef unsigned int sigset_t;
 typedef volatile int sig_atomic_t;
 
+// Number of signals that a signal set can hold
+#define SIGSET_SIZE 32
+
 
 // The system supports 32 different signals. You send a signal to a particular
 // 'signal scope'. The signal scope determines who will receive the signal and

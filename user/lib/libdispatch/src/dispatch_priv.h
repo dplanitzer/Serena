@@ -15,6 +15,7 @@
 #include <serena/clock.h>
 #include <serena/cnd.h>
 #include <serena/signal.h>
+#include <serena/sigset.h>
 #include <serena/vcpu.h>
 
 __CPP_BEGIN

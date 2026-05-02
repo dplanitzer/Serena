@@ -11,17 +11,11 @@
 
 #include <_cmndef.h>
 #include <_null.h>
+#include <ext/nanotime.h>
 #include <kpi/signal.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
-
-extern int sigset_empty(sigset_t* _Nonnull set);
-extern int sigset_all(sigset_t* _Nonnull set);
-extern int sigset_add(sigset_t* _Nonnull set, int signo);
-extern int sigset_remove(sigset_t* _Nonnull set, int signo);
-extern int sigset_contains(const sigset_t* _Nonnull set, int signo);
-
 
 // Updates the process' signal routing table. A new route is added for signal
 // 'signo' if 'op' is SIG_ROUTE_ADD. This new route forwards the signal either

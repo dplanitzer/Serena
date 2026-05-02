@@ -10,7 +10,7 @@
 #include "kerneld.h"
 #include <assert.h>
 #include <kern/kalloc.h>
-#include <kern/signal.h>
+#include <kern/sigset.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

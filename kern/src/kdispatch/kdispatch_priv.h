@@ -15,7 +15,7 @@
 #include <ext/nanotime.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <kern/signal.h>
+#include <kern/sigset.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>

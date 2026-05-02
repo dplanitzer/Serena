@@ -8,19 +8,28 @@
 
 #include <errno.h>
 #include <limits.h>
-#include <serena/signal.h>
+#include <stdbool.h>
+#include <serena/sigset.h>
 
 
-int sigset_empty(sigset_t* _Nonnull set)
+int sigset_init(sigset_t* _Nonnull set, int signo)
 {
     *set = 0;
-    return 0;
+    return sigset_add(set, signo);
 }
 
-int sigset_all(sigset_t* _Nonnull set)
+void sigset_clear(sigset_t* _Nonnull set)
 {
+    *set = 0;
+}
+
+void sigset_fill(sigset_t* _Nonnull set)
+{
+#if SIGSET_SIZE == UINT_WIDTH
     *set = UINT_MAX;
-    return 0;
+#else
+#error "unknown sigset size"
+#endif
 }
 
 int sigset_add(sigset_t* _Nonnull set, int signo)
@@ -34,6 +43,11 @@ int sigset_add(sigset_t* _Nonnull set, int signo)
     return 0;
 }
 
+void sigset_addall(sigset_t* _Nonnull set, const sigset_t* _Nonnull oth)
+{
+    *set |= *oth;
+}
+
 int sigset_remove(sigset_t* _Nonnull set, int signo)
 {
     if (signo < SIG_MIN || signo > SIG_MAX) {
@@ -43,6 +57,11 @@ int sigset_remove(sigset_t* _Nonnull set, int signo)
 
     *set &= ~sig_bit(signo);
     return 0;
+}
+
+void sigset_removeall(sigset_t* _Nonnull set, const sigset_t* _Nonnull oth)
+{
+    *set &= ~(*oth);
 }
 
 int sigset_contains(const sigset_t* _Nonnull set, int signo)
@@ -58,4 +77,9 @@ int sigset_contains(const sigset_t* _Nonnull set, int signo)
     else {
         return 0;
     }
+}
+
+int sigset_isempty(const sigset_t* _Nonnull set)
+{
+    return (*set == 0) ? true : false;
 }
