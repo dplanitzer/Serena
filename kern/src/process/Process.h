@@ -14,6 +14,7 @@
 #include <kobj/Any.h>
 #include <kpi/exception.h>
 #include <kpi/process.h>
+#include <kpi/wait.h>
 #include <kpi/spawn.h>
 #include <kpi/types.h>
 #include <kpi/vcpu.h>

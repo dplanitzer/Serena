@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <serena/file.h>
-#include <serena/process.h>
+#include <serena/wait.h>
 #include <serena/signal.h>
 #include <serena/spawn.h>
 #include <serena/vcpu.h>

@@ -15,7 +15,7 @@
 #include <string.h>
 #include <ext/stdlib.h>
 #include <serena/exception.h>
-#include <serena/process.h>
+#include <serena/wait.h>
 #include <serena/spawn.h>
 
 //

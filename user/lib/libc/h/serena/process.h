@@ -65,14 +65,6 @@ extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], co
 extern _Noreturn void proc_exit(int status);
 
 
-// Waits until the specified child, any child or member of a child process group
-// changes its state to 'wstate' or any new state. The function remains blocked
-// until then if 'flags' does not have WAIT_NONBLOCKING set. If it has then this
-// function returns immediately with EOK and the state change information or it
-// returns EAGAIN if no state change has occurred. ECHILD is returned if the
-// specified child does not exist.
-extern int proc_waitstate(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res);
-
 extern int proc_terminate(pid_t pid);
 extern int proc_suspend(pid_t pid);
 extern int proc_resume(pid_t pid);

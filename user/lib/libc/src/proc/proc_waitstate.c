@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/process.h>
+#include <serena/wait.h>
 #include <kpi/syscall.h>
 
 int proc_waitstate(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
