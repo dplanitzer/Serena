@@ -199,20 +199,22 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 }
 
 
-static errno_t _get_matching_state_of_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull p, int mstate, proc_waitres_t* _Nonnull res)
+struct matchres {
+    ProcessRef _Nullable        p;
+    proc_waitres_t* _Nonnull    r;
+};
+
+static errno_t _get_matching_state_of_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull p, int mstate, struct matchres* _Nonnull res)
 {
-    const errno_t err = Process_GetMatchingState(p, mstate, res);
+    const errno_t err = Process_GetMatchingState(p, mstate, res->r);
 
-    // Reap the process if it has reached terminated state
-    if (err == EOK && res->state == PROC_STATE_TERMINATED) {
-        _unpublish_process(self, p);
-        Process_Release(p);
+    if (err == EOK) {
+        res->p = p;
     }
-
     return err;
 }
 
-static errno_t _get_status_for_pid_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, pid_t pid, proc_waitres_t* _Nonnull res)
+static errno_t _get_status_for_pid_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, pid_t pid, struct matchres* _Nonnull res)
 {
     ProcessRef cp = _get_proc_by_pid(self, pid);
 
@@ -223,7 +225,7 @@ static errno_t _get_status_for_pid_matching_state(ProcessManagerRef _Nonnull _Lo
     return ECHILD;
 }
 
-static errno_t _get_status_for_pgrp_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, pid_t pgrp, proc_waitres_t* _Nonnull res)
+static errno_t _get_status_for_pgrp_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, pid_t pgrp, struct matchres* _Nonnull res)
 {
     decl_try_err();
     ProcessRef pp = _get_proc_by_pid(self, ppid);
@@ -249,7 +251,7 @@ static errno_t _get_status_for_pgrp_matching_state(ProcessManagerRef _Nonnull _L
     return (child_cnt > 0) ? EAGAIN : ECHILD;
 }
 
-static errno_t _get_status_for_any_child_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, proc_waitres_t* _Nonnull res)
+static errno_t _get_status_for_any_child_matching_state(ProcessManagerRef _Nonnull _Locked self, int mstate, pid_t ppid, struct matchres* _Nonnull res)
 {
     ProcessRef pp = _get_proc_by_pid(self, ppid);
 
@@ -275,6 +277,8 @@ static errno_t _get_status_for_any_child_matching_state(ProcessManagerRef _Nonnu
 errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef _Nonnull self, int mstate, pid_t ppid, int match, pid_t id, proc_waitres_t* _Nonnull res)
 {
     decl_try_err();
+    struct matchres mr = {.p = NULL, .r = res};
+    bool doRelease = false;
 
     switch (mstate) {
         case WAIT_FOR_ANY:
@@ -290,22 +294,34 @@ errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef _Nonnu
     mtx_lock(&self->mtx);
     switch (match) {
         case WAIT_PID:
-            err = _get_status_for_pid_matching_state(self, mstate, ppid, id, res);
+            err = _get_status_for_pid_matching_state(self, mstate, ppid, id, &mr);
             break;
 
         case WAIT_GROUP:
-            err = _get_status_for_pgrp_matching_state(self, mstate, ppid, id, res);
+            err = _get_status_for_pgrp_matching_state(self, mstate, ppid, id, &mr);
             break;
 
         case WAIT_ANY:
-            err = _get_status_for_any_child_matching_state(self, mstate, ppid, res);
+            err = _get_status_for_any_child_matching_state(self, mstate, ppid, &mr);
             break;
 
         default:
             err = EINVAL;
             break;
     }
+
+    // Reap the process if it has reached terminated state
+    if (err == EOK && mr.p && mr.r->state == PROC_STATE_TERMINATED) {
+        _unpublish_process(self, mr.p);
+        doRelease = true;
+    }
+
     mtx_unlock(&self->mtx);
+
+    if (doRelease) {
+        // Drop our strong reference on the process after dropping our lock
+        Process_Release(mr.p);
+    }
 
     return err;
 }
