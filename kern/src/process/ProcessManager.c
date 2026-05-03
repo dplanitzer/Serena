@@ -360,6 +360,7 @@ errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _No
 
 static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
 {
+    decl_try_err();
     ProcessRef target_p = _get_proc_by_pid(self, target_id);
     sigcred_t rcv;
 
@@ -368,12 +369,12 @@ static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, con
     }
 
     Process_GetSigcred(target_p, &rcv);
-    if (perm_check_send_signal(sndr, &rcv, signo)) {
-        return Process_SendSignal(target_p, SIG_SCOPE_PROC, 0, signo);
+    err = perm_check_send_signal(sndr, &rcv, signo);
+    if (err == EOK) {
+        err = Process_SendSignal(target_p, SIG_SCOPE_PROC, 0, signo);
     }
-    else {
-        return EPERM;
-    }
+
+    return err;
 }
 
 static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
@@ -381,33 +382,31 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     decl_try_err();
     ProcessRef target_p = _get_proc_by_pid(self, target_id);
     sigcred_t rcv;
-    bool hasChildren = false, hasSuccess = true;
+    bool hasSuccess = true;
     errno_t first_err = EOK;
 
-    if (target_p == NULL) {
+    if (target_p == NULL || queue_empty(&target_p->rel.children)) {
         return ESRCH;
     }
 
     queue_for_each(&target_p->rel.children, queue_node_t, it,
         ProcessRef child_p = proc_from_child_qe(it);
 
-        hasChildren = true;
         Process_GetSigcred(child_p, &rcv);
-        if (perm_check_send_signal(sndr, &rcv, signo)) {
+        err = perm_check_send_signal(sndr, &rcv, signo);
+        if (err == EOK) {
             err = Process_SendSignal(child_p, SIG_SCOPE_PROC, 0, signo);
-            if (err == EOK) {
-                hasSuccess = true;
-            }
-            else if (first_err != EOK) {
-                first_err = err;
-            }
+        }
+
+        if (err == EOK) {
+            hasSuccess = true;
+        }
+        else if (first_err == EOK) {
+            first_err = err;
         }
     )
 
-    if (!hasChildren) {
-        return ESRCH;
-    }
-    else if (hasSuccess) {
+    if (hasSuccess) {
         return EOK;
     }
     else {
@@ -430,14 +429,16 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
                 hasMatch = true;
 
                 Process_GetSigcred(cp, &rcv);
-                if (perm_check_send_signal(sndr, &rcv, signo)) {
+                err = perm_check_send_signal(sndr, &rcv, signo);
+                if (err == EOK) {
                     err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
-                    if (err == EOK) {
-                        hasSuccess = true;
-                    }
-                    else if (first_err != EOK) {
-                        first_err = err;
-                    }
+                }
+
+                if (err == EOK) {
+                    hasSuccess = true;
+                }
+                else if (first_err == EOK) {
+                    first_err = err;
                 }
             }
         )
@@ -469,14 +470,16 @@ static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, 
                 hasMatch = true;
 
                 Process_GetSigcred(cp, &rcv);
-                if (perm_check_send_signal(sndr, &rcv, signo)) {
+                err = perm_check_send_signal(sndr, &rcv, signo);
+                if (err == EOK) {
                     err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
-                    if (err == EOK) {
-                        hasSuccess = true;
-                    }
-                    else if (first_err != EOK) {
-                        first_err = err;
-                    }
+                }
+
+                if (err == EOK) {
+                    hasSuccess = true;
+                }
+                else if (first_err == EOK) {
+                    first_err = err;
                 }
             }
         )

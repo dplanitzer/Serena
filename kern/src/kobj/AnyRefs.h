@@ -62,7 +62,6 @@ class_ref(Process);
 class_ref(ProcessManager);
 class_ref(RamDisk);
 class_ref(RomDisk);
-class_ref(SecurityManager);
 class_ref(SerenaFS);
 class_ref(SfsDirectory);
 class_ref(SfsFile);

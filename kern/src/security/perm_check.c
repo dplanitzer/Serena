@@ -8,6 +8,7 @@
 
 #include "perm_check.h"
 #include <filesystem/Filesystem.h>
+#include <filesystem/Inode.h>
 #include <kern/kalloc.h>
 #include <kpi/fs_perms.h>
 #include <kpi/signal.h>
@@ -76,23 +77,17 @@ errno_t perm_check_node_attr_update(InodeRef _Nonnull _Locked pNode, uid_t uid)
     return (Inode_GetUserId(pNode) == uid) ? EOK : EPERM;
 }
 
-bool perm_check_send_signal(const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
+errno_t perm_check_send_signal(const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
 {
     if (sndr->uid == UID_ROOT) {
-        return true;
+        return EOK;
     }
     if (sndr->uid == rcv->uid) {
-        return true;
+        return EOK;
     }
     if (signo == SIG_CHILD && sndr->ppid == rcv->pid) {
-        return true;
+        return EOK;
     }
 
-    return false;
-}
-
-//errno_t perm_check_suser(uid_t uid)
-bool perm_check_suser(uid_t uid)
-{
-    return uid == UID_ROOT;
+    return EPERM;
 }
