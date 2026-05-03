@@ -10,7 +10,7 @@
 #include "InodeChannel.h"
 #include "Filesystem.h"
 #include "FSUtilities.h"
-#include <security/SecurityManager.h>
+#include <security/perm_check.h>
 
 typedef void (*deinit_impl_t)(void* _Nonnull self);
 

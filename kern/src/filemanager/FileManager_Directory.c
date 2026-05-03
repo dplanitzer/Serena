@@ -8,7 +8,7 @@
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
-#include <security/SecurityManager.h>
+#include <security/perm_check.h>
 #include <kpi/fd.h>
 
 
@@ -25,7 +25,7 @@ static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const
     // permission
     Inode_Lock(r.inode);
     if (Inode_IsDirectory(r.inode)) {
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, X_OK);
+        err = perm_check_node_access(r.inode, self->ruid, self->rgid, X_OK);
     }
     else {
         err = ENOTDIR;
@@ -89,7 +89,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, NULL);
     if (err == ENOENT) {
         // We must have write permissions for the parent directory
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
+        err = perm_check_node_access(r.inode, self->ruid, self->rgid, W_OK);
         if (err == EOK) {
             err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, self->ruid, self->rgid, FS_FTYPE_DIR, dirPerms, &ip);
         }
@@ -119,7 +119,7 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
 
     Inode_Lock(r.inode);
     if (Inode_IsDirectory(r.inode)) {
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK);
+        err = perm_check_node_access(r.inode, self->ruid, self->rgid, R_OK);
     }
     else {
         err = ENOTDIR;

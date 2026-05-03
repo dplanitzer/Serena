@@ -9,7 +9,7 @@
 #include "FileManager.h"
 #include "FileHierarchy.h"
 #include <filesystem/InodeChannel.h>
-#include <security/SecurityManager.h>
+#include <security/perm_check.h>
 #include <kpi/file.h>
 
 
@@ -43,7 +43,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 
     // Check access mode, validate the file size and truncate the file if
     // requested
-    err = SecurityManager_CheckNodeAccess(gSecurityManager, pFile, self->ruid, self->rgid, accessMode);
+    err = perm_check_node_access(pFile, self->ruid, self->rgid, accessMode);
     if (err == EOK) {
         if (Inode_GetFileSize(pFile) >= 0ll) {
             if ((oflags & O_TRUNC) == O_TRUNC) {
@@ -120,7 +120,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // We must have write permissions for the parent directory
-        try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, W_OK));
+        try(perm_check_node_access(dir, self->ruid, self->rgid, W_OK));
 
 
         // Create the new file and add it to its parent directory
@@ -190,7 +190,7 @@ errno_t FileManager_SetFilePermissions(FileManagerRef _Nonnull self, const char*
         // Only the owner of a file may change its metadata.
         
         Inode_Lock(r.inode);
-        err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
+        err = perm_check_node_attr_update(r.inode, self->ruid);
         if (err == EOK) {
             Inode_SetPermissions(r.inode, fsperms);
         }
@@ -212,7 +212,7 @@ errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonn
         // Only the owner of a file may change its metadata.
         
         Inode_Lock(r.inode);
-        err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
+        err = perm_check_node_attr_update(r.inode, self->ruid);
         if (err == EOK) {
             Inode_SetOwner(r.inode, uid, gid);
         }
@@ -235,7 +235,7 @@ errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* 
         
         if (!isTotalOmit) {
            Inode_Lock(r.inode);
-            err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
+            err = perm_check_node_attr_update(r.inode, self->ruid);
             if (err == EOK) {
                 Inode_SetTimes(r.inode, times);
             }
@@ -262,7 +262,7 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
         if (Inode_IsRegularFile(r.inode)) {
-            err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
+            err = perm_check_node_access(r.inode, self->ruid, self->rgid, W_OK);
             if (err == EOK) {
                 err = Inode_Truncate(r.inode, length);
             }
@@ -289,7 +289,7 @@ errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnu
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         if (mode != F_OK) {
             Inode_Lock(r.inode);
-            err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, mode);
+            err = perm_check_node_access(r.inode, self->ruid, self->rgid, mode);
             Inode_Unlock(r.inode);
         }
     }
@@ -371,7 +371,7 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
 
 
     // We must have write permissions for 'dir'
-    err = SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, W_OK);
+    err = perm_check_node_access(dir, self->ruid, self->rgid, W_OK);
     if (err == EOK) {
         err = Filesystem_Unlink(Inode_GetFilesystem(target), target, dir);
     }
@@ -490,9 +490,9 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
 
 
     // Make sure that the parent directories are writeable
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, oldDir, self->ruid, self->rgid, W_OK));
+    try(perm_check_node_access(oldDir, self->ruid, self->rgid, W_OK));
     if (oldDir != newDir) {
-        try(SecurityManager_CheckNodeAccess(gSecurityManager, newDir, self->ruid, self->rgid, W_OK));
+        try(perm_check_node_access(newDir, self->ruid, self->rgid, W_OK));
     }
 
 

@@ -25,7 +25,6 @@
 #include <sched/delay.h>
 #include <sched/sched.h>
 #include <sched/vcpu_pool.h>
-#include <security/SecurityManager.h>
 #include <kern/kalloc.h>
 #include "BootAllocator.h"
 #include "boot_screen.h"
@@ -132,10 +131,6 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     
     // Initialize the kernel logging package 
     log_init();
-
-
-    // Create the security manager
-    try(SecurityManager_Create(&gSecurityManager));
 
 
     // Create the process manager

@@ -1,40 +1,18 @@
 //
-//  SecurityManager.c
+//  perm_check.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 1/11/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "SecurityManager.h"
+#include "perm_check.h"
 #include <filesystem/Filesystem.h>
 #include <kern/kalloc.h>
 #include <kpi/fs_perms.h>
 #include <kpi/signal.h>
 
-typedef struct SecurityManager {
-    int dummy;
-} SecurityManager;
-
-
-SecurityManagerRef _Nonnull  gSecurityManager;
-
-errno_t SecurityManager_Create(SecurityManagerRef _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    SecurityManager* self;
-    
-    try(kalloc_cleared(sizeof(SecurityManager), (void**) &self));
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    *pOutSelf = NULL;
-    return err;
-}
-
-errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
+errno_t perm_check_node_access(InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
 {
     const fs_perms_t fsperms = Inode_GetPermissions(pNode);
     fs_perms_t reqPerms = 0;
@@ -82,7 +60,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     }
 }
 
-errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid)
+errno_t perm_check_node_attr_update(InodeRef _Nonnull _Locked pNode, uid_t uid)
 {
     // XXX probably temporary until we're getting around to designing a full permission model
     if (uid == UID_ROOT) {
@@ -98,7 +76,7 @@ errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonn
     return (Inode_GetUserId(pNode) == uid) ? EOK : EPERM;
 }
 
-bool SecurityManager_CanSendSignal(SecurityManagerRef _Nonnull self, const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
+bool perm_check_send_signal(const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
 {
     if (sndr->uid == UID_ROOT) {
         return true;
@@ -113,7 +91,8 @@ bool SecurityManager_CanSendSignal(SecurityManagerRef _Nonnull self, const sigcr
     return false;
 }
 
-bool SecurityManager_IsSuperuser(SecurityManagerRef _Nonnull self, uid_t uid)
+//errno_t perm_check_suser(uid_t uid)
+bool perm_check_suser(uid_t uid)
 {
     return uid == UID_ROOT;
 }

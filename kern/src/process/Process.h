@@ -19,7 +19,7 @@
 #include <kpi/types.h>
 #include <kpi/vcpu.h>
 #include <sched/vcpu.h>
-#include <security/SecurityManager.h>
+#include <security/perm_check.h>
 
 
 #define Process_GetCurrent() \

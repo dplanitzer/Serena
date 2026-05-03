@@ -106,7 +106,7 @@ KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/IOChannel.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/Inode.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/InodeChannel.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/PathComponent.c
-KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/security/SecurityManager.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/security/perm_check.c
 
 KOBJ_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/kobj/*.c)
 SERENAFS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs/*.c)

@@ -121,7 +121,7 @@ FS_OBJS_DIR := $(OBJS_DIR)/filesystem
 FS_OBJS := $(patsubst $(FS_SOURCES_DIR)/%.c, $(FS_OBJS_DIR)/%.o, $(FS_C_SOURCES))
 
 SEC_SOURCES_DIR := $(KERN_SOURCES_DIR)/security
-SEC_C_SOURCES += $(SEC_SOURCES_DIR)/SecurityManager.c
+SEC_C_SOURCES += $(SEC_SOURCES_DIR)/perm_check.c
 SEC_OBJS_DIR := $(OBJS_DIR)/security
 SEC_OBJS := $(patsubst $(SEC_SOURCES_DIR)/%.c, $(SEC_OBJS_DIR)/%.o, $(SEC_C_SOURCES))
 

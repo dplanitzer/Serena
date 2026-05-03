@@ -368,7 +368,7 @@ static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, con
     }
 
     Process_GetSigcred(target_p, &rcv);
-    if (SecurityManager_CanSendSignal(gSecurityManager, sndr, &rcv, signo)) {
+    if (perm_check_send_signal(sndr, &rcv, signo)) {
         return Process_SendSignal(target_p, SIG_SCOPE_PROC, 0, signo);
     }
     else {
@@ -393,7 +393,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
 
         hasChildren = true;
         Process_GetSigcred(child_p, &rcv);
-        if (SecurityManager_CanSendSignal(gSecurityManager, sndr, &rcv, signo)) {
+        if (perm_check_send_signal(sndr, &rcv, signo)) {
             err = Process_SendSignal(child_p, SIG_SCOPE_PROC, 0, signo);
             if (err == EOK) {
                 hasSuccess = true;
@@ -430,7 +430,7 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
                 hasMatch = true;
 
                 Process_GetSigcred(cp, &rcv);
-                if (SecurityManager_CanSendSignal(gSecurityManager, sndr, &rcv, signo)) {
+                if (perm_check_send_signal(sndr, &rcv, signo)) {
                     err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
                     if (err == EOK) {
                         hasSuccess = true;
@@ -469,7 +469,7 @@ static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, 
                 hasMatch = true;
 
                 Process_GetSigcred(cp, &rcv);
-                if (SecurityManager_CanSendSignal(gSecurityManager, sndr, &rcv, signo)) {
+                if (perm_check_send_signal(sndr, &rcv, signo)) {
                     err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
                     if (err == EOK) {
                         hasSuccess = true;
