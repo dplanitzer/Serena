@@ -44,8 +44,8 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIG_TERMINATE       1   // Forced process termination, non-routable
-#define SIG_VCPU_RELINQUISH 2   // Privileged signal
-#define SIG_VCPU_SUSPEND    3   // Privileged signal
+#define SIG_VCPU_RELINQUISH 2   // Designated VCPU signal (may not be sent across process boundaries)
+#define SIG_VCPU_SUSPEND    3   // Designated VCPU signal (may not be sent across process boundaries)
 #define SIG_FORCE_SUSPEND   4   // Forced process suspend, non-routable
 #define SIG_SUSPEND         5   // TTY, stop/suspend process, default: stop/suspend process
 #define SIG_RESUME          6   // TTY, default: continue/resume process, non-routable

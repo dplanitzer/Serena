@@ -85,7 +85,7 @@ errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, p
         return EPERM;
     }
 
-    if ((SIGSET_PRIV_SYS & sig_bit(signo)) != 0) {
+    if ((SIGSET_DESIGNATED_VCPU & sig_bit(signo)) != 0) {
         // designated vcpu signals are privileged and can not be sent across
         // process boundaries (no matter what scope you use to send the signal)
         return EPERM;

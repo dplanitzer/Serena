@@ -15,7 +15,7 @@
 
 extern const sigset_t SIGSET_IGNORE_ALL;
 extern const sigset_t SIGSET_NON_ROUTABLE;
-extern const sigset_t SIGSET_PRIV_SYS;
+extern const sigset_t SIGSET_DESIGNATED_VCPU;
 
 
 // Initializes the signal set 'set' to a set with the single signal 'signo'.
