@@ -11,6 +11,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include <kern/signal.h>
 #include <kobj/Any.h>
 #include <kpi/exception.h>
 #include <kpi/process.h>
@@ -34,8 +35,6 @@ extern pid_t Process_GetId(ProcessRef _Nonnull self);
 extern pid_t Process_GetParentId(ProcessRef _Nonnull self);
 extern pid_t Process_GetSessionId(ProcessRef _Nonnull self);
 extern uid_t Process_GetUserId(ProcessRef _Nonnull self);
-
-extern void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred);
 
 
 // Terminates the calling process and stores 'reason' and 'arg' as the exit
@@ -78,9 +77,20 @@ extern errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt
 extern void Process_GetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t* _Nonnull handler);
 
 
-// Sends the signal 'signo' to the process 'self'. The supported signalling
-// scopes are: VCPU, VCPU_GROUP and PROC.
-extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo);
+// Sends a signal to 'self' or another process. Allows you to target the vcpu or
+// vcpu group 'vid' if 'scope' is one of the vcpu scopes and 'self' has the
+// necessary privileges to target a vcpu in another process.
+extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, pid_t id, vcpuid_t vid, int signo);
+
+// Receives the signal 'signo' at the process 'self'. Returns EOK on success and
+// EPERM if the sender 'sndr' does not have the permission to send 'signo' to
+// the process 'self'.
+extern errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int scope, vcpuid_t vid, int signo);
+
+// Same as Process_ReceiveSignal(), except that it assumes that 'signo' is sent
+// internally from the process 'self' to the process 'self'. So it does not do
+// any permission checking.
+extern errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int scope, vcpuid_t vid, int signo);
 
 // Adds or deletes a route for the signal 'signo'.
 extern errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id);

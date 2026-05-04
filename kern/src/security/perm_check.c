@@ -11,7 +11,7 @@
 #include <filesystem/Inode.h>
 #include <kern/kalloc.h>
 #include <kpi/fs_perms.h>
-#include <kpi/signal.h>
+#include <kpi/process.h>
 
 errno_t perm_check_node_access(InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
 {
@@ -77,15 +77,23 @@ errno_t perm_check_node_attr_update(InodeRef _Nonnull _Locked pNode, uid_t uid)
     return (Inode_GetUserId(pNode) == uid) ? EOK : EPERM;
 }
 
-errno_t perm_check_send_signal(const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
+errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, pid_t rcv_pid, uid_t rcv_uid, int signo)
 {
+    if (rcv_pid == PID_KERNELD) {
+        // nobody may target kerneld with a signal (at this time anyway)
+        return EPERM;
+    }
+
+    if (rcv_scope < SIG_SCOPE_PROC && (sndr->pid != PID_KERNELD && sndr->pid != rcv_pid)) {
+        // only the process that owns a vcpu or kerneld may send a signal to a
+        // vcpu or vcpu group living inside another process
+        return EPERM;
+    }
+
     if (sndr->uid == UID_ROOT) {
         return EOK;
     }
-    if (sndr->uid == rcv->uid) {
-        return EOK;
-    }
-    if (signo == SIG_CHILD && sndr->ppid == rcv->pid) {
+    if (sndr->uid == rcv_uid) {
         return EOK;
     }
 

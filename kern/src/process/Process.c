@@ -200,13 +200,6 @@ errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonn
     return err;
 }
 
-void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred)
-{
-    cred->pid = self->pid;
-    cred->ppid = self->ppid;
-    cred->uid = FileManager_GetRealUserId(&self->fm);
-}
-
 errno_t Process_GetSchedParam(ProcessRef _Nonnull self, int type, int* _Nonnull param)
 {
     decl_try_err();

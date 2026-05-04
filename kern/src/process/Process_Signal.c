@@ -7,10 +7,27 @@
 //
 
 #include "ProcessPriv.h"
+#include "ProcessManager.h"
 #include "kerneld.h"
 #include <assert.h>
 #include <kern/kalloc.h>
 #include <kern/sigset.h>
+
+errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, pid_t id, vcpuid_t vid, int signo)
+{
+    sig_sndr_t sndr;
+    sig_rcvr_t rcvr;
+
+    sndr.pid = self->pid;
+    sndr.uid = FileManager_GetRealUserId(&self->fm);
+
+    rcvr.scope = scope;
+    rcvr.id = id;
+    rcvr.vid = vid;
+
+    return ProcessManager_SendSignal(gProcessManager, &sndr, &rcvr, signo);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -209,7 +226,7 @@ static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int sign
     vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
 }
 
-static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t id, int signo)
+static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int signo)
 {
     switch (signo) {
         case SIG_TERMINATE:
@@ -266,35 +283,43 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
     return EOK;
 }
 
-errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo)
+errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int scope, vcpuid_t vid, int signo)
 {
     decl_try_err();
 
     if (signo < SIG_MIN || signo > SIG_MAX) {
         return EINVAL;
     }
-    if ((SIGSET_PRIV_SYS & sig_bit(signo)) != 0) {
-        return EPERM;
+
+    err = perm_check_send_signal(sndr, scope, self->pid, FileManager_GetRealUserId(&self->fm), signo);
+    if (err != EOK) {
+        return err;
+    }
+
+    return Process_ReceiveInternalSignal(self, scope, vid, signo);
+}
+
+errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int scope, vcpuid_t vid, int signo)
+{
+    decl_try_err();
+
+    if (signo < SIG_MIN || signo > SIG_MAX) {
+        return EINVAL;
     }
 
     mtx_lock(&self->mtx);
     if (self->run_state < PROC_STATE_TERMINATING) {
         switch (scope) {
             case SIG_SCOPE_VCPU:
-                err = _proc_send_signal_to_vcpu(self, id, signo, true);
+                err = _proc_send_signal_to_vcpu(self, vid, signo, true);
                 break;
 
             case SIG_SCOPE_VCPU_GROUP:
-                err = _proc_send_signal_to_vcpu_group(self, id, signo);
+                err = _proc_send_signal_to_vcpu_group(self, vid, signo);
                 break;
 
             case SIG_SCOPE_PROC:
-                if (self != gKernelProcess) {
-                    err = _proc_send_signal_to_proc(self, id, signo);
-                }
-                else {
-                    err = EPERM;
-                }
+                err = _proc_send_signal_to_proc(self, signo);
                 break;
 
             default:

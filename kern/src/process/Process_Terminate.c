@@ -27,13 +27,9 @@
 // caller until all of them are dead and gone.
 static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
-    sigcred_t sc;
-
-    Process_GetSigcred(self, &sc);
-
     // Note that SIG_CHILD is getting auto-routed to us (exit coordinator) because
     // the process is in exit state.
-    ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC_CHILDREN, self->pid, SIG_TERMINATE);
+    Process_SendSignal(self, SIG_SCOPE_PROC_CHILDREN, self->pid, 0, SIG_TERMINATE);
 
     // Reap all zombies. There may have been zombies before we came here. That's
     // why we unconditionally execute this loop.

@@ -116,7 +116,7 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     switch (attr->type) {
         case SPAWN_GROUP_MEMBER:
             if (attr->pgrp > 0) {
-                // ProcessManager_Publish() will atomically validate that the
+                // ProcessManager_Register() will atomically validate that the
                 // group leader for this group exists
                 cp->pgrp = attr->pgrp;
             }

@@ -123,7 +123,7 @@ static errno_t _publish_process(ProcessManagerRef _Nonnull _Locked self, Process
     return EOK;
 }
 
-static void _unpublish_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull pp)
+static void _deregister_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull pp)
 {
     if (pp->pid == 0) {
         return;
@@ -158,7 +158,7 @@ static void _unpublish_process(ProcessManagerRef _Nonnull _Locked self, ProcessR
     self->proc_count--;
 }
 
-errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     decl_try_err();
 
@@ -171,16 +171,6 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     mtx_unlock(&self->mtx);
 
     return err;
-}
-
-void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
-{
-    mtx_lock(&self->mtx);
-    _unpublish_process(self, pp);
-    mtx_unlock(&self->mtx);
-
-    // Drop our strong reference on the process
-    Process_Release(pp);
 }
 
 
@@ -312,7 +302,7 @@ errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef _Nonnu
 
     // Reap the process if it has reached terminated state
     if (err == EOK && mr.p && mr.r->state == PROC_STATE_TERMINATED) {
-        _unpublish_process(self, mr.p);
+        _deregister_process(self, mr.p);
         doRelease = true;
     }
 
@@ -358,30 +348,22 @@ errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _No
 }
 
 
-static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
+static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
-    decl_try_err();
-    ProcessRef target_p = _get_proc_by_pid(self, target_id);
-    sigcred_t rcv;
+    ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
 
-    if (target_p == NULL) {
+    if (target_p) {
+        return Process_ReceiveSignal(target_p, sndr, rcvr->scope, rcvr->vid, signo);
+    }
+    else {
         return ESRCH;
     }
-
-    Process_GetSigcred(target_p, &rcv);
-    err = perm_check_send_signal(sndr, &rcv, signo);
-    if (err == EOK) {
-        err = Process_SendSignal(target_p, SIG_SCOPE_PROC, 0, signo);
-    }
-
-    return err;
 }
 
-static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
+static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
     decl_try_err();
-    ProcessRef target_p = _get_proc_by_pid(self, target_id);
-    sigcred_t rcv;
+    ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
     bool hasSuccess = true;
     errno_t first_err = EOK;
 
@@ -392,12 +374,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     queue_for_each(&target_p->rel.children, queue_node_t, it,
         ProcessRef child_p = proc_from_child_qe(it);
 
-        Process_GetSigcred(child_p, &rcv);
-        err = perm_check_send_signal(sndr, &rcv, signo);
-        if (err == EOK) {
-            err = Process_SendSignal(child_p, SIG_SCOPE_PROC, 0, signo);
-        }
-
+        err = Process_ReceiveSignal(child_p, sndr, SIG_SCOPE_PROC, 0, signo);
         if (err == EOK) {
             hasSuccess = true;
         }
@@ -414,10 +391,9 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     }
 }
 
-static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
+static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
     decl_try_err();
-    sigcred_t rcv;
     bool hasMatch = false, hasSuccess = true;
     errno_t first_err = EOK;
 
@@ -425,15 +401,10 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
         queue_for_each(&self->pid_table[i], queue_node_t, it,
             ProcessRef cp = proc_from_child_qe(it);
 
-            if (cp->pgrp == target_id) {
+            if (cp->pgrp == rcvr->id) {
                 hasMatch = true;
 
-                Process_GetSigcred(cp, &rcv);
-                err = perm_check_send_signal(sndr, &rcv, signo);
-                if (err == EOK) {
-                    err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
-                }
-
+                err = Process_ReceiveSignal(cp, sndr, SIG_SCOPE_PROC, 0, signo);
                 if (err == EOK) {
                     hasSuccess = true;
                 }
@@ -455,10 +426,9 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
     }
 }
 
-static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, const sigcred_t* _Nonnull sndr, id_t target_id, int signo)
+static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
     decl_try_err();
-    sigcred_t rcv;
     bool hasMatch = false, hasSuccess = true;
     errno_t first_err = EOK;
 
@@ -466,15 +436,10 @@ static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, 
         queue_for_each(&self->pid_table[i], queue_node_t, it,
             ProcessRef cp = proc_from_child_qe(it);
 
-            if (cp->sid == target_id) {
+            if (cp->sid == rcvr->id) {
                 hasMatch = true;
 
-                Process_GetSigcred(cp, &rcv);
-                err = perm_check_send_signal(sndr, &rcv, signo);
-                if (err == EOK) {
-                    err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
-                }
-
+                err = Process_ReceiveSignal(cp, sndr, SIG_SCOPE_PROC, 0, signo);
                 if (err == EOK) {
                     hasSuccess = true;
                 }
@@ -496,33 +461,28 @@ static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, 
     }
 }
 
-errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sigcred_t* _Nonnull sndr, int scope, id_t id, int signo)
+errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
     decl_try_err();
-
-    if (signo < SIG_MIN || signo > SIG_MAX) {
-        return EINVAL;
-    }
-    if (signo == SIG_VCPU_RELINQUISH || signo == SIG_VCPU_SUSPEND) {
-        return EPERM;
-    }
 
     mtx_lock(&self->mtx);
-    switch (scope) {
+    switch (rcvr->scope) {
+        case SIG_SCOPE_VCPU:
+        case SIG_SCOPE_VCPU_GROUP:
         case SIG_SCOPE_PROC:
-            err = _send_signal_to_proc(self, sndr, id, signo);
+            err = _send_signal_to_proc(self, sndr, rcvr, signo);
             break;
 
         case SIG_SCOPE_PROC_CHILDREN:
-            err = _send_signal_to_proc_children(self, sndr, id, signo);
+            err = _send_signal_to_proc_children(self, sndr, rcvr, signo);
             break;
 
         case SIG_SCOPE_PROC_GROUP:
-            err = _send_signal_to_proc_group(self, sndr, id, signo);
+            err = _send_signal_to_proc_group(self, sndr, rcvr, signo);
             break;
 
         case SIG_SCOPE_SESSION:
-            err = _send_signal_to_session(self, sndr, id, signo);
+            err = _send_signal_to_session(self, sndr, rcvr, signo);
             break;
 
         default:

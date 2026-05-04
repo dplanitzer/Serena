@@ -47,55 +47,41 @@ SYSCALL_1(sig_pending, sigset_t* _Nonnull set)
 
 SYSCALL_3(sig_send, int scope, id_t id, int signo)
 {
-    decl_try_err();
     ProcessRef pp = vp->proc;
 
     if (pa->scope == SIG_SCOPE_VCPU || pa->scope == SIG_SCOPE_VCPU_GROUP) {
-        return Process_SendSignal(pp, pa->scope, pa->id, pa->signo);
+        return Process_ReceiveInternalSignal(pp, pa->scope, pa->id, pa->signo);
     }
 
-    if (pa->scope == SIG_SCOPE_PROC && pa->id == 0) {
-        // Send signal to yourself
-        return Process_SendSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
+    if (pa->scope == SIG_SCOPE_PROC && (pa->id == PROC_SELF || pa->id == pp->pid)) {
+        // Sending a signal to ourselves
+        return Process_ReceiveInternalSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
     }
 
 
     // Sending a signal to some other process
-    sigcred_t sndr;
-    Process_GetSigcred(pp, &sndr);
+    id_t target_id;
 
     switch (pa->scope) {
         case SIG_SCOPE_PROC:
-            err = ProcessManager_SendSignal(gProcessManager, &sndr, SIG_SCOPE_PROC, pa->id, pa->signo);
+            target_id = pa->id;     // proc_self case is handled above 
             break;
 
-        case SIG_SCOPE_PROC_CHILDREN: {
-            const pid_t pid = (pa->id == 0) ? pp->pid : pa->id;
-            err = ProcessManager_SendSignal(gProcessManager, &sndr, pa->scope, pid, pa->signo);
+        case SIG_SCOPE_PROC_CHILDREN:
+            target_id = (pa->id == PROC_SELF) ? pp->pid : pa->id;
             break;
-        }
 
-        case SIG_SCOPE_PROC_GROUP: {
-            const pid_t pgrp = (pa->id == 0) ? pp->pgrp : pa->id;
-            err = ProcessManager_SendSignal(gProcessManager, &sndr, pa->scope, pgrp, pa->signo);
+        case SIG_SCOPE_PROC_GROUP:
+            target_id = (pa->id == PROC_SELF) ? pp->pgrp : pa->id;
             break;
-        }
 
-        case SIG_SCOPE_SESSION: {
-            const pid_t sid = (pa->id == 0) ? pp->sid : pa->id;
-
-            if (sid == pp->sid) {
-                err = ProcessManager_SendSignal(gProcessManager, &sndr, pa->scope, sid, pa->signo);
-            }
-            else {
-                err = EPERM;
-            }
+        case SIG_SCOPE_SESSION:
+            target_id = (pa->id == PROC_SELF) ? pp->sid : pa->id;
             break;
-        }
 
         default:
-            abort();
+            return EINVAL;
     }
 
-    return err;
+    return Process_SendSignal(pp, pa->scope, target_id, 0, pa->signo);
 }

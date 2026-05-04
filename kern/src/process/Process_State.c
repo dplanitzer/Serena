@@ -99,10 +99,7 @@ void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, in
     }
 
     if (notify_parent) {
-        sigcred_t sc;
-
-        Process_GetSigcred(self, &sc);
-        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIG_CHILD);
+        Process_SendSignal(self, SIG_SCOPE_PROC, self->ppid, 0, SIG_CHILD);
     }
 }
 
