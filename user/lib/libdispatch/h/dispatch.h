@@ -297,7 +297,7 @@ extern void dispatch_free_signal(dispatch_t _Nonnull self, int signo);
 
 // Returns the vcpu group id that should be used in a sig_send() call to send a
 // signal to the dispatcher. The signal should be sent with scope
-// SIG_SCOPE_VCPU_GROUP.
+// SIG_TARGET_VCPU_GROUP.
 extern vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self);
 
 // Sends the signal 'signo' to the dispatcher. 'signo' should have been allocated

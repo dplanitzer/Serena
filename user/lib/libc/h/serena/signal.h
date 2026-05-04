@@ -19,12 +19,12 @@ __CPP_BEGIN
 
 // Updates the process' signal routing table. A new route is added for signal
 // 'signo' if 'op' is SIG_ROUTE_ADD. This new route forwards the signal either
-// to the vcpu 'id' if 'scope' is SIG_SCOPE_VCPU or to all members of the vcpu
-// group 'id' if 'scope' is SIG_SCOPE_VCPU_GROUP.
+// to the vcpu 'id' if 'target' is SIG_TARGET_VCPU or to all members of the vcpu
+// group 'id' if 'target' is SIG_TARGET_VCPU_GROUP.
 // An existing route for signal 'signo' is deleted if 'op' is SIG_ROUTE_DEL.
 // Default signal processing behavior is established once the last active route
 // for a signal is deleted.
-extern int sig_route(int op, int signo, int scope, id_t id);
+extern int sig_route(int op, int signo, int target, id_t id);
 
 // Blocks the caller until one of the signals in 'set' is delivered to the vcpu.
 // Returns the highest priority pending signal in 'signo' and clears it from the
@@ -40,16 +40,17 @@ extern int sig_timedwait(const sigset_t* _Nonnull set, int flags, const nanotime
 extern int sig_pending(sigset_t* _Nonnull set);
 
 // Sends a signal to a process, process group, virtual processor or virtual
-// processor group. 'scope' specifies to which scope the target identified by
-// 'id' belongs. 'signo' is the number of the signal that should be sent. If
-// 'scope' is SIG_SCOPE_PROC and 'id' is 0 then the calling process is targeted.
-// If 'scope' is SIG_SCOPE_VCPU and 'id' is 0 then the calling vcpu is targeted.
-// If 'scope' is SIG_SCOPE_PROC_CHILDREN and 'id' is 0 then all children of the
-// calling process are targeted. If 'scope' is SIG_SCOPE_PROC_GROUP and 'id' is
-// 0 then all members of the process group are targeted. If 'scope' is
-// SIG_SCOPE_SESSION and 'id' is 0 then the session to which the calling process
+// processor group. The 'target' parameter specifies to which target the object
+// identified by 'id' belongs. 'signo' is the number of the signal that should
+// be sent. If 'target' is SIG_TARGET_PROC and 'id' is 0 then the calling process
+// is targeted.
+// If 'target' is SIG_TARGET_VCPU and 'id' is 0 then the calling vcpu is targeted.
+// If 'target' is SIG_TARGET_PROC_CHILDREN and 'id' is 0 then all children of the
+// calling process are targeted. If 'target' is SIG_TARGET_PROC_GROUP and 'id' is
+// 0 then all members of the process group are targeted. If 'target' is
+// SIG_TARGET_SESSION and 'id' is 0 then the session to which the calling process
 // belongs is targeted. 
-extern int sig_send(int scope, id_t id, int signo);
+extern int sig_send(int target, id_t id, int signo);
 
 __CPP_END
 

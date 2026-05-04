@@ -9,7 +9,7 @@
 #include <kpi/syscall.h>
 #include <serena/signal.h>
 
-int sig_route(int op, int signo, int scope, id_t id)
+int sig_route(int op, int signo, int target, id_t id)
 {
-    return (int)_syscall(SC_sig_route, op, signo, scope, id);
+    return (int)_syscall(SC_sig_route, op, signo, target, id);
 }

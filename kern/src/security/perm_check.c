@@ -90,7 +90,7 @@ errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, p
         // process boundaries (no matter what scope you use to send the signal)
         return EPERM;
     }
-    if (rcv_scope < SIG_SCOPE_PROC && (sndr->pid != PID_KERNELD && sndr->pid != rcv_pid)) {
+    if (rcv_scope < SIG_TARGET_PROC && (sndr->pid != PID_KERNELD && sndr->pid != rcv_pid)) {
         // only the process that owns a vcpu or kerneld may send a signal to a
         // vcpu or vcpu group living inside another process
         return EPERM;

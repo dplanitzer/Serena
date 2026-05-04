@@ -13,7 +13,7 @@
 #include <kern/kalloc.h>
 #include <kern/sigset.h>
 
-errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, pid_t id, vcpuid_t vid, int signo)
+errno_t Process_SendSignal(ProcessRef _Nonnull self, int target, pid_t id, vcpuid_t vid, int signo)
 {
     sig_sndr_t sndr;
     sig_rcvr_t rcvr;
@@ -21,7 +21,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, pid_t id, vcpuid
     sndr.pid = self->pid;
     sndr.uid = FileManager_GetRealUserId(&self->fm);
 
-    rcvr.scope = scope;
+    rcvr.target = target;
     rcvr.id = id;
     rcvr.vid = vid;
 
@@ -33,7 +33,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, pid_t id, vcpuid
 // MARK: -
 // MARK: Signal Routing
 
-static errno_t sigroute_create(int signo, int scope, id_t id, sigroute_t _Nullable * _Nonnull pOutSelf)
+static errno_t sigroute_create(int signo, int target, id_t id, sigroute_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     sigroute_t self = NULL;
@@ -42,7 +42,7 @@ static errno_t sigroute_create(int signo, int scope, id_t id, sigroute_t _Nullab
     if (err == EOK) {
         self->qe = QUEUE_NODE_INIT;
         self->signo = signo;
-        self->scope = scope;
+        self->target = target;
         self->target_id = id;
         self->use_count = 0;
     }
@@ -74,12 +74,12 @@ void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
     }
 }
 
-static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id, sigroute_t* _Nullable pOutPrevEntry)
+static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id, sigroute_t* _Nullable pOutPrevEntry)
 {
     sigroute_t prp = NULL;
 
     queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
-        if (it->scope == scope && it->target_id == id) {
+        if (it->target == target && it->target_id == id) {
             if (pOutPrevEntry) {
                 *pOutPrevEntry = prp;
             }
@@ -93,14 +93,14 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
 }
 
 
-static errno_t _add_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id)
+static errno_t _add_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id)
 {
     decl_try_err();
     sigroute_t prp;
-    sigroute_t rp = _find_specific_sigroute(self, signo, scope, id, &prp);
+    sigroute_t rp = _find_specific_sigroute(self, signo, target, id, &prp);
 
     if (rp == NULL) {
-        try(sigroute_create(signo, scope, id, &rp));
+        try(sigroute_create(signo, target, id, &rp));
         queue_add_last(&self->sig_route[signo - 1], &rp->qe);
     }
 
@@ -113,10 +113,10 @@ catch:
     return err;
 }
 
-static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id)
+static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id)
 {
     sigroute_t prp;
-    sigroute_t rp = _find_specific_sigroute(self, signo, scope, id, &prp);
+    sigroute_t rp = _find_specific_sigroute(self, signo, target, id, &prp);
 
     if (rp) {
         rp->use_count--;
@@ -127,11 +127,11 @@ static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope
     }
 }
 
-errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id)
+errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int target, id_t id)
 {
     decl_try_err();
 
-    if (signo < SIG_MIN || signo > SIG_MAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
+    if (signo < SIG_MIN || signo > SIG_MAX || (target != SIG_TARGET_VCPU && target != SIG_TARGET_VCPU_GROUP)) {
         return EINVAL;
     }
     if ((SIGSET_NON_ROUTABLE & sig_bit(signo)) != 0) {
@@ -146,7 +146,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
     switch (op) {
         case SIG_ROUTE_ADD:
             if (self->run_state < PROC_STATE_TERMINATING) {
-                err = _add_sigroute(self, signo, scope, id);
+                err = _add_sigroute(self, signo, target, id);
             }
             else {
                 // Don't add new routes if we're exiting
@@ -156,7 +156,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
             break;
 
         case SIG_ROUTE_DEL:
-            _del_sigroute(self, signo, scope, id);
+            _del_sigroute(self, signo, target, id);
             break;
 
         default:
@@ -244,12 +244,12 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
         default:
             if (!queue_empty(&self->sig_route[signo - 1])) {
                 queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
-                    switch (it->scope) {
-                        case SIG_SCOPE_VCPU:
+                    switch (it->target) {
+                        case SIG_TARGET_VCPU:
                             _proc_send_signal_to_vcpu(self, it->target_id, signo, false);
                             break;
 
-                        case SIG_SCOPE_VCPU_GROUP:
+                        case SIG_TARGET_VCPU_GROUP:
                             _proc_send_signal_to_vcpu_group(self, it->target_id, signo);
                             break;
 
@@ -281,7 +281,7 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
     }
 }
 
-errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int scope, vcpuid_t vid, int signo)
+errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int target, vcpuid_t vid, int signo)
 {
     decl_try_err();
 
@@ -289,15 +289,15 @@ errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnu
         return EINVAL;
     }
 
-    err = perm_check_send_signal(sndr, scope, self->pid, FileManager_GetRealUserId(&self->fm), signo);
+    err = perm_check_send_signal(sndr, target, self->pid, FileManager_GetRealUserId(&self->fm), signo);
     if (err != EOK) {
         return err;
     }
 
-    return Process_ReceiveInternalSignal(self, scope, vid, signo);
+    return Process_ReceiveInternalSignal(self, target, vid, signo);
 }
 
-errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int scope, vcpuid_t vid, int signo)
+errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpuid_t vid, int signo)
 {
     decl_try_err();
 
@@ -307,16 +307,16 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int scope, vcpui
 
     mtx_lock(&self->mtx);
     if (self->run_state < PROC_STATE_TERMINATING) {
-        switch (scope) {
-            case SIG_SCOPE_VCPU:
+        switch (target) {
+            case SIG_TARGET_VCPU:
                 err = _proc_send_signal_to_vcpu(self, vid, signo, true);
                 break;
 
-            case SIG_SCOPE_VCPU_GROUP:
+            case SIG_TARGET_VCPU_GROUP:
                 err = _proc_send_signal_to_vcpu_group(self, vid, signo);
                 break;
 
-            case SIG_SCOPE_PROC:
+            case SIG_TARGET_PROC:
                 _proc_send_signal_to_proc(self, signo);
                 break;
 

@@ -170,7 +170,7 @@ static void OnSendSignal(struct siginfo* _Nonnull si)
 
     if (sig_send_toggle) {
         printf("Sending signal #%d   [sig_send]\n", si->signo);
-        assert_ok(sig_send(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
+        assert_ok(sig_send(SIG_TARGET_VCPU_GROUP, si->group_id, si->signo));
     }
     else {
         printf("Sending signal #%d   [dispatch_send_signal]\n", si->signo);

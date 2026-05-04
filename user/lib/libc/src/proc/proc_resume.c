@@ -12,5 +12,5 @@
 
 int proc_resume(pid_t pid)
 {
-    return sig_send(SIG_SCOPE_PROC, pid, SIG_RESUME);
+    return sig_send(SIG_TARGET_PROC, pid, SIG_RESUME);
 }

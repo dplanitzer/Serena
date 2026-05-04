@@ -42,7 +42,7 @@ struct sigroute {
     id_t            target_id;
     int16_t         use_count;
     int8_t          signo;
-    int8_t          scope;
+    int8_t          target;
 };
 typedef struct sigroute* sigroute_t;
 

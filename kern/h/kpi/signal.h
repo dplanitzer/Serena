@@ -88,12 +88,12 @@ typedef volatile int sig_atomic_t;
 #define SIGSET_URGENTS      (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND))
 
 
-#define SIG_SCOPE_VCPU          0   /* vcpu inside this process */
-#define SIG_SCOPE_VCPU_GROUP    1   /* vcpu group inside this process */
-#define SIG_SCOPE_PROC          2   /* process with pid */
-#define SIG_SCOPE_PROC_CHILDREN 3   /* all immediate children of process with pid */
-#define SIG_SCOPE_PROC_GROUP    4   /* all processes in group with process group id */
-#define SIG_SCOPE_SESSION       5   /* all processes in this session */
+#define SIG_TARGET_VCPU             0   /* vcpu inside this process */
+#define SIG_TARGET_VCPU_GROUP       1   /* vcpu group inside this process */
+#define SIG_TARGET_PROC             2   /* process with pid */
+#define SIG_TARGET_PROC_CHILDREN    3   /* all immediate children of process with pid */
+#define SIG_TARGET_PROC_GROUP       4   /* all processes in group with process group id */
+#define SIG_TARGET_SESSION          5   /* all processes in this session */
 
 #define SIG_ROUTE_DEL   0
 #define SIG_ROUTE_ADD   1

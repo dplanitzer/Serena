@@ -78,22 +78,22 @@ extern void Process_GetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_
 
 
 // Sends a signal to 'self' or another process. Allows you to target the vcpu or
-// vcpu group 'vid' if 'scope' is one of the vcpu scopes and 'self' has the
+// vcpu group 'vid' if 'target' is one of the vcpu targets and 'self' has the
 // necessary privileges to target a vcpu in another process.
-extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, pid_t id, vcpuid_t vid, int signo);
+extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int target, pid_t id, vcpuid_t vid, int signo);
 
 // Receives the signal 'signo' at the process 'self'. Returns EOK on success and
 // EPERM if the sender 'sndr' does not have the permission to send 'signo' to
 // the process 'self'.
-extern errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int scope, vcpuid_t vid, int signo);
+extern errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int target, vcpuid_t vid, int signo);
 
 // Same as Process_ReceiveSignal(), except that it assumes that 'signo' is sent
 // internally from the process 'self' to the process 'self'. So it does not do
 // any permission checking.
-extern errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int scope, vcpuid_t vid, int signo);
+extern errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpuid_t vid, int signo);
 
 // Adds or deletes a route for the signal 'signo'.
-extern errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id);
+extern errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int target, id_t id);
 
 
 // Sets/gets a scheduling parameter

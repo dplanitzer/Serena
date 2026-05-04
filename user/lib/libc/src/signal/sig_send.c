@@ -9,7 +9,7 @@
 #include <kpi/syscall.h>
 #include <serena/signal.h>
 
-int sig_send(int scope, id_t id, int signo)
+int sig_send(int target, id_t id, int signo)
 {
-    return (int)_syscall(SC_sig_send, scope, id, signo);
+    return (int)_syscall(SC_sig_send, target, id, signo);
 }

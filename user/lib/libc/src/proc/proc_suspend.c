@@ -12,5 +12,5 @@
 
 int proc_suspend(pid_t pid)
 {
-    return sig_send(SIG_SCOPE_PROC, pid, SIG_FORCE_SUSPEND);
+    return sig_send(SIG_TARGET_PROC, pid, SIG_FORCE_SUSPEND);
 }

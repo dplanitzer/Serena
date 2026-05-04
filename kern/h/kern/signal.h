@@ -18,7 +18,7 @@ typedef struct sig_sndr {
 } sig_sndr_t;
 
 typedef struct sig_rcvr {
-    int         scope;
+    int         target;
     pid_t       id;     // pid, pgrp, sid
     vcpuid_t    vid;    // vcpu, vcpu group
 } sig_rcvr_t;
@@ -27,7 +27,7 @@ typedef struct sig_rcvr {
 #define sig_make_sender(__pid, __uid) \
 (sig_sndr_t){__pid, __uid}
 
-#define sig_make_receiver(__scope, __pid, __vid) \
-(sig_rcvr_t){__scope, __pid, __vid}
+#define sig_make_receiver(__target, __pid, __vid) \
+(sig_rcvr_t){__target, __pid, __vid}
 
 #endif /* _KERN_SIGNAL_H */

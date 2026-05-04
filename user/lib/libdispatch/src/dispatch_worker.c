@@ -93,7 +93,7 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
 
 void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 {
-    sig_send(SIG_SCOPE_VCPU, self->id, _SIG_DISPATCH);
+    sig_send(SIG_TARGET_VCPU, self->id, _SIG_DISPATCH);
 }
 
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup)

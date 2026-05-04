@@ -20,9 +20,9 @@ SYSCALL_0(sig_urgent)
     return EOK;
 }
 
-SYSCALL_4(sig_route, int op, int signo, int scope, id_t id)
+SYSCALL_4(sig_route, int op, int signo, int target, id_t id)
 {
-    return Process_Sigroute(vp->proc, pa->op, pa->signo, pa->scope, pa->id);
+    return Process_Sigroute(vp->proc, pa->op, pa->signo, pa->target, pa->id);
 }
 
 SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
@@ -45,37 +45,37 @@ SYSCALL_1(sig_pending, sigset_t* _Nonnull set)
     return EOK;
 }
 
-SYSCALL_3(sig_send, int scope, id_t id, int signo)
+SYSCALL_3(sig_send, int target, id_t id, int signo)
 {
     ProcessRef pp = vp->proc;
 
-    if (pa->scope == SIG_SCOPE_VCPU || pa->scope == SIG_SCOPE_VCPU_GROUP) {
-        return Process_ReceiveInternalSignal(pp, pa->scope, pa->id, pa->signo);
+    if (pa->target == SIG_TARGET_VCPU || pa->target == SIG_TARGET_VCPU_GROUP) {
+        return Process_ReceiveInternalSignal(pp, pa->target, pa->id, pa->signo);
     }
 
-    if (pa->scope == SIG_SCOPE_PROC && (pa->id == PROC_SELF || pa->id == pp->pid)) {
+    if (pa->target == SIG_TARGET_PROC && (pa->id == PROC_SELF || pa->id == pp->pid)) {
         // Sending a signal to ourselves
-        return Process_ReceiveInternalSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
+        return Process_ReceiveInternalSignal(pp, SIG_TARGET_PROC, pa->id, pa->signo);
     }
 
 
     // Sending a signal to some other process
     id_t target_id;
 
-    switch (pa->scope) {
-        case SIG_SCOPE_PROC:
+    switch (pa->target) {
+        case SIG_TARGET_PROC:
             target_id = pa->id;     // proc_self case is handled above 
             break;
 
-        case SIG_SCOPE_PROC_CHILDREN:
+        case SIG_TARGET_PROC_CHILDREN:
             target_id = (pa->id == PROC_SELF) ? pp->pid : pa->id;
             break;
 
-        case SIG_SCOPE_PROC_GROUP:
+        case SIG_TARGET_PROC_GROUP:
             target_id = (pa->id == PROC_SELF) ? pp->pgrp : pa->id;
             break;
 
-        case SIG_SCOPE_SESSION:
+        case SIG_TARGET_SESSION:
             target_id = (pa->id == PROC_SELF) ? pp->sid : pa->id;
             break;
 
@@ -83,5 +83,5 @@ SYSCALL_3(sig_send, int scope, id_t id, int signo)
             return EINVAL;
     }
 
-    return Process_SendSignal(pp, pa->scope, target_id, 0, pa->signo);
+    return Process_SendSignal(pp, pa->target, target_id, 0, pa->signo);
 }

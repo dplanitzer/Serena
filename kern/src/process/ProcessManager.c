@@ -352,7 +352,7 @@ static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, con
     ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
 
     if (target_p) {
-        return Process_ReceiveSignal(target_p, sndr, rcvr->scope, rcvr->vid, signo);
+        return Process_ReceiveSignal(target_p, sndr, rcvr->target, rcvr->vid, signo);
     }
     else {
         return ESRCH;
@@ -373,7 +373,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     queue_for_each(&target_p->rel.children, queue_node_t, it,
         ProcessRef child_p = proc_from_child_qe(it);
 
-        err = Process_ReceiveSignal(child_p, sndr, SIG_SCOPE_PROC, 0, signo);
+        err = Process_ReceiveSignal(child_p, sndr, SIG_TARGET_PROC, 0, signo);
         if (err == EOK) {
             hasSuccess = true;
         }
@@ -401,10 +401,10 @@ static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locke
             ProcessRef cp = proc_from_pid_qe(it);
             pid_t coll_id;
 
-            if (rcvr->scope == SIG_SCOPE_PROC_GROUP) {
+            if (rcvr->target == SIG_TARGET_PROC_GROUP) {
                 coll_id = cp->pgrp;
             }
-            else if (rcvr->scope == SIG_SCOPE_SESSION) {
+            else if (rcvr->target == SIG_TARGET_SESSION) {
                 coll_id = cp->sid;
             }
             else {
@@ -415,7 +415,7 @@ static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locke
             if (coll_id == rcvr->id) {
                 hasMatch = true;
 
-                err = Process_ReceiveSignal(cp, sndr, SIG_SCOPE_PROC, 0, signo);
+                err = Process_ReceiveSignal(cp, sndr, SIG_TARGET_PROC, 0, signo);
                 if (err == EOK) {
                     hasSuccess = true;
                 }
@@ -443,19 +443,19 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_snd
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    switch (rcvr->scope) {
-        case SIG_SCOPE_VCPU:
-        case SIG_SCOPE_VCPU_GROUP:
-        case SIG_SCOPE_PROC:
+    switch (rcvr->target) {
+        case SIG_TARGET_VCPU:
+        case SIG_TARGET_VCPU_GROUP:
+        case SIG_TARGET_PROC:
             err = _send_signal_to_proc(self, sndr, rcvr, signo);
             break;
 
-        case SIG_SCOPE_PROC_CHILDREN:
+        case SIG_TARGET_PROC_CHILDREN:
             err = _send_signal_to_proc_children(self, sndr, rcvr, signo);
             break;
 
-        case SIG_SCOPE_PROC_GROUP:
-        case SIG_SCOPE_SESSION:
+        case SIG_TARGET_PROC_GROUP:
+        case SIG_TARGET_SESSION:
             err = _send_signal_to_proc_collection(self, sndr, rcvr, signo);
             break;
 

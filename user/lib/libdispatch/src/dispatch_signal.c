@@ -235,11 +235,11 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     mtx_lock(&self->mutex);
     if (self->attr.maxConcurrency == 1 && self->workers.first) {
         id = ((dispatch_worker_t)self->workers.first)->id;
-        scope = SIG_SCOPE_VCPU;
+        scope = SIG_TARGET_VCPU;
     }
     else {
         id = self->group_id;
-        scope = SIG_SCOPE_VCPU_GROUP;
+        scope = SIG_TARGET_VCPU_GROUP;
     }
 
     r = sig_send(scope, id, signo);

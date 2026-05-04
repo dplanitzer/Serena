@@ -99,7 +99,7 @@ void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, in
     }
 
     if (notify_parent) {
-        Process_SendSignal(self, SIG_SCOPE_PROC, self->ppid, 0, SIG_CHILD);
+        Process_SendSignal(self, SIG_TARGET_PROC, self->ppid, 0, SIG_CHILD);
     }
 }
 

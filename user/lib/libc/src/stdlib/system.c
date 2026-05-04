@@ -49,7 +49,7 @@ static int __system(const char *string)
     argv[3] = NULL;
 
     // Enable SIG_CHILD reception
-    sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
+    sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_TARGET_VCPU, vp_id);
 
 
     r = proc_spawn(__shellPath, argv, NULL, &sa, NULL, &sres);
@@ -58,7 +58,7 @@ static int __system(const char *string)
     }
 
     
-    sig_route(SIG_ROUTE_DEL, SIG_CHILD, SIG_SCOPE_VCPU, vp_id);
+    sig_route(SIG_ROUTE_DEL, SIG_CHILD, SIG_TARGET_VCPU, vp_id);
     proc_spawnattr_destroy(&sa);
 
     return (r == 0) ? (ps.reason == WAIT_REASON_EXITED) ? ps.u.status : EXIT_FAILURE : -1;
