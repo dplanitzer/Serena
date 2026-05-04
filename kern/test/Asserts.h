@@ -10,6 +10,7 @@
 #define Asserts_h 1
 
 #include <_cmndef.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -25,6 +26,7 @@ extern void Assert(const char* _Nonnull pFuncname, int lineNum, const char* _Non
 #define assert_not_null(cond) if ((cond) == NULL) { Assert(__func__, __LINE__, "%s", #cond); }
 
 #define assert_ok(cond) if ((cond) != 0) { Assert(__func__, __LINE__, "%s", #cond); }
+#define assert_nok(expected_err, cond) { errno = 0; int __tmp = (cond); if (__tmp == 0 || (__tmp != -1 && errno != (expected_err))) { Assert(__func__, __LINE__, "unexpected error: %d", errno); }}
 
 #define assert_bool_eq(expected, actual) do { bool __tmp = (bool)(actual); if ((expected) != __tmp) { Assert(__func__, __LINE__, "" #expected " vs %s", (__tmp) ? "true" : "false"); } } while(0)
 #define assert_char_eq(expected, actual) do { char __tmp = (char)(actual); if ((expected) != __tmp) { Assert(__func__, __LINE__, "" #expected " vs '%c'", __tmp); } } while(0)

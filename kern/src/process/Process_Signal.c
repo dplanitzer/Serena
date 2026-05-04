@@ -226,7 +226,7 @@ static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int sign
     vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
 }
 
-static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int signo)
+static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int signo)
 {
     switch (signo) {
         case SIG_TERMINATE:
@@ -279,8 +279,6 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int s
             }
             break;
     }
-
-    return EOK;
 }
 
 errno_t Process_ReceiveSignal(ProcessRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, int scope, vcpuid_t vid, int signo)
@@ -319,7 +317,7 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int scope, vcpui
                 break;
 
             case SIG_SCOPE_PROC:
-                err = _proc_send_signal_to_proc(self, signo);
+                _proc_send_signal_to_proc(self, signo);
                 break;
 
             default:

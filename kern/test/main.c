@@ -15,13 +15,13 @@
 #include <serena/clock.h>
 
 
-// Atomic
+// atomic
 extern void atomic_test(int argc, char *argv[]);
 
-// Console
+// console
 extern void interactive_console_test(int argc, char *argv[]);
 
-// Dispatcher
+// dispatcher
 extern void dq_async_test(int argc, char *argv[]);
 extern void dq_after_test(int argc, char *argv[]);
 extern void dq_repeating_test(int argc, char *argv[]);
@@ -29,68 +29,73 @@ extern void dq_signal_test(int argc, char* argv[]);
 extern void dq_sync_test(int argc, char *argv[]);
 extern void dq_terminate_test(int argc, char *argv[]);
 
+// excpt
+extern void excpt_crash_test(int argc, char *argv[]);
+extern void excpt_handler_test(int argc, char *argv[]);
+extern void excpt_return_test(int argc, char *argv[]);
+extern void excpt_raise_test(int argc, char *argv[]);
+
 // float, double
 extern void fp_test(int argc, char *argv[]);
 
-// File
+// fd
 extern void overwrite_file_test(int argc, char *argv[]);
 
-// HID
+// hid
 extern void hid_test(int argc, char *argv[]);
 
-// Int32
+// int32
 extern void int32_test(int argc, char *argv[]);
 
-// Int64
+// int64
 extern void int64_test(int argc, char *argv[]);
 
-// Kern
+// kern
 extern void kern_test(int argc, char *argv[]);
 
-// Mem
+// mem
 extern void mem_test(int argc, char *argv[]);
 
-// Mutex
+// mtx
 extern void mtx_test(int argc, char *argv[]);
 
-// Pipe
+// pipe
 extern void pipe_test(int argc, char *argv[]);
 extern void pipe2_test(int argc, char *argv[]);
 
-// Proc
-extern void proc_excpt_crash_test(int argc, char *argv[]);
-extern void proc_excpt_handler_test(int argc, char *argv[]);
-extern void proc_excpt_return_test(int argc, char *argv[]);
-extern void proc_excpt_raise_test(int argc, char *argv[]);
+// proc
 extern void proc_exec_test(int argc, char *argv[]);
 extern void proc_exit_test(int argc, char *argv[]);
 
-// RC
+// reference counting
 extern void rc_test(int argc, char *argv[]);
 
-// Scanf
+// scanf
 extern void scanf_test(int argc, char *argv[]);
 
-// Sema
+// sem
 extern void sem_test(int argc, char *argv[]);
 
-// Stdio
+// sig
+extern void sig_send_no_perm_test(int argc, char *argv[]);
+
+// stdio
 extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
 extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
-// String
+// string
 extern void str_test(int argc, char *argv[]);
 
-// Strtol
+// strtol
 extern void strtol_test(int argc, char *argv[]);
 
-// UInt32
+// uint32
 extern void uint32_test(int argc, char *argv[]);
 
-// UInt64
+// uint64
 extern void uint64_test(int argc, char *argv[]);
 
-// Vcpu
+// vcpu
 extern void vcpu_acquire_test(int argc, char *argv[]);
 extern void vcpu_scheduling_test(int argc, char *argv[]);
 extern void vcpu_sigkill_test(int argc, char *argv[]);
@@ -118,6 +123,11 @@ static const test_t gTests[] = {
     {"dq_sync", dq_sync_test, true},
     {"dq_term", dq_terminate_test, true},
 
+    {"excpt_crash", excpt_crash_test, false},
+    {"excpt_handler", excpt_handler_test, false},
+    {"excpt_raise", excpt_raise_test, false},
+    {"excpt_ret", excpt_return_test, false},
+
     {"file", overwrite_file_test, false},
 
     {"fp", fp_test, false},
@@ -137,10 +147,6 @@ static const test_t gTests[] = {
     {"pipe", pipe_test, false},
     {"pipe2", pipe2_test, true},
 
-    {"proc_excpt_crash", proc_excpt_crash_test, false},
-    {"proc_excpt_handler", proc_excpt_handler_test, false},
-    {"proc_excpt_raise", proc_excpt_raise_test, false},
-    {"proc_excpt_ret", proc_excpt_return_test, false},
     {"proc_exec", proc_exec_test, false},
     {"proc_exit", proc_exit_test, true},
 
@@ -149,6 +155,8 @@ static const test_t gTests[] = {
     {"scanf", scanf_test, false},
     
     {"sem", sem_test, true},
+
+    {"sig_send_no_perm", sig_send_no_perm_test, false},
 
     {"stdio", fopen_memory_fixed_size_test, false},
     {"stdio2", fopen_memory_variable_size_test, false},

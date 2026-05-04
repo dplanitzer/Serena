@@ -347,7 +347,6 @@ errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _No
     return err;
 }
 
-
 static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
     ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
@@ -364,7 +363,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
 {
     decl_try_err();
     ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
-    bool hasSuccess = true;
+    bool hasSuccess = false;
     errno_t first_err = EOK;
 
     if (target_p == NULL || queue_empty(&target_p->rel.children)) {
@@ -391,17 +390,29 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     }
 }
 
-static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
+static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
 {
     decl_try_err();
-    bool hasMatch = false, hasSuccess = true;
+    bool hasMatch = false, hasSuccess = false;
     errno_t first_err = EOK;
 
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         queue_for_each(&self->pid_table[i], queue_node_t, it,
-            ProcessRef cp = proc_from_child_qe(it);
+            ProcessRef cp = proc_from_pid_qe(it);
+            pid_t coll_id;
 
-            if (cp->pgrp == rcvr->id) {
+            if (rcvr->scope == SIG_SCOPE_PROC_GROUP) {
+                coll_id = cp->pgrp;
+            }
+            else if (rcvr->scope == SIG_SCOPE_SESSION) {
+                coll_id = cp->sid;
+            }
+            else {
+                abort();
+            }
+
+
+            if (coll_id == rcvr->id) {
                 hasMatch = true;
 
                 err = Process_ReceiveSignal(cp, sndr, SIG_SCOPE_PROC, 0, signo);
@@ -419,41 +430,7 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
         return ESRCH;
     }
     else if (hasSuccess) {
-        return EOK;
-    }
-    else {
-        return first_err;
-    }
-}
-
-static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
-{
-    decl_try_err();
-    bool hasMatch = false, hasSuccess = true;
-    errno_t first_err = EOK;
-
-    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        queue_for_each(&self->pid_table[i], queue_node_t, it,
-            ProcessRef cp = proc_from_child_qe(it);
-
-            if (cp->sid == rcvr->id) {
-                hasMatch = true;
-
-                err = Process_ReceiveSignal(cp, sndr, SIG_SCOPE_PROC, 0, signo);
-                if (err == EOK) {
-                    hasSuccess = true;
-                }
-                else if (first_err == EOK) {
-                    first_err = err;
-                }
-            }
-        )
-    }
-
-    if (!hasMatch) {
-        return ESRCH;
-    }
-    else if (hasSuccess) {
+        // We were able to send the signal to at least one guy -> we count the whole operation as successful
         return EOK;
     }
     else {
@@ -478,11 +455,8 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_snd
             break;
 
         case SIG_SCOPE_PROC_GROUP:
-            err = _send_signal_to_proc_group(self, sndr, rcvr, signo);
-            break;
-
         case SIG_SCOPE_SESSION:
-            err = _send_signal_to_session(self, sndr, rcvr, signo);
+            err = _send_signal_to_proc_collection(self, sndr, rcvr, signo);
             break;
 
         default:

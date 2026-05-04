@@ -10,6 +10,7 @@
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
 #include <kern/kalloc.h>
+#include <kern/sigset.h>
 #include <kpi/fs_perms.h>
 #include <kpi/process.h>
 
@@ -84,6 +85,11 @@ errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, p
         return EPERM;
     }
 
+    if ((SIGSET_PRIV_SYS & sig_bit(signo)) != 0) {
+        // designated vcpu signals are privileged and can not be sent across
+        // process boundaries (no matter what scope you use to send the signal)
+        return EPERM;
+    }
     if (rcv_scope < SIG_SCOPE_PROC && (sndr->pid != PID_KERNELD && sndr->pid != rcv_pid)) {
         // only the process that owns a vcpu or kerneld may send a signal to a
         // vcpu or vcpu group living inside another process
