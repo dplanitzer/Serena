@@ -151,8 +151,8 @@ extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_a
 
 extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 
-extern void _proc_suspend(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
-extern void _proc_resume(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
+extern void _proc_stop(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
+extern void _proc_continue(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
 
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);

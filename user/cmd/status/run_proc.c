@@ -76,10 +76,10 @@ static void run_proc_relinquish(run_proc_t* _Nullable rp)
 static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
 {
     switch (ip->run_state) {
-        case PROC_STATE_RESUMED:
+        case PROC_STATE_RUNNING:
             return (ip->vcpu_waiting_count == ip->vcpu_count) ? RUN_PROC_SLEEPING : RUN_PROC_RUNNING;
 
-        case PROC_STATE_SUSPENDED:
+        case PROC_STATE_STOPPED:
             return RUN_PROC_STOPPED;
 
         case PROC_STATE_TERMINATING:

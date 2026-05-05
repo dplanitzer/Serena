@@ -11,7 +11,7 @@
 
 
 const sigset_t SIGSET_IGNORE_ALL = 0;
-const sigset_t SIGSET_NON_ROUTABLE = sig_bit(SIG_TERMINATE) | sig_bit(SIG_FORCE_SUSPEND) | sig_bit(SIG_RESUME) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND);
+const sigset_t SIGSET_NON_ROUTABLE = sig_bit(SIG_TERMINATE) | sig_bit(SIG_FORCE_STOP) | sig_bit(SIG_CONTINUE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND);
 const sigset_t SIGSET_DESIGNATED_VCPU = sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND);
 
 

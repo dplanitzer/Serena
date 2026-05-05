@@ -46,7 +46,7 @@ errno_t kerneld_init(void)
     g_kernel_ctx.argv = g_kernel_argv;
     g_kernel_ctx.envv = g_kernel_env;
     g_kernel_proc_storage.ctx_base= &g_kernel_ctx;
-    g_kernel_proc_storage.run_state = PROC_STATE_RESUMED;
+    g_kernel_proc_storage.run_state = PROC_STATE_RUNNING;
 
     vcpu_t main_vp = vcpu_current();
     main_vp->proc = &g_kernel_proc_storage;
@@ -83,7 +83,7 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
         err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
         if (err == EOK) {
             (void)ProcessManager_Register(gProcessManager, cp);
-            Process_Resume(cp, _WAIT_REASON_NONE, 0, false);
+            Process_Continue(cp, _WAIT_REASON_NONE, 0, false);
         }
     }
     Process_Release(cp);

@@ -233,12 +233,12 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
             _proc_trigger_termination(self, signo);
             break;
 
-        case SIG_FORCE_SUSPEND:
-            _proc_suspend(self, WAIT_REASON_SIGNALED, signo, true);
+        case SIG_FORCE_STOP:
+            _proc_stop(self, WAIT_REASON_SIGNALED, signo, true);
             break;
 
-        case SIG_RESUME:
-            _proc_resume(self, WAIT_REASON_SIGNALED, signo, true);
+        case SIG_CONTINUE:
+            _proc_continue(self, WAIT_REASON_SIGNALED, signo, true);
             break;
 
         default:
@@ -268,8 +268,8 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
 
                     case SIG_BKG_READ:
                     case SIG_BKG_WRITE:
-                    case SIG_SUSPEND:
-                        _proc_suspend(self, WAIT_REASON_SIGNALED, signo, true);
+                    case SIG_STOP:
+                        _proc_stop(self, WAIT_REASON_SIGNALED, signo, true);
                         break;
 
                     default:

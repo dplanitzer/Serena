@@ -44,8 +44,8 @@ extern uid_t Process_GetUserId(ProcessRef _Nonnull self);
 // free the it for good.
 extern _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg);
 
-extern void Process_Suspend(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
-extern void Process_Resume(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
+extern void Process_Stop(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
+extern void Process_Continue(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
 
 
 // Checks whether the current process state matches the provide criteria 'mstate'

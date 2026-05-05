@@ -60,8 +60,8 @@ typedef void* proc_info_ref;
 
 
 // Process run state
-#define PROC_STATE_RESUMED      0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something and the process is not suspended */
-#define PROC_STATE_SUSPENDED    1       /* Process was explicitly suspended */
+#define PROC_STATE_RUNNING      0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something and the process is not stopped */
+#define PROC_STATE_STOPPED      1       /* Process is stopped */
 #define PROC_STATE_TERMINATING  2       /* Process has started executing an exit() call and is in the process of terminating */
 #define PROC_STATE_TERMINATED   3       /* Process has terminated and parent processes hasn't reaped it yet */
 

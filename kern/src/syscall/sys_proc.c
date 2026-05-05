@@ -48,7 +48,7 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
                     // start out suspended and then resume is more of an
                     // implementation detail than something that the parent
                     // cares about when they didn't ask for a suspended spawn.
-                    Process_Resume(cp, _WAIT_REASON_NONE, 0, false);
+                    Process_Continue(cp, _WAIT_REASON_NONE, 0, false);
                 }
             }
         }

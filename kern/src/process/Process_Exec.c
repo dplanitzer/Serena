@@ -121,7 +121,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 catch:
     proc_img_destroy(pimg);
 
-    if (err == EOK && self->run_state == PROC_STATE_RESUMED) {
+    if (err == EOK && self->run_state == PROC_STATE_RUNNING) {
         vcpu_resume(new_main_vcpu, false);
     }
 

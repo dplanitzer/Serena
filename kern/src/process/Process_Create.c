@@ -23,7 +23,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     AddressSpace_Init(&self->addr_space);
 
     self->retainCount = RC_INIT;
-    self->run_state = PROC_STATE_SUSPENDED;
+    self->run_state = PROC_STATE_STOPPED;
     self->run_state_reason.reason = _WAIT_REASON_NONE;
     self->pid = 0;
 

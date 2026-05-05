@@ -25,11 +25,11 @@ errno_t Process_GetMatchingState(ProcessRef _Nonnull self, int mstate, proc_wait
                 break;
 
             case WAIT_FOR_RESUMED:
-                hasMatch = (self->run_state == PROC_STATE_RESUMED);
+                hasMatch = (self->run_state == PROC_STATE_RUNNING);
                 break;
 
             case WAIT_FOR_SUSPENDED:
-                hasMatch = (self->run_state == PROC_STATE_SUSPENDED);
+                hasMatch = (self->run_state == PROC_STATE_STOPPED);
                 break;
 
             case WAIT_FOR_TERMINATED:
