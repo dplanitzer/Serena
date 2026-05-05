@@ -45,7 +45,7 @@ typedef volatile int sig_atomic_t;
 // Ordered from highest to lowest priority
 #define SIG_TERMINATE       1   // Forced process termination, non-routable
 #define SIG_VCPU_RELINQUISH 2   // Designated VCPU signal (may not be sent across process boundaries)
-#define SIG_VCPU_SUSPEND    3   // Designated VCPU signal (may not be sent across process boundaries)
+#define SIG_URGENT          3   // Notifies a vcpu that some important management state has changed and that it should enter kernel space and reevaluate the state now
 #define SIG_FORCE_STOP      4   // Forced process stop, non-routable
 #define SIG_STOP            5   // TTY, voluntary process stop, default: stop process
 #define SIG_CONTINUE        6   // TTY, default: continue process, non-routable
@@ -85,7 +85,7 @@ typedef volatile int sig_atomic_t;
 #define sig_bit(__signo) (1 << ((__signo) - 1))
 
 #define SIGSET_NONMASKABLES (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH))
-#define SIGSET_URGENTS      (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_VCPU_SUSPEND))
+#define SIGSET_URGENTS      (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_URGENT))
 
 
 #define SIG_TARGET_VCPU             0   /* vcpu inside this process */
