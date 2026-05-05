@@ -650,19 +650,28 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
         case VCPU_INFO_SCHEDULING: {
             vcpu_scheduling_info_t* ip = info;
 
-            ip->run_state = self->run_state;
+            const int sps = preempt_disable();
+            // Return VCPU_STATE_SUSPENDED if the suspended count is > 0 because
+            // the true vcpu state can be any of suspended, waiting or even running
+            // while the suspension count > 0. I.e. You call vcpu_suspend() on a
+            // vcpu but it takes a while for it to reach a safe suspension point
+            // (end of syscall handler). It'll remain in running state in the
+            // meanwhile. Nevertheless the vcpu is suspended as far as user space
+            // can tell.
+            ip->run_state = (self->suspension_count > 0) ? VCPU_STATE_SUSPENDED : self->run_state;
+            ip->suspend_count = self->suspension_count;
             ip->base_qos.grade = SCHED_QOS_GRADE(self->base_priority);
             ip->base_qos.priority = SCHED_QOS_PRI(self->base_priority);
             ip->cur_qos.grade = SCHED_QOS_GRADE(self->cur_priority);
             ip->cur_qos.priority = SCHED_QOS_PRI(self->cur_priority);
             ip->base_quantum_length = g_quantum_base_length[ip->base_qos.grade];
             ip->cur_quantum_length = _vcpu_effective_quantum_length(self);
-            ip->suspend_count = self->suspension_count;
             ip->flags = 0;
                 
             if (self->priority_boost > 0)   ip->flags |= VCPU_HAS_PRIORITY_BOOST;
             if (self->quantum_boost > 0)    ip->flags |= VCPU_HAS_QUANTUM_BOOST;
             if (self->priority_penalty > 0) ip->flags |= VCPU_HAS_PRIORITY_PENALTY;
+            preempt_restore(sps);
             break;
         }
 
