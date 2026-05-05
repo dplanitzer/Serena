@@ -82,22 +82,22 @@ static void _proc_zombify(ProcessRef _Nonnull self)
 
 _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
 {
-    // We do not allow exiting the root process
+    // We do not allow terminating the root process
     if (Process_IsRoot(self)) {
         abort();
     }
 
 
     mtx_lock(&self->mtx);
-    const int isExitCoordinator = self->run_state < PROC_STATE_TERMINATING;
+    const int isTermCoordinator = self->run_state < PROC_STATE_TERMINATING;
     
-    if (isExitCoordinator) {
+    if (isTermCoordinator) {
         _proc_set_state(self, PROC_STATE_TERMINATING, _WAIT_REASON_NONE, 0, false);
-        self->exit_coordinator = vcpu_current();
+        self->trmstp_coordinator = vcpu_current();
 
 
         // This is the first vcpu going through the exit. It will act as the
-        // termination/exit coordinator.
+        // termination coordinator.
         // Take myself out from the vcpu list and send all other vcpus in the
         // process an abort signal.
         deque_remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
@@ -107,9 +107,9 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
     mtx_unlock(&self->mtx);
 
 
-    if (!isExitCoordinator) {
+    if (!isTermCoordinator) {
         // This is any of the other vcpus in the process that we are shutting
-        // down. Just relinquish yourself. The exit coordinator is blocked
+        // down. Just relinquish yourself. The term coordinator is blocked
         // waiting for all the other vcpus to relinquish before it will proceed
         // with the process zombification.
         Process_RelinquishVirtualProcessor(self, vcpu_current());

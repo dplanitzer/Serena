@@ -325,9 +325,9 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpu
                 break;
         }
     }
-    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIG_CHILD && self->exit_coordinator) {
+    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIG_CHILD && self->trmstp_coordinator) {
         // Auto-route SIG_CHILD to the exit coordinator because we're in EXIT state
-        vcpu_send_signal(self->exit_coordinator, signo);
+        vcpu_send_signal(self->trmstp_coordinator, signo);
     }
     mtx_unlock(&self->mtx);
 

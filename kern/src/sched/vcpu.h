@@ -286,8 +286,10 @@ extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 // Resuming a virtual processor is a synchronous operation.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
-
-extern void vcpu_dump(vcpu_t _Nonnull self);
+// Checks whether 'self' is in the process of being suspended or is suspended,
+// waits for suspension to have completed and returns EOK. Returns EBUSY if
+// 'self' is not in process suspension and not suspended either. 
+extern errno_t vcpu_await_suspension(vcpu_t _Nonnull self);
 
 
 //

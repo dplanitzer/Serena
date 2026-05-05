@@ -430,14 +430,79 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
 // Otherwise does nothing. Nesting is not supported.
 void _proc_stop(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent)
 {
-    if (self->run_state == PROC_STATE_RUNNING) {
-        deque_for_each(&self->vcpu_queue, deque_node_t, it,
-            vcpu_t cvp = vcpu_from_owner_qe(it);
+    vcpu_t this_vp = vcpu_current();
 
-            vcpu_suspend(cvp);
-        )
-        _proc_set_state(self, PROC_STATE_STOPPED, reason, arg, notify_parent);
+    if (self->run_state != PROC_STATE_RUNNING) {
+        return;
     }
+
+    _proc_set_state(self, PROC_STATE_STOPPED, reason, arg, notify_parent);
+
+
+    // There are two possible ways that suspension may be done:
+    // *) A vcpu that is NOT part of the process triggers suspension:
+    //      -- all vcpus are suspended in a single atomic block
+    //      -- no suspension coordinator is recorded
+    //      -- we guarantee that all vcpus are suspended once we drop the proc lock
+    // *) A vcpu that belongs to the process triggers suspension:
+    //      -- all vcpus except the triggering one are suspended in a single atomic block
+    //      -- the triggering vcpu is recorded as the suspension coordinator inside the atomic block
+    //      -- the triggering vcpu is suspended after dropping the proc lock
+    if (this_vp->proc != self) {
+        // we can do the suspend in a single step if the vcpu that is triggering
+        // the suspend is not part of the process 'self'
+        this_vp = NULL;
+    }
+    self->trmstp_coordinator = this_vp;
+
+
+    // suspend all vcpus except the one that is executing this function
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
+
+        if (cvp != this_vp) {
+            vcpu_suspend(cvp);
+        }
+    )
+
+
+    if (this_vp) {
+        // the vcpu that is triggering the suspend is a member of the process
+        // 'self'. We've suspended all other vcpus above and we're now suspending
+        // this vcpu. Drop the lock, suspend it and reacquire the lock once the
+        // suspend returns since the caller expects the mutex locked
+        mtx_unlock(&self->mtx);
+        vcpu_suspend(this_vp);
+        mtx_lock(&self->mtx);
+    }
+
+    self->trmstp_coordinator = NULL;
+}
+
+// Resume all vcpus in the process if the process is currently in stopped state.
+// Otherwise does nothing.
+void _proc_continue(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent)
+{
+    if (self->run_state != PROC_STATE_STOPPED) {
+        return;
+    }
+
+    // see the explanation in _proc_stop(): wait until the suspension coordinator
+    // is suspended before proceeding with the resume. This is not necessary if
+    // no suspension coordinator has been recorded.
+    if (self->trmstp_coordinator) {
+        vcpu_await_suspension(self->trmstp_coordinator);
+    }
+
+
+    _proc_set_state(self, PROC_STATE_RUNNING, reason, arg, notify_parent);
+
+
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
+
+        vcpu_resume(cvp, false);
+    )
 }
 
 void Process_Stop(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent)
@@ -445,20 +510,6 @@ void Process_Stop(ProcessRef _Nonnull self, int reason, int arg, bool notify_par
     mtx_lock(&self->mtx);
     _proc_stop(self, reason, arg, notify_parent);
     mtx_unlock(&self->mtx);
-}
-
-// Resume all vcpus in the process if the process is currently in stopped state.
-// Otherwise does nothing.
-void _proc_continue(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent)
-{
-    if (self->run_state == PROC_STATE_STOPPED) {
-        deque_for_each(&self->vcpu_queue, deque_node_t, it,
-            vcpu_t cvp = vcpu_from_owner_qe(it);
-
-            vcpu_resume(cvp, false);
-        )
-        _proc_set_state(self, PROC_STATE_RUNNING, reason, arg, notify_parent);
-    }
 }
 
 void Process_Continue(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent)

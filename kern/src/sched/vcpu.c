@@ -479,6 +479,15 @@ static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
     return EBUSY;
 }
 
+errno_t vcpu_await_suspension(vcpu_t _Nonnull self)
+{
+    const int sps = preempt_disable();
+    const errno_t err = _vcpu_await_suspension(self);
+    preempt_restore(sps);
+
+    return err;
+}
+
 // Returns a copy of the receiver's CPU state.
 errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull state)
 {
