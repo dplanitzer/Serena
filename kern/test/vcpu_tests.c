@@ -172,6 +172,7 @@ void vcpu_sigkill_test(int argc, char *argv[])
 // vcpu_suspend_test
 
 static vcpu_t test_suspend_vcpu_a;
+static int suspension_count = 1;
 
 static void test_suspend_print_loop(void)
 {
@@ -192,7 +193,7 @@ static void test_suspend_A_loop(void)
 
     for (;;) {
         clock_wait(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
-        puts("- suspending A -");
+        printf("- suspending A (%d) -\n", suspension_count++);
         
         assert_ok(vcpu_suspend(test_suspend_vcpu_a));
         clock_wait(CLOCK_MONOTONIC, 0, &ts_2sec, NULL);

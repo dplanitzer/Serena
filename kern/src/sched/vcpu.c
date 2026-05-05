@@ -24,6 +24,7 @@ static void _vcpu_reset_penalties_and_boosts(vcpu_t _Nonnull self);
 static bool _vcpu_set_base_priority(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 static errno_t _validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
 static void _vcpu_yield(vcpu_t _Nonnull self);
+static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self);
 
 
 // Initializes a virtual processor. A virtual processor always starts execution
@@ -87,9 +88,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // proceed with reconfiguring it. We only become the owner of the vcpu once
     // it has entered suspended state.
     const int sps = preempt_disable();
-    while (vp->run_state != VCPU_STATE_SUSPENDED) {
-        _vcpu_yield(vcpu_current());
-    }
+    while (_vcpu_await_suspension(vp) != EOK);
     preempt_restore(sps);
 
     
@@ -406,25 +405,19 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         throw(EINVAL);
     }
 
+    self->suspension_count++;
 
-    if (self->run_state == VCPU_STATE_SUSPENDED || (self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0) {
-        // 'self' has at least a suspension request pending or may already have entered suspended state
-        self->suspension_count++;
-    }
-    else if (self->run_state == VCPU_STATE_INITIATED) {
+    if (self->run_state == VCPU_STATE_INITIATED) {
         // 'self' was just created. Move it to suspended state immediately
-        self->suspension_count++;
         self->run_state = VCPU_STATE_SUSPENDED;
     }
     else if (vcpu_current() == self) {
         // 'self' is currently running. Move it to suspended state immediately
-        self->suspension_count++;
         self->run_state = VCPU_STATE_SUSPENDED;
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
-    else {
+    else if (self->suspension_count == 1 && self->run_state != VCPU_STATE_SUSPENDED) {
         // 'self' is some other vcpu in some state (running, ready, waiting). Trigger a deferred suspend on it
-        self->suspension_count++;
         vcpu_send_signal(self, SIG_VCPU_SUSPEND);
     }
 
@@ -438,53 +431,32 @@ void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
 
-    // This function is always called in running state and thus the transition
-    // running -> suspended is the only one we need to handle.
-    // Atomically check and consume the SIG_VCPU_SUSPEND signal after we've changed our
-    // state to suspended to ensure that there's no gap between suspension
-    // request and suspension state.
-    // Note that it is crucial that we check the SIG_VCPU_SUSPEND flag, consume it and
-    // change our scheduler state to VCPU_STATE_SUSPENDED in an atomic
-    // operation to ensure that vcpu_resume() can not see the transition and
-    // get potentially confused by it.
-    if ((self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0) {
-        self->run_state = VCPU_STATE_SUSPENDED;
-        self->pending_sigs &= ~sig_bit(SIG_VCPU_SUSPEND);
+    self->pending_sigs &= ~sig_bit(SIG_VCPU_SUSPEND);
 
+    if (self->suspension_count > 0 && self->run_state != VCPU_STATE_SUSPENDED) {
+        self->run_state = VCPU_STATE_SUSPENDED;
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
     
     preempt_restore(sps);
 }
 
-// @Entry Condition: preemption disabled
-static void _vcpu_resume(vcpu_t _Nonnull self, bool force)
-{
-    if (force) {
-        self->suspension_count = 0;
-    }
-    else if (self->suspension_count > 0) {
-        self->suspension_count--;
-    }
-
-
-    if (self->suspension_count == 0) {
-        sched_set_ready(g_sched, self, true);
-    }
-}
-
 void vcpu_resume(vcpu_t _Nonnull self, bool force)
 {
     const int sps = preempt_disable();
 
-    // Cancel a pending deferred suspend request. This is safe because
-    // vcpu_do_pending_deferred_suspend() atomically tests and acts on the flag
-    self->pending_sigs &= ~sig_bit(SIG_VCPU_SUSPEND);
+    if (self->suspension_count > 0) {
+        if (force) {
+            self->suspension_count = 0;
+        }
+        else {
+            self->suspension_count--;
+        }
 
 
-    // Move the vcpu out of suspended state if it is suspended
-    if (self->run_state == VCPU_STATE_SUSPENDED) {
-        _vcpu_resume(self, force);
+        if (self->suspension_count == 0 && self->run_state == VCPU_STATE_SUSPENDED) {
+            sched_set_ready(g_sched, self, true);
+        }
     }
 
     preempt_restore(sps);
@@ -496,23 +468,15 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 // @Entry Condition: preemption disabled
 static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
 {
-    for (;;) {
-        if (self->run_state == VCPU_STATE_SUSPENDED || (self->run_state == VCPU_STATE_WAITING && (self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) != 0)) {
-            // Wait until the target vcpu has entered suspended state or it is
-            // waiting and has a deferred suspension request pending.
-            break;
-        }
-
-        if ((self->pending_sigs & sig_bit(SIG_VCPU_SUSPEND)) == 0) {
-            // The target vcpu isn't suspended and doesn't even have a deferred
-            // suspension request pending. Won't be able to r/w its ucontext
-            return EBUSY;
+    while (self->suspension_count > 0) {
+        if (self->run_state == VCPU_STATE_SUSPENDED || self->run_state == VCPU_STATE_WAITING) {
+            return EOK;
         }
 
         _vcpu_yield(vcpu_current());
     }
 
-    return EOK;
+    return EBUSY;
 }
 
 // Returns a copy of the receiver's CPU state.
