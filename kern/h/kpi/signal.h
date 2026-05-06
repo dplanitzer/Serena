@@ -44,20 +44,20 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIG_TERMINATE       1   // Forced process termination, non-routable
-#define SIG_VCPU_RELINQUISH 2   // Designated VCPU signal (may not be sent across process boundaries)
-#define SIG_URGENT          3   // Notifies a vcpu that some important management state has changed and that it should enter kernel space and reevaluate the state now
-#define SIG_FORCE_STOP      4   // Forced process stop, non-routable
-#define SIG_STOP            5   // TTY, voluntary process stop, default: stop process
-#define SIG_CONTINUE        6   // TTY, default: continue process, non-routable
-#define SIG_CPU_LIMIT       7   // kernel, process exceeded CPU time limit, default: terminate
-#define SIG_LOGOUT          8   // XXX logind, user logged out, default: terminate
-#define SIG_QUIT            9   // TTY, process quit, default: terminate
-#define SIG_INTERRUPT       10  // TTY, process interrupt, default: ignore
-#define SIG_TIMEOUT         11  // XXX clock_alarm(), default: ignore
-#define SIG_CHILD           12  // kernel, child process changed state, default: ignore
-#define SIG_WIN_CHANGE      13  // TTY, console window size changed, default: ignore
-#define SIG_BKG_READ        14  // TTY, background process attempt to read from terminal input, default: stop/suspend process
-#define SIG_BKG_WRITE       15  // TTY, background process attempt to write to terminal output, default: stop/suspend process
+#define SIG_URGENT          2   // Notifies a vcpu that some important management state has changed and that it should enter kernel space and reevaluate the state now
+#define SIG_FORCE_STOP      3   // Forced process stop, non-routable
+#define SIG_STOP            4   // TTY, voluntary process stop, default: stop process
+#define SIG_CONTINUE        5   // TTY, default: continue process, non-routable
+#define SIG_CPU_LIMIT       6   // kernel, process exceeded CPU time limit, default: terminate
+#define SIG_LOGOUT          7   // XXX logind, user logged out, default: terminate
+#define SIG_QUIT            8   // TTY, process quit, default: terminate
+#define SIG_INTERRUPT       9   // TTY, process interrupt, default: ignore
+#define SIG_TIMEOUT         10  // XXX clock_alarm(), default: ignore
+#define SIG_CHILD           11  // kernel, child process changed state, default: ignore
+#define SIG_WIN_CHANGE      12  // TTY, console window size changed, default: ignore
+#define SIG_BKG_READ        13  // TTY, background process attempt to read from terminal input, default: stop/suspend process
+#define SIG_BKG_WRITE       14  // TTY, background process attempt to write to terminal output, default: stop/suspend process
+#define SIG_RESERVED        15  // Reserved for the OS
 #define SIG_USER_1          16  // User defined signals, default: ignore
 #define SIG_USER_2          17
 #define SIG_USER_3          18
