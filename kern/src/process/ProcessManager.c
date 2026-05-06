@@ -347,22 +347,22 @@ errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _No
     return err;
 }
 
-static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
+static errno_t _send_signal_to_proc(ProcessManagerRef _Nonnull _Locked self, const sig_dispatch_t* _Nonnull dp)
 {
-    ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
+    ProcessRef target_p = _get_proc_by_pid(self, dp->rcvr.id);
 
     if (target_p) {
-        return Process_ReceiveSignal(target_p, sndr, rcvr->target, rcvr->vid, signo);
+        return Process_ReceiveSignal(target_p, &dp->sndr, dp->rcvr.target, dp->rcvr.vid, dp->signo);
     }
     else {
         return ESRCH;
     }
 }
 
-static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
+static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked self, const sig_dispatch_t* _Nonnull dp)
 {
     decl_try_err();
-    ProcessRef target_p = _get_proc_by_pid(self, rcvr->id);
+    ProcessRef target_p = _get_proc_by_pid(self, dp->rcvr.id);
     bool hasSuccess = false;
     errno_t first_err = EOK;
 
@@ -373,7 +373,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     queue_for_each(&target_p->rel.children, queue_node_t, it,
         ProcessRef child_p = proc_from_child_qe(it);
 
-        err = Process_ReceiveSignal(child_p, sndr, SIG_TARGET_PROC, 0, signo);
+        err = Process_ReceiveSignal(child_p, &dp->sndr, SIG_TARGET_PROC, 0, dp->signo);
         if (err == EOK) {
             hasSuccess = true;
         }
@@ -390,7 +390,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
     }
 }
 
-static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locked self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
+static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locked self, const sig_dispatch_t* _Nonnull dp)
 {
     decl_try_err();
     bool hasMatch = false, hasSuccess = false;
@@ -401,10 +401,10 @@ static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locke
             ProcessRef cp = proc_from_pid_qe(it);
             pid_t coll_id;
 
-            if (rcvr->target == SIG_TARGET_PROC_GROUP) {
+            if (dp->rcvr.target == SIG_TARGET_PROC_GROUP) {
                 coll_id = cp->pgrp;
             }
-            else if (rcvr->target == SIG_TARGET_SESSION) {
+            else if (dp->rcvr.target == SIG_TARGET_SESSION) {
                 coll_id = cp->sid;
             }
             else {
@@ -412,10 +412,10 @@ static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locke
             }
 
 
-            if (coll_id == rcvr->id) {
+            if (coll_id == dp->rcvr.id) {
                 hasMatch = true;
 
-                err = Process_ReceiveSignal(cp, sndr, SIG_TARGET_PROC, 0, signo);
+                err = Process_ReceiveSignal(cp, &dp->sndr, SIG_TARGET_PROC, 0, dp->signo);
                 if (err == EOK) {
                     hasSuccess = true;
                 }
@@ -438,25 +438,25 @@ static errno_t _send_signal_to_proc_collection(ProcessManagerRef _Nonnull _Locke
     }
 }
 
-errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo)
+errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_dispatch_t* _Nonnull dp)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    switch (rcvr->target) {
+    switch (dp->rcvr.target) {
         case SIG_TARGET_VCPU:
         case SIG_TARGET_VCPU_GROUP:
         case SIG_TARGET_PROC:
-            err = _send_signal_to_proc(self, sndr, rcvr, signo);
+            err = _send_signal_to_proc(self, dp);
             break;
 
         case SIG_TARGET_PROC_CHILDREN:
-            err = _send_signal_to_proc_children(self, sndr, rcvr, signo);
+            err = _send_signal_to_proc_children(self, dp);
             break;
 
         case SIG_TARGET_PROC_GROUP:
         case SIG_TARGET_SESSION:
-            err = _send_signal_to_proc_collection(self, sndr, rcvr, signo);
+            err = _send_signal_to_proc_collection(self, dp);
             break;
 
         default:

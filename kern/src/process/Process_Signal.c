@@ -15,17 +15,16 @@
 
 errno_t Process_SendSignal(ProcessRef _Nonnull self, int target, pid_t id, vcpuid_t vid, int signo)
 {
-    sig_sndr_t sndr;
-    sig_rcvr_t rcvr;
+    sig_dispatch_t dp;
 
-    sndr.pid = self->pid;
-    sndr.uid = FileManager_GetRealUserId(&self->fm);
+    dp.sndr.pid = self->pid;
+    dp.sndr.uid = FileManager_GetRealUserId(&self->fm);
+    dp.rcvr.target = target;
+    dp.rcvr.id = id;
+    dp.rcvr.vid = vid;
+    dp.signo = signo;
 
-    rcvr.target = target;
-    rcvr.id = id;
-    rcvr.vid = vid;
-
-    return ProcessManager_SendSignal(gProcessManager, &sndr, &rcvr, signo);
+    return ProcessManager_SendSignal(gProcessManager, &dp);
 }
 
 

@@ -42,6 +42,6 @@ extern errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef
 
 
 // Send the signal 'signo' to one or multiple process(es).
-extern errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_sndr_t* _Nonnull sndr, const sig_rcvr_t* _Nonnull rcvr, int signo);
+extern errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sig_dispatch_t* _Nonnull dp);
 
 #endif /* ProcessManager_h */

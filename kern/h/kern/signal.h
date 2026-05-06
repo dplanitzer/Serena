@@ -30,4 +30,11 @@ typedef struct sig_rcvr {
 #define sig_make_receiver(__target, __pid, __vid) \
 (sig_rcvr_t){__target, __pid, __vid}
 
+
+typedef struct sig_dispatch {
+    sig_sndr_t  sndr;
+    sig_rcvr_t  rcvr;
+    int         signo;
+} sig_dispatch_t;
+
 #endif /* _KERN_SIGNAL_H */
