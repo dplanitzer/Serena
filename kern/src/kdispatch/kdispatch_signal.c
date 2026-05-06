@@ -151,7 +151,7 @@ void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int s
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-static sigset_t _SIGSET_NOSENDMON = sig_bit(_SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_URGENT) | sig_bit(SIG_FORCE_STOP);
+static sigset_t _SIGSET_NOSENDMON = sig_bit(_SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_URGENT) | sig_bit(SIG_FORCE_STOP);
 
 errno_t kdispatch_item_on_signal(kdispatch_t _Nonnull self, int signo, kdispatch_item_t _Nonnull item)
 {

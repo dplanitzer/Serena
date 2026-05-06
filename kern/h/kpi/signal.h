@@ -84,8 +84,8 @@ typedef volatile int sig_atomic_t;
 
 #define sig_bit(__signo) (1 << ((__signo) - 1))
 
-#define SIGSET_NONMASKABLES (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH))
-#define SIGSET_URGENTS      (sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_URGENT))
+#define SIGSET_NONMASKABLES (sig_bit(SIG_TERMINATE))
+#define SIGSET_URGENTS      (sig_bit(SIG_TERMINATE) | sig_bit(SIG_URGENT))
 
 
 #define SIG_TARGET_VCPU             0   /* vcpu inside this process */

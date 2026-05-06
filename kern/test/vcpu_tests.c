@@ -128,10 +128,10 @@ static void test_sigkill_terminator(void)
     puts("B running\n");
 
     clock_wait(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
-    puts("- terminating A -");
+    puts("- terminating vcpu A -");
     
     assert_ok(sig_send(SIG_TARGET_VCPU, vcpu_id(test_sigkill_vcpu_a), SIG_TERMINATE));
-    puts("done");
+    puts("vcpu A terminated - done");
 }
 
 // Two VPs:

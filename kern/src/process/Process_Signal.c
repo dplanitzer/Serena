@@ -145,14 +145,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int target
     mtx_lock(&self->mtx);
     switch (op) {
         case SIG_ROUTE_ADD:
-            if (self->run_state < PROC_STATE_TERMINATING) {
-                err = _add_sigroute(self, signo, target, id);
-            }
-            else {
-                // Don't add new routes if we're exiting
-                // XXX Should probably return a different error code here
-                err = EOK;
-            }
+            err = _add_sigroute(self, signo, target, id);
             break;
 
         case SIG_ROUTE_DEL:
@@ -222,10 +215,32 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
 
 static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int signo)
 {
+    if (self->terminator_vcpu) {
+        // termination is already in progress
+        return;
+    }
+
     self->signo_causing_termination = signo;
-    vcpu_send_signal(vcpu_from_owner_qe(self->vcpu_queue.first), SIG_TERMINATE);
+    self->terminator_vcpu = vcpu_from_owner_qe(self->vcpu_queue.first);
+
+    vcpu_send_signal(self->terminator_vcpu, SIG_TERMINATE);
+    vcpu_resume(self->terminator_vcpu, true);
 }
 
+// This is how signals targeting a process are handled:
+//
+// SIG_TERMINATE:   send to first vcpu in process. This vcpu becomes the termination coordinator
+// SIG_FORCED_STOP: broadcast to all vcpus in the process
+//
+// All other signals may be routed to a vcpu that the process designated. If a
+// signal doesn't get routed then default handling kicks in:
+//
+// SIG_CPU_LIMIT:   terminate process
+// SIG_LOGOUT:      terminate process
+// SIG_QUIT:        terminate process
+// SIG_BKG_READ:    stop process
+// SIG_BKG_WRITE:   stop process
+// SIG_STOP:        stop process
 static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int signo)
 {
     switch (signo) {
@@ -325,9 +340,9 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpu
                 break;
         }
     }
-    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIG_CHILD && self->trmstp_coordinator) {
+    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIG_CHILD && self->terminator_vcpu) {
         // Auto-route SIG_CHILD to the exit coordinator because we're in EXIT state
-        vcpu_send_signal(self->trmstp_coordinator, signo);
+        vcpu_send_signal(self->terminator_vcpu, signo);
     }
     mtx_unlock(&self->mtx);
 

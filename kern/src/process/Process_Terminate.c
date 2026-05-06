@@ -89,32 +89,28 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
 
 
     mtx_lock(&self->mtx);
-    const int isTermCoordinator = self->run_state < PROC_STATE_TERMINATING;
-    
-    if (isTermCoordinator) {
-        _proc_set_state(self, PROC_STATE_TERMINATING, _WAIT_REASON_NONE, 0, false);
-        self->trmstp_coordinator = vcpu_current();
-
-
-        // This is the first vcpu going through the exit. It will act as the
-        // termination coordinator.
-        // Take myself out from the vcpu list and send all other vcpus in the
-        // process an abort signal.
-        deque_remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
-        self->vcpu_count--;
-        _proc_abort_other_vcpus(self);
-    }
-    mtx_unlock(&self->mtx);
-
-
-    if (!isTermCoordinator) {
-        // This is any of the other vcpus in the process that we are shutting
-        // down. Just relinquish yourself. The term coordinator is blocked
-        // waiting for all the other vcpus to relinquish before it will proceed
-        // with the process zombification.
+    if (self->run_state >= PROC_STATE_TERMINATING) {
+        mtx_unlock(&self->mtx);
+        // We're in the process of terminating the process and this isn't the
+        // first vcpu calling Process_Terminate(). Just relinquish at this point
+        // since this is what we're expected to do anyway.
         Process_RelinquishVirtualProcessor(self, vcpu_current());
         /* NOT REACHED */
+        return;
     }
+
+    _proc_set_state(self, PROC_STATE_TERMINATING, _WAIT_REASON_NONE, 0, false);
+    self->terminator_vcpu = vcpu_current();
+
+
+    // This is the first vcpu going through the exit. It will act as the
+    // exit coordinator.
+    // Take myself out from the vcpu list and send all other vcpus in the
+    // process an abort signal.
+    deque_remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+    self->vcpu_count--;
+    _proc_abort_other_vcpus(self);
+    mtx_unlock(&self->mtx);
 
 
     _proc_reap_vcpus(self);

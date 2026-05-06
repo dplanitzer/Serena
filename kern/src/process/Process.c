@@ -126,7 +126,7 @@ catch:
     return err;
 }
 
-void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
+_Noreturn void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     Process_DetachVirtualProcessor(self, vp);
     vcpu_relinquish(vcpu_current());
@@ -453,7 +453,7 @@ void _proc_stop(ProcessRef _Nonnull _Locked self, int reason, int arg, bool noti
         // the suspend is not part of the process 'self'
         this_vp = NULL;
     }
-    self->trmstp_coordinator = this_vp;
+    self->stopper_vcpu = this_vp;
 
 
     // suspend all vcpus except the one that is executing this function
@@ -476,7 +476,7 @@ void _proc_stop(ProcessRef _Nonnull _Locked self, int reason, int arg, bool noti
         mtx_lock(&self->mtx);
     }
 
-    self->trmstp_coordinator = NULL;
+    self->stopper_vcpu = NULL;
 }
 
 // Resume all vcpus in the process if the process is currently in stopped state.
@@ -490,8 +490,8 @@ void _proc_continue(ProcessRef _Nonnull _Locked self, int reason, int arg, bool 
     // see the explanation in _proc_stop(): wait until the suspension coordinator
     // is suspended before proceeding with the resume. This is not necessary if
     // no suspension coordinator has been recorded.
-    if (self->trmstp_coordinator) {
-        vcpu_await_suspension(self->trmstp_coordinator);
+    if (self->stopper_vcpu) {
+        vcpu_await_suspension(self->stopper_vcpu);
     }
 
 

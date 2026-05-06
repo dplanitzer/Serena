@@ -81,7 +81,8 @@ typedef struct Process {
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
 
     // Process state management
-    vcpu_t _Nullable                trmstp_coordinator; // vcpu coordinating process termination or stop
+    vcpu_t _Nullable                terminator_vcpu;    // vcpu coordinating process termination
+    vcpu_t _Nullable                stopper_vcpu;       // vcpu coordinator a stop operation
     int8_t                          run_state;
     state_change_reason_t           run_state_reason;   // reason why we entered the current run state
     int8_t                          signo_causing_termination;  // original signal that will lead to a SIG_TERMINATE

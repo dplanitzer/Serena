@@ -154,7 +154,7 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-static sigset_t _SIGSET_NOSENDMON = sig_bit(_SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_VCPU_RELINQUISH) | sig_bit(SIG_URGENT) | sig_bit(SIG_FORCE_STOP);
+static sigset_t _SIGSET_NOSENDMON = sig_bit(_SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_URGENT) | sig_bit(SIG_FORCE_STOP);
 
 int dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
 {

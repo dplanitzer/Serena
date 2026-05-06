@@ -27,7 +27,7 @@ errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
     const int sps = preempt_disable();
     self->pending_sigs |= sigbit;
 
-    if (signo == SIG_TERMINATE || signo == SIG_VCPU_RELINQUISH) {
+    if (signo == SIG_TERMINATE) {
         // Do a force resume to ensure that the guy picks up the termination
         // request right away.
         vcpu_resume(self, true);

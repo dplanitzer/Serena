@@ -32,11 +32,11 @@ void sig_send_no_perm_test(int argc, char *argv[])
     puts("Sending SIG_TERMINATE to kerneld session");
     assert_nok(EPERM, sig_send(SIG_TARGET_SESSION, PID_KERNELD, SIG_TERMINATE));
 
-    printf("Sending SIG_VCPU_RELINQUISH using SIG_TARGET_PROC to pid: %d (parent)\n", info.ppid);
-    assert_nok(EPERM, sig_send(SIG_TARGET_PROC, info.ppid, SIG_VCPU_RELINQUISH));
+    printf("Sending SIG_URGENT using SIG_TARGET_PROC to pid: %d (parent)\n", info.ppid);
+    assert_nok(EPERM, sig_send(SIG_TARGET_PROC, info.ppid, SIG_URGENT));
 
-    printf("Sending SIG_VCPU_RELINQUISH using SIG_TARGET_VCPU to pid: %d (parent)\n", info.ppid);
-    assert_nok(EPERM, sig_send(SIG_TARGET_VCPU, info.ppid, SIG_VCPU_RELINQUISH));
+    printf("Sending SIG_URGENT using SIG_TARGET_VCPU to pid: %d (parent)\n", info.ppid);
+    assert_nok(EPERM, sig_send(SIG_TARGET_VCPU, info.ppid, SIG_URGENT));
 
     puts("Exiting");
     exit(0);

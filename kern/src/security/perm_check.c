@@ -84,12 +84,6 @@ errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, p
         // nobody may target kerneld with a signal (at this time anyway)
         return EPERM;
     }
-
-    if ((SIGSET_DESIGNATED_VCPU & sig_bit(signo)) != 0) {
-        // designated vcpu signals are privileged and can not be sent across
-        // process boundaries (no matter what scope you use to send the signal)
-        return EPERM;
-    }
     if (rcv_scope < SIG_TARGET_PROC && (sndr->pid != PID_KERNELD && sndr->pid != rcv_pid)) {
         // only the process that owns a vcpu or kerneld may send a signal to a
         // vcpu or vcpu group living inside another process

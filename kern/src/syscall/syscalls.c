@@ -196,12 +196,13 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
     const sigset_t sigs = vp->pending_sigs;
 
     if ((sigs & sig_bit(SIG_TERMINATE)) != 0) {
-        Process_Terminate(vp->proc, WAIT_REASON_SIGNALED, vp->proc->signo_causing_termination);
-        /* NOT REACHED */
-    }
+        if (vp->proc->terminator_vcpu) {
+            Process_Terminate(vp->proc, WAIT_REASON_SIGNALED, vp->proc->signo_causing_termination);
+        }
+        else {
+            Process_RelinquishVirtualProcessor(vp->proc, vp);
+        }
 
-    if ((sigs & sig_bit(SIG_VCPU_RELINQUISH)) != 0) {
-        Process_RelinquishVirtualProcessor(vp->proc, vp);
         /* NOT REACHED */
     }
 
