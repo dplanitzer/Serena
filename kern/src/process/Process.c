@@ -415,7 +415,25 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             clock_ticks2time(g_mono_clock, tt, &ip->wait_time);
             break;
         }
-        
+
+        case PROC_INFO_IDS: {
+            proc_ids_info_t* ip = info;
+
+            ip->pid = self->pid;
+            ip->ppid = self->ppid;
+            ip->pgrp = self->pgrp;
+            ip->sid = self->sid;
+            break;
+        }
+
+        case PROC_INFO_USER: {
+            proc_user_info_t* ip = info;
+
+            ip->uid = FileManager_GetRealUserId(&self->fm);
+            ip->gid = FileManager_GetRealGroupId(&self->fm);
+            break;
+        }
+
         default:
             err = EINVAL;
             break;

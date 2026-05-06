@@ -52,19 +52,21 @@ typedef struct proc_ctx {
 #define SCHED_NICE          2       /* param range: 0..63 */
 
 
-// Information about a process
-typedef void* proc_info_ref;
-
-#define PROC_INFO_BASIC 1
-#define PROC_INFO_TIMES 2
-
-
 // Process run state
 #define PROC_STATE_RUNNING      0       /* This means that either at least one vcpu is in running state or that all vcpus are waiting for something and the process is not stopped */
 #define PROC_STATE_STOPPED      1       /* Process is stopped */
 #define PROC_STATE_TERMINATED   2       /* Process has terminated and parent processes hasn't reaped it yet */
 
 // Process flags
+
+
+// Information about a process
+typedef void* proc_info_ref;
+
+#define PROC_INFO_BASIC 1
+#define PROC_INFO_TIMES 2
+#define PROC_INFO_IDS   3
+#define PROC_INFO_USER  4
 
 
 typedef struct proc_basic_info {
@@ -102,6 +104,20 @@ typedef struct proc_times_info {
     nanotime_t  acq_system_time;    // Time the process has spent running in system/kernel mode since creation. Acquired vcpus only
     nanotime_t  acq_wait_time;      // Time the process has spent in waiting or suspended state since creation. Acquired vcpus only
 } proc_times_info_t;
+
+
+typedef struct proc_ids_info {
+    pid_t           pid;
+    pid_t           ppid;
+    pid_t           pgrp;
+    pid_t           sid;
+} proc_ids_info_t;
+
+
+typedef struct proc_user_info {
+    uid_t           uid;
+    gid_t           gid;
+} proc_user_info_t;
 
 
 // Process properties
