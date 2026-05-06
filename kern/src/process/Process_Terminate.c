@@ -99,6 +99,12 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
         abort();
     }
 
+    // the vcpu executing this code must belong to the process we're trying to
+    // terminate
+    if (vcpu_current()->proc != self) {
+        abort();
+    }
+
 
     mtx_lock(&self->mtx);
     if ((self->flags & PROC_FLAG_TERMINATING) == PROC_FLAG_TERMINATING) {

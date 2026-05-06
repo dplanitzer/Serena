@@ -42,6 +42,7 @@ extern uid_t Process_GetUserId(ProcessRef _Nonnull self);
 // function never returns. It turns the calling process into a zombie and
 // notifies the parent process so that it will eventually reap the zombie and
 // free the it for good.
+// @Entry Condition: calling vcpu must belong to the process 'self'
 extern _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg);
 
 extern void Process_Stop(ProcessRef _Nonnull self, int reason, int arg, bool notify_parent);
