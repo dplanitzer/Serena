@@ -68,6 +68,9 @@ typedef struct proc_rel {
 } proc_rel_t;
 
 
+// Process flags
+#define PROC_FLAG_TERMINATING   1
+
 
 typedef struct Process {
     proc_rel_t                      rel;        // process relationships maintained by the process manager. Must be the first field here
@@ -146,9 +149,6 @@ extern void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable 
 extern errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _Nonnull attr, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
 extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex);
 
-
-// Returns true if the process is the root process
-#define Process_IsRoot(__self) ((__self)->pid == 1)
 
 extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 

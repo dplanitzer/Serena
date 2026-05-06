@@ -19,8 +19,7 @@
 #define RUN_PROC_RUNNING        0
 #define RUN_PROC_SLEEPING       1
 #define RUN_PROC_STOPPED        2
-#define RUN_PROC_TERMINATING    3
-#define RUN_PROC_TERMINATED     4
+#define RUN_PROC_TERMINATED     3
 
 
 typedef struct run_proc {

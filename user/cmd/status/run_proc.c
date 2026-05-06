@@ -21,7 +21,6 @@ const char*     g_run_proc_state_name[5] = {
     "running",      // RUN_PROC_RUNNING
     "sleeping",     // RUN_PROC_SLEEPING
     "stopped",      // RUN_PROC_STOPPED
-    "running",      // RUN_PROC_TERMINATING
     "zombie",       // RUN_PROC_TERMINATED
 };
 
@@ -81,9 +80,6 @@ static int state_from_basic_info(const proc_basic_info_t* _Nonnull ip)
 
         case PROC_STATE_STOPPED:
             return RUN_PROC_STOPPED;
-
-        case PROC_STATE_TERMINATING:
-            return RUN_PROC_TERMINATING;
 
         case PROC_STATE_TERMINATED:
             return RUN_PROC_TERMINATED;

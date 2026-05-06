@@ -321,7 +321,7 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpu
     }
 
     mtx_lock(&self->mtx);
-    if (self->run_state < PROC_STATE_TERMINATING) {
+    if ((self->flags & PROC_FLAG_TERMINATING) == 0) {
         switch (target) {
             case SIG_TARGET_VCPU:
                 err = _proc_send_signal_to_vcpu(self, vid, signo, true);
@@ -340,8 +340,8 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpu
                 break;
         }
     }
-    else if (self->run_state == PROC_STATE_TERMINATING && signo == SIG_CHILD && self->terminator_vcpu) {
-        // Auto-route SIG_CHILD to the exit coordinator because we're in EXIT state
+    else if (signo == SIG_CHILD && self->terminator_vcpu) {
+        // Auto-route SIG_CHILD to the exit coordinator because the process is terminating
         vcpu_send_signal(self->terminator_vcpu, signo);
     }
     mtx_unlock(&self->mtx);
