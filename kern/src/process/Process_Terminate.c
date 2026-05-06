@@ -9,7 +9,7 @@
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
 
-// Operations that are mutual exclusive in the context of exiting a process:
+// Operations that are mutual exclusive in the context of terminating a process:
 // - exit
 // - spawn child
 // - exec
@@ -21,7 +21,19 @@
 // Thus operation like 'spawn child', 'acquire vcpu' should take 'mtx' and then
 // check whether SIG_TERMINATE is pending. If it is return with EINTR since the vcpu is
 // in the process of getting shot down.
-
+//
+// Possible termination paths:
+//
+// exit(): calls Process_Terminate() directly and the exiting vcpu becomes the
+//          termination coordinator.
+//
+// SIG_TERMINATE: if sent to the process, it triggers process termination by
+//          making the first vcpu in the process the termination coordinator.
+//          The process then forwards the SIG_TERMINATE to this vcpu which then
+//          calls Process_Terminate() from its syscall bottom half.
+//
+// proc_terminate() system call: simply sends a SIG_TERMINATE to the process.
+//
 
 // Force quit all child processes and reap their corpses. Do not return to the
 // caller until all of them are dead and gone.
