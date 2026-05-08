@@ -28,7 +28,7 @@ void sem_deinit(sem_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t sem_onwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline)
 {
-    if (wq_timedwait_np(&self->wq, WAIT_ABSTIME, deadline, NULL)) {
+    if (wq_timedwait_np(&self->wq, WAIT_ABSTIME, deadline)) {
         return ETIMEDOUT;
     }
     else {

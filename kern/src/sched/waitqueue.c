@@ -75,7 +75,7 @@ void wq_wait_np(waitqueue_t _Nonnull self)
 // 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp)
+bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const ticks_t start_ticks = clock_getticks(g_mono_clock);
@@ -83,10 +83,6 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nu
     bool armTimeout = false;
 
     assert(vp->run_state == VCPU_STATE_RUNNING);
-
-    if (rmtp) {
-        nanotime_clear(rmtp);
-    }
 
 
     // Put us on the timeout queue if a relevant timeout has been specified.
@@ -147,13 +143,6 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nu
     const ticks_t wait_ticks = stop_ticks - start_ticks;
     vp->wait_ticks += wait_ticks;
     vp->proc->wait_ticks += wait_ticks;
-
-
-    // Calculate the unslept time, if requested
-    if (wtp && rmtp && stop_ticks < deadline_ticks) {
-        clock_ticks2time(g_mono_clock, deadline_ticks - stop_ticks, rmtp);
-    }
-
 
     return false;
 }

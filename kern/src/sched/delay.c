@@ -43,7 +43,7 @@ static void _delay_by(const nanotime_t* _Nonnull wtp)
     
     // This is a medium or long wait -> context switch away
     const int sps = preempt_disable();
-    (void)wq_timedwait_np(&gSleepQueue, 0, wtp, NULL);
+    (void)wq_timedwait_np(&gSleepQueue, 0, wtp);
     preempt_restore(sps);
 }
 

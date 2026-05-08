@@ -134,7 +134,7 @@ SYSCALL_3(wq_timedwait, int q, int flags, const nanotime_t* _Nonnull wtp)
     u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
     if (uwp) {
-        err = (wq_timedwait_np(&uwp->wq, pa->flags, pa->wtp, NULL)) ? ETIMEDOUT : EOK;
+        err = (wq_timedwait_np(&uwp->wq, pa->flags, pa->wtp)) ? ETIMEDOUT : EOK;
     }
     else {
         err = EBADF;
@@ -154,7 +154,7 @@ SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const nanotime_t*
 
     if (uwp_to_wake && uwp_to_wait) {
         wq_wakeup_many_np(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_NO_IMMED_CSW, 0);
-        err = (wq_timedwait_np(&uwp_to_wait->wq, pa->flags, pa->wtp, NULL)) ? ETIMEDOUT : EOK;
+        err = (wq_timedwait_np(&uwp_to_wait->wq, pa->flags, pa->wtp)) ? ETIMEDOUT : EOK;
     }
     else {
         err = EBADF;

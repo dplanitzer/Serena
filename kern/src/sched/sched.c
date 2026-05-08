@@ -232,7 +232,7 @@ _Noreturn void sched_run_chores(sched_t _Nonnull self)
 
         // Continue to wait as long as there's nothing to finalize
         while (deque_empty(&self->finalizer_queue)) {
-            (void)wq_timedwait_np(&g_sched_wq, 0, &timeout, NULL);
+            (void)wq_timedwait_np(&g_sched_wq, 0, &timeout);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

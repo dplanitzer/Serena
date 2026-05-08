@@ -13,7 +13,7 @@
 #include <kpi/clock.h>
 
 
-SYSCALL_4(clock_wait, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
+SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
 {
     ProcessRef pp = vp->proc;
     int options = 0;
@@ -33,8 +33,26 @@ SYSCALL_4(clock_wait, int clockid, int flags, const nanotime_t* _Nonnull wtp, na
 
 
     const int sps = preempt_disable();
-    vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, options, pa->wtp, &signo);
-    //XXX return remaining time in 'pa->rmtp'
+    nanotime_t start_t, stop_t;
+
+    if (pa->rmtp) {
+        clock_gettime(g_mono_clock, &start_t);
+    }
+
+    const bool timedout = vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, options, pa->wtp, &signo);
+
+    if (pa->rmtp) {
+        if (timedout) {
+            // reached the end time
+            nanotime_set(pa->rmtp, &NANOTIME_ZERO);
+        }
+        else {
+            // got interrupted by a canceling signal
+            clock_gettime(g_mono_clock, &stop_t);
+            nanotime_sub(&stop_t, &start_t, pa->rmtp);
+        }
+    }
+
     preempt_restore(sps);
     
     return EOK;

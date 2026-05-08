@@ -15,7 +15,7 @@ SYSCALL_REF(nosys);
 SYSCALL_REF(nullsys);
 
 SYSCALL_REF(clock_time);
-SYSCALL_REF(clock_wait);
+SYSCALL_REF(clock_sleep);
 SYSCALL_REF(clock_info);
 
 SYSCALL_REF(excpt_sethandler);
@@ -109,7 +109,7 @@ SYSCALL_REF(vcpu_info);
 static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_read, SC_ERRNO),
     SYSCALL_ENTRY(fd_write, SC_ERRNO),
-    SYSCALL_ENTRY(clock_wait, SC_ERRNO),
+    SYSCALL_ENTRY(clock_sleep, SC_ERRNO),
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(proc_spawn, SC_ERRNO),

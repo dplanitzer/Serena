@@ -127,7 +127,7 @@ static void test_sigkill_terminator(void)
     nanotime_from_sec(&ts_1sec, 1);
     puts("B running\n");
 
-    clock_wait(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
+    clock_sleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
     puts("- terminating vcpu A -");
     
     assert_ok(sig_send(SIG_TARGET_VCPU, vcpu_id(test_sigkill_vcpu_a), SIG_TERMINATE));
@@ -192,11 +192,11 @@ static void test_suspend_A_loop(void)
     puts("B running\n");
 
     for (;;) {
-        clock_wait(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
+        clock_sleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
         printf("- suspending A (%d) -\n", suspension_count++);
         
         assert_ok(vcpu_suspend(test_suspend_vcpu_a));
-        clock_wait(CLOCK_MONOTONIC, 0, &ts_2sec, NULL);
+        clock_sleep(CLOCK_MONOTONIC, 0, &ts_2sec, NULL);
         
         puts("- resuming A -");
         vcpu_resume(test_suspend_vcpu_a);

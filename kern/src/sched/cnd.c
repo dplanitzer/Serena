@@ -73,7 +73,7 @@ errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_
     const int sps = preempt_disable();
     
     mtx_unlock(mtx);
-    if (wq_timedwait_np(&self->wq, WAIT_ABSTIME, deadline, NULL)) {
+    if (wq_timedwait_np(&self->wq, WAIT_ABSTIME, deadline)) {
         err = ETIMEDOUT;
     }
     mtx_lock(mtx);

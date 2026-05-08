@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
         testToRun->func(argc, argv);
 
         if (testToRun->keepMainRunning) {
-            clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
+            clock_sleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
         }
         else {
             puts("ok");

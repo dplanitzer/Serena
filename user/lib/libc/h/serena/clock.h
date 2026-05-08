@@ -29,7 +29,7 @@ extern int clock_info(clockid_t clockid, int flavor, clock_info_ref _Nonnull inf
 // the remaining time if this function wakes up before the specified timeout
 // value.
 // @Concurrency: Safe
-extern int clock_wait(clockid_t clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp);
+extern int clock_sleep(clockid_t clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp);
 
 __CPP_END
 

@@ -149,7 +149,7 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
         }
 
         vp->wait_sigs = *set;
-        if (wq_timedwait_np(wq, flags, &deadline, NULL)) {
+        if (wq_timedwait_np(wq, flags, &deadline)) {
             err = ETIMEDOUT;
             break;
         }

@@ -17,7 +17,7 @@ __CPP_BEGIN
 enum {
     SC_fd_read = 0,         // errno_t fd_read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
     SC_fd_write,            // errno_t fd_write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-    SC_clock_wait,          // errno_t clock_wait(clockid_t clock, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
+    SC_clock_sleep,         // errno_t clock_sleep(clockid_t clock, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
     SC_vm_allocate,         // errno_t vm_allocate(size_t nbytes, void **pOutMem)
     SC_proc_exit,           // _Noreturn void proc_exit(int code)
     SC_proc_spawn,          // errno_t proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], , const char* _Nullable envp[], proc_spawnattr_t * _Nonnull options, const proc_spawn_actions_t* _Nullable actions, proc_spawnres_t * _Nullable result)

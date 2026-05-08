@@ -76,7 +76,7 @@ extern void wq_wait_np(waitqueue_t _Nonnull self);
 // wq_wakeup_np() when it expires. Returns true on a timeout and false otherwise.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-extern bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp);
+extern bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp);
 
 // Wakes the vcpu 'vp' up if it is currently in wait state. Does nothing
 // otherwise.

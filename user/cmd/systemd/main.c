@@ -66,5 +66,5 @@ int main(int argc, char *argv[])
     }
 
     // Don't exit (doing it this cheep way for now. Should keep an eye on its children though)
-    clock_wait(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
+    clock_sleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
 }

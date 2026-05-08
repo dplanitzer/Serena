@@ -51,6 +51,10 @@ extern int64_t nanotime_ns(nanotime_t* _Nonnull ts);
 ((__ts)->tv_sec >=0 && (__ts)->tv_nsec < NSEC_PER_SEC)
 
 
+#define nanotime_set(__ts, __oth) \
+(__ts)->tv_sec = (__oth)->tv_sec; \
+(__ts)->tv_nsec = (__oth)->tv_nsec
+
 #define nanotime_clear(__ts) \
 (__ts)->tv_sec = 0; \
 (__ts)->tv_nsec = 0
