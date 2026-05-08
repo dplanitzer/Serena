@@ -57,6 +57,9 @@ SYSCALL_3(sig_send, int target, id_t id, int signo)
     switch (pa->target) {
         case SIG_TARGET_VCPU:
         case SIG_TARGET_VCPU_GROUP:
+            // Targeting myself
+            return Process_ReceiveInternalSignal(pp, pa->target, pa->id, pa->signo);
+
         case SIG_TARGET_PROC:
             if (pa->id == PROC_SELF || pa->id == pp->pid) {
                 // Targeting myself
@@ -71,10 +74,6 @@ SYSCALL_3(sig_send, int target, id_t id, int signo)
 
     // Sending a signal to some other process
     switch (pa->target) {
-        case SIG_TARGET_VCPU:
-        case SIG_TARGET_VCPU_GROUP:
-            return EPERM;
-
         case SIG_TARGET_PROC:
             target_id = pa->id;     // proc_self case is handled above 
             break;

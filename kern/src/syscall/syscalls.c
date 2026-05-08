@@ -207,7 +207,7 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
         /* NOT REACHED */
     }
 
-    if ((sigs & sig_bit(SIG_URGENT)) != 0) {
+    if ((sigs & sig_bit(SIG_SYSTEM)) != 0) {
         vcpu_do_pending_deferred_suspend(vp);
     }
 }

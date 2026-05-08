@@ -154,7 +154,7 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-static sigset_t _SIGSET_NOSENDMON = sig_bit(_SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_URGENT) | sig_bit(SIG_FORCE_STOP);
+static sigset_t _SIGSET_NOSENDMON = sig_bit(_SIG_DISPATCH) | sig_bit(SIG_TERMINATE) | sig_bit(SIG_SYSTEM) | sig_bit(SIG_FORCE_STOP);
 
 int dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
 {
@@ -225,7 +225,7 @@ vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self)
 int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
 {
     vcpuid_t id;
-    int r, scope;
+    int r, target;
 
     if (signo < SIG_MIN || signo > SIG_MAX || (_SIGSET_NOSENDMON & sig_bit(signo)) != 0) {
         errno = EINVAL;
@@ -235,14 +235,14 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     mtx_lock(&self->mutex);
     if (self->attr.maxConcurrency == 1 && self->workers.first) {
         id = ((dispatch_worker_t)self->workers.first)->id;
-        scope = SIG_TARGET_VCPU;
+        target = SIG_TARGET_VCPU;
     }
     else {
         id = self->group_id;
-        scope = SIG_TARGET_VCPU_GROUP;
+        target = SIG_TARGET_VCPU_GROUP;
     }
 
-    r = sig_send(scope, id, signo);
+    r = sig_send(target, id, signo);
     mtx_unlock(&self->mutex);
     return r;
 }

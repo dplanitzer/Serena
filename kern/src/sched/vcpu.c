@@ -418,7 +418,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     }
     else if (self->suspension_count == 1 && self->run_state != VCPU_STATE_SUSPENDED) {
         // 'self' is some other vcpu in some state (running, ready, waiting). Trigger a deferred suspend on it
-        vcpu_send_signal(self, SIG_URGENT);
+        vcpu_send_signal(self, SIG_SYSTEM);
     }
 
 catch:
@@ -431,7 +431,7 @@ void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
 
-    self->pending_sigs &= ~sig_bit(SIG_URGENT);
+    self->pending_sigs &= ~sig_bit(SIG_SYSTEM);
 
     if (self->suspension_count > 0 && self->run_state != VCPU_STATE_SUSPENDED) {
         self->run_state = VCPU_STATE_SUSPENDED;

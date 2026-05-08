@@ -44,7 +44,7 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIG_TERMINATE       1   // Forced process termination, non-routable
-#define SIG_URGENT          2   // Notifies a vcpu that some important management state has changed and that it should enter kernel space and reevaluate the state now
+#define SIG_SYSTEM          2   // Notifies a vcpu that some important system state has changed and that it should enter kernel space and reevaluate its state now
 #define SIG_FORCE_STOP      3   // Forced process stop, non-routable
 #define SIG_STOP            4   // TTY, voluntary process stop, default: stop process
 #define SIG_CONTINUE        5   // TTY, default: continue process, non-routable
@@ -57,29 +57,29 @@ typedef volatile int sig_atomic_t;
 #define SIG_WIN_CHANGE      12  // TTY, console window size changed, default: ignore
 #define SIG_BKG_READ        13  // TTY, background process attempt to read from terminal input, default: stop/suspend process
 #define SIG_BKG_WRITE       14  // TTY, background process attempt to write to terminal output, default: stop/suspend process
-#define SIG_RESERVED        15  // Reserved for the OS
-#define SIG_USER_1          16  // User defined signals, default: ignore
-#define SIG_USER_2          17
-#define SIG_USER_3          18
-#define SIG_USER_4          19
-#define SIG_USER_5          20
-#define SIG_USER_6          21
-#define SIG_USER_7          22
-#define SIG_USER_8          23
-#define SIG_USER_9          24
-#define SIG_USER_10         25
-#define SIG_USER_11         26
-#define SIG_USER_12         27
-#define SIG_USER_13         28
-#define SIG_USER_14         29
-#define SIG_USER_15         30
-#define SIG_USER_16         31
-#define SIG_USER_17         32
+#define SIG_RESERVED1       15  // Reserved for the OS
+#define SIG_RESERVED2       16  // Reserved for the OS
+#define SIG_USER_1          17  // User defined signals, default: ignore
+#define SIG_USER_2          18
+#define SIG_USER_3          19
+#define SIG_USER_4          20
+#define SIG_USER_5          21
+#define SIG_USER_6          22
+#define SIG_USER_7          23
+#define SIG_USER_8          24
+#define SIG_USER_9          25
+#define SIG_USER_10         26
+#define SIG_USER_11         27
+#define SIG_USER_12         28
+#define SIG_USER_13         29
+#define SIG_USER_14         30
+#define SIG_USER_15         31
+#define SIG_USER_16         32
 
 #define SIG_USER        SIG_USER_1
 
 #define SIG_USER_MIN    SIG_USER_1
-#define SIG_USER_MAX    SIG_USER_17
+#define SIG_USER_MAX    SIG_USER_16
 
 
 #define sig_bit(__signo) (1 << ((__signo) - 1))
