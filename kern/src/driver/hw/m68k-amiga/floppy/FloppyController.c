@@ -391,7 +391,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     
     clock_gettime(g_mono_clock, &now);
     nanotime_from_ms(&dly, 500);
-    nanotime_add(&now, &dly, &deadline);
+    nanotime_add(&deadline, &now, &dly);
     err = sem_acquire(&self->done_sem, &deadline);
 
 

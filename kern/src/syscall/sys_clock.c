@@ -49,7 +49,7 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
         else {
             // got interrupted by a canceling signal
             clock_gettime(g_mono_clock, &stop_t);
-            nanotime_sub(&stop_t, &start_t, pa->rmtp);
+            nanotime_sub(pa->rmtp, &stop_t, &start_t);
         }
     }
 

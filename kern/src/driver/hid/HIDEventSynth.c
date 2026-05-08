@@ -129,7 +129,7 @@ static bool _key_repeat_tick(HIDEventSynthRef _Nonnull self, HIDSynthResult* _No
         result->keyCode = self->keyCode;
 
         while (nanotime_lt(&self->nextEventTime, &now)) {
-            nanotime_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
+            nanotime_add(&self->nextEventTime, &self->nextEventTime, &self->keyRepeatDelay);
         }
 
         return true;
@@ -152,7 +152,7 @@ HIDSynthAction HIDEventSynth_Tick(HIDEventSynthRef _Nonnull self, const HIDEvent
                 self->keyFlags = evt->data.key.flags;
                 self->keyCode = evt->data.key.keyCode;
                 clock_gettime(g_mono_clock, &now);
-                nanotime_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
+                nanotime_add(&self->nextEventTime, &now, &self->initialKeyRepeatDelay);
             }
             else {
                 self->state = kState_Idle;

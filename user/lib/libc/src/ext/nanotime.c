@@ -43,35 +43,35 @@ int64_t nanotime_ns(nanotime_t* _Nonnull ts)
 }
 
 
-void nanotime_add(const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1, nanotime_t* _Nonnull res)
+void nanotime_add(nanotime_t* _Nonnull ts, const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1)
 {
-    res->tv_sec = t0->tv_sec + t1->tv_sec;
-    res->tv_nsec = t0->tv_nsec + t1->tv_nsec;
+    ts->tv_sec = t0->tv_sec + t1->tv_sec;
+    ts->tv_nsec = t0->tv_nsec + t1->tv_nsec;
 
-    if (res->tv_nsec >= NSEC_PER_SEC) {
-        res->tv_sec++;
-        res->tv_nsec -= NSEC_PER_SEC;
+    if (ts->tv_nsec >= NSEC_PER_SEC) {
+        ts->tv_sec++;
+        ts->tv_nsec -= NSEC_PER_SEC;
     }
     
     // Check for overflow
-    if (res->tv_sec < 0) {
-        *res = NANOTIME_INF;
+    if (ts->tv_sec < 0) {
+        *ts = NANOTIME_INF;
     }
 }
 
-void nanotime_sub(const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1, nanotime_t* _Nonnull res)
+void nanotime_sub(nanotime_t* _Nonnull ts, const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1)
 {
-    res->tv_sec = t0->tv_sec - t1->tv_sec;
-    res->tv_nsec = t0->tv_nsec - t1->tv_nsec;
+    ts->tv_sec = t0->tv_sec - t1->tv_sec;
+    ts->tv_nsec = t0->tv_nsec - t1->tv_nsec;
     
-    if (res->tv_nsec < 0) {
-        res->tv_sec--;
-        res->tv_nsec += NSEC_PER_SEC;
+    if (ts->tv_nsec < 0) {
+        ts->tv_sec--;
+        ts->tv_nsec += NSEC_PER_SEC;
     }
 
     // Check for underflow
-    if (res->tv_sec < 0) {
-        *res = NANOTIME_ZERO;
+    if (ts->tv_sec < 0) {
+        *ts = NANOTIME_ZERO;
     }
 }
 

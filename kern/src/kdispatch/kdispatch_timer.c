@@ -150,7 +150,7 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
         nanotime_t now;
 
         clock_gettime(g_mono_clock, &now);
-        nanotime_add(&now, &timer->deadline, &timer->deadline);
+        nanotime_add(&timer->deadline, &now, &timer->deadline);
     }
 
 
@@ -173,7 +173,7 @@ void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t
     // the future (the next fire date we haven't already missed).
     clock_gettime(g_mono_clock, &now);
     do  {
-        nanotime_add(&timer->deadline, &timer->interval, &timer->deadline);
+        nanotime_add(&timer->deadline, &timer->deadline, &timer->interval);
     } while (nanotime_le(&timer->deadline, &now) && nanotime_gt(&timer->interval, &NANOTIME_ZERO));
 
 

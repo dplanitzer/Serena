@@ -115,7 +115,7 @@ static void run_proc_sample(pid_t pid)
     rp->sid = basic.sid;
     rp->uid = basic.uid;
     rp->vcpu_count = basic.vcpu_count;
-    nanotime_sub(&g_info.current_time, &times.creation_time, &rp->run_time);
+    nanotime_sub(&rp->run_time, &g_info.current_time, &times.creation_time);
     rp->vm_size = basic.vm_size;
     rp->state = state_from_basic_info(&basic);
     rp->flags.alive = 1;

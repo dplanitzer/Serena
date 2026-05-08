@@ -132,7 +132,7 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
     }
     else {
         clock_gettime(g_mono_clock, &now);
-        nanotime_add(&now, wtp, &deadline);
+        nanotime_add(&deadline, &now, wtp);
         flags |= WAIT_ABSTIME;
     }
 

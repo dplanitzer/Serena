@@ -154,7 +154,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
         nanotime_t now;
 
         clock_time(CLOCK_MONOTONIC, &now);
-        nanotime_add(&now, &timer->deadline, &timer->deadline);
+        nanotime_add(&timer->deadline, &now, &timer->deadline);
     }
 
 
@@ -177,7 +177,7 @@ void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _N
     // the future (the next fire date we haven't already missed).
     clock_time(CLOCK_MONOTONIC, &now);
     do  {
-        nanotime_add(&timer->deadline, &timer->interval, &timer->deadline);
+        nanotime_add(&timer->deadline, &timer->deadline, &timer->interval);
     } while (nanotime_le(&timer->deadline, &now) && nanotime_gt(&timer->interval, &NANOTIME_ZERO));
     
 

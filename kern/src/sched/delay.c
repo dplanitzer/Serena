@@ -31,7 +31,7 @@ static void _delay_by(const nanotime_t* _Nonnull wtp)
         nanotime_t now, deadline;
     
         clock_gettime_hires(g_mono_clock, &now);
-        nanotime_add(&now, wtp, &deadline);
+        nanotime_add(&deadline, &now, wtp);
 
         // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
         while (nanotime_lt(&now, &deadline)) {

@@ -76,8 +76,8 @@ extern int64_t nanotime_ns(nanotime_t* _Nonnull ts);
 ((__t0)->tv_sec > (__t1)->tv_sec || ((__t0)->tv_sec == (__t1)->tv_sec && (__t0)->tv_nsec >= (__t1)->tv_nsec))
 
 
-extern void nanotime_add(const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1, nanotime_t* _Nonnull res);
-extern void nanotime_sub(const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1, nanotime_t* _Nonnull res);
+extern void nanotime_add(nanotime_t* _Nonnull ts, const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1);
+extern void nanotime_sub(nanotime_t* _Nonnull ts, const nanotime_t* _Nonnull t0, const nanotime_t* _Nonnull t1);
 
 
 // Normalizes the given nanotime in the sense that it accepts a nanotime for
