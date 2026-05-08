@@ -56,25 +56,22 @@ errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq
 // @Entry Condition: preemption disabled
 void mtx_onwait(mtx_t* _Nonnull self)
 {
-    const errno_t err = wq_wait(&self->wq, &SIGSET_IGNORE_ALL);
-    
-    if (err != EOK) {
-        fatalError(__func__, __LINE__, err);
-        /* NOT REACHED */
-    }
+    wq_wait_np(&self->wq);
 }
 
 // Invoked by mtx_unlock().
 // @Entry Condition: preemption disabled
 void mtx_wake(mtx_t* _Nullable self)
 {
-    wq_wakeup_many(&self->wq, WAKEUP_ALL, WRES_WAKEUP, 0);
+    wq_wakeup_many_np(&self->wq, WAKEUP_ALL, 0);
 }
 
 // Invoked by mtx_unlock_then_wait().
 // @Entry Condition: preemption disabled
 errno_t mtx_wake_then_wait(mtx_t* _Nullable self, struct waitqueue* _Nonnull wq)
 {
-    wq_wakeup_many(&self->wq, WAKEUP_ALL | WAKEUP_NO_IMMED_CSW, WRES_WAKEUP, 0);
-    return wq_wait(wq, NULL);
+    wq_wakeup_many_np(&self->wq, WAKEUP_ALL | WAKEUP_NO_IMMED_CSW, 0);
+    wq_wait_np(wq);
+
+    return EOK;
 }

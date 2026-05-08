@@ -205,7 +205,7 @@ _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     
     if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && g_sched_wq.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
-        wq_wakeup_vcpu(&g_sched_wq, self->boot_vp, 0, WRES_WAKEUP, 0);
+        wq_wakeup_vcpu_np(&g_sched_wq, self->boot_vp, 0, 0);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue
@@ -232,11 +232,7 @@ _Noreturn void sched_run_chores(sched_t _Nonnull self)
 
         // Continue to wait as long as there's nothing to finalize
         while (deque_empty(&self->finalizer_queue)) {
-            (void)wq_timedwait(&g_sched_wq,
-                                &SIGSET_IGNORE_ALL,
-                                0,
-                                &timeout,
-                                NULL);
+            (void)wq_timedwait_np(&g_sched_wq, 0, &timeout, NULL);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

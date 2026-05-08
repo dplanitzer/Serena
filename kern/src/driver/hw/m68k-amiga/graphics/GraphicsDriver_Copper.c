@@ -114,7 +114,7 @@ void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
 
 
         mtx_unlock(&self->io_mtx);
-        vcpu_wait_for_signal(&self->copvpWaitQueue, &self->copvpSigs, &signo);
+        vcpu_sigwait(&self->copvpWaitQueue, &self->copvpSigs, &signo);
         mtx_lock(&self->io_mtx);
     }
 

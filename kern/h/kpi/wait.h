@@ -26,6 +26,9 @@
 
 // proc_waitstate() flags
 #define WAIT_NONBLOCKING    1   /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
+#if defined(__KERNEL__)
+#define _WAIT_CANCELABLE    2
+#endif
 
 // Reason for a status change
 #define WAIT_REASON_EXITED      1

@@ -245,11 +245,9 @@ vcpu_send_signal_boost(__self, __signo, 0)
 // Returns a copy of the pending signals
 extern sigset_t vcpu_pending_signals(vcpu_t _Nonnull self);
 
-// @Entry Condition: preemption disabled
-extern errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
+extern void vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
 
-// @Entry Condition: preemption disabled
-extern errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
+extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns true if the vcpu is in aborting state. Meaning that it has received a
 // SIG_TERMINATE and that it will relinquish soon.

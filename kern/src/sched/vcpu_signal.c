@@ -34,7 +34,7 @@ errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
     }
         
     if ((self->wait_sigs & sigbit) != 0) {
-        wq_wakeup_vcpu(self->waiting_on_wait_queue, self, 0, WRES_SIGNAL, pri_boost);
+        wq_wakeup_vcpu_np(self->waiting_on_wait_queue, self, 0, pri_boost);
     }
     preempt_restore(sps);
 
@@ -58,7 +58,7 @@ bool vcpu_is_aborting(vcpu_t _Nonnull self)
     return r;
 }
 
-static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set)
+static int _consume_best_pending_sig2(vcpu_t _Nonnull self, sigset_t _Nonnull set)
 {
     const sigset_t avail_sigs = self->pending_sigs & set;
 
@@ -80,40 +80,49 @@ static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set
     return 0;
 }
 
-errno_t vcpu_wait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo)
+// NOTE: assumes that 'hot_sigs' has at least one signal set
+static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t hot_sigs)
 {
-    const int sps = preempt_disable();
-    vcpu_t vp = (vcpu_t)g_sched->running;
-    bool done = false;
-    errno_t err;
+    int signo = 0;
 
-    while (!done) {
-        if (wq_prim_wait(wq, set, 0, NULL, NULL) == WRES_SIGNAL) {
-            const int best_signo = _consume_best_pending_sig(vp, *set);
-
-            if (best_signo) {
-                *signo = best_signo;
-                err = EOK;
-            }
-            else {
-                err = EINTR;
-            }
-
-            done = true;
+    for (int i = SIG_MIN-1; i < SIG_MAX; i++) {
+        const sigset_t sigbit = hot_sigs & (1 << i);
+            
+        if (sigbit) {
+            signo = i + 1;
+            break;
         }
     }
 
-    preempt_restore(sps);
-    return err;
+    if (signo != SIG_TERMINATE) {
+        self->pending_sigs &= ~sig_bit(signo);
+    }
+    return signo;
 }
 
-errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
+void vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo)
 {
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
+
+    for (;;) {
+        const sigset_t hot_sigs = vp->pending_sigs & (*set);
+
+        if (hot_sigs != 0) {
+            *signo = _consume_best_pending_sig(vp, hot_sigs);
+            break;
+        }
+
+        vp->wait_sigs = *set;
+        wq_wait_np(wq);
+    }
+    preempt_restore(sps);
+}
+
+errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
+{
+    decl_try_err();
     nanotime_t now, deadline;
-    bool done = false;
-    errno_t err;
     
     // Convert a relative timeout to an absolute timeout because it makes it
     // easier to deal with spurious wakeups and we won't accumulate math errors
@@ -124,36 +133,28 @@ errno_t vcpu_timedwait_for_signal(waitqueue_t _Nonnull wq, const sigset_t* _Nonn
     else {
         clock_gettime(g_mono_clock, &now);
         nanotime_add(&now, wtp, &deadline);
+        flags |= WAIT_ABSTIME;
     }
 
 
-    while (!done) {
-        switch (wq_prim_wait(wq, set, flags, &deadline, NULL)) {
-            case WRES_WAKEUP:   // Spurious wakeup
-                break;
+    const int sps = preempt_disable();
+    vcpu_t vp = (vcpu_t)g_sched->running;
 
-            case WRES_SIGNAL: {
-                const int best_signo = _consume_best_pending_sig(vp, *set);
+    for (;;) {
+        const sigset_t hot_sigs = vp->pending_sigs & (*set);
 
-                if (best_signo) {
-                    *signo = best_signo;
-                    err = EOK;
-                }
-                else {
-                    err = EINTR;
-                }
+        if (hot_sigs != 0) {
+            *signo = _consume_best_pending_sig(vp, hot_sigs);
+            break;
+        }
 
-                done = true;
-                break;
-            }
-
-            case WRES_TIMEOUT:
-                err = ETIMEDOUT;
-                done = true;
-                break;
+        vp->wait_sigs = *set;
+        if (wq_timedwait_np(wq, flags, &deadline, NULL)) {
+            err = ETIMEDOUT;
+            break;
         }
     }
-
     preempt_restore(sps);
+    
     return err;
 }

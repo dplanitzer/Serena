@@ -15,6 +15,11 @@
 
 SYSCALL_4(clock_wait, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
 {
+    ProcessRef pp = vp->proc;
+    int options = 0;
+    const sigset_t sigs = sig_bit(SIG_TERMINATE);
+    int signo;
+
     if (!nanotime_isvalid(pa->wtp)) {
         return EINVAL;
     }
@@ -22,20 +27,17 @@ SYSCALL_4(clock_wait, int clockid, int flags, const nanotime_t* _Nonnull wtp, na
         return ENODEV;
     }
 
-
-    int options = 0;
     if ((pa->flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
         options |= WAIT_ABSTIME;
     }
 
 
-    // This is a medium or long wait -> context switch away
-    ProcessRef pp = vp->proc;
     const int sps = preempt_disable();
-    const int err = wq_timedwait(&pp->clk_wait_queue, NULL, options, pa->wtp, pa->rmtp);
+    vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, options, pa->wtp, &signo);
+    //XXX return remaining time in 'pa->rmtp'
     preempt_restore(sps);
     
-    return (err != ETIMEDOUT) ? err : EOK;
+    return EOK;
 }
 
 SYSCALL_2(clock_time, int clockid, nanotime_t* _Nonnull time)

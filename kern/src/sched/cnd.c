@@ -34,8 +34,8 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost)
     // mutex and thus the other guy would not be able to grab the mutex and all
     // we would end up doing is a useless CSW from us to the other guy and the
     // other guy then has to CSW back to us when it tries to take the mutex that
-    // we are still holding. 
-    wq_wakeup_many(&self->wq, flags | WAKEUP_NO_IMMED_CSW, WRES_WAKEUP, pri_boost);
+    // we are still holding.
+    wq_wakeup_many_np(&self->wq, flags | WAKEUP_NO_IMMED_CSW, pri_boost);
     preempt_restore(sps);
 }
 
@@ -69,14 +69,13 @@ errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
 // It then locks 'pLock' before it returns to the caller.
 errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_t* _Nonnull deadline)
 {
+    decl_try_err();
     const int sps = preempt_disable();
     
     mtx_unlock(mtx);
-    const int err = wq_timedwait(&self->wq,
-                                NULL,
-                                WAIT_ABSTIME,
-                                deadline,
-                                NULL);
+    if (wq_timedwait_np(&self->wq, WAIT_ABSTIME, deadline, NULL)) {
+        err = ETIMEDOUT;
+    }
     mtx_lock(mtx);
 
     preempt_restore(sps);

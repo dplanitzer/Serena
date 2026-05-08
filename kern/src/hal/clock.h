@@ -22,7 +22,7 @@ typedef void (*deadline_func_t)(void* _Nullable arg);
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 typedef struct clock_deadline {
     struct clock_deadline* _Nullable    next;
-    ticks_t                              deadline;
+    ticks_t                             deadline;
     deadline_func_t _Nonnull            func;
     void* _Nullable                     arg;
     bool                                isArmed;

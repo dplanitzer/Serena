@@ -33,19 +33,52 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
     return err;
 }
 
-
-// The basic non-time-limited wait primitive. This function waits on the wait
-// queue until it is explicitly woken up by one of the wake() calls or a signal
-// arrives that is in the signal set 'set'. Note that 'set' is accepted as is
-// and this function does _not_ ensure that non-maskable signals are added to
-// 'set'. It's your responsibility to do this if so desired. Enables just
-// non-maskable signals if 'set' is NULL.
+// 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp)
+void wq_wait_np(waitqueue_t _Nonnull self)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
-    const sigset_t hot_sigs = (set) ? *set : SIGSET_NONMASKABLES;
+    const ticks_t start_ticks = clock_getticks(g_mono_clock);
+
+    assert(vp->run_state == VCPU_STATE_RUNNING);
+
+    // FIFO order.
+    deque_add_last(&self->q, &vp->rewa_qe);
+    
+    vp->run_state = VCPU_STATE_WAITING;
+    vp->waiting_on_wait_queue = self;
+    vp->wakeup_reason = 0;
+    vp->flags |= VP_FLAG_DID_WAIT;
+    if (vp->quantum_countdown > 0) {
+        // Reduce the remaining quantum size a bit to ensure that this vcpu
+        // doesn't end up monopolizing the CPU after wakeup just because it
+        // frequently enters the wait state and thus the quantum doesn't get
+        // much of a chance to "run down" the natural way.
+        vp->quantum_countdown -= SCHED_QUANTUM_NUDGE;
+    }
+
+
+    // Find another VP to run and context switch to it
+    vp->proc->vcpu_waiting_count++;
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
+    vp->proc->vcpu_waiting_count--;
+
+    
+    // Update the wait time stats
+    const ticks_t stop_ticks = clock_getticks(g_mono_clock);
+    const ticks_t wait_ticks = stop_ticks - start_ticks;
+    vp->wait_ticks += wait_ticks;
+    vp->proc->wait_ticks += wait_ticks;
+}
+
+// 
+// @Entry Condition: preemption disabled
+// @Entry Condition: 'vp' must be in running state
+bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp)
+{
+    vcpu_t vp = (vcpu_t)g_sched->running;
+    const ticks_t start_ticks = clock_getticks(g_mono_clock);
     ticks_t deadline_ticks;
     bool armTimeout = false;
 
@@ -55,13 +88,6 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
         nanotime_clear(rmtp);
     }
 
-    if ((vp->pending_sigs & hot_sigs) != 0) {
-        return WRES_SIGNAL;
-    }
-
-
-    // Time when the wait officially starts
-    const ticks_t start_ticks = clock_getticks(g_mono_clock);
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
@@ -73,7 +99,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
         }
 
         if (deadline_ticks <= start_ticks) {
-            return WRES_TIMEOUT;
+            return true;
         }
 
         armTimeout = true;
@@ -85,7 +111,6 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
     
     vp->run_state = VCPU_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
-    vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
     vp->flags |= VP_FLAG_DID_WAIT;
     if (vp->quantum_countdown > 0) {
@@ -130,34 +155,12 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, in
     }
 
 
-    return vp->wakeup_reason;
+    return false;
 }
-
-
-
-// @Entry Condition: preemption disabled
-errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
-{
-    switch (wq_prim_wait(self, set, 0, NULL, NULL)) {
-        case WRES_WAKEUP:   return EOK;
-        default:            return EINTR;
-    }
-}
-
-// @Entry Condition: preemption disabled
-errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp)
-{
-    switch (wq_prim_wait(self, set, flags, wtp, rmtp)) {
-        case WRES_SIGNAL:   return EINTR;
-        case WRES_TIMEOUT:  return ETIMEDOUT;
-        default:            return EOK;
-    }
-}
-
 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason, int pri_boost)
+void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, int pri_boost)
 {
     // Nothing to do if we are not waiting
     if (vp->run_state != VCPU_STATE_WAITING) {
@@ -165,14 +168,13 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
     }
     
 
-    // Finish the wait. Remove the VP from the wait queue, the timeout queue and
-    // store the wake reason.
+    // Remove the VP from the wait queue
     deque_remove(&self->q, &vp->rewa_qe);
     clock_cancel_deadline(g_mono_clock, &vp->timeout);
-    
+
     vp->waiting_on_wait_queue = NULL;
-    vp->wakeup_reason = reason;
-    
+    vp->wakeup_reason = ((flags & WAKEUP_TIMEOUT) == WAKEUP_TIMEOUT) ? WRES_TIMEOUT : WRES_WAKEUP;
+
 
     if (!vcpu_is_fixed_pri(vp)) {
         bool do_sched_params_changed = false;
@@ -224,7 +226,7 @@ void wq_wakeup_vcpu(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wr
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-void wq_wakeup_many(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost)
+void wq_wakeup_many_np(waitqueue_t _Nonnull self, int flags, int pri_boost)
 {
     register deque_node_t* cp = self->q.first;
 
@@ -233,12 +235,12 @@ void wq_wakeup_many(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri
         while (cp) {
             register deque_node_t* np = cp->next;
             
-            wq_wakeup_vcpu(self, (vcpu_t)cp, WAKEUP_NO_IMMED_CSW, reason, pri_boost);
+            wq_wakeup_vcpu_np(self, (vcpu_t)cp, WAKEUP_NO_IMMED_CSW, pri_boost);
             cp = np;
         }
     }
     else {
         // Wake the first waiter
-        wq_wakeup_vcpu(self, (vcpu_t)cp, flags & ~WAKEUP_ONE, reason, pri_boost);
+        wq_wakeup_vcpu_np(self, (vcpu_t)cp, flags & ~WAKEUP_ONE, pri_boost);
     }
 }

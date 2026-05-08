@@ -106,11 +106,8 @@ void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, in
 errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
     decl_try_err();
-
-    if ((flags & ~(WAIT_NONBLOCKING)) != 0) {
-        return EINVAL;
-    }
-
+    sigset_t hot_sigs = sig_bit(SIG_CHILD) | sig_bit(SIG_TERMINATE);
+    int signo;
 
     for (;;) {
         err = ProcessManager_GetStatusForProcessMatchingState(gProcessManager, wstate, self->pid, match, id, res);
@@ -123,13 +120,10 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
             return EAGAIN;
         }
 
-
-        sigset_t hot_sigs = sig_bit(SIG_CHILD);
-        int signo;
-
-        err = vcpu_wait_for_signal(&self->siwa_queue, &hot_sigs, &signo);
-        if (err != EOK) {
-            return err;
+        vcpu_sigwait(&self->siwa_queue, &hot_sigs, &signo);
+        if (signo == SIG_TERMINATE & ((flags & _WAIT_CANCELABLE) == _WAIT_CANCELABLE)) {
+            err = EINTR;
+            break;
         }
     }
 

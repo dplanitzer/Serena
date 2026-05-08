@@ -25,11 +25,10 @@ struct vcpu;
 #define WAIT_ABSTIME        2
 
 
-// Requests that wakeup() wakes up all vcpus on the wait queue.
-#define WAKEUP_ALL  0
-
-// Requests that wakeup() wakes up at most one vcpu instead of all.
-#define WAKEUP_ONE  1
+// wakeup() options
+#define WAKEUP_ALL      0   /* Requests that wakeup() wakes up all vcpus on the wait queue. */
+#define WAKEUP_ONE      1   /* Requests that wakeup() wakes up at most one vcpu instead of all. */
+#define WAKEUP_TIMEOUT  2   /* This is a timedwait() timeout wakeup */
 
 // Do not allow the wakeup() call to immediately context switch to the waiting
 // vcpu even if the QoS class and the current execution context would in
@@ -37,7 +36,7 @@ struct vcpu;
 // marked ready and added to teh ready queue. The context switch will be
 // deferred until preemption is reenabled and the quantum of the calling vcpu
 // has expired.
-#define WAKEUP_NO_IMMED_CSW  2
+#define WAKEUP_NO_IMMED_CSW  4
 
 
 // Wait result/wakeup reason
@@ -62,50 +61,30 @@ extern void wq_init(waitqueue_t _Nonnull self);
 extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 
 
-// The basic non-time-limited wait primitive. This function waits on the wait
-// queue until it is explicitly woken up by one of the wake() calls or a signal
-// arrives that is in the signal set 'set'. Note that 'set' is accepted as is
-// and this function does _not_ ensure that non-maskable signals are added to
-// 'set'. It's your responsibility to do this if so desired. Enables just
-// non-maskable signals if 'set' is NULL.
+//
+// Low-level primitives (only use these to implement higher level wait/wake APIs)
+//
+
+// Blocks the caller until it is woken up by a wq_wakeup_np() or
+// wq_wakeup_many_np() call.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp);
+extern void wq_wait_np(waitqueue_t _Nonnull self);
 
-
-// Checks whether the caller has signals pending that are members of the signal
-// set 'set' and returns immediately if that's the case. Note that 'set' is
-// taken verbatim if provided. This function does not automatically add the
-// non-maskable signals to the set if they are missing. It is your responsibility
-// to do that if so desired. Puts the caller to sleep until a wakeup() is executed
-// by some other VP. Note that this function does not consume/clear any pending
-// signals. It's the responsibility of the caller to do this if so desired.
-// Note: most callers should pass NULL for 'set'. Passing something else is a
-// special case that is only relevant if you do not want to be woken up by a
-// vcpu abort.
+// Blocks the caller until it is woken up by a wq_wakeup_np() or
+// wq_wakeup_many_np() call. Also schedules a timeout timer that will trigger a
+// wq_wakeup_np() when it expires. Returns true on a timeout and false otherwise.
 // @Entry Condition: preemption disabled
-extern errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set);
+// @Entry Condition: 'vp' must be in running state
+extern bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp);
 
-// Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
-// either the maximum duration to wait or the absolute time until to wait. The
-// WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
-// receives the amount of time remaining if the wait was canceled early.
-extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const nanotime_t* _Nullable wtp, nanotime_t* _Nullable rmtp);
-
-
-// Wakes up 'vp' if it is currently in waiting state. The wakeup reason is
-// specified by 'reason'. 'flags' controls whether context switching to 'vp'
-// is allowed or should not be done. 'pri_boost' is the priority boost that
-// should be granted to 'vp'. This should be in the range [0...VCPU_PRI_COUNT-1].
-// @IRQ Context Safe
+// Wakes the vcpu 'vp' up if it is currently in wait state. Does nothing
+// otherwise.
 // @Entry Condition: preemption disabled
-extern void wq_wakeup_vcpu(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, wres_t reason, int pri_boost);
+extern void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, int pri_boost);
 
-// Wakes up either one or all waiters on the wait queue. The woken up VPs are
-// removed from the wait queue. 'pri_boost' is the priority boost that should be
-// granted to 'vp'. This should be in the range [0...VCPU_PRI_COUNT-1].
-// @IRQ Context Safe
+// Wakes one or all vcpus on the wait queue up.
 // @Entry Condition: preemption disabled
-extern void wq_wakeup_many(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost);
+extern void wq_wakeup_many_np(waitqueue_t _Nonnull self, int flags, int pri_boost);
 
 #endif /* _WAITQUEUE_H */

@@ -115,7 +115,12 @@ SYSCALL_1(wq_wait, int q)
     const int sps = preempt_disable();
     u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
-    err = (uwp) ? wq_wait(&uwp->wq, NULL) : EBADF;
+    if (uwp) {
+        wq_wait_np(&uwp->wq);
+    }
+    else {
+        err = EBADF;
+    }
     preempt_restore(sps);
     return err;
 }
@@ -128,7 +133,12 @@ SYSCALL_3(wq_timedwait, int q, int flags, const nanotime_t* _Nonnull wtp)
     const int sps = preempt_disable();
     u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
-    err = (uwp) ? wq_timedwait(&uwp->wq, NULL, pa->flags, pa->wtp, NULL) : EBADF;
+    if (uwp) {
+        err = (wq_timedwait_np(&uwp->wq, pa->flags, pa->wtp, NULL)) ? ETIMEDOUT : EOK;
+    }
+    else {
+        err = EBADF;
+    }
     preempt_restore(sps);
     return err;
 }
@@ -143,8 +153,8 @@ SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const nanotime_t*
     u_wait_queue_t uwp_to_wait = _find_uwq(pp, pa->q2);
 
     if (uwp_to_wake && uwp_to_wait) {
-        wq_wakeup_many(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_NO_IMMED_CSW, WRES_WAKEUP, 0);
-        err = wq_timedwait(&uwp_to_wait->wq, NULL, pa->flags, pa->wtp, NULL);
+        wq_wakeup_many_np(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_NO_IMMED_CSW, 0);
+        err = (wq_timedwait_np(&uwp_to_wait->wq, pa->flags, pa->wtp, NULL)) ? ETIMEDOUT : EOK;
     }
     else {
         err = EBADF;
@@ -163,7 +173,7 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
     if (uwp) {
-        wq_wakeup_many(&uwp->wq, wflags, WRES_WAKEUP, 0);
+        wq_wakeup_many_np(&uwp->wq, wflags, 0);
     }
     else {
         err = EBADF;

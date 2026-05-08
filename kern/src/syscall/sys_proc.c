@@ -89,7 +89,13 @@ SYSCALL_1(proc_exit, int code)
 
 SYSCALL_5(proc_waitstate, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
-    return Process_WaitForState(vp->proc, pa->wstate, pa->match, pa->id, pa->flags, pa->res);
+    const int user_flags = WAIT_NONBLOCKING;
+
+    if ((pa->flags & ~user_flags) != 0) {
+        return EINVAL;
+    }
+
+    return Process_WaitForState(vp->proc, pa->wstate, pa->match, pa->id, pa->flags | _WAIT_CANCELABLE, pa->res);
 }
 
 SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)
