@@ -39,14 +39,6 @@ struct vcpu;
 #define WAKEUP_NO_IMMED_CSW  4
 
 
-// Wait result/wakeup reason
-typedef int8_t  wres_t;
-
-#define WRES_WAKEUP     1
-#define WRES_SIGNAL     2
-#define WRES_TIMEOUT    3
-
-
 struct waitqueue {
     deque_t q;
 };
@@ -76,7 +68,7 @@ extern void wq_wait_np(waitqueue_t _Nonnull self);
 // wq_wakeup_np() when it expires. Returns true on a timeout and false otherwise.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-extern bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp);
+extern bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp);
 
 // Wakes the vcpu 'vp' up if it is currently in wait state. Does nothing
 // otherwise.

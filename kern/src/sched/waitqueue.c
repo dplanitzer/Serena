@@ -14,6 +14,9 @@
 #include <hal/sched.h>
 #include <process/ProcessPriv.h>
 
+#define WRES_WAKEUP     1
+#define WRES_TIMEOUT    2
+
 
 void wq_init(waitqueue_t _Nonnull self)
 {
@@ -75,7 +78,7 @@ void wq_wait_np(waitqueue_t _Nonnull self)
 // 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nullable wtp)
+bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const ticks_t start_ticks = clock_getticks(g_mono_clock);
@@ -85,9 +88,9 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nu
     assert(vp->run_state == VCPU_STATE_RUNNING);
 
 
-    // Put us on the timeout queue if a relevant timeout has been specified.
-    // Note that we return immediately if we're already past the deadline
-    if (wtp && nanotime_lt(wtp, &NANOTIME_INF)) {
+    // Put us on the timeout queue. Note that we return immediately if we're
+    // already past the deadline
+    if (nanotime_lt(wtp, &NANOTIME_INF)) {
         deadline_ticks = clock_time2ticks_ceil(g_mono_clock, wtp);
 
         if ((flags & WAIT_ABSTIME) == 0) {

@@ -11,6 +11,7 @@
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
+#include <kern/sigset.h>
 #include <process/ProcessPriv.h>
 
 

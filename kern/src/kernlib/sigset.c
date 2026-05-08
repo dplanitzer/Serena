@@ -10,8 +10,8 @@
 #include <kern/sigset.h>
 
 
-const sigset_t SIGSET_IGNORE_ALL = 0;
 const sigset_t SIGSET_NON_ROUTABLE = sig_bit(SIG_TERMINATE) | sig_bit(SIG_FORCE_STOP) | sig_bit(SIG_CONTINUE) | sig_bit(SIG_URGENT);
+const sigset_t SIGSET_URGENTS = sig_bit(SIG_TERMINATE) | sig_bit(SIG_URGENT);
 
 
 errno_t sigset_init(sigset_t* _Nonnull set, int signo)

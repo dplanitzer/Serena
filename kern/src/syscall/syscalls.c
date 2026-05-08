@@ -7,6 +7,7 @@
 //
 
 #include "syscalldecls.h"
+#include <kern/sigset.h>
 #include <kpi/process.h>
 
 
