@@ -45,7 +45,7 @@ extern int atomic_int_load(volatile atomic_int* _Nonnull p);
 // Atomically replaces the old value in 'p' with 'val' and returns the old value.
 extern int atomic_int_exchange(volatile atomic_int* _Nonnull p, int val);
 
-extern bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p, volatile atomic_int* _Nonnull expected, int desired);
+extern bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p, int* _Nonnull expected, int desired);
 
 // Atomically adds 'op' to 'p'. Does not detect overflow. Instead the value will
 // wrap around. Returns the old value.

@@ -15,19 +15,18 @@
 #include <ext/nanotime.h>
 #include <ext/try.h>
 #include <kpi/signal.h>
-#include <kpi/waitqueue.h>
+#include <kpi/synch.h>
+#include <kpi/_time.h>
 
 
 struct vcpu;
 
 
 // wait() options
-#define WAIT_ABSTIME        2
+#define WAIT_ABSTIME        TIMER_ABSTIME
 
 
-// wakeup() options
-#define WAKEUP_ALL      0   /* Requests that wakeup() wakes up all vcpus on the wait queue. */
-#define WAKEUP_ONE      1   /* Requests that wakeup() wakes up at most one vcpu instead of all. */
+// wakeup() options (see kpi/synch.h for user visible options)
 #define WAKEUP_TIMEOUT  2   /* This is a timedwait() timeout wakeup */
 
 // Do not allow the wakeup() call to immediately context switch to the waiting
@@ -44,6 +43,7 @@ struct waitqueue {
 };
 typedef struct waitqueue* waitqueue_t;
 
+#define WAITQUEUE_INIT (struct waitqueue){0}
 
 
 extern void wq_init(waitqueue_t _Nonnull self);

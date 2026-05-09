@@ -52,13 +52,13 @@ typedef volatile int sig_atomic_t;
 #define SIG_LOGOUT          7   // XXX logind, user logged out, default: terminate
 #define SIG_QUIT            8   // TTY, process quit, default: terminate
 #define SIG_INTERRUPT       9   // TTY, process interrupt, default: ignore
-#define SIG_TIMEOUT         10  // XXX clock_alarm(), default: ignore
+#define SIG_RESERVED1       10  // Reserved for the OS
 #define SIG_CHILD           11  // kernel, child process changed state, default: ignore
 #define SIG_WIN_CHANGE      12  // TTY, console window size changed, default: ignore
 #define SIG_BKG_READ        13  // TTY, background process attempt to read from terminal input, default: stop/suspend process
 #define SIG_BKG_WRITE       14  // TTY, background process attempt to write to terminal output, default: stop/suspend process
-#define SIG_RESERVED1       15  // Reserved for the OS
-#define SIG_RESERVED2       16  // Reserved for the OS
+#define SIG_RESERVED2       15  // Reserved for the OS
+#define SIG_RESERVED3       16  // Reserved for the OS
 #define SIG_USER_1          17  // User defined signals, default: ignore
 #define SIG_USER_2          18
 #define SIG_USER_3          19

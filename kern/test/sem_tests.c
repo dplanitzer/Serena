@@ -1,5 +1,5 @@
 //
-//  semaphore_tests.c
+//  sem_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 7/8/25.
@@ -35,22 +35,22 @@ static void philosopher(int* num)
     const int p = *num;
     nanotime_t wt;
 
-    nanotime_from_sec(&wt, 2);
+    nanotime_from_sec(&wt, 1);
     while (true) {
-        assert_ok(sem_wait(&room, 1));
+        assert_ok(sem_wait(&room));
         printf("Philosopher %d has entered room\n", p);
         
-        assert_ok(sem_wait(&chopstick[LEFT(p)], 1));
-        assert_ok(sem_wait(&chopstick[RIGHT(p)], 1));
+        assert_ok(sem_wait(&chopstick[LEFT(p)]));
+        assert_ok(sem_wait(&chopstick[RIGHT(p)]));
 
         printf("Philosopher %d is eating...\n", p);
         clock_sleep(CLOCK_MONOTONIC, 0, &wt, NULL);
         printf("Philosopher %d has finished eating\n", p);
 
-        assert_ok(sem_post(&chopstick[RIGHT(p)], 1));
-        assert_ok(sem_post(&chopstick[LEFT(p)], 1));
+        assert_ok(sem_post(&chopstick[RIGHT(p)]));
+        assert_ok(sem_post(&chopstick[LEFT(p)]));
         
-        assert_ok(sem_post(&room, 1));
+        assert_ok(sem_post(&room));
     }
 }
 

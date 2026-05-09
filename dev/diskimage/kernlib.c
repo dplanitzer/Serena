@@ -69,7 +69,7 @@ int atomic_int_exchange(volatile atomic_int* _Nonnull p, int op)
     return old_val;
 }
 
-bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p, volatile atomic_int* _Nonnull expected, int desired)
+bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p, int* _Nonnull expected, int desired)
 {
     if (p->value == expected->value) {
         p->value = desired;

@@ -18,9 +18,7 @@ extern errno_t _mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _No
 
 void mtx_init(mtx_t* _Nonnull self)
 {
-    self->value = 0;
-    wq_init(&self->wq);
-    self->owner = NULL;
+    *self = MTX_INIT;
 }
 
 void mtx_deinit(mtx_t* _Nonnull self)

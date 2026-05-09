@@ -20,7 +20,7 @@
 
 void wq_init(waitqueue_t _Nonnull self)
 {
-    self->q = DEQUE_INIT;
+    *self = WAITQUEUE_INIT;
 }
 
 errno_t wq_deinit(waitqueue_t _Nonnull self)

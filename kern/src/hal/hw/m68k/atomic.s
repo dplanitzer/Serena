@@ -50,7 +50,7 @@ __atomic_int_exchange_reg:
 
 
 ;-------------------------------------------------------------------------------
-; bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p{a0}, volatile atomic_int* _Nonnull expected{a1}, int desired{d1})
+; bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p{a0}, int* _Nonnull expected{a1}, int desired{d1})
 ; IRQ safe
 ; Line A handler safe
 _atomic_int_compare_exchange_strong:

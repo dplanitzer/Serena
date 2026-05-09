@@ -22,6 +22,8 @@ typedef struct mtx {
     struct vcpu* _Nullable  owner;  // Pointer to the VP that is currently holding the lock
 } mtx_t;
 
+#define MTX_INIT (struct mtx){0}
+
 
 // Initializes a new mutex.
 extern void mtx_init(mtx_t* _Nonnull self);

@@ -19,6 +19,7 @@ __CPP_BEGIN
 //
 
 #define hash_scalar(__val)  hash_djb2_scalar(__val)
+#define hash_ptr(__val)     hash_djb2_ptr(__val)
 #define hash_string(__str)  hash_djb2_string(__str)
 #define hash_bytes(__bytes, __len)  hash_djb2_bytes(__bytes, __len)
 
@@ -35,7 +36,10 @@ __CPP_BEGIN
 //
 
 #define hash_djb2_scalar(__val) \
-(4521 + (size_t)(__val))
+(4521u + (size_t)(__val))
+
+#define hash_djb2_ptr(__val) \
+(4521u + (size_t)(__val))
 
 extern size_t hash_djb2_string(const char* _Nonnull str);
 extern size_t hash_djb2_bytes(const void* _Nonnull bytes, size_t len);

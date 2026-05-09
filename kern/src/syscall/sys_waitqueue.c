@@ -12,6 +12,7 @@
 #include <hal/sched.h>
 #include <kern/kalloc.h>
 #include <kpi/signal.h>
+#include <kpi/waitqueue.h>
 #include <sched/waitqueue.h>
 
 
