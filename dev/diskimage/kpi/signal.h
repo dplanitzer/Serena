@@ -6,10 +6,10 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#if defined(_WIN32) || defined(_WIN64)
+//#if defined(_WIN32) || defined(_WIN64)
 #include <../../kern/h/kpi/signal.h>
-#endif
+//#endif
 
-#if defined(__APPLE__)
-#include <signal.h>
-#endif
+//#if defined(__APPLE__)
+//#include <signal.h>
+//#endif

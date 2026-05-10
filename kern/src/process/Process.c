@@ -19,13 +19,6 @@ static void _proc_deinit(ProcessRef _Nonnull self)
     IOChannelTable_Deinit(&self->ioChannelTable);
     FileManager_Deinit(&self->fm);
     _proc_destroy_sigroutes(self);
-
-    for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        deque_for_each(&self->waitQueueTable[i], struct u_wait_queue, it,
-            uwq_destroy(it);
-        )
-    }
-
     wq_deinit(&self->siwa_queue);
     wq_deinit(&self->clk_wait_queue);
     AddressSpace_Deinit(&self->addr_space);

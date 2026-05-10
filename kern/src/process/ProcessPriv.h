@@ -23,19 +23,6 @@
 #define PROC_DEFAULT_USER_STACK_SIZE    CPU_PAGE_SIZE
 
 
-// User space wait queues
-#define UWQ_HASH_CHAIN_COUNT    4
-#define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)
-
-struct u_wait_queue {
-    deque_node_t        qe;
-    struct waitqueue    wq;
-    unsigned int        policy;
-    int                 id;
-};
-typedef struct u_wait_queue* u_wait_queue_t;
-
-
 // Signal routes
 struct sigroute {
     queue_node_t    qe;
@@ -128,10 +115,6 @@ typedef struct Process {
     ticks_t                         rq_system_ticks;    // number of clock ticks this process has spent running in system space across all relinquished vcpus
     ticks_t                         rq_wait_ticks;      // number of clock ticks this process has spent waiting or suspended across all relinquished vcpus
 
-    // User wait queues
-    deque_t/*<struct u_wait_queue>*/waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> struct u_wait_queue
-    int                             nextAvailWaitQueueId;
-
     // All VPs that belong to this process and are currently in a clock_sleep()
     struct waitqueue                clk_wait_queue;
     
@@ -141,8 +124,6 @@ typedef struct Process {
     // Signal routes
     queue_t/*struct sigroute>*/     sig_route[SIG_MAX];
 } Process;
-
-extern void uwq_destroy(u_wait_queue_t _Nullable self);
 
 
 extern void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent, FileHierarchyRef _Nonnull fh, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir);

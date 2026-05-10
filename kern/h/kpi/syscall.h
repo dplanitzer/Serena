@@ -44,7 +44,7 @@ enum {
     SC_fd_truncate,         // errno_t fd_truncate(int fd, off_t length)
     SC_fs_create_file,      // errno_t fs_create_file(int wd, const char* _Nonnull path, int options, fs_perms_t fsperms, int* _Nonnull fd)
     SC_pipe_create,         // errno_t pipe_create(int fds[2])
-    SC_wq_dispose,          // void wq_dispose(int q)
+    SC_unused_1,            // UNUSED
     SC_clock_time,          // errno_t clock_time(clockid_t clock, nanotime_t* _Nonnull ts)
     SC_fs_mount,            // errno_t fs_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
     SC_fs_unmount,          // errno_t fs_unmount(const char* _Nonnull atDirPath, int flags)
@@ -58,17 +58,17 @@ enum {
     SC_fs_setperms,         // errno_t fs_setperms(int, const char* _Nonnull path, fs_perms_t fsperms)
     SC_fs_settimes,         // errno_t fs_settimes(int, const char* _Nonnull path, const nanotime_t times[_Nullable 2])
     SC_vcpu_yield,          // void vcpu_yield(void)
-    SC_wq_create,           // int wq_create(int policy)
-    SC_wq_wait,             // int wq_wait(int q)
-    SC_wq_timedwait,        // int wq_timedwait(int q, int flags, const nanotime_t* _Nonnull wtp)
-    SC_wq_wakeup,           // int wq_wakeup(int q, int flags)
+    SC_unused_2,            // UNUSED
+    SC_unused_3,            // UNUSED
+    SC_unused_4,            // UNUSED
+    SC_unused_5,            // UNUSED
     SC_proc_info,           // int proc_info(pid_t id, int flavor, proc_info_ref _Nonnull info)
     SC_sig_route,           // int sig_route(int op, int signo, int target, id_t id)
     SC_vcpu_getdata,        // intptr_t __vcpu_getdata(void)
     SC_vcpu_setdata,        // void __vcpu_setdata(intptr_t data)
     SC_sig_wait,            // int sig_wait(const sigset_t* _Nonnull set, int* _Nonnull signo)
     SC_sig_timedwait,       // int sig_timedwait(const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
-    SC_wq_wakeup_then_timedwait,    // int wq_wakeup_then_timedwait(int q, int q2, int flags, const nanotime_t* _Nonnull wtp)
+    SC_unused_6,            // UNUSED
     SC_sig_pending,         // int sig_pending(sigset_t* _Nonnull set)
     SC_host_filesystems,    // errno_t host_filesystems(fsid_t* _Nonnull buf, size_t bufSize)
     SC_fs_info,             // errno_t fs_info(int flavor, fs_info_ref _Nonnull info)

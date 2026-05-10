@@ -53,11 +53,6 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     
     IOChannelTable_Init(&self->ioChannelTable);
 
-    for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        self->waitQueueTable[i] = DEQUE_INIT;
-    }
-    self->nextAvailWaitQueueId = 0;
-
     clock_gettime(g_mono_clock, &self->creation_time);
 
     wq_init(&self->clk_wait_queue);
