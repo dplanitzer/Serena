@@ -10,7 +10,7 @@
 
 #include "__synch.h"
 
-int cnd_signal(cnd_t* _Nonnull self)
+int cnd_broadcast(cnd_t* _Nonnull self)
 {
     if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
@@ -18,5 +18,5 @@ int cnd_signal(cnd_t* _Nonnull self)
     }
 
     atomic_int_fetch_add(&self->seq, 1);
-    ww_wakeup(&self->seq, WAKEUP_ONE);
+    ww_wakeup(&self->seq, WAKEUP_ALL);
 }

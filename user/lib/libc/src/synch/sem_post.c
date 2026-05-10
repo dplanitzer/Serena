@@ -7,7 +7,6 @@
 //
 
 #include "__synch.h"
-#include <errno.h>
 
 int sem_post(sem_t* _Nonnull self)
 {

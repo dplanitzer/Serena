@@ -7,7 +7,6 @@
 //
 
 #include "__synch.h"
-#include <errno.h>
 #include <serena/clock.h>
 
 int sem_timedwait(sem_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wtp)

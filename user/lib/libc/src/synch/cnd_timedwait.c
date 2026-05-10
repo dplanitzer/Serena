@@ -1,5 +1,5 @@
 //
-//  cnd_wait.c
+//  cnd_timedwait.c
 //  libc
 //
 //  Based on: https://locklessinc.com/articles/mutex_cv_futex/
@@ -10,7 +10,7 @@
 
 #include "__synch.h"
 
-int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
+int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const nanotime_t* _Nonnull wtp)
 {
     if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
@@ -21,11 +21,12 @@ int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
 
     mtx_unlock(mutex);
 
-    ww_wait(&self->seq, seq);
+    int r = ww_timedwait(&self->seq, seq, flags, wtp);
 
+    // Note that we need to acquire the mutex even if the timed wait timed out.
     while (atomic_int_exchange(&mutex->state, _MTX_CONTENTED) != _MTX_AVAILABLE) {
         ww_wait(&mutex->state, _MTX_CONTENTED);
     }
 
-    return 0;
+    return r;
 }

@@ -16,8 +16,9 @@
 __CPP_BEGIN
 
 typedef struct sem {
-    atomic_int  value;
-    int         signature;
+    volatile atomic_int value;
+    int                 signature;
+    int                 reserved[2];
 } sem_t;
 
 

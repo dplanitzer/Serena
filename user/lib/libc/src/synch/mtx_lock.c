@@ -2,39 +2,41 @@
 //  mtx_lock.c
 //  libc
 //
-//  Created by Dietmar Planitzer on 6/26/25.
-//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//  Based on: https://www.akkadia.org/drepper/futex.pdf
+// 
+//  Created by Dietmar Planitzer on 5/9/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include "__synch.h"
-#include <stdbool.h>
 
+static int _compare_exchange(volatile atomic_int* _Nonnull p, int expected, int desired)
+{
+    int* ep = &expected;
+
+    atomic_int_compare_exchange_strong(p, ep, desired);
+    return *ep;
+}
 
 int mtx_lock(mtx_t* _Nonnull self)
 {
-    bool didWakeup = false;
-
     if (self->signature != MTX_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    for (;;) {
-        spin_lock(&self->spinlock);
-        if (didWakeup) {
-            self->waiters--;
+
+    int s = _compare_exchange(&self->state, _MTX_AVAILABLE, _MTX_LOCKED);
+    if (s != _MTX_AVAILABLE) {
+        if (s != _MTX_CONTENTED) {
+            s = atomic_int_exchange(&self->state, _MTX_CONTENTED);
         }
 
-        if (self->state == 0) {
-            self->state = 1;
-            spin_unlock(&self->spinlock);
-            return 0;
+        while (s != _MTX_AVAILABLE) {
+            ww_wait(&self->state, _MTX_CONTENTED);
+            s = atomic_int_exchange(&self->state, _MTX_CONTENTED);
         }
-
-        self->waiters++;
-        spin_unlock(&self->spinlock);
-        wq_wait(self->wait_queue);
-        didWakeup = true;
     }
-    /* NOT REACHED */
+
+    return 0;
 }

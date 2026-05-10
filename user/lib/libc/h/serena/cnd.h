@@ -11,15 +11,13 @@
 
 #include <time.h>
 #include <serena/mtx.h>
-#include <serena/signal.h>
-#include <serena/spinlock.h>
 
 __CPP_BEGIN
 
 typedef struct cnd {
-    spinlock_t  spinlock;
-    int         wait_queue;
-    int         signature;
+    volatile atomic_int seq;
+    int                 signature;
+    int                 reserved[2];
 } cnd_t;
 
 

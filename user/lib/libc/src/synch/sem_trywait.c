@@ -7,8 +7,6 @@
 //
 
 #include "__synch.h"
-#include <errno.h>
-
 
 bool __sem_trywait(sem_t* _Nonnull self)
 {

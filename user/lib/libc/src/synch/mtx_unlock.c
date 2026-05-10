@@ -2,22 +2,24 @@
 //  mtx_unlock.c
 //  libc
 //
-//  Created by Dietmar Planitzer on 6/26/25.
-//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//  Based on: https://www.akkadia.org/drepper/futex.pdf
+//
+//  Created by Dietmar Planitzer on 5/9/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include "__synch.h"
 
-
 int mtx_unlock(mtx_t* _Nonnull self)
 {
-    const int r = __mtx_unlock(self);
+    if (self->signature != MTX_SIGNATURE) {
+        errno = EINVAL;
+        return -1;
+    }
 
-    if (r == 1) {
-        wq_wakeup(self->wait_queue, WAKE_ONE);
-        return 0;
+    if (atomic_int_fetch_sub(&self->state, 1) != _MTX_LOCKED) {
+        atomic_int_store(&self->state, _MTX_AVAILABLE);
+        ww_wakeup(&self->state, WAKEUP_ONE);
     }
-    else {
-        return r;
-    }
+    return 0;
 }

@@ -2,12 +2,11 @@
 //  mtx_trylock.c
 //  libc
 //
-//  Created by Dietmar Planitzer on 6/26/25.
-//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/9/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include "__synch.h"
-
 
 int mtx_trylock(mtx_t* _Nonnull self)
 {
@@ -16,14 +15,14 @@ int mtx_trylock(mtx_t* _Nonnull self)
         return -1;
     }
 
-    spin_lock(&self->spinlock);
-    if (self->state == 0) {
-        self->state = 1;
-        spin_unlock(&self->spinlock);
+    int s = _MTX_AVAILABLE;
+    atomic_int_compare_exchange_strong(&self->state, &s, _MTX_LOCKED);
+    
+    if (s == _MTX_AVAILABLE) {
         return 0;
     }
-    spin_unlock(&self->spinlock);
-
-    errno = EBUSY;
-    return -1;
+    else {
+        errno = EAGAIN;
+        return -1;
+    }
 }

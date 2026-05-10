@@ -10,16 +10,14 @@
 #define _SERENA_MTX_H 1
 
 #include <_cmndef.h>
-#include <serena/spinlock.h>
+#include <ext/atomic.h>
 
 __CPP_BEGIN
 
 typedef struct mtx {
-    spinlock_t  spinlock;
-    int         state;
-    int         waiters;
-    int         signature;
-    int         wait_queue;
+    volatile atomic_int state;
+    int                 signature;
+    int                 reserved[2];
 } mtx_t;
 
 
@@ -34,7 +32,7 @@ extern int mtx_deinit(mtx_t* _Nonnull mutex);
 
 
 // Attempts to acquire the given mutex. Returns 0 on success and -1 with errno
-// set to EBUSY if the mutex is currently being held by some other execution
+// set to EAGAIN if the mutex is currently being held by some other execution
 // context.
 // @Concurrency: Safe
 extern int mtx_trylock(mtx_t* _Nonnull mutex);

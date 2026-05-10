@@ -2,13 +2,11 @@
 //  mtx_deinit.c
 //  libc
 //
-//  Created by Dietmar Planitzer on 6/26/25.
-//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/9/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include "__synch.h"
-#include <kpi/syscall.h>
-
 
 int mtx_deinit(mtx_t* _Nonnull self)
 {
@@ -17,9 +15,6 @@ int mtx_deinit(mtx_t* _Nonnull self)
         return -1;
     }
 
-    const int r = _syscall(SC_wq_dispose, self->wait_queue);
     self->signature = 0;
-    self->wait_queue = -1;
-
-    return r;
+    return 0;
 }
