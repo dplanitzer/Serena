@@ -93,7 +93,7 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _No
     if (nanotime_lt(wtp, &NANOTIME_INF)) {
         deadline_ticks = clock_time2ticks_ceil(g_mono_clock, wtp);
 
-        if ((flags & WAIT_ABSTIME) == 0) {
+        if ((flags & TIMER_ABSTIME) == 0) {
             deadline_ticks += start_ticks; 
         }
 

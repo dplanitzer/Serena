@@ -127,13 +127,13 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
     // Convert a relative timeout to an absolute timeout because it makes it
     // easier to deal with spurious wakeups and we won't accumulate math errors
     // caused by time resolution limitations.
-    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
+    if ((flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
         deadline = *wtp;
     }
     else {
         clock_gettime(g_mono_clock, &now);
         nanotime_add(&deadline, &now, wtp);
-        flags |= WAIT_ABSTIME;
+        flags |= TIMER_ABSTIME;
     }
 
 

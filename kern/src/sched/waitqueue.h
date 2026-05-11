@@ -22,10 +22,6 @@
 struct vcpu;
 
 
-// wait() options
-#define WAIT_ABSTIME        TIMER_ABSTIME
-
-
 // wakeup() options (see kpi/synch.h for user visible options)
 #define WAKEUP_TIMEOUT  2   /* This is a timedwait() timeout wakeup */
 

@@ -16,19 +16,17 @@
 SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
 {
     ProcessRef pp = vp->proc;
-    int options = 0;
     const sigset_t sigs = sig_bit(SIG_TERMINATE);
     int signo;
 
     if (!nanotime_isvalid(pa->wtp)) {
         return EINVAL;
     }
+    if ((pa->flags & ~TIMER_ABSTIME) != 0) {
+        return EINVAL;
+    }
     if (pa->clockid != CLOCK_MONOTONIC) {
         return ENODEV;
-    }
-
-    if ((pa->flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
-        options |= WAIT_ABSTIME;
     }
 
 
@@ -39,7 +37,7 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
         clock_gettime(g_mono_clock, &start_t);
     }
 
-    const bool timedout = vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, options, pa->wtp, &signo);
+    const bool timedout = vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, pa->flags, pa->wtp, &signo);
 
     if (pa->rmtp) {
         if (timedout) {
