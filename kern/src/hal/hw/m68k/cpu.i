@@ -124,14 +124,14 @@ CACR_FIC_BIT        equ 13
 
     macro SAVE_CPU_STATE
     movem.l d0 - d7 / a0 - a6, -(sp)
-    move.l  usp, a1         ; save the user stack pointer
+    movec.l usp, a1         ; save the user stack pointer
     move.l  a1, -(sp)
     endm
 
 
     macro RESTORE_CPU_STATE
     move.l  (sp)+, a1       ; restore the user stack pointer
-    move.l  a1, usp
+    movec.l a1, usp         ; 68060 errata, I11
     movem.l (sp)+, d0 - d7 / a0 - a6
     endm
 

@@ -249,7 +249,7 @@ void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesM
 
     // Enable super scalar mode and branch caching on the 68060
     if (cpu_family == CPU_FAMILY_68060) {
-        cpu060_set_pcr_bits(M68060_PCR_ESS);
+        cpu060_set_pcr_bits(M68060_PCR_ESS | M68060_PCR_DSLBP);
         cpu_enable_branch_cache(1);
     }
 }

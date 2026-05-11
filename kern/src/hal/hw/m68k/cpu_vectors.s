@@ -239,7 +239,7 @@ __excpt_return:
 __cpu_exception_raise:
     cargs   cer_cpu_code.l, cer_faddr.l
 
-    movec   usp, a1
+    movec.l usp, a1
     move.l  cer_cpu_code(a1), d0
     cmp.l   #2, d0
     blt.s   .1
@@ -306,7 +306,7 @@ __sys_entry:
 
         ; Invoke the system call handler. This function writes its function
         ; result to the system call save area
-        move.l  usp, a0
+        movec.l usp, a0
         move.l  a0, -(sp)
         move.l  a1, -(sp)
         jsr     __syscall_handler

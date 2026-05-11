@@ -404,7 +404,7 @@ _cpu060_set_pcr_bits:
 ; uintptr_t usp_get(void)
 ; Returns the current user stack pointer.
 _usp_get:
-        move.l  usp, a0
+        movec.l usp, a0
         move.l  a0, d0
         rts
 
@@ -416,7 +416,7 @@ _usp_set:
     inline
     cargs usps_pc.l
         move.l  usps_pc(sp), a0
-        move.l  a0, usp
+        movec.l a0, usp     ; 68060 errata, I11
         rts
     einline
 
@@ -428,9 +428,9 @@ _usp_grow:
     inline
     cargs usp_gr_nbytes.l
         move.l  usp_gr_nbytes(sp), d0
-        move.l  usp, a0
+        movec.l usp, a0
         sub.l   d0, a0
-        move.l  a0, usp
+        movec.l a0, usp     ; 68060 errata, I11
         move.l  a0, d0
         rts
     einline
@@ -443,8 +443,8 @@ _usp_shrink:
     inline
     cargs usp_sh_nbytes.l
         move.l  usp_sh_nbytes(sp), d0
-        move.l  usp, a0
+        movec.l usp, a0
         add.l   d0, a0
-        move.l  a0, usp
+        movec.l a0, usp     ; 68060 errata, I11
         rts
     einline

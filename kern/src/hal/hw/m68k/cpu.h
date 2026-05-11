@@ -572,8 +572,13 @@ extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
 extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
 
 
-#define M68060_PCR_ESS  (1 << 0)
-#define M68060_PCR_DFP  (1 << 1)
+#define M68060_PCR_ESS      (1 << 0)
+#define M68060_PCR_DFP      (1 << 1)
+#define M68060_PCR_DSLBP    (1 << 5)    /* disable store/load by-pass, see 68060 errata I14 & I15 */
+#define M68060_PCR_EDEBUG   (1 << 7)
+
+#define cpu060_get_revision_number(__pcr) \
+(((__pcr) >> 8) & 0xff)
 
 extern void cpu060_set_pcr_bits(uint32_t bits);
 
