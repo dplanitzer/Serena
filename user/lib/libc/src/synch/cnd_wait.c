@@ -23,8 +23,8 @@ int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
 
     ww_wait(&self->seq, seq);
 
-    while (atomic_int_exchange(&mutex->state, _MTX_CONTENTED) != _MTX_AVAILABLE) {
-        ww_wait(&mutex->state, _MTX_CONTENTED);
+    while (atomic_int_exchange(&mutex->state, _MTX_CONTENDED) != _MTX_AVAILABLE) {
+        ww_wait(&mutex->state, _MTX_CONTENDED);
     }
 
     return 0;

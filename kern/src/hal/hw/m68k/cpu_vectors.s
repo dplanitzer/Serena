@@ -126,13 +126,15 @@ _cpu_vector_table:
 ; Line A exception handler
 __line_a_exception:
     movem.l d2/a2, -(sp)
-    move.w  ([10, sp]), d2          ; load PC pointing to the $Axxx instruction
+    move.l  10(sp), a2              ; load PC pointing to the $Axxx instruction
+    move.w  (a2), d2                ; load the $Axxx instruction
     and.w   #$0fff, d2
     cmp.w   #ATOMIC_INSTR_LAST, d2
     bgt.s   .not_a_line_a_exception
     lea     __aline_table(pc, d2.w*4), a2
-    jsr     ([a2])
-    addq.l  #2, 10(sp)
+    move.l  (a2), a2                ; avoid using double indirect memory addressing modes because of the 68060 errata I16
+    jsr     (a2)
+    addq.l  #2, 10(sp)              ; move PC past the $Axxx instruction
     movem.l (sp)+, d2/a2
     rte
 

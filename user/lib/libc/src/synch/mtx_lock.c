@@ -28,13 +28,13 @@ int mtx_lock(mtx_t* _Nonnull self)
 
     int s = _compare_exchange(&self->state, _MTX_AVAILABLE, _MTX_LOCKED);
     if (s != _MTX_AVAILABLE) {
-        if (s != _MTX_CONTENTED) {
-            s = atomic_int_exchange(&self->state, _MTX_CONTENTED);
+        if (s != _MTX_CONTENDED) {
+            s = atomic_int_exchange(&self->state, _MTX_CONTENDED);
         }
 
         while (s != _MTX_AVAILABLE) {
-            ww_wait(&self->state, _MTX_CONTENTED);
-            s = atomic_int_exchange(&self->state, _MTX_CONTENTED);
+            ww_wait(&self->state, _MTX_CONTENDED);
+            s = atomic_int_exchange(&self->state, _MTX_CONTENDED);
         }
     }
 

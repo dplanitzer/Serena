@@ -69,7 +69,7 @@ __atomic_int_compare_exchange_strong_reg:
         moveq.l #1, d0
         bra.s   .done
 .not_same:
-        move.l  d0, aices_expected(sp)
+        move.l  d0, (a1)
         moveq.l #0, d0
 .done:
         RESTORE_INTERRUPTS_SP

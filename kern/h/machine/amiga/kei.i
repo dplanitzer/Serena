@@ -10,7 +10,7 @@
 KEI_I    set 1
 
 ATOMIC_INT_EXCHANGE                 equ $a000   ; int atomic_int_exchange(volatile atomic_int* _Nonnull p{a0}, int val{d1})
-ATOMIC_INT_COMPARE_EXCHANGE_STRONG  equ $a001   ; bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p{a0}, volatile atomic_int* _Nonnull expected{a1}, int desired{d1})
+ATOMIC_INT_COMPARE_EXCHANGE_STRONG  equ $a001   ; bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p{a0}, int* _Nonnull expected{a1}, int desired{d1})
 ATOMIC_INT_FETCH_ADD                equ $a002   ; int atomic_int_fetch_add(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ATOMIC_INT_FETCH_SUB                equ $a003   ; int atomic_int_fetch_sub(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ATOMIC_INT_FETCH_OR                 equ $a004   ; int atomic_int_fetch_or(volatile atomic_int* _Nonnull p{a0}, int op{d1})

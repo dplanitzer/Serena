@@ -43,7 +43,7 @@ __CPP_BEGIN
 // mtx states
 #define _MTX_AVAILABLE  0   /* Noone os holding the mutex */
 #define _MTX_LOCKED     1   /* Mutex is locked and noone else is trying to get it */
-#define _MTX_CONTENTED  2   /* Mutex is locked and at least one other vcpu is trying to get it */
+#define _MTX_CONTENDED  2   /* Mutex is locked and at least one other vcpu is trying to get it */
 
 extern bool __sem_trywait(sem_t* _Nonnull self);
 

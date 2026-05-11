@@ -90,6 +90,7 @@ void mtx_test(int argc, char *argv[])
     assert_not_null(gDispatcher);
 
     assert_ok(mtx_init(&gMutex));
+   // setvbuf(stdout, NULL, _IONBF, 0);
     
     gCurrentPatternIndex = 0;
     select_and_write_pattern();
