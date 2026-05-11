@@ -83,10 +83,7 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _No
     vcpu_t vp = (vcpu_t)g_sched->running;
     const ticks_t start_ticks = clock_getticks(g_mono_clock);
     ticks_t deadline_ticks;
-    bool armTimeout = false;
-
-    assert(vp->run_state == VCPU_STATE_RUNNING);
-
+    bool armedTimeout = false;
 
     // Put us on the timeout queue. Note that we return immediately if we're
     // already past the deadline
@@ -101,53 +98,42 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _No
             return true;
         }
 
-        armTimeout = true;
-    }
-
-
-    // FIFO order.
-    deque_add_last(&self->q, &vp->rewa_qe);
-    
-    vp->run_state = VCPU_STATE_WAITING;
-    vp->waiting_on_wait_queue = self;
-    vp->wakeup_reason = 0;
-    vp->flags |= VP_FLAG_DID_WAIT;
-    if (vp->quantum_countdown > 0) {
-        // Reduce the remaining quantum size a bit to ensure that this vcpu
-        // doesn't end up monopolizing the CPU after wakeup just because it
-        // frequently enters the wait state and thus the quantum doesn't get
-        // much of a chance to "run down" the natural way.
-        vp->quantum_countdown -= SCHED_QUANTUM_NUDGE;
-    }
-
-    
-    if (armTimeout) {
         vp->timeout.deadline = deadline_ticks;
         vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
         vp->timeout.arg = vp;
 
+        //XXX
+        // Note that there is in principle a race between the clock_deadline()
+        // call, actually entering the wait (ctx switching away) inside of wq_wait_np()
+        // and the sched_wait_timeout_irq() function which does the wake on timeout.
+        // A very short timeout could trigger a wakeup before we are actually
+        // able to enter the wait state. It's not an issue right now because
+        // preempt_disable() turns off interrupts and the ctx switch away turns
+        // them back on. It'll be an issue though once we change the preempt_disable()
+        // logic so that it doesn't turn irqs off anymore. Then we'll have to do
+        // something along these lines:
+        //
+        // clock_disable_timer_irq()
+        // clock_deadline()
+        // wq_wait_np()        <-- X
+        //
+        // Where (X) is the point where we ctx switch to some other vcpu and this
+        // implicitly turns irqs back on since the target vcpu doesn't have irqs
+        // masked.
         clock_deadline(g_mono_clock, &vp->timeout);
+        armedTimeout = true;
     }
 
 
-    // Find another VP to run and context switch to it
-    vp->proc->vcpu_waiting_count++;
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
-    vp->proc->vcpu_waiting_count--;
+    // Do the actual wait
+    wq_wait_np(self);
 
 
-    if (armTimeout) {
+    if (armedTimeout) {
         clock_cancel_deadline(g_mono_clock, &vp->timeout);
     }
 
-    
-    // Update the wait time stats
-    const ticks_t stop_ticks = clock_getticks(g_mono_clock);
-    const ticks_t wait_ticks = stop_ticks - start_ticks;
-    vp->wait_ticks += wait_ticks;
-    vp->proc->wait_ticks += wait_ticks;
-
-    return false;
+    return (vp->wakeup_reason == WRES_TIMEOUT) ? true : false;
 }
 
 // @Interrupt Context: Safe
