@@ -716,7 +716,7 @@ errno_t kdispatch_name(kdispatch_t _Nonnull self, char* _Nonnull buf, size_t buf
     if (buflen < (len + 1)) {
         throw(ERANGE);
     }
-    strcpy(buf, self->name);
+    memcpy(buf, self->name, len + 1);
 
 catch:
     mtx_unlock(&self->mutex);

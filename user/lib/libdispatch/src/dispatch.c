@@ -725,7 +725,7 @@ int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
         r = -1;
         goto out;
     }
-    strcpy(buf, self->name);
+    memcpy(buf, self->name, len + 1);
 
 out:
     mtx_unlock(&self->mutex);
