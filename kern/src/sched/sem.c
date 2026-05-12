@@ -23,10 +23,18 @@ void sem_deinit(sem_t* _Nonnull self)
     assert(wq_deinit(&self->wq) == EOK);
 }
 
-// Invoked by sem_acquire() if the semaphore doesn't have the expected
+// Invoked by sem_wait() if the semaphore doesn't have the expected
 // number of permits.
 // @Entry Condition: preemption disabled
-errno_t sem_onwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline)
+void sem_on_wait(sem_t* _Nonnull self)
+{
+    wq_wait_np(&self->wq);
+}
+
+// Invoked by sem_timedwait() if the semaphore doesn't have the expected
+// number of permits.
+// @Entry Condition: preemption disabled
+errno_t sem_on_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline)
 {
     if (wq_timedwait_np(&self->wq, TIMER_ABSTIME, deadline)) {
         return ETIMEDOUT;
@@ -36,9 +44,9 @@ errno_t sem_onwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline)
     }
 }
 
-// Invoked by sem_relinquish().
+// Invoked by sem_post().
 // @Entry Condition: preemption disabled
-void sem_wake(sem_t* _Nullable self)
+void sem_wakeup(sem_t* _Nullable self)
 {
-    wq_wakeup_many_np(&self->wq, WAKEUP_ALL, 0);
+    wq_wakeup_many_np(&self->wq, WAKEUP_ONE, 0);
 }

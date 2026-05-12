@@ -310,7 +310,7 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
 
 static void _disk_block_irq(FloppyControllerRef _Nonnull self)
 {
-    sem_relinquish(&self->done_sem);
+    sem_post(&self->done_sem);
 }
 
 // Synchronously reads/writes 'nWords' 16bit words from/to the given word buffer.
@@ -392,7 +392,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     clock_gettime(g_mono_clock, &now);
     nanotime_from_ms(&dly, 500);
     nanotime_add(&deadline, &now, &dly);
-    err = sem_acquire(&self->done_sem, &deadline);
+    err = sem_timedwait(&self->done_sem, &deadline);
 
 
     mtx_lock(&self->mtx);

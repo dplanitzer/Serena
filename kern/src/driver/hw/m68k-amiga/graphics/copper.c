@@ -119,7 +119,7 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     if ((flags & COPFLAG_WAIT_RUNNING) == COPFLAG_WAIT_RUNNING) {
         while (prog->state == COP_STATE_READY) {
-            sem_acquire(&g_copper_notify_sem, &NANOTIME_INF);
+            sem_timedwait(&g_copper_notify_sem, &NANOTIME_INF);
         }
     }
 }
@@ -182,7 +182,7 @@ static void copper_csw(void)
     if (g_retire_vcpu) {
         vcpu_send_signal(g_retire_vcpu, g_retire_signo);
     }
-    sem_relinquish(&g_copper_notify_sem);
+    sem_post(&g_copper_notify_sem);
 }
 
 // Called at the vertical blank interrupt. Triggers the execution of the correct
