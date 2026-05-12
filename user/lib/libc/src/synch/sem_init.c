@@ -10,7 +10,7 @@
 
 int sem_init(sem_t* _Nonnull self, int value)
 {
-    self->value.value = value;
+    atomic_init(&self->value, value);
     self->signature = SEM_SIGNATURE;
 
     return 0;

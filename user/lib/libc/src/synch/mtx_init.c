@@ -10,7 +10,7 @@
 
 int mtx_init(mtx_t* _Nonnull self)
 {
-    self->state.value = 0;
+    atomic_init(&self->state, 0);
     self->signature = MTX_SIGNATURE;
     
     return 0;

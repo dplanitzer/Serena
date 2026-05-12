@@ -10,7 +10,7 @@
 
 int cnd_init(cnd_t* _Nonnull self)
 {
-    self->seq.value = 0;
+    atomic_init(&self->seq, 0);
     self->signature = CND_SIGNATURE;
     
     return 0;
