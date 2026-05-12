@@ -135,11 +135,11 @@ struct vcpu {
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sig_wait())
+    sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival
 
     // Waiting related state
     clock_deadline_t                timeout;                // The wait timeout timer
     waitqueue_t _Nullable           waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
-    sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival
     int8_t                          wakeup_reason;
     
     // Scheduling related state
@@ -250,7 +250,7 @@ extern void vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, 
 extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns true if the vcpu is in aborting state. Meaning that it has received a
-// SIG_TERMINATE and that it will relinquish soon.
+// SIG_FORCE_QUIT and that it will relinquish soon.
 extern bool vcpu_is_aborting(vcpu_t _Nonnull self);
 
 

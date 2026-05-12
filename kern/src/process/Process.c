@@ -81,7 +81,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
 
     mtx_lock(&self->mtx);
     if (vcpu_is_aborting(vcpu_current())) {
-        throw(EINTR);
+        throw(ECANCELED);
     }
 
     ac.func = (VoidFunc_1)attr->func;

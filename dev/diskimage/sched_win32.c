@@ -55,12 +55,12 @@ void cnd_broadcast(cnd_t* pCondVar)
 
 errno_t cnd_wait(cnd_t* pCondVar, mtx_t* mtx)
 {
-    return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
+    return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : ECANCELED;
 }
 
 errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const nanotime_t* _Nonnull deadline)
 {
-    return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
+    return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : ECANCELED;
 }
 
 

@@ -12,5 +12,5 @@
 
 int proc_terminate(pid_t pid)
 {
-    return sig_send(SIG_TARGET_PROC, pid, SIG_TERMINATE);
+    return sig_send(SIG_TARGET_PROC, pid, SIG_FORCE_QUIT);
 }

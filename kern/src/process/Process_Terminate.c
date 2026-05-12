@@ -17,9 +17,9 @@
 // - relinquish vcpu
 // - distribute process level signal to vcpu(s)
 // Exclusion is provided by 'mtx'. One important factor here is that exit and exec
-// send SIG_TERMINATE to the vcpus in the process and they do this while holding 'mtx'.
+// send SIG_FORCE_QUIT to the vcpus in the process and they do this while holding 'mtx'.
 // Thus operation like 'spawn child', 'acquire vcpu' should take 'mtx' and then
-// check whether SIG_TERMINATE is pending. If it is return with EINTR since the vcpu is
+// check whether SIG_FORCE_QUIT is pending. If it is return with ECANCELED since the vcpu is
 // in the process of getting shot down.
 //
 // Possible termination paths:
@@ -27,12 +27,12 @@
 // exit(): calls Process_Terminate() directly and the exiting vcpu becomes the
 //          termination coordinator.
 //
-// SIG_TERMINATE: if sent to the process, it triggers process termination by
+// SIG_FORCE_QUIT: if sent to the process, it triggers process termination by
 //          making the first vcpu in the process the termination coordinator.
-//          The process then forwards the SIG_TERMINATE to this vcpu which then
+//          The process then forwards the SIG_FORCE_QUIT to this vcpu which then
 //          calls Process_Terminate() from its syscall bottom half.
 //
-// proc_terminate() system call: simply sends a SIG_TERMINATE to the process.
+// proc_terminate() system call: simply sends a SIG_FORCE_QUIT to the process.
 //
 
 // Force quit all child processes and reap their corpses. Do not return to the
@@ -41,7 +41,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
     // Note that SIG_CHILD is getting auto-routed to us (exit coordinator) because
     // the process is in exit state.
-    Process_SendSignal(self, SIG_TARGET_PROC_CHILDREN, self->pid, 0, SIG_TERMINATE);
+    Process_SendSignal(self, SIG_TARGET_PROC_CHILDREN, self->pid, 0, SIG_FORCE_QUIT);
 
     // Reap all zombies. There may have been zombies before we came here. That's
     // why we unconditionally execute this loop.
@@ -62,7 +62,7 @@ void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
     deque_for_each(&self->vcpu_queue, deque_node_t, it,
         vcpu_t cvp = vcpu_from_owner_qe(it);
 
-        vcpu_send_signal(cvp, SIG_TERMINATE);
+        vcpu_send_signal(cvp, SIG_FORCE_QUIT);
     )
 }
 

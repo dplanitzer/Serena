@@ -75,7 +75,7 @@ typedef struct Process {
     vcpu_t _Nullable                stopper_vcpu;       // vcpu coordinator a stop operation
     int8_t                          run_state;
     state_change_reason_t           run_state_reason;   // reason why we entered the current run state
-    int8_t                          signo_causing_termination;  // original signal that will lead to a SIG_TERMINATE
+    int8_t                          signo_causing_termination;  // original signal that will lead to a SIG_FORCE_QUIT
     uint8_t                         flags;
 
     // Process image

@@ -32,7 +32,7 @@ typedef volatile int sig_atomic_t;
 // the signal list below.
 //
 // Vcpu groups defer the default behavior for signals to the vcpu scope. The
-// only signal for which vcpus define a default behavior is SIG_TERMINATE: it causes
+// only signal for which vcpus define a default behavior is SIG_FORCE_QUIT: it causes
 // the vcpu to relinquish itself involuntary. All other signals are freely
 // available on the vcpu level. This means that if a vcpu A sends a signal to
 // vcpu B (in the same process), or you register a vcpu and signal with a kernel
@@ -43,7 +43,7 @@ typedef volatile int sig_atomic_t;
 #define SIG_MAX  32
 
 // Ordered from highest to lowest priority
-#define SIG_TERMINATE       1   // Forced process termination, non-routable
+#define SIG_FORCE_QUIT      1   // Forced process termination, non-routable
 #define SIG_SYSTEM          2   // Notifies a vcpu that some important system state has changed and that it should enter kernel space and reevaluate its state now
 #define SIG_FORCE_STOP      3   // Forced process stop, non-routable
 #define SIG_STOP            4   // TTY, voluntary process stop, default: stop process
@@ -51,7 +51,7 @@ typedef volatile int sig_atomic_t;
 #define SIG_CPU_LIMIT       6   // kernel, process exceeded CPU time limit, default: terminate
 #define SIG_LOGOUT          7   // XXX logind, user logged out, default: terminate
 #define SIG_QUIT            8   // TTY, process quit, default: terminate
-#define SIG_INTERRUPT       9   // TTY, process interrupt, default: ignore
+#define SIG_CANCEL          9   // TTY, process interrupt/cancel operation, default: terminate
 #define SIG_RESERVED1       10  // Reserved for the OS
 #define SIG_CHILD           11  // kernel, child process changed state, default: ignore
 #define SIG_WIN_CHANGE      12  // TTY, console window size changed, default: ignore

@@ -153,6 +153,7 @@ vp_excpt_state_addr                     so.l    1           ; 4
 vp_excpt_state_code                     so.w    1           ; 2
 vp_excpt_state_cpu_code                 so.w    1           ; 2
 vp_pending_sigs                         so.l    1           ; 4
+vp_wait_sigs                            so.l    1           ; 4
 vp_timeout_next                         so.l    1           ; 4
 vp_timeout_deadline                     so.l    1           ; 4
 vp_timeout_func                         so.l    1           ; 4
@@ -160,7 +161,6 @@ vp_timeout_arg                          so.l    1           ; 4
 vp_timeout_is_armed                     so.b    1           ; 1
 vp_timeout_reserved                     so.b    3           ; 3
 vp_waiting_on_wait_queue                so.l    1           ; 4
-vp_wait_sigs                            so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
 vp_base_priority                        so.b    1           ; 1
 vp_cur_priority                         so.b    1           ; 1

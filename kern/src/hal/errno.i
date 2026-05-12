@@ -16,7 +16,7 @@ EDISKCHANGE     equ 3
 ETIMEDOUT       equ 4
 ENODEV          equ 5
 ERANGE          equ 6
-EINTR           equ 7
+ECANCELED       equ 7
 EAGAIN          equ 8
 EWOULDBLOCK     equ 9
 EPIPE           equ 10

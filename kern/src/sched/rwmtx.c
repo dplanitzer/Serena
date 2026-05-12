@@ -56,7 +56,7 @@ static errno_t _SELock_AcquireSharedLockSlow(rwmtx_t* _Nonnull self)
 
 // Blocks the caller until the lock can be taken successfully in shared mode. If
 // the lock was initialized with the kLockOption_InterruptibleLock option, then
-// this function may be interrupted by another VP and it returns EINTR if this
+// this function may be interrupted by another VP and it returns ECANCELED if this
 // happens.
 errno_t rwmtx_rdlock(rwmtx_t* _Nonnull self)
 {
@@ -110,7 +110,7 @@ static errno_t _SELock_AcquireExclusiveLockSlow(rwmtx_t* _Nonnull self)
 
 // Blocks the caller until the lock can be taken successfully in exclusive mode.
 // If the lock was initialized with the kLockOption_InterruptibleLock option,
-// then this function may be interrupted by another VP and it returns EINTR if
+// then this function may be interrupted by another VP and it returns ECANCELED if
 // this happens.
 errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self)
 {

@@ -23,14 +23,14 @@ void sig_send_no_perm_test(int argc, char *argv[])
 
     proc_info(PROC_SELF, PROC_INFO_IDS, &info);
 
-    puts("Sending SIG_TERMINATE to kerneld pid");
-    assert_nok(EPERM, sig_send(SIG_TARGET_PROC, PID_KERNELD, SIG_TERMINATE));
+    puts("Sending SIG_FORCE_QUIT to kerneld pid");
+    assert_nok(EPERM, sig_send(SIG_TARGET_PROC, PID_KERNELD, SIG_FORCE_QUIT));
 
-    puts("Sending SIG_TERMINATE to kerneld process group");
-    assert_nok(EPERM, sig_send(SIG_TARGET_PROC_GROUP, PID_KERNELD, SIG_TERMINATE));
+    puts("Sending SIG_FORCE_QUIT to kerneld process group");
+    assert_nok(EPERM, sig_send(SIG_TARGET_PROC_GROUP, PID_KERNELD, SIG_FORCE_QUIT));
 
-    puts("Sending SIG_TERMINATE to kerneld session");
-    assert_nok(EPERM, sig_send(SIG_TARGET_SESSION, PID_KERNELD, SIG_TERMINATE));
+    puts("Sending SIG_FORCE_QUIT to kerneld session");
+    assert_nok(EPERM, sig_send(SIG_TARGET_SESSION, PID_KERNELD, SIG_FORCE_QUIT));
 
     puts("Exiting");
     exit(0);

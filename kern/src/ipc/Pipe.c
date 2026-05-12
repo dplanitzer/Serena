@@ -161,7 +161,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
                     
                     // Wait for the writer to make data available
                     if ((err = cnd_wait(&self->reader, &self->mtx)) != EOK) {
-                        err = (nBytesRead == 0) ? EINTR : EOK;
+                        err = (nBytesRead == 0) ? ECANCELED : EOK;
                         break;
                     }
                 } else {
@@ -203,7 +203,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
                     
                     // Wait for the reader to make space available
                     if (( err = cnd_wait(&self->writer, &self->mtx)) != EOK) {
-                        err = (nBytesWritten == 0) ? EINTR : EOK;
+                        err = (nBytesWritten == 0) ? ECANCELED : EOK;
                         break;
                     }
                 } else {

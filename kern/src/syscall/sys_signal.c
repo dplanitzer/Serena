@@ -28,7 +28,7 @@ SYSCALL_4(sig_route, int op, int signo, int target, id_t id)
 SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
-    sigset_t wsigs = *(pa->set) | sig_bit(SIG_TERMINATE);
+    sigset_t wsigs = *(pa->set) | sig_bit(SIG_FORCE_QUIT);
 
     vcpu_sigwait(&pp->siwa_queue, &wsigs, pa->signo);
     return EOK;
@@ -37,7 +37,7 @@ SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
 SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
-    sigset_t wsigs = *(pa->set) | sig_bit(SIG_TERMINATE);
+    sigset_t wsigs = *(pa->set) | sig_bit(SIG_FORCE_QUIT);
 
     return vcpu_sigtimedwait(&pp->siwa_queue, &wsigs, pa->flags, pa->wtp, pa->signo);
 }

@@ -57,14 +57,14 @@ extern void rwmtx_deinit(rwmtx_t* _Nonnull self);
 
 // Blocks the caller until the lock can be taken successfully in shared mode. If
 // the lock was initialized with the kLockOption_InterruptibleLock option, then
-// this function may be interrupted by another VP and it returns EINTR if this
+// this function may be interrupted by another VP and it returns ECANCELED if this
 // happens. It is permissible for a virtual processor to take a shared lock
 // multiple times.
 extern errno_t rwmtx_rdlock(rwmtx_t* _Nonnull self);
 
 // Blocks the caller until the lock can be taken successfully in exclusive mode.
 // If the lock was initialized with the kLockOption_InterruptibleLock option,
-// then this function may be interrupted by another VP and it returns EINTR if
+// then this function may be interrupted by another VP and it returns ECANCELED if
 // this happens. A virtual processor may take a lock exclusively multiple times.
 extern errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self);
 

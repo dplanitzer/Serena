@@ -17,7 +17,7 @@
 #define ETIMEDOUT       4
 #define ENODEV          5
 #define ERANGE          6
-#define EINTR           7
+#define ECANCELED       7
 #define EAGAIN          8
 #define EWOULDBLOCK     9
 #define EPIPE           10

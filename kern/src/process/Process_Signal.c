@@ -185,7 +185,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
 
     if (target_vp) {
         // This sig_send() will auto-force-resume the receiving vcpu if we're
-        // sending SIG_TERMINATE
+        // sending SIG_FORCE_QUIT
         vcpu_send_signal(target_vp, signo);
         return EOK;
     }
@@ -203,7 +203,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
 
         if (cvp->group_id == id) {
             // This sig_send() will auto-force-resume the receiving vcpu if we're
-            // sending SIG_TERMINATE
+            // sending SIG_FORCE_QUIT
             vcpu_send_signal(cvp, signo);
             hasMatch = true;
         }
@@ -222,13 +222,13 @@ static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int sign
     self->signo_causing_termination = signo;
     self->terminator_vcpu = vcpu_from_owner_qe(self->vcpu_queue.first);
 
-    vcpu_send_signal(self->terminator_vcpu, SIG_TERMINATE);
+    vcpu_send_signal(self->terminator_vcpu, SIG_FORCE_QUIT);
     vcpu_resume(self->terminator_vcpu, true);
 }
 
 // This is how signals targeting a process are handled:
 //
-// SIG_TERMINATE:   send to first vcpu in process. This vcpu becomes the termination coordinator
+// SIG_FORCE_QUIT:   send to first vcpu in process. This vcpu becomes the termination coordinator
 // SIG_FORCED_STOP: broadcast to all vcpus in the process
 //
 // All other signals may be routed to a vcpu that the process designated. If a
@@ -243,7 +243,7 @@ static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int sign
 static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int signo)
 {
     switch (signo) {
-        case SIG_TERMINATE:
+        case SIG_FORCE_QUIT:
             _proc_trigger_termination(self, signo);
             break;
 
@@ -277,6 +277,7 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
                     case SIG_CPU_LIMIT:
                     case SIG_LOGOUT:
                     case SIG_QUIT:
+                    case SIG_CANCEL:
                         _proc_trigger_termination(self, signo);
                         break;
 

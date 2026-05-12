@@ -139,8 +139,8 @@ SYSCALL_2(ww_wait, volatile atomic_int* _Nonnull addr, int expected)
 
     const int sps = preempt_disable();
     for (;;) {
-        if ((vp->pending_sigs & sig_bit(SIG_TERMINATE)) != 0) {
-            err = EINTR;
+        if ((vp->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
+            err = ECANCELED;
             break;
         }
         if (atomic_int_load(pa->addr) != pa->expected) {
@@ -168,8 +168,8 @@ SYSCALL_4(ww_timedwait, volatile atomic_int* _Nonnull addr, int expected, int fl
 
     const int sps = preempt_disable();
     for (;;) {
-        if ((vp->pending_sigs & sig_bit(SIG_TERMINATE)) != 0) {
-            err = EINTR;
+        if ((vp->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
+            err = ECANCELED;
             break;
         }
         if (atomic_int_load(pa->addr) != pa->expected) {

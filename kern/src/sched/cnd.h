@@ -45,7 +45,7 @@ _cnd_wake(__self, true, __boost)
 
 
 // Blocks the caller until the condition variable has received a signal or the
-// wait has timed out. Note that this function may return EINTR which means that
+// wait has timed out. Note that this function may return ECANCELED which means that
 // the cnd_wait() call is happening in the context of a system call that should
 // be aborted.
 extern errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx);

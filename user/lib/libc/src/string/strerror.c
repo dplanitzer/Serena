@@ -19,7 +19,7 @@ char * _Nonnull strerror(int err_no)
         /*ETIMEDOUT*/       "Timed out",
         /*ENODEV*/          "No such device",
         /*ERANGE*/          "Out of range parameter",
-        /*EINTR*/           "Interrupted",
+        /*ECANCELED*/       "Operation canceled",
         /*EAGAIN*/          "Try again",
         /*EWOULDBLOCK*/     "Would block",
         /*EPIPE*/           "Broken pipe",

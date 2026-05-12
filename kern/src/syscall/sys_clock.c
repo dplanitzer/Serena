@@ -16,7 +16,7 @@
 SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
 {
     ProcessRef pp = vp->proc;
-    const sigset_t sigs = sig_bit(SIG_TERMINATE);
+    const sigset_t sigs = sig_bit(SIG_FORCE_QUIT);
     int signo;
 
     if (!nanotime_isvalid(pa->wtp)) {

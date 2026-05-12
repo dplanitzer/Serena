@@ -27,7 +27,7 @@ errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
     const int sps = preempt_disable();
     self->pending_sigs |= sigbit;
 
-    if (signo == SIG_TERMINATE) {
+    if (signo == SIG_FORCE_QUIT) {
         // Do a force resume to ensure that the guy picks up the termination
         // request right away.
         vcpu_resume(self, true);
@@ -53,7 +53,7 @@ sigset_t vcpu_pending_signals(vcpu_t _Nonnull self)
 bool vcpu_is_aborting(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
-    const bool r = ((self->pending_sigs & sig_bit(SIG_TERMINATE)) != 0) ? true : false;
+    const bool r = ((self->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) ? true : false;
     preempt_restore(sps);
     return r;
 }
@@ -69,7 +69,7 @@ static int _consume_best_pending_sig2(vcpu_t _Nonnull self, sigset_t _Nonnull se
             if (sigbit) {
                 const int signo = i + 1;
 
-                if (signo != SIG_TERMINATE) {
+                if (signo != SIG_FORCE_QUIT) {
                     self->pending_sigs &= ~sigbit;
                 }
                 return signo;
@@ -94,7 +94,7 @@ static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t hot_sigs)
         }
     }
 
-    if (signo != SIG_TERMINATE) {
+    if (signo != SIG_FORCE_QUIT) {
         self->pending_sigs &= ~sig_bit(signo);
     }
     return signo;
