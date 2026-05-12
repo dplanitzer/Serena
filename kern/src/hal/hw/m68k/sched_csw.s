@@ -183,7 +183,7 @@ __csw_restore:
     ; XXX this code is written for a future where we'll got virtual memory fully implemented. Don't remove 
     movec   cacr, d0
     bset    #CACR_CUBC_BIT, d0
-    movec   d0, cacr        ; clear all user cache entries (all user processes share teh same superuser space)
+    movec   d0, cacr        ; clear all user cache entries (all user processes share the same superuser space)
 
 
     ; it's safe to trash all registers here 'cause we'll override them anyway

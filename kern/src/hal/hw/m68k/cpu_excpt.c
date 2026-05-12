@@ -153,7 +153,6 @@ static int get_ecode(int cpu_family, int cpu_code, excpt_frame_t* _Nonnull efp)
             // - hardware fault
             // - unknow exception type
             // we'll halt the system
-            // fall through
             return -1;
     }
 }
@@ -294,7 +293,7 @@ static bool recov_access_error_060(const excpt_frame_t* _Nonnull efp)
 //
 // - ADDRESS ERROR: we do not attempt to repair address errors in general (instructions have to be properly aligned)
 // 
-// - TRACE: currently nor supported. Keep in mind that:
+// - TRACE: currently not supported. Keep in mind that:
 //  - 68040 bus error handler has to invoke the trace handler in software in some cases. See MC68040UM, p8-25 (244)
 //
 // This handler returns:
