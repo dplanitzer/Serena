@@ -39,7 +39,7 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIG_FORCE_QUIT      1   // Forced process termination, non-routable
-#define SIG_SYSTEM          2   // Notifies a vcpu that some important system state has changed and that it should enter kernel space and reevaluate its state now
+#define SIG_URGENT          2   // Notifies a vcpu that some important system state has changed and that it should enter kernel space and reevaluate its state now
 #define SIG_FORCE_STOP      3   // Forced process stop, non-routable
 #define SIG_STOP            4   // TTY, voluntary process stop, default: stop process
 #define SIG_CONTINUE        5   // TTY, default: continue process, non-routable

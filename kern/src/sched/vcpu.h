@@ -247,9 +247,23 @@ extern errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_b
 vcpu_send_signal_boost(__self, __signo, 0)
 
 
-extern void vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
+//#define TIMER_ABSTIME       2     declared in _time.h
+#define SIGWAIT_NOCANCEL    4   /* informs sigwait() that it should ignore canceling signals */
 
+// Blocks the caller until either one of the signals in 'set' arrives or a canceling
+// signal arrives. Returns ECANCELED and leaves the signal pending if a canceling
+// signal has arrived and SIGWAIT_NOCANCEL isn't specified. Ignores canceling
+// signals altogether if SIGWAIT_NOCANCEL is specified. If a non-canceling signal
+// arrives, that signal is consumed, stored in 'signo' and EOK is returned.
+extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, int* _Nonnull signo);
+
+// Similar to vcpu_sigwait(). Waits for at most 'wtp' seconds and nanoseconds.
+// Returns ETIMEDOUT on a timeout.
 extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
+
+
+// Needs to be called at the end of every system call
+extern void vcpu_syscall_epilog(vcpu_t _Nonnull self);
 
 
 // Returns true if the vcpu is currently in exception mode/state
@@ -355,9 +369,9 @@ extern void vcpu_set_nice(vcpu_t _Nonnull self, int nice);
 
 
 //
-// Syscall
+// Internal
 //
 
-extern void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self);
+extern void _vcpu_do_deferred_suspend_np(vcpu_t _Nonnull self);
 
 #endif /* _VCPU_H */

@@ -15,6 +15,7 @@
 
 SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
 {
+    decl_try_err();
     ProcessRef pp = vp->proc;
     const sigset_t sigs = sig_bit(SIG_FORCE_QUIT);
     int signo;
@@ -37,10 +38,10 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
         clock_gettime(g_mono_clock, &start_t);
     }
 
-    const bool timedout = vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, pa->flags, pa->wtp, &signo);
+    err = vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, pa->flags, pa->wtp, &signo);
 
     if (pa->rmtp) {
-        if (timedout) {
+        if (err == ETIMEDOUT) {
             // reached the end time
             nanotime_set(pa->rmtp, &NANOTIME_ZERO);
         }
@@ -53,7 +54,7 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
 
     preempt_restore(sps);
     
-    return EOK;
+    return err;
 }
 
 SYSCALL_2(clock_time, int clockid, nanotime_t* _Nonnull time)

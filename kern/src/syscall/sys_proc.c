@@ -95,7 +95,7 @@ SYSCALL_5(proc_waitstate, int wstate, int match, pid_t id, int flags, proc_waitr
         return EINVAL;
     }
 
-    return Process_WaitForState(vp->proc, pa->wstate, pa->match, pa->id, pa->flags | _WAIT_CANCELABLE, pa->res);
+    return Process_WaitForState(vp->proc, pa->wstate, pa->match, pa->id, pa->flags, pa->res);
 }
 
 SYSCALL_3(proc_info, pid_t pid, int flavor, proc_info_ref _Nonnull info)

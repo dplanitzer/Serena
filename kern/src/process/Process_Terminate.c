@@ -48,7 +48,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     for (;;) {
         proc_waitres_t ps;
 
-        if (Process_WaitForState(self, WAIT_FOR_TERMINATED, WAIT_ANY, 0, 0, &ps) == ECHILD) {
+        if (Process_WaitForState(self, WAIT_FOR_TERMINATED, WAIT_ANY, 0, _WAIT_NOCANCEL, &ps) == ECHILD) {
             break;
         }
     }

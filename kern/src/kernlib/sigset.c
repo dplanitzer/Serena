@@ -10,8 +10,10 @@
 #include <kern/sigset.h>
 
 
-const sigset_t SIGSET_NON_ROUTABLE = sig_bit(SIG_FORCE_QUIT) | sig_bit(SIG_FORCE_STOP) | sig_bit(SIG_CONTINUE) | sig_bit(SIG_SYSTEM);
-const sigset_t SIGSET_URGENTS = sig_bit(SIG_FORCE_QUIT) | sig_bit(SIG_SYSTEM);
+const sigset_t SIGSET_NON_ROUTABLE = sig_bit(SIG_FORCE_QUIT) | sig_bit(SIG_FORCE_STOP) | sig_bit(SIG_CONTINUE) | sig_bit(SIG_URGENT);
+const sigset_t SIGSET_URGENTS = sig_bit(SIG_FORCE_QUIT) | sig_bit(SIG_URGENT);
+const sigset_t SIGSET_CANCELING = sig_bit(SIG_FORCE_QUIT) | sig_bit(SIG_CANCEL);
+const sigset_t SIGSET_STICKY = sig_bit(SIG_FORCE_QUIT) | sig_bit(SIG_URGENT) | sig_bit(SIG_CANCEL);
 
 
 errno_t sigset_init(sigset_t* _Nonnull set, int signo)

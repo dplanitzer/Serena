@@ -106,7 +106,8 @@ void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, in
 errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
     decl_try_err();
-    sigset_t hot_sigs = sig_bit(SIG_CHILD) | sig_bit(SIG_FORCE_QUIT);
+    const sigset_t hot_sigs = sig_bit(SIG_CHILD);
+    const sigwait_flags = ((flags & _WAIT_NOCANCEL) == _WAIT_NOCANCEL) ? SIGWAIT_NOCANCEL : 0;
     int signo;
 
     for (;;) {
@@ -120,9 +121,8 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
             return EAGAIN;
         }
 
-        vcpu_sigwait(&self->siwa_queue, &hot_sigs, &signo);
-        if (signo == SIG_FORCE_QUIT & ((flags & _WAIT_CANCELABLE) == _WAIT_CANCELABLE)) {
-            err = ECANCELED;
+        err = vcpu_sigwait(&self->siwa_queue, &hot_sigs, sigwait_flags, &signo);
+        if (err == ECANCELED) {
             break;
         }
     }

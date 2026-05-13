@@ -189,26 +189,6 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void _handle_pending_signals(vcpu_t _Nonnull vp)
-{
-    const sigset_t sigs = vp->pending_sigs;
-
-    if ((sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
-        if (vp->proc->terminator_vcpu) {
-            Process_Terminate(vp->proc, WAIT_REASON_SIGNALED, vp->proc->signo_causing_termination);
-        }
-        else {
-            Process_RelinquishVirtualProcessor(vp->proc, vp);
-        }
-
-        /* NOT REACHED */
-    }
-
-    if ((sigs & sig_bit(SIG_SYSTEM)) != 0) {
-        vcpu_do_pending_deferred_suspend(vp);
-    }
-}
-
 void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
 {
     const unsigned int scno = args->scno;
@@ -227,9 +207,7 @@ void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
     }
 
 
-    while ((vp->pending_sigs & SIGSET_URGENTS) != 0) {
-        _handle_pending_signals(vp);
-    }
+    vcpu_syscall_epilog(vp);
 
 
     switch (rty) {
