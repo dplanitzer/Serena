@@ -231,6 +231,10 @@ extern errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state
 extern errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info);
 
 
+// Returns a copy of the pending signals of the current vcpu
+extern void vcpu_pending_signals(sigset_t* _Nonnull set);
+
+
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list and the vcpu is woken up if it is currently waiting and the signal
 // 'signo' is in the active wake set. 'pri_boost' is the QoS priority boost that
@@ -242,16 +246,10 @@ extern errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_b
 #define vcpu_send_signal(__self, __signo) \
 vcpu_send_signal_boost(__self, __signo, 0)
 
-// Returns a copy of the pending signals
-extern sigset_t vcpu_pending_signals(vcpu_t _Nonnull self);
 
 extern void vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
 
 extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
-
-// Returns true if the vcpu is in aborting state. Meaning that it has received a
-// SIG_FORCE_QUIT and that it will relinquish soon.
-extern bool vcpu_is_aborting(vcpu_t _Nonnull self);
 
 
 // Returns true if the vcpu is currently in exception mode/state

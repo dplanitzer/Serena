@@ -44,7 +44,7 @@ SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const nanotime
 
 SYSCALL_1(sig_pending, sigset_t* _Nonnull set)
 {
-    *(pa->set) = vcpu_pending_signals(vp);
+    vcpu_pending_signals(pa->set);
     return EOK;
 }
 

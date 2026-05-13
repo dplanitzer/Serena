@@ -15,6 +15,16 @@
 #include <kpi/signal.h>
 
 
+void vcpu_pending_signals(sigset_t* _Nonnull set)
+{
+    const int sps = preempt_disable();
+    vcpu_t vp = g_sched->running;
+
+    *set = vp->pending_sigs;
+    preempt_restore(sps);
+}
+
+
 errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
 {
     decl_try_err();
@@ -41,44 +51,6 @@ errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
     return err;
 }
 
-sigset_t vcpu_pending_signals(vcpu_t _Nonnull self)
-{
-    const int sps = preempt_disable();
-    const sigset_t set = self->pending_sigs;
-    preempt_restore(sps);
-
-    return set;
-}
-
-bool vcpu_is_aborting(vcpu_t _Nonnull self)
-{
-    const int sps = preempt_disable();
-    const bool r = ((self->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) ? true : false;
-    preempt_restore(sps);
-    return r;
-}
-
-static int _consume_best_pending_sig2(vcpu_t _Nonnull self, sigset_t _Nonnull set)
-{
-    const sigset_t avail_sigs = self->pending_sigs & set;
-
-    if (avail_sigs) {
-        for (int i = SIG_MIN-1; i < SIG_MAX; i++) {
-            const sigset_t sigbit = avail_sigs & (1 << i);
-            
-            if (sigbit) {
-                const int signo = i + 1;
-
-                if (signo != SIG_FORCE_QUIT) {
-                    self->pending_sigs &= ~sigbit;
-                }
-                return signo;
-            }
-        }
-    }
-
-    return 0;
-}
 
 // NOTE: assumes that 'hot_sigs' has at least one signal set
 static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t hot_sigs)
