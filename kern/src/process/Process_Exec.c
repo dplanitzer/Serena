@@ -97,7 +97,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         || (!deque_empty(&self->vcpu_queue) && vcpu_current()->proc == self));
 
 
-    if (proc_is_terminating(self)) {
+    if (_proc_is_terminating(self)) {
         throw(ECANCELED);
     }
 

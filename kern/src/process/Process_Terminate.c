@@ -92,7 +92,7 @@ static void _proc_zombify(ProcessRef _Nonnull self)
     AddressSpace_UnmapAll(&self->addr_space);
 }
 
-bool proc_is_terminating(ProcessRef _Nonnull self)
+bool _proc_is_terminating(ProcessRef _Nonnull self)
 {
     return ((self->flags & PROC_FLAG_TERMINATING) == PROC_FLAG_TERMINATING) ? true : false;
 }
@@ -112,7 +112,7 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
 
 
     mtx_lock(&self->mtx);
-    if (proc_is_terminating(self)) {
+    if (_proc_is_terminating(self)) {
         mtx_unlock(&self->mtx);
         // We're in the process of terminating the process and this isn't the
         // first vcpu calling Process_Terminate(). Just relinquish at this point

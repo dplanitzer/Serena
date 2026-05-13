@@ -27,10 +27,6 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
         throw(EINVAL);
     }
 
-    if (proc_is_terminating(vp->proc)) {
-        throw(ECANCELED);
-    }
-
     err = Process_CreateChild(vp->proc, pa->attr, NULL, &cp);
     if (err == EOK) {
         if (pa->actions) {

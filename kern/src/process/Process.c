@@ -80,7 +80,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     vcpu_acquisition_t ac;
 
     mtx_lock(&self->mtx);
-    if (proc_is_terminating(self)) {
+    if (_proc_is_terminating(self)) {
         throw(ECANCELED);
     }
 

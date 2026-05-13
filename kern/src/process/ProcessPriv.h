@@ -131,7 +131,7 @@ extern errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnatt
 extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex);
 
 
-extern bool proc_is_terminating(ProcessRef _Nonnull self);
+extern bool _proc_is_terminating(ProcessRef _Nonnull self);
 
 extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 

@@ -88,6 +88,12 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     }
 
 
+    // Just return if we're already scheduled for termination
+    if (_proc_is_terminating(self)) {
+        throw(ECANCELED);
+    }
+
+
     // Create the new process and let it inherit its basic state from us (the parent)
     FileHierarchyRef fh = (ovrFh) ? ovrFh : self->fm.fileHierarchy;
     rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);
