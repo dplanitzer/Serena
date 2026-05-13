@@ -277,7 +277,7 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
                     case SIG_CPU_LIMIT:
                     case SIG_LOGOUT:
                     case SIG_QUIT:
-                    case SIG_CANCEL:
+                    case SIG_INTERRUPT:
                         _proc_trigger_termination(self, signo);
                         break;
 

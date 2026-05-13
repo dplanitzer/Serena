@@ -17,27 +17,22 @@ typedef volatile int sig_atomic_t;
 
 
 // The system supports 32 different signals. You send a signal to a particular
-// 'signal scope'. The signal scope determines who will receive the signal and
+// 'signal target'. The signal target determines who will receive the signal and
 // whether there is default behavior associated with the signal.
 //
-// Signal scopes are organized in hierarchy like this:
-// * user session: all process groups in the session
+// The supported signal targets are:
+// * user session:  all process groups in the session
 // * process group: all processes in the group
-// * process
-// * vcpu group: all vcpus in the group
-// * vcpu
+// * process:       a particular process
+// * vcpu group:    all vcpus in the vcpu group
+// * vcpu:          a particular vcpu
 //
-// User session and process group scopes defer the default behavior for signals
-// to the process scope. The process scope default behaviors are documented in
-// the signal list below.
+// The default behavior for a signal that targets a process is described in the
+// signal list below.
 //
-// Vcpu groups defer the default behavior for signals to the vcpu scope. The
-// only signal for which vcpus define a default behavior is SIG_FORCE_QUIT: it causes
-// the vcpu to relinquish itself involuntary. All other signals are freely
-// available on the vcpu level. This means that if a vcpu A sends a signal to
-// vcpu B (in the same process), or you register a vcpu and signal with a kernel
-// API then this signal will be sent directly to the vcpu using the vcpu scope
-// and thus no default behavior will be applied to the signal.
+// Signals that target a vcpu do not have a default behavior associated with them
+// except for SIG_FORCE_QUIT and SIG_CANCEL. SIG_FORCE_QUIT causes a vcpu to
+// relinquish itself and SIG_CANCEL cancels an ongoing or the next system call.
 
 #define SIG_MIN  1
 #define SIG_MAX  32
@@ -51,8 +46,8 @@ typedef volatile int sig_atomic_t;
 #define SIG_CPU_LIMIT       6   // kernel, process exceeded CPU time limit, default: terminate
 #define SIG_LOGOUT          7   // XXX logind, user logged out, default: terminate
 #define SIG_QUIT            8   // TTY, process quit, default: terminate
-#define SIG_CANCEL          9   // TTY, process interrupt/cancel operation, default: terminate
-#define SIG_RESERVED1       10  // Reserved for the OS
+#define SIG_INTERRUPT       9   // TTY, process interrupt, default: terminate
+#define SIG_CANCEL          10  // Cancel an ongoing system call, ignored by processes; acted on by vcpus
 #define SIG_CHILD           11  // kernel, child process changed state, default: ignore
 #define SIG_WIN_CHANGE      12  // TTY, console window size changed, default: ignore
 #define SIG_BKG_READ        13  // TTY, background process attempt to read from terminal input, default: stop/suspend process
