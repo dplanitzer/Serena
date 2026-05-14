@@ -199,7 +199,7 @@ SYSCALL_2(ww_wakeup, volatile atomic_int* _Nonnull addr, int flags)
     ww_hdr_t wwp = _acquire_ww_for_addr(pa->addr, false);
     if (wwp) {
         const int sps = preempt_disable();
-        wq_wakeup_many_np(&wwp->wq, pa->flags, 0);
+        wq_wakeup_np(&wwp->wq, pa->flags, 0);
         preempt_restore(sps);
 
         _relinquish_ww(wwp);

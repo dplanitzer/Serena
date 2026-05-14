@@ -71,13 +71,13 @@ extern ticks_t wq_calc_deadline(clock_ref_t _Nonnull clock, int flags, const nan
 // @Entry Condition: preemption disabled
 extern errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t* _Nullable deadline);
 
-// Wakes the vcpu 'vp' up if it is currently in wait state. Does nothing
-// otherwise.
+// Specifically wakes up the vcpu 'vp' if it is currently in wait state. Does
+// nothing otherwise.
 // @Entry Condition: preemption disabled
 extern void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, int pri_boost);
 
 // Wakes one or all vcpus on the wait queue up.
 // @Entry Condition: preemption disabled
-extern void wq_wakeup_many_np(waitqueue_t _Nonnull self, int flags, int pri_boost);
+extern void wq_wakeup_np(waitqueue_t _Nonnull self, int flags, int pri_boost);
 
 #endif /* _WAITQUEUE_H */

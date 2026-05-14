@@ -43,5 +43,5 @@ errno_t sem_on_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull wtp)
 // @Entry Condition: preemption disabled
 void sem_wakeup(sem_t* _Nullable self)
 {
-    wq_wakeup_many_np(&self->wq, WAKEUP_ONE, 0);
+    wq_wakeup_np(&self->wq, WAKEUP_ONE, 0);
 }

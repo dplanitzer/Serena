@@ -61,14 +61,14 @@ void mtx_onwait(mtx_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 void mtx_wake(mtx_t* _Nullable self)
 {
-    wq_wakeup_many_np(&self->wq, WAKEUP_ALL, 0);
+    wq_wakeup_np(&self->wq, WAKEUP_ALL, 0);
 }
 
 // Invoked by mtx_unlock_then_wait().
 // @Entry Condition: preemption disabled
 errno_t mtx_wake_then_wait(mtx_t* _Nullable self, struct waitqueue* _Nonnull wq)
 {
-    wq_wakeup_many_np(&self->wq, WAKEUP_ALL | WAKEUP_NO_IMMED_CSW, 0);
+    wq_wakeup_np(&self->wq, WAKEUP_ALL | WAKEUP_NO_IMMED_CSW, 0);
     wq_wait_np(wq, NULL);
 
     return EOK;

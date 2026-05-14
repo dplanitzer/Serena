@@ -204,7 +204,7 @@ void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags,
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-void wq_wakeup_many_np(waitqueue_t _Nonnull self, int flags, int pri_boost)
+void wq_wakeup_np(waitqueue_t _Nonnull self, int flags, int pri_boost)
 {
     register deque_node_t* cp = self->q.first;
 
