@@ -121,7 +121,7 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
             return EAGAIN;
         }
 
-        err = vcpu_sigwait(&self->siwa_queue, &hot_sigs, sigwait_flags, &signo);
+        err = vcpu_sigwait(&self->siwa_queue, &hot_sigs, sigwait_flags, NULL, &signo);
         if (err == ECANCELED) {
             break;
         }

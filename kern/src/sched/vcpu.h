@@ -250,16 +250,16 @@ vcpu_send_signal_boost(__self, __signo, 0)
 //#define TIMER_ABSTIME       2     declared in _time.h
 #define SIGWAIT_NOCANCEL    4   /* informs sigwait() that it should ignore canceling signals */
 
-// Blocks the caller until either one of the signals in 'set' arrives or a canceling
-// signal arrives. Returns ECANCELED and leaves the signal pending if a canceling
-// signal has arrived and SIGWAIT_NOCANCEL isn't specified. Ignores canceling
-// signals altogether if SIGWAIT_NOCANCEL is specified. If a non-canceling signal
-// arrives, that signal is consumed, stored in 'signo' and EOK is returned.
-extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, int* _Nonnull signo);
-
-// Similar to vcpu_sigwait(). Waits for at most 'wtp' seconds and nanoseconds.
-// Returns ETIMEDOUT on a timeout.
-extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
+// Blocks the caller until either one of the signals in 'set' arrives, a timeout
+// happens or a canceling signal arrives. Returns ECANCELED and leaves the signal
+// pending if a canceling signal has arrived and SIGWAIT_NOCANCEL isn't specified.
+// Ignores canceling signals altogether if SIGWAIT_NOCANCEL is specified. If a
+// non-canceling signal arrives, that signal is consumed, stored in 'signo' and
+// EOK is returned.
+// Returns ETIMEDOUT if 'deadline' is an absolute ticks value < TICKS_MAX and
+// no signal has arrived before 'deadline'. Use the wq_calc_deadline() function
+// to calculate the deadline value based on a nanotime_t timeout. 
+extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t* _Nullable deadline, int* _Nonnull signo);
 
 
 // Needs to be called at the end of every system call

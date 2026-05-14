@@ -29,14 +29,15 @@ SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
 
-    return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, pa->signo);
+    return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, NULL, pa->signo);
 }
 
 SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nullable signo)
 {
     ProcessRef pp = vp->proc;
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
 
-    return vcpu_sigtimedwait(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
+    return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, &deadline, pa->signo);
 }
 
 SYSCALL_1(sig_pending, sigset_t* _Nonnull set)

@@ -156,7 +156,7 @@ static void _wait_for_resume(kdispatch_worker_t _Nonnull _Locked self)
 
     while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
         mtx_unlock(&q->mutex);
-        vcpu_sigtimedwait(&self->wq, &self->hotsigs, 0, &NANOTIME_INF, &signo);
+        vcpu_sigwait(&self->wq, &self->hotsigs, 0, NULL, &signo);
         mtx_lock(&q->mutex);
     }
 
@@ -192,7 +192,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
 {
     kdispatch_t q = self->owner;
     bool mayRelinquish = false;
-    nanotime_t now, deadline;
+    nanotime_t now, timeout;
     int flags, signo = _SIG_DISPATCH;
 
     for (;;) {
@@ -243,15 +243,15 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
         // Compute a deadline for the wait. We do not wait if the deadline
         // is equal to the current time or it's in the past
         if (q->timers.first) {
-            deadline = ((kdispatch_timer_t)q->timers.first)->deadline;
+            timeout = ((kdispatch_timer_t)q->timers.first)->deadline;
             flags = TIMER_ABSTIME;
         }
         else if (self->allow_relinquish) {
-            nanotime_from_sec(&deadline, 5);
+            nanotime_from_sec(&timeout, 5);
             flags = 0;
         }
         else {
-            deadline = NANOTIME_INF;
+            timeout = NANOTIME_INF;
         }
 
 
@@ -261,7 +261,8 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
         mtx_unlock(&q->mutex);
-        const errno_t err = vcpu_sigtimedwait(&self->wq, &self->hotsigs, flags, &deadline, &signo);
+        const ticks_t deadline = wq_calc_deadline(g_mono_clock, flags, &timeout);
+        const errno_t err = vcpu_sigwait(&self->wq, &self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
         if (err == ETIMEDOUT && _should_relinquish(self)) {

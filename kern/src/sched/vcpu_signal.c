@@ -35,12 +35,12 @@
 // call. It is only handled at the very end of a system call and it is ignored
 // and left pending while the system call is doing its work.
 //
-// A vcpu uses the vcpu_sigwait() and vcpu_sigtimedwait() call to wait for
-// signals. These blocking calls are cancelable by default. This means that they
-// will return with an ECANCELED error if one of the signals in the SIGSET_CANCELING
-// is pending. This behavior can be turned off by passing the SIGWAIT_NOCANCEL flag.
-// Note however that this flag should not be used lightly and only in circumstances
-// that absolutely require that a wait ignores canceling signals since this also
+// A vcpu uses the vcpu_sigwait() call to wait for signals. These blocking calls
+// are cancelable by default. This means that they will return with an ECANCELED
+// error if one of the signals in the SIGSET_CANCELING is pending. This behavior
+// can be turned off by passing the SIGWAIT_NOCANCEL flag. Note however that
+// this flag should not be used lightly and only in circumstances that
+// absolutely require that a wait ignores canceling signals since this also
 // means that sigwait() will ignore a pending SIG_FORCE_QUIT signal.
 //
 // Note that all canceling and urgent signals are sticky signals (see SIGSET_STICKY).
@@ -141,11 +141,11 @@ bool _probe_pending_signals(vcpu_t _Nonnull vp, const sigset_t set, int flags, e
 #define _waiting_sigset(__set, __flags) \
 ((((__flags) & SIGWAIT_NOCANCEL) == 0) ? (*(__set)) | SIGSET_CANCELING : *(__set))
 
-errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, int* _Nonnull signo)
+errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t* _Nullable deadline, int* _Nonnull signo)
 {
     decl_try_err();
     const sigset_t probing_sigs = _probing_sigset(set);
-    const sigset_t waiting_sigs = _waiting_sigset(set, flags);
+    const sigset_t waiting_sigs = _waiting_sigset(set, flags);    
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
 
@@ -155,30 +155,7 @@ errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int 
         }
 
         vp->wait_sigs = waiting_sigs;
-        wq_wait_np(wq, NULL);
-    }
-    preempt_restore(sps);
-
-    return err;
-}
-
-errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
-{
-    decl_try_err();
-    const sigset_t probing_sigs = _probing_sigset(set);
-    const sigset_t waiting_sigs = _waiting_sigset(set, flags);
-    const ticks_t deadline = wq_calc_deadline(g_mono_clock, flags, wtp);
-    
-    const int sps = preempt_disable();
-    vcpu_t vp = (vcpu_t)g_sched->running;
-
-    for (;;) {
-        if (_probe_pending_signals(vp, probing_sigs, flags, &err, signo)) {
-            break;
-        }
-
-        vp->wait_sigs = waiting_sigs;
-        err = wq_wait_np(wq, &deadline);
+        err = wq_wait_np(wq, deadline);
         if (err != EOK) {
             break;
         }

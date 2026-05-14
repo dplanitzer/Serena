@@ -31,6 +31,7 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
     }
 
 
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
     const int sps = preempt_disable();
     nanotime_t start_t, stop_t;
 
@@ -38,7 +39,7 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
         clock_gettime(g_mono_clock, &start_t);
     }
 
-    err = vcpu_sigtimedwait(&pp->clk_wait_queue, &sigs, pa->flags, pa->wtp, &signo);
+    err = vcpu_sigwait(&pp->clk_wait_queue, &sigs, 0, &deadline, &signo);
 
     if (pa->rmtp) {
         if (err == ETIMEDOUT) {
