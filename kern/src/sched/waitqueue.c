@@ -50,7 +50,11 @@ ticks_t wq_calc_deadline(clock_ref_t _Nonnull clock, int flags, const nanotime_t
         }
         else {
             // relative
-            return clock_getticks(clock) + deadline_ticks; 
+            const ticks_t now = clock_getticks(clock);
+            const ticks_t abs_deadline = now + deadline_ticks;
+
+            // overflow check
+            return (abs_deadline > now && abs_deadline > deadline_ticks) ? abs_deadline : TICKS_MAX;
         }
     }
     else {
