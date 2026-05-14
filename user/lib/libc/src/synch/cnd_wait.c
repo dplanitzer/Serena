@@ -21,10 +21,10 @@ int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
 
     mtx_unlock(mutex);
 
-    ww_wait(&self->seq, seq);
+    woa_wait(&self->seq, seq, 0, NULL);
 
     while (atomic_int_exchange(&mutex->state, _MTX_CONTENDED) != _MTX_AVAILABLE) {
-        ww_wait(&mutex->state, _MTX_CONTENDED);
+        woa_wait(&mutex->state, _MTX_CONTENDED, 0, NULL);
     }
 
     return 0;

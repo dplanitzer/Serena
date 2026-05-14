@@ -35,7 +35,7 @@ int sem_timedwait(sem_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wt
             break;
         }
 
-        if (ww_timedwait(&self->value, 0, flags, &a_timeout) != 0) {
+        if (woa_wait(&self->value, 0, flags, &a_timeout) != 0) {
             r = -1;
             break;
         }

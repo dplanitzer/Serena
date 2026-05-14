@@ -16,7 +16,7 @@ int sem_post(sem_t* _Nonnull self)
     }
 
     atomic_int_fetch_add(&self->value, 1);
-    ww_wakeup(&self->value, WAKEUP_ONE);
+    woa_wakeup(&self->value, WAKEUP_ONE);
     
     return 0;
 }

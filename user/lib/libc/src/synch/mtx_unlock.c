@@ -19,7 +19,7 @@ int mtx_unlock(mtx_t* _Nonnull self)
 
     if (atomic_int_fetch_sub(&self->state, 1) != _MTX_LOCKED) {
         atomic_int_store(&self->state, _MTX_AVAILABLE);
-        ww_wakeup(&self->state, WAKEUP_ONE);
+        woa_wakeup(&self->state, WAKEUP_ONE);
     }
     return 0;
 }

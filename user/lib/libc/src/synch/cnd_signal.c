@@ -18,5 +18,5 @@ int cnd_signal(cnd_t* _Nonnull self)
     }
 
     atomic_int_fetch_add(&self->seq, 1);
-    ww_wakeup(&self->seq, WAKEUP_ONE);
+    woa_wakeup(&self->seq, WAKEUP_ONE);
 }

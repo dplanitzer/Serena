@@ -37,28 +37,28 @@
 // *) replace dequeue_t with a single linked list if reasonable.
 
 
-#define WW_HASH_CHAIN_COUNT 8
-#define WW_HASH_CHAIN_MASK  (WW_HASH_CHAIN_COUNT - 1)
+#define WOA_HASH_CHAIN_COUNT 8
+#define WOA_HASH_CHAIN_MASK  (WOA_HASH_CHAIN_COUNT - 1)
 
-#define WW_CACHE_CAPACITY   16
+#define WOA_CACHE_CAPACITY   16
 
-struct ww_hdr {
+struct woa_hdr {
     deque_node_t        qe;
     struct waitqueue    wq;
     void*               key;
     int                 use_count;
 };
-typedef struct ww_hdr* ww_hdr_t;
+typedef struct woa_hdr* woa_hdr_t;
 
-static deque_t/*<struct ww_hdr>*/   g_ww_table[WW_HASH_CHAIN_COUNT];    // key (addr) -> struct ww_hdr
-static deque_t/*<struct ww_hdr>*/   g_ww_cache;
-static size_t                       g_ww_cache_size;
-static mtx_t                        g_ww_mtx;
+static deque_t/*<struct woa_hdr>*/  g_woa_table[WOA_HASH_CHAIN_COUNT];    // key (addr) -> struct ww_hdr
+static deque_t/*<struct woa_hdr>*/  g_woa_cache;
+static size_t                       g_woa_cache_size;
+static mtx_t                        g_woa_mtx;
 
 
-static ww_hdr_t _Nullable _find_ww_locked(void* key)
+static woa_hdr_t _Nullable _find_ww_locked(void* key)
 {
-    deque_for_each(&g_ww_table[hash_ptr(key) & WW_HASH_CHAIN_MASK], struct ww_hdr, it,
+    deque_for_each(&g_woa_table[hash_ptr(key) & WOA_HASH_CHAIN_MASK], struct woa_hdr, it,
         if (it->key == key) {
             return it;
         }
@@ -67,76 +67,77 @@ static ww_hdr_t _Nullable _find_ww_locked(void* key)
     return NULL;
 }
 
-static ww_hdr_t _Nullable _acquire_ww_for_addr(void* key, bool bAllocIfNeeded)
+static woa_hdr_t _Nullable _acquire_woa_for_addr(void* key, bool bAllocIfNeeded)
 {
-    mtx_lock(&g_ww_mtx);
-    ww_hdr_t wwp = _find_ww_locked(key);
+    mtx_lock(&g_woa_mtx);
+    woa_hdr_t wp = _find_ww_locked(key);
     
-    if (wwp == NULL && bAllocIfNeeded) {
-        if (g_ww_cache_size > 0) {
-            wwp = (ww_hdr_t)deque_remove_first(&g_ww_cache);
-            g_ww_cache_size--;
+    if (wp == NULL && bAllocIfNeeded) {
+        if (g_woa_cache_size > 0) {
+            wp = (woa_hdr_t)deque_remove_first(&g_woa_cache);
+            g_woa_cache_size--;
         }
         else {
-            if (kalloc(sizeof(struct ww_hdr), (void**)&wwp) != EOK) {
-                mtx_unlock(&g_ww_mtx);
+            if (kalloc(sizeof(struct woa_hdr), (void**)&wp) != EOK) {
+                mtx_unlock(&g_woa_mtx);
                 return NULL;
             }
         }
 
 
-        wwp->qe = DEQUE_NODE_INIT;
-        wwp->wq = WAITQUEUE_INIT;
-        wwp->key = key;
-        wwp->use_count = 0;
+        wp->qe = DEQUE_NODE_INIT;
+        wp->wq = WAITQUEUE_INIT;
+        wp->key = key;
+        wp->use_count = 0;
 
-        deque_add_last(&g_ww_table[hash_ptr(key) & WW_HASH_CHAIN_MASK], &wwp->qe);
+        deque_add_last(&g_woa_table[hash_ptr(key) & WOA_HASH_CHAIN_MASK], &wp->qe);
     }
 
 
-    if (wwp) {
-        wwp->use_count++;
+    if (wp) {
+        wp->use_count++;
     }
-    mtx_unlock(&g_ww_mtx);
+    mtx_unlock(&g_woa_mtx);
 
-    return wwp;
+    return wp;
 }
 
-static void _relinquish_ww(ww_hdr_t _Nonnull wwp)
+static void _relinquish_woa(woa_hdr_t _Nonnull wp)
 {
-    mtx_lock(&g_ww_mtx);
+    mtx_lock(&g_woa_mtx);
 
-    wwp->use_count--;
-    if (wwp->use_count == 0) {
+    wp->use_count--;
+    if (wp->use_count == 0) {
         // remove the ww from the hash table
-        deque_remove(&g_ww_table[hash_ptr(wwp->key) & WW_HASH_CHAIN_MASK], &wwp->qe);
+        deque_remove(&g_woa_table[hash_ptr(wp->key) & WOA_HASH_CHAIN_MASK], &wp->qe);
 
 
         // put it on the cache queue if there's still space left; otherwise free it
         // for good
-        if (g_ww_cache_size < WW_CACHE_CAPACITY) {
-            deque_add_first(&g_ww_cache, &wwp->qe);
-            g_ww_cache_size++;
+        if (g_woa_cache_size < WOA_CACHE_CAPACITY) {
+            deque_add_first(&g_woa_cache, &wp->qe);
+            g_woa_cache_size++;
         }
         else {
-            wq_deinit(&wwp->wq);
-            kfree(wwp);
+            wq_deinit(&wp->wq);
+            kfree(wp);
         }
     }
 
-    mtx_unlock(&g_ww_mtx);
+    mtx_unlock(&g_woa_mtx);
 }
 
 
-SYSCALL_2(ww_wait, volatile atomic_int* _Nonnull addr, int expected)
+SYSCALL_4(woa_wait, volatile atomic_int* _Nonnull addr, int expected, int flags, const nanotime_t* _Nonnull wtp)
 {
     decl_try_err();
-    ww_hdr_t wwp = _acquire_ww_for_addr(pa->addr, true);
-    if (wwp == NULL) {
+    woa_hdr_t wp = _acquire_woa_for_addr(pa->addr, true);
+    if (wp == NULL) {
         return ENOMEM;
     }
     
 
+    const ticks_t deadline = (pa->wtp) ? wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp) : TICKS_MAX;
     const int sps = preempt_disable();
     for (;;) {
         if ((vp->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
@@ -147,37 +148,7 @@ SYSCALL_2(ww_wait, volatile atomic_int* _Nonnull addr, int expected)
             break;
         }
 
-        wq_wait_np(&wwp->wq, NULL);
-    }
-    preempt_restore(sps);
-    
-
-    _relinquish_ww(wwp);
-
-    return err;
-}
-
-SYSCALL_4(ww_timedwait, volatile atomic_int* _Nonnull addr, int expected, int flags, const nanotime_t* _Nonnull wtp)
-{
-    decl_try_err();
-    ww_hdr_t wwp = _acquire_ww_for_addr(pa->addr, true);
-    if (wwp == NULL) {
-        return ENOMEM;
-    }
-    
-
-    const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
-    const int sps = preempt_disable();
-    for (;;) {
-        if ((vp->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
-            err = ECANCELED;
-            break;
-        }
-        if (atomic_int_load(pa->addr) != pa->expected) {
-            break;
-        }
-
-        err = wq_wait_np(&wwp->wq, &deadline);
+        err = wq_wait_np(&wp->wq, &deadline);
         if (err != EOK) {
             break;
         }
@@ -185,24 +156,24 @@ SYSCALL_4(ww_timedwait, volatile atomic_int* _Nonnull addr, int expected, int fl
     preempt_restore(sps);
     
 
-    _relinquish_ww(wwp);
+    _relinquish_woa(wp);
 
     return err;
 }
 
-SYSCALL_2(ww_wakeup, volatile atomic_int* _Nonnull addr, int flags)
+SYSCALL_2(woa_wakeup, volatile atomic_int* _Nonnull addr, int flags)
 {
     if ((pa->flags & ~_WAKEUP_UMASK) != 0) {
         return EINVAL;
     }
 
-    ww_hdr_t wwp = _acquire_ww_for_addr(pa->addr, false);
-    if (wwp) {
+    woa_hdr_t wp = _acquire_woa_for_addr(pa->addr, false);
+    if (wp) {
         const int sps = preempt_disable();
-        wq_wakeup_np(&wwp->wq, pa->flags, 0);
+        wq_wakeup_np(&wp->wq, pa->flags, 0);
         preempt_restore(sps);
 
-        _relinquish_ww(wwp);
+        _relinquish_woa(wp);
     }
 
     return EOK;

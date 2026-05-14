@@ -33,7 +33,7 @@ int mtx_lock(mtx_t* _Nonnull self)
         }
 
         while (s != _MTX_AVAILABLE) {
-            ww_wait(&self->state, _MTX_CONTENDED);
+            woa_wait(&self->state, _MTX_CONTENDED, 0, NULL);
             s = atomic_int_exchange(&self->state, _MTX_CONTENDED);
         }
     }

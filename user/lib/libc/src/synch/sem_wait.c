@@ -23,7 +23,7 @@ int sem_wait(sem_t* _Nonnull self)
             break;
         }
 
-        if (ww_wait(&self->value, 0) != 0) {
+        if (woa_wait(&self->value, 0, 0, NULL) != 0) {
             r = -1;
             break;
         }

@@ -21,11 +21,11 @@ int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const 
 
     mtx_unlock(mutex);
 
-    int r = ww_timedwait(&self->seq, seq, flags, wtp);
+    int r = woa_wait(&self->seq, seq, flags, wtp);
 
     // Note that we need to acquire the mutex even if the timed wait timed out.
     while (atomic_int_exchange(&mutex->state, _MTX_CONTENDED) != _MTX_AVAILABLE) {
-        ww_wait(&mutex->state, _MTX_CONTENDED);
+        woa_wait(&mutex->state, _MTX_CONTENDED, 0, NULL);
     }
 
     return r;

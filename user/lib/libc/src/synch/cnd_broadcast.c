@@ -18,5 +18,5 @@ int cnd_broadcast(cnd_t* _Nonnull self)
     }
 
     atomic_int_fetch_add(&self->seq, 1);
-    ww_wakeup(&self->seq, WAKEUP_ALL);
+    woa_wakeup(&self->seq, WAKEUP_ALL);
 }

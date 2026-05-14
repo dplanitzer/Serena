@@ -81,9 +81,8 @@ SYSCALL_REF(sig_send);
 SYSCALL_REF(sig_route);
 SYSCALL_REF(sig_urgent);
 
-SYSCALL_REF(ww_wait);
-SYSCALL_REF(ww_timedwait);
-SYSCALL_REF(ww_wakeup);
+SYSCALL_REF(woa_wait);
+SYSCALL_REF(woa_wakeup);
 
 SYSCALL_REF(vcpu_errno);
 SYSCALL_REF(vcpu_getdata);
@@ -111,9 +110,9 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(proc_spawn, SC_ERRNO),
-    SYSCALL_ENTRY(ww_wait, SC_ERRNO),
+    SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
-    SYSCALL_ENTRY(ww_timedwait, SC_ERRNO),
+    SYSCALL_ENTRY(woa_wait, SC_ERRNO),
     SYSCALL_ENTRY(fs_open, SC_ERRNO),
     SYSCALL_ENTRY(fd_close, SC_ERRNO),
     SYSCALL_ENTRY(proc_waitstate, SC_ERRNO),
@@ -181,7 +180,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_state, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setstate, SC_ERRNO),
     SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
-    SYSCALL_ENTRY(ww_wakeup, SC_ERRNO),
+    SYSCALL_ENTRY(woa_wakeup, SC_ERRNO),
     SYSCALL_ENTRY(fd_info, SC_ERRNO),
     SYSCALL_ENTRY(fd_dup, SC_ERRNO),
     SYSCALL_ENTRY(proc_self, SC_INT),

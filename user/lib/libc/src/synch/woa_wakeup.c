@@ -1,5 +1,5 @@
 //
-//  ww_wait.c
+//  woa_wakeup.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/8/26.
@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int ww_wait(volatile atomic_int* _Nonnull addr, int expected)
+int woa_wakeup(volatile atomic_int* _Nonnull addr, int flags)
 {
-    return (int)_syscall(SC_ww_wait, addr, expected);
+    return (int)_syscall(SC_woa_wakeup, addr, flags);
 }
