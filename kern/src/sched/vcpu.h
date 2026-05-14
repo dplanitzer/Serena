@@ -134,8 +134,8 @@ struct vcpu {
     cpu_excpt_state_t               excpt_state;            // Exception state as recorded by cpu_exception()
 
     // Signals
-    sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sig_wait())
-    sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival
+    volatile sigset_t               pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sig_wait())
+    volatile sigset_t               wait_sigs;              // Which signals should cause a wakeup on arrival
 
     // Waiting related state
     clock_deadline_t                timeout;                // The wait timeout timer

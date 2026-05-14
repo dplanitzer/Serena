@@ -108,51 +108,37 @@ static int _get_highest_pri_sig(sigset_t set)
     return signo;
 }
 
-// Expects that 'set' does not contain signals from the SIGSET_STICKY set.
-bool _probe_pending_signals(vcpu_t _Nonnull vp, const sigset_t set, int flags, errno_t* _Nonnull err, int* _Nonnull signo)
-{
-    // Check canceling signals if not disabled. Note that we leave them pending
-    // since they will be consumed by the syscall_epilog() function.
-    if ((flags & SIGWAIT_NOCANCEL) == 0) {
-        if ((vp->pending_sigs & SIGSET_CANCELING) != 0) {
-            *err = ECANCELED;
-            return true;
-        }
-    }
-
-
-    // Check for regular signals.
-    const sigset_t hot_sigs = vp->pending_sigs & set;
-
-    if (hot_sigs != 0) {
-        *err = EOK;
-        *signo = _get_highest_pri_sig(hot_sigs);
-        
-        vp->pending_sigs &= ~sig_bit(*signo);
-        return true;
-    }
-
-    return false;
-}
-
-#define _probing_sigset(__set) \
-((*(__set)) & ~SIGSET_STICKY)
-
-#define _waiting_sigset(__set, __flags) \
-((((__flags) & SIGWAIT_NOCANCEL) == 0) ? (*(__set)) | SIGSET_CANCELING : *(__set))
-
 errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t* _Nullable deadline, int* _Nonnull signo)
 {
     decl_try_err();
-    const sigset_t probing_sigs = _probing_sigset(set);
-    const sigset_t waiting_sigs = _waiting_sigset(set, flags);    
+    sigset_t hot_sigs, waiting_sigs;
+    const bool doCancel = (flags & SIGWAIT_NOCANCEL) == 0;
+
+    hot_sigs = (*set) & ~SIGSET_STICKY;
+    waiting_sigs = (doCancel) ? (*set) | SIGSET_CANCELING : *set;
+
+
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
 
     for (;;) {
-        if (_probe_pending_signals(vp, probing_sigs, flags, &err, signo)) {
+        // Check canceling signals if not disabled. Note that we leave them pending
+        // since they will be consumed by the syscall_epilog() function.
+        if (doCancel && (vp->pending_sigs & SIGSET_CANCELING) != 0) {
+            err = ECANCELED;
             break;
         }
+
+
+        // Check for regular signals.
+        if ((vp->pending_sigs & hot_sigs) != 0) {
+            const int hp_sig = _get_highest_pri_sig(vp->pending_sigs & hot_sigs);
+        
+            vp->pending_sigs &= ~sig_bit(hp_sig);
+            *signo = hp_sig;
+            break;
+        }
+
 
         vp->wait_sigs = waiting_sigs;
         err = wq_wait_np(wq, deadline);
