@@ -37,7 +37,7 @@ static void just_suspend(const char* _Nonnull str)
 static void just_wait(const char* _Nonnull str)
 {
     puts(str);
-    clock_sleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF, NULL);
+    clock_sleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &NANOTIME_INF);
 }
 
 
@@ -80,7 +80,7 @@ void proc_exit_test(int argc, char *argv[])
     puts("Waiting...");
     nanotime_t delay;
     nanotime_from_sec(&delay, 2);
-    clock_sleep(CLOCK_MONOTONIC, 0, &delay, NULL);
+    clock_sleep(CLOCK_MONOTONIC, 0, &delay);
 
     puts("Exiting");
     exit(0);

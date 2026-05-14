@@ -79,7 +79,7 @@ int cmd_wait(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
         nanotime_t dur;
         
         nanotime_from_ms(&dur, ms);
-        clock_sleep(CLOCK_MONOTONIC, 0, &dur, NULL);
+        clock_sleep(CLOCK_MONOTONIC, 0, &dur);
     }
     else if (ms < 0) {
         printf("%s: unknown time unit '%s'\n", argv[0], ep);

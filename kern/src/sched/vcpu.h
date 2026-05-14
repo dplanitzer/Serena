@@ -247,20 +247,23 @@ extern errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_b
 vcpu_send_signal_boost(__self, __signo, 0)
 
 
-//#define TIMER_ABSTIME       2     declared in _time.h
-#define SIGWAIT_NOCANCEL    4   /* informs sigwait() that it should ignore canceling signals */
+//#define TIMER_ABSTIME     2      declared in _time.h
+#define SIGWAIT_NOABORT     4   /* informs vcpu_sigwait() that it should ignore system call aborts */
 
 // Blocks the caller until either one of the signals in 'set' arrives, a timeout
-// happens or a canceling signal arrives. Returns ECANCELED and leaves the signal
-// pending if a canceling signal has arrived and SIGWAIT_NOCANCEL isn't specified.
-// Ignores canceling signals altogether if SIGWAIT_NOCANCEL is specified. If a
-// non-canceling signal arrives, that signal is consumed, stored in 'signo' and
+// happens or an abort signal arrives. Returns EABORTED and leaves the signal
+// pending if an abort signal has arrived and SIGWAIT_NOABORT isn't specified.
+// Ignores aborting signals altogether if SIGWAIT_NOABORT is specified. If a
+// non-aborting signal arrives, that signal is consumed, stored in 'signo' and
 // EOK is returned.
 // Returns ETIMEDOUT if 'deadline' is an absolute ticks value < TICKS_MAX and
 // no signal has arrived before 'deadline'. Use the wq_calc_deadline() function
 // to calculate the deadline value based on a nanotime_t timeout. 
 extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t* _Nullable deadline, int* _Nonnull signo);
 
+// Return EABORTED if the current vcpu has an aborting signal pending.
+// @Entry Condition: preemption disabled
+extern errno_t vcpu_testabort_np(void);
 
 // Needs to be called at the end of every system call
 extern void vcpu_syscall_epilog(vcpu_t _Nonnull self);

@@ -31,8 +31,8 @@ typedef volatile int sig_atomic_t;
 // signal list below.
 //
 // Signals that target a vcpu do not have a default behavior associated with them
-// except for SIG_FORCE_QUIT and SIG_CANCEL. SIG_FORCE_QUIT causes a vcpu to
-// relinquish itself and SIG_CANCEL cancels an ongoing or the next system call.
+// except for SIG_FORCE_QUIT which cancels an ongoing system call and relinquishes
+// the vcpu.
 
 #define SIG_MIN  1
 #define SIG_MAX  32
@@ -47,7 +47,7 @@ typedef volatile int sig_atomic_t;
 #define SIG_LOGOUT          7   // XXX logind, user logged out, default: terminate
 #define SIG_QUIT            8   // TTY, process quit, default: terminate
 #define SIG_INTERRUPT       9   // TTY, process interrupt, default: terminate
-#define SIG_CANCEL          10  // Cancel an ongoing system call, ignored by processes; acted on by vcpus
+#define SIG_RESERVED1       10  // Reserved for the OS
 #define SIG_CHILD           11  // kernel, child process changed state, default: ignore
 #define SIG_WIN_CHANGE      12  // TTY, console window size changed, default: ignore
 #define SIG_BKG_READ        13  // TTY, background process attempt to read from terminal input, default: stop/suspend process

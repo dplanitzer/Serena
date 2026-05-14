@@ -8,16 +8,16 @@
 
 #include "syscalldecls.h"
 #include <ext/nanotime.h>
-#include <hal/clock.h>
 #include <hal/sched.h>
+#include <kern/sigset.h>
 #include <kpi/clock.h>
 
 
-SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp)
+SYSCALL_3(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    const sigset_t sigs = sig_bit(SIG_FORCE_QUIT);
+    const sigset_t sigs = SIGSET_EMPTY;
     int signo;
 
     if (!nanotime_isvalid(pa->wtp)) {
@@ -33,26 +33,7 @@ SYSCALL_4(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp, n
 
     const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
     const int sps = preempt_disable();
-    nanotime_t start_t, stop_t;
-
-    if (pa->rmtp) {
-        clock_gettime(g_mono_clock, &start_t);
-    }
-
     err = vcpu_sigwait(&pp->clk_wait_queue, &sigs, 0, &deadline, &signo);
-
-    if (pa->rmtp) {
-        if (err == ETIMEDOUT) {
-            // reached the end time
-            nanotime_set(pa->rmtp, &NANOTIME_ZERO);
-        }
-        else {
-            // got interrupted by a canceling signal
-            clock_gettime(g_mono_clock, &stop_t);
-            nanotime_sub(pa->rmtp, &stop_t, &start_t);
-        }
-    }
-
     preempt_restore(sps);
     
     return err;

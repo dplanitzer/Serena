@@ -245,7 +245,7 @@ static void main_loop(void)
     char ch;
 
     for (;;) {
-        clock_sleep(CLOCK_MONOTONIC, 0, &wt, NULL);
+        clock_sleep(CLOCK_MONOTONIC, 0, &wt);
 
         ch = '\0';
         fd_read(FD_STDIN, &ch, 1);

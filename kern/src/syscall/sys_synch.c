@@ -140,8 +140,8 @@ SYSCALL_4(woa_wait, volatile atomic_int* _Nonnull addr, int expected, int flags,
     const ticks_t deadline = (pa->wtp) ? wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp) : TICKS_MAX;
     const int sps = preempt_disable();
     for (;;) {
-        if ((vp->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
-            err = ECANCELED;
+        if (vcpu_testabort_np() == EABORTED) {
+            err = EABORTED;
             break;
         }
         if (atomic_int_load(pa->addr) != pa->expected) {

@@ -13,10 +13,11 @@
 #include <ext/try.h>
 #include <kpi/signal.h>
 
+extern const sigset_t SIGSET_EMPTY;
 extern const sigset_t SIGSET_NON_ROUTABLE;  // Process-level signals that a user may not reroute to a vcpu
 extern const sigset_t SIGSET_URGENTS;       // Signals that indicate an important change in kernel state that should be picked up the vcpu as soon as possible
-extern const sigset_t SIGSET_CANCELING;     // Signals that cancel a system call
-extern const sigset_t SIGSET_STICKY;        // Signals that remain pending (and are not consumed by sigwait() and sigtimedwait()) while a system call is ongoing. They are consumed at the end of the system call
+extern const sigset_t SIGSET_ABORTS;        // Signals which cause a system call abort and the vcpu to force relinquish/the process to force terminate
+extern const sigset_t SIGSET_STICKY;        // Signals that remain pending (and are not consumed by sigwait()) while a system call is ongoing. They are consumed at the end of the system call
 
 
 // Initializes the signal set 'set' to a set with the single signal 'signo'.

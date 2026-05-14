@@ -107,7 +107,7 @@ errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pi
 {
     decl_try_err();
     const sigset_t hot_sigs = sig_bit(SIG_CHILD);
-    const sigwait_flags = ((flags & _WAIT_NOCANCEL) == _WAIT_NOCANCEL) ? SIGWAIT_NOCANCEL : 0;
+    const sigwait_flags = ((flags & _WAIT_NOCANCEL) == _WAIT_NOCANCEL) ? SIGWAIT_NOABORT : 0;
     int signo;
 
     for (;;) {

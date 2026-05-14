@@ -55,6 +55,10 @@
 #define ENXIO           42
 #define ENOTATTACHED    43
 
+#if defined(__KERNEL__)
+#define EABORTED    ETERMINATED
+#endif
+
 #define __EFIRST    1
 #define __ELAST     43
 

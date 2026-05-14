@@ -25,11 +25,9 @@ extern int clock_info(clockid_t clockid, int flavor, clock_info_ref _Nonnull inf
 
 // Suspends the calling execution context for the seconds and nanoseconds specified
 // by 'wtp'. 'wtp' is an absolute point in time if 'flags' includes TIMER_ABSTIME.
-// Otherwise 'wtp' is a duration relative to the current time. 'rmtp' is set to
-// the remaining time if this function wakes up before the specified timeout
-// value.
+// Otherwise 'wtp' is a duration relative to the current time.
 // @Concurrency: Safe
-extern int clock_sleep(clockid_t clockid, int flags, const nanotime_t* _Nonnull wtp, nanotime_t* _Nullable rmtp);
+extern int clock_sleep(clockid_t clockid, int flags, const nanotime_t* _Nonnull wtp);
 
 __CPP_END
 
