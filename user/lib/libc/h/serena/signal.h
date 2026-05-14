@@ -27,13 +27,10 @@ __CPP_BEGIN
 extern int sig_route(int op, int signo, int target, id_t id);
 
 // Blocks the caller until one of the signals in 'set' is delivered to the vcpu.
+// or the specified timeout has occurred.
 // Returns the highest priority pending signal in 'signo' and clears it from the
-// list of pending signals.
-extern int sig_wait(const sigset_t* _Nonnull set, int* _Nonnull signo);
-
-// Similar to sig_wait() but returns with ETIMEDOUT if the wait reached the timeout
-// value.
-extern int sig_timedwait(const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
+// list of pending signals. Returns EOK on success and ETIMEDOUT on a timeout.
+extern int sig_wait(const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo);
 
 // Returns the set of signals that are pending. This function does not consume
 // pending signals and it does not trigger signal handlers.

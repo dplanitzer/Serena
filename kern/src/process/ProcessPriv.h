@@ -118,7 +118,7 @@ typedef struct Process {
     // All VPs that belong to this process and are currently in a clock_sleep()
     struct waitqueue                clk_wait_queue;
     
-    // All VPs blocking on a sig_wait() or sig_timedwait()
+    // All VPs blocking on a sig_wait()
     struct waitqueue                siwa_queue;
     
     // Signal routes

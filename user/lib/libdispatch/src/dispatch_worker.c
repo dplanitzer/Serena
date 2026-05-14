@@ -174,7 +174,7 @@ static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self)
 
     while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
         mtx_unlock(&q->mutex);
-        sig_timedwait(&self->hotsigs, 0, &NANOTIME_INF, &signo);
+        sig_wait(&self->hotsigs, 0, &NANOTIME_INF, &signo);
         mtx_lock(&q->mutex);
     }
 
@@ -279,7 +279,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
         mtx_unlock(&q->mutex);
-        const int r = sig_timedwait(&self->hotsigs, flags, &deadline, &signo);
+        const int r = sig_wait(&self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
         if (r != 0 && errno == ETIMEDOUT && _should_relinquish(self)) {

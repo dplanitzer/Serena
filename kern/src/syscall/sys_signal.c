@@ -25,17 +25,10 @@ SYSCALL_4(sig_route, int op, int signo, int target, id_t id)
     return Process_Sigroute(vp->proc, pa->op, pa->signo, pa->target, pa->id);
 }
 
-SYSCALL_2(sig_wait, const sigset_t* _Nonnull set, int* _Nullable signo)
+SYSCALL_4(sig_wait, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nullable wtp, int* _Nonnull signo)
 {
+    const ticks_t deadline = (pa->wtp) ? wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp) : TICKS_MAX;
     ProcessRef pp = vp->proc;
-
-    return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, NULL, pa->signo);
-}
-
-SYSCALL_4(sig_timedwait, const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nullable signo)
-{
-    ProcessRef pp = vp->proc;
-    const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
 
     return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, &deadline, pa->signo);
 }

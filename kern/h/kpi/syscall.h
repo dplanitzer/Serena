@@ -66,9 +66,9 @@ enum {
     SC_sig_route,           // int sig_route(int op, int signo, int target, id_t id)
     SC_vcpu_getdata,        // intptr_t __vcpu_getdata(void)
     SC_vcpu_setdata,        // void __vcpu_setdata(intptr_t data)
-    SC_sig_wait,            // int sig_wait(const sigset_t* _Nonnull set, int* _Nonnull signo)
-    SC_sig_timedwait,       // int sig_timedwait(const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
     SC_unused_6,            // UNUSED
+    SC_sig_wait,            // int sig_wait(const sigset_t* _Nonnull set, int flags, const nanotime_t* _Nonnull wtp, int* _Nonnull signo)
+    SC_unused_7,            // UNUSED
     SC_sig_pending,         // int sig_pending(sigset_t* _Nonnull set)
     SC_host_filesystems,    // errno_t host_filesystems(fsid_t* _Nonnull buf, size_t bufSize)
     SC_fs_info,             // errno_t fs_info(int flavor, fs_info_ref _Nonnull info)

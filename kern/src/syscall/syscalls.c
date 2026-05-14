@@ -75,7 +75,6 @@ SYSCALL_REF(proc_self);
 SYSCALL_REF(vm_allocate);
 
 SYSCALL_REF(sig_wait);
-SYSCALL_REF(sig_timedwait);
 SYSCALL_REF(sig_pending);
 SYSCALL_REF(sig_send);
 SYSCALL_REF(sig_route);
@@ -155,8 +154,8 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sig_route, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_PTR),
     SYSCALL_ENTRY(vcpu_setdata, SC_INT),
+    SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
     SYSCALL_ENTRY(sig_wait, SC_ERRNO),
-    SYSCALL_ENTRY(sig_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
     SYSCALL_ENTRY(sig_pending, SC_ERRNO),
     SYSCALL_ENTRY(host_filesystems, SC_ERRNO),
