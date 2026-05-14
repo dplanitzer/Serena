@@ -16,25 +16,26 @@
 #define DELAY_SPIN_MAX_NSEC    1000000l
 
 
-static struct waitqueue gSleepQueue;    // VPs which block in a delay_xx() call wait on this wait queue
+static struct waitqueue g_sleep_wq; // VPs which block in a delay_xx() call wait on this wait queue
 
 
 void delay_init(void)
 {
-    wq_init(&gSleepQueue);
+    wq_init(&g_sleep_wq);
 }
 
 static void _delay_by(const nanotime_t* _Nonnull wtp)
 {
-    // Just spin for very short waits and context switching for medium and long waits
+    // Just spin for very short waits
     if (wtp->tv_sec == 0 && wtp->tv_nsec < DELAY_SPIN_MAX_NSEC) {
-        nanotime_t now, deadline;
+        nanotime_t now, abs_deadline;
     
         clock_gettime_hires(g_mono_clock, &now);
-        nanotime_add(&deadline, &now, wtp);
+        nanotime_add(&abs_deadline, &now, wtp);
 
-        // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
-        while (nanotime_lt(&now, &deadline)) {
+        // Just spin for now (would be nice to put the CPU to sleep though for
+        // a few micros before rechecking the time or so)
+        while (nanotime_lt(&now, &abs_deadline)) {
             clock_gettime_hires(g_mono_clock, &now);
         }
         return;
@@ -42,8 +43,9 @@ static void _delay_by(const nanotime_t* _Nonnull wtp)
     
     
     // This is a medium or long wait -> context switch away
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, 0, wtp);
     const int sps = preempt_disable();
-    (void)wq_timedwait_np(&gSleepQueue, 0, wtp);
+    wq_wait_np(&g_sleep_wq, &deadline);
     preempt_restore(sps);
 }
 

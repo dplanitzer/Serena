@@ -10,14 +10,12 @@
 #include <assert.h>
 
 
-// Initializes a new semaphore with 'value' permits
 void sem_init(sem_t* _Nonnull self, int value)
 {
     self->value = value;
     wq_init(&self->wq);
 }
 
-// Deinitializes the semaphore.
 void sem_deinit(sem_t* _Nonnull self)
 {
     assert(wq_deinit(&self->wq) == EOK);
@@ -28,20 +26,17 @@ void sem_deinit(sem_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 void sem_on_wait(sem_t* _Nonnull self)
 {
-    wq_wait_np(&self->wq);
+    wq_wait_np(&self->wq, NULL);
 }
 
 // Invoked by sem_timedwait() if the semaphore doesn't have the expected
 // number of permits.
 // @Entry Condition: preemption disabled
-errno_t sem_on_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline)
+errno_t sem_on_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull wtp)
 {
-    if (wq_timedwait_np(&self->wq, TIMER_ABSTIME, deadline)) {
-        return ETIMEDOUT;
-    }
-    else {
-        return EOK;
-    }
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp);
+
+    return wq_wait_np(&self->wq, &deadline);
 }
 
 // Invoked by sem_post().

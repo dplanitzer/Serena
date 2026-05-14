@@ -222,17 +222,20 @@ _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 _Noreturn void sched_run_chores(sched_t _Nonnull self)
 {
     deque_t dead_vps;
-    nanotime_t now, timeout, deadline;
+    nanotime_t timeout;
 
     nanotime_from_sec(&timeout, 1);
     
     while (true) {
         dead_vps = DEQUE_INIT;
+        
         const int sps = preempt_disable();
 
         // Continue to wait as long as there's nothing to finalize
         while (deque_empty(&self->finalizer_queue)) {
-            (void)wq_timedwait_np(&g_sched_wq, 0, &timeout);
+            const ticks_t deadline = wq_calc_deadline(g_mono_clock, 0, &timeout);
+            
+            wq_wait_np(&g_sched_wq, &deadline);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

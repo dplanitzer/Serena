@@ -147,7 +147,7 @@ SYSCALL_2(ww_wait, volatile atomic_int* _Nonnull addr, int expected)
             break;
         }
 
-        wq_wait_np(&wwp->wq);
+        wq_wait_np(&wwp->wq, NULL);
     }
     preempt_restore(sps);
     
@@ -166,6 +166,7 @@ SYSCALL_4(ww_timedwait, volatile atomic_int* _Nonnull addr, int expected, int fl
     }
     
 
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
     const int sps = preempt_disable();
     for (;;) {
         if ((vp->pending_sigs & sig_bit(SIG_FORCE_QUIT)) != 0) {
@@ -176,8 +177,9 @@ SYSCALL_4(ww_timedwait, volatile atomic_int* _Nonnull addr, int expected, int fl
             break;
         }
 
-        if (wq_timedwait_np(&wwp->wq, pa->flags, pa->wtp)) {
-            err = ETIMEDOUT;
+        err = wq_wait_np(&wwp->wq, &deadline);
+        if (err != EOK) {
+            break;
         }
     }
     preempt_restore(sps);

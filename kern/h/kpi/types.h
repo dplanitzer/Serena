@@ -71,8 +71,10 @@ typedef struct chs {
 // Time unit of the scheduler clock which increments monotonically and once per clock interrupt
 #if defined(__LLP64__) || defined(__LP64__)
 typedef unsigned long long  ticks_t;
+#define TICKS_MAX   ULLONG_MAX
 #else
 typedef unsigned long   ticks_t;
+#define TICKS_MAX   ULONG_MAX
 #endif
 
 

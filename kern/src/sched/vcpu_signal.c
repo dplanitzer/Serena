@@ -155,7 +155,7 @@ errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int 
         }
 
         vp->wait_sigs = waiting_sigs;
-        wq_wait_np(wq);
+        wq_wait_np(wq, NULL);
     }
     preempt_restore(sps);
 
@@ -167,21 +167,8 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
     decl_try_err();
     const sigset_t probing_sigs = _probing_sigset(set);
     const sigset_t waiting_sigs = _waiting_sigset(set, flags);
-    nanotime_t now, deadline;
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, flags, wtp);
     
-    // Convert a relative timeout to an absolute timeout because it makes it
-    // easier to deal with spurious wakeups and we won't accumulate math errors
-    // caused by time resolution limitations.
-    if ((flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
-        deadline = *wtp;
-    }
-    else {
-        clock_gettime(g_mono_clock, &now);
-        nanotime_add(&deadline, &now, wtp);
-        flags |= TIMER_ABSTIME;
-    }
-
-
     const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
 
@@ -191,8 +178,8 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
         }
 
         vp->wait_sigs = waiting_sigs;
-        if (wq_timedwait_np(wq, flags, &deadline)) {
-            err = ETIMEDOUT;
+        err = wq_wait_np(wq, &deadline);
+        if (err != EOK) {
             break;
         }
     }

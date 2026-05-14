@@ -12,19 +12,16 @@
 #include <hal/sched.h>
 
 
-// Initializes a new condition variable.
 void cnd_init(cnd_t* _Nonnull self)
 {
     wq_init(&self->wq);
 }
 
-// Deinitializes the condition variable.
 void cnd_deinit(cnd_t* _Nonnull self)
 {
     assert(wq_deinit(&self->wq) == EOK);
 }
 
-// Signals the given condition variable.
 void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost)
 {
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
@@ -39,8 +36,6 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost)
     preempt_restore(sps);
 }
 
-// Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
-// It then locks 'pLock' before it returns to the caller.
 errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
 {
     // Note that we have to unlock the mutex and enter the wait state atomically.
@@ -65,17 +60,14 @@ errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
     return err;
 }
 
-// Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
-// It then locks 'pLock' before it returns to the caller.
-errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_t* _Nonnull deadline)
+errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_t* _Nonnull wtp)
 {
     decl_try_err();
+    const ticks_t deadline = wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp);
     const int sps = preempt_disable();
     
     mtx_unlock(mtx);
-    if (wq_timedwait_np(&self->wq, TIMER_ABSTIME, deadline)) {
-        err = ETIMEDOUT;
-    }
+    err = wq_wait_np(&self->wq, &deadline);
     mtx_lock(mtx);
 
     preempt_restore(sps);

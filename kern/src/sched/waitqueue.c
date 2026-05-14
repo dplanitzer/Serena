@@ -36,17 +36,36 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
     return err;
 }
 
-// 
+ticks_t wq_calc_deadline(clock_ref_t _Nonnull clock, int flags, const nanotime_t* _Nonnull wtp)
+{
+    //XXX for now. Add support for conversion from 'clock' to teh scheduler clock
+    assert(clock == g_mono_clock);
+
+    if (nanotime_lt(wtp, &NANOTIME_INF)) {
+        const ticks_t deadline_ticks = clock_time2ticks_ceil(clock, wtp);
+
+        if ((flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
+            // absolute
+            return deadline_ticks;
+        }
+        else {
+            // relative
+            return clock_getticks(clock) + deadline_ticks; 
+        }
+    }
+    else {
+        return TICKS_MAX;
+    }
+}
+
 // @Entry Condition: preemption disabled
-// @Entry Condition: 'vp' must be in running state
-void wq_wait_np(waitqueue_t _Nonnull self)
+errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t* _Nullable deadline)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const ticks_t start_ticks = clock_getticks(g_mono_clock);
+    bool bTimeout = false;
 
-    assert(vp->run_state == VCPU_STATE_RUNNING);
-
-    // FIFO order.
+    // Do the actual wait with FIFO order
     deque_add_last(&self->q, &vp->rewa_qe);
     
     vp->run_state = VCPU_STATE_WAITING;
@@ -62,50 +81,21 @@ void wq_wait_np(waitqueue_t _Nonnull self)
     }
 
 
-    // Find another VP to run and context switch to it
-    vp->proc->vcpu_waiting_count++;
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
-    vp->proc->vcpu_waiting_count--;
-
-    
-    // Update the wait time stats
-    const ticks_t stop_ticks = clock_getticks(g_mono_clock);
-    const ticks_t wait_ticks = stop_ticks - start_ticks;
-    vp->wait_ticks += wait_ticks;
-    vp->proc->wait_ticks += wait_ticks;
-}
-
-// 
-// @Entry Condition: preemption disabled
-// @Entry Condition: 'vp' must be in running state
-bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _Nonnull wtp)
-{
-    vcpu_t vp = (vcpu_t)g_sched->running;
-    const ticks_t start_ticks = clock_getticks(g_mono_clock);
-    ticks_t deadline_ticks;
-    bool armedTimeout = false;
-
     // Put us on the timeout queue. Note that we return immediately if we're
     // already past the deadline
-    if (nanotime_lt(wtp, &NANOTIME_INF)) {
-        deadline_ticks = clock_time2ticks_ceil(g_mono_clock, wtp);
-
-        if ((flags & TIMER_ABSTIME) == 0) {
-            deadline_ticks += start_ticks; 
+    if (deadline && *deadline < TICKS_MAX) {
+        if (*deadline <= start_ticks) {
+            return ETIMEDOUT;
         }
 
-        if (deadline_ticks <= start_ticks) {
-            return true;
-        }
-
-        vp->timeout.deadline = deadline_ticks;
+        vp->timeout.deadline = *deadline;
         vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
         vp->timeout.arg = vp;
 
         //XXX
         // Note that there is in principle a race between the clock_deadline()
-        // call, actually entering the wait (ctx switching away) inside of wq_wait_np()
-        // and the sched_wait_timeout_irq() function which does the wake on timeout.
+        // call, actually entering the wait (ctx switching away) and the
+        // sched_wait_timeout_irq() function which does the wake on timeout.
         // A very short timeout could trigger a wakeup before we are actually
         // able to enter the wait state. It's not an issue right now because
         // preempt_disable() turns off interrupts and the ctx switch away turns
@@ -115,25 +105,35 @@ bool wq_timedwait_np(waitqueue_t _Nonnull self, int flags, const nanotime_t* _No
         //
         // clock_disable_timer_irq()
         // clock_deadline()
-        // wq_wait_np()        <-- X
+        // sched_switch_to()            <-- X
         //
         // Where (X) is the point where we ctx switch to some other vcpu and this
         // implicitly turns irqs back on since the target vcpu doesn't have irqs
         // masked.
         clock_deadline(g_mono_clock, &vp->timeout);
-        armedTimeout = true;
+        bTimeout = true;
     }
 
 
-    // Do the actual wait
-    wq_wait_np(self);
+    // Find another VP to run and context switch to it
+    vp->proc->vcpu_waiting_count++;
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
+    vp->proc->vcpu_waiting_count--;
 
 
-    if (armedTimeout) {
+    // Cancel the timeout if needed
+    if (bTimeout) {
         clock_cancel_deadline(g_mono_clock, &vp->timeout);
     }
 
-    return (vp->wakeup_reason == WRES_TIMEOUT) ? true : false;
+
+    // Update the wait time stats
+    const ticks_t stop_ticks = clock_getticks(g_mono_clock);
+    const ticks_t wait_ticks = stop_ticks - start_ticks;
+    vp->wait_ticks += wait_ticks;
+    vp->proc->wait_ticks += wait_ticks;
+
+    return (vp->wakeup_reason == WRES_TIMEOUT) ? ETIMEDOUT : EOK;
 }
 
 // @Interrupt Context: Safe
