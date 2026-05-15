@@ -10,14 +10,6 @@
 
 #include "__synch.h"
 
-static int _compare_exchange(volatile atomic_int* _Nonnull p, int expected, int desired)
-{
-    int* ep = &expected;
-
-    atomic_int_compare_exchange_strong(p, ep, desired);
-    return *ep;
-}
-
 int mtx_lock(mtx_t* _Nonnull self)
 {
     if (self->signature != MTX_SIGNATURE) {
@@ -26,7 +18,9 @@ int mtx_lock(mtx_t* _Nonnull self)
     }
 
 
-    int s = _compare_exchange(&self->state, _MTX_AVAILABLE, _MTX_LOCKED);
+    int s = _MTX_AVAILABLE;
+    atomic_int_compare_exchange_strong(&self->state, &s, _MTX_LOCKED);
+
     if (s != _MTX_AVAILABLE) {
         if (s != _MTX_CONTENDED) {
             s = atomic_int_exchange(&self->state, _MTX_CONTENDED);
