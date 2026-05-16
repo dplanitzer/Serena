@@ -45,7 +45,7 @@ extern void mtx_unlock(mtx_t* _Nonnull self);
 
 // Unlocks the mutex and then enters the wait queue 'wq'. The unlock and entering
 // the wait are done atomically.
-extern errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq);
+extern errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq, ticks_t deadline);
 
 // Returns the virtual processor that is currently holding the mutex. NULL is
 // returned if none is holding the lock.

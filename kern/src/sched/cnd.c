@@ -54,7 +54,7 @@ errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
     // longer held the mutex but hadn't entered the wait state yet. The producer
     // was able to sneak in between and do a broadcast() before the consumer was
     // ready to receive it.
-    const errno_t err = mtx_unlock_then_wait(mtx, &self->wq);
+    const errno_t err = mtx_unlock_then_wait(mtx, &self->wq, TICKS_MAX);
     mtx_lock(mtx);
 
     return err;
@@ -62,15 +62,10 @@ errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
 
 errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const nanotime_t* _Nonnull wtp)
 {
-    decl_try_err();
     const ticks_t deadline = wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp);
-    const int sps = preempt_disable();
+    const errno_t err = mtx_unlock_then_wait(mtx, &self->wq, deadline);
     
-    mtx_unlock(mtx);
-    err = wq_wait_np(&self->wq, &deadline);
     mtx_lock(mtx);
-
-    preempt_restore(sps);
     
     return err;
 }

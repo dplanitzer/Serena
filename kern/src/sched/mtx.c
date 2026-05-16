@@ -13,7 +13,7 @@
 #include <kern/sigset.h>
 
 extern errno_t _mtx_unlock(mtx_t* _Nonnull self);
-extern errno_t _mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq);
+extern errno_t _mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq, ticks_t deadline);
 
 
 void mtx_init(mtx_t* _Nonnull self)
@@ -38,7 +38,7 @@ void mtx_unlock(mtx_t* _Nonnull self)
     _mtx_unlock(self);
 }
 
-errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq)
+errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq, ticks_t deadline)
 {
     if (vcpu_current() != self->owner) {
         fatalError(__func__, __LINE__, EPERM);
@@ -46,7 +46,7 @@ errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq
     }
     
     self->owner = NULL;
-    return _mtx_unlock_then_wait(self, wq);
+    return _mtx_unlock_then_wait(self, wq, deadline);
 }
 
 
@@ -66,10 +66,10 @@ void mtx_wake(mtx_t* _Nullable self)
 
 // Invoked by mtx_unlock_then_wait().
 // @Entry Condition: preemption disabled
-errno_t mtx_wake_then_wait(mtx_t* _Nullable self, struct waitqueue* _Nonnull wq)
+errno_t mtx_wake_then_wait(mtx_t* _Nullable self, struct waitqueue* _Nonnull wq, ticks_t deadline)
 {
     wq_wakeup_np(&self->wq, WAKEUP_ALL | WAKEUP_NO_IMMED_CSW, 0);
-    wq_wait_np(wq, NULL);
+    wq_wait_np(wq, &deadline);
 
     return EOK;
 }
