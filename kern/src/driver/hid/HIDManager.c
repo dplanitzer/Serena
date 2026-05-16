@@ -981,7 +981,7 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 
 
         mtx_unlock(&self->mtx);
-        vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, 0, NULL, &signo);
+        vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, 0, TICKS_MAX, &signo);
         mtx_lock(&self->mtx);
     }
 

@@ -33,7 +33,7 @@ SYSCALL_3(clock_sleep, int clockid, int flags, const nanotime_t* _Nonnull wtp)
 
     const ticks_t deadline = wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp);
     const int sps = preempt_disable();
-    err = vcpu_sigwait(&pp->clk_wait_queue, &sigs, 0, &deadline, &signo);
+    err = vcpu_sigwait(&pp->clk_wait_queue, &sigs, 0, deadline, &signo);
     preempt_restore(sps);
     
     return err;

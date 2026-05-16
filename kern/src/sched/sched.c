@@ -233,9 +233,7 @@ _Noreturn void sched_run_chores(sched_t _Nonnull self)
 
         // Continue to wait as long as there's nothing to finalize
         while (deque_empty(&self->finalizer_queue)) {
-            const ticks_t deadline = wq_calc_deadline(g_mono_clock, 0, &timeout);
-            
-            wq_wait_np(&g_sched_wq, &deadline);
+            wq_wait_np(&g_sched_wq, wq_calc_deadline(g_mono_clock, 0, &timeout));
         }
         
         // Got some work to do. Save off the needed data in local vars and then

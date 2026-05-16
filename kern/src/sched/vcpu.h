@@ -259,7 +259,7 @@ vcpu_send_signal_boost(__self, __signo, 0)
 // Returns ETIMEDOUT if 'deadline' is an absolute ticks value < TICKS_MAX and
 // no signal has arrived before 'deadline'. Use the wq_calc_deadline() function
 // to calculate the deadline value based on a nanotime_t timeout. 
-extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t* _Nullable deadline, int* _Nonnull signo);
+extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t deadline, int* _Nonnull signo);
 
 // Return EABORTED if the current vcpu has an aborting signal pending.
 // @Entry Condition: preemption disabled

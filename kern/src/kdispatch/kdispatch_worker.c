@@ -156,7 +156,7 @@ static void _wait_for_resume(kdispatch_worker_t _Nonnull _Locked self)
 
     while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
         mtx_unlock(&q->mutex);
-        vcpu_sigwait(&self->wq, &self->hotsigs, 0, NULL, &signo);
+        vcpu_sigwait(&self->wq, &self->hotsigs, 0, TICKS_MAX, &signo);
         mtx_lock(&q->mutex);
     }
 
@@ -262,7 +262,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
         // longer time.
         mtx_unlock(&q->mutex);
         const ticks_t deadline = wq_calc_deadline(g_mono_clock, flags, &timeout);
-        const errno_t err = vcpu_sigwait(&self->wq, &self->hotsigs, flags, &deadline, &signo);
+        const errno_t err = vcpu_sigwait(&self->wq, &self->hotsigs, flags, deadline, &signo);
         mtx_lock(&q->mutex);
 
         if (err == ETIMEDOUT && _should_relinquish(self)) {

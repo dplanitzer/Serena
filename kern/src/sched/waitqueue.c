@@ -63,7 +63,7 @@ ticks_t wq_calc_deadline(clock_ref_t _Nonnull clock, int flags, const nanotime_t
 }
 
 // @Entry Condition: preemption disabled
-errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t* _Nullable deadline)
+errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t deadline)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const ticks_t start_ticks = clock_getticks(g_mono_clock);
@@ -87,12 +87,12 @@ errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t* _Nullable deadline)
 
     // Put us on the timeout queue. Note that we return immediately if we're
     // already past the deadline
-    if (deadline && *deadline < TICKS_MAX) {
-        if (*deadline <= start_ticks) {
+    if (deadline < TICKS_MAX) {
+        if (deadline <= start_ticks) {
             return ETIMEDOUT;
         }
 
-        vp->timeout.deadline = *deadline;
+        vp->timeout.deadline = deadline;
         vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
         vp->timeout.arg = vp;
 

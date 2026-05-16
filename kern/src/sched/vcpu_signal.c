@@ -108,7 +108,7 @@ static int _get_highest_pri_sig(sigset_t set)
     return signo;
 }
 
-errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t* _Nullable deadline, int* _Nonnull signo)
+errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const ticks_t deadline, int* _Nonnull signo)
 {
     decl_try_err();
     sigset_t awaiting_sigs, consumable_sigs;

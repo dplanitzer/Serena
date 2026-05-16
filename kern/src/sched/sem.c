@@ -26,7 +26,7 @@ void sem_deinit(sem_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 void sem_on_wait(sem_t* _Nonnull self)
 {
-    wq_wait_np(&self->wq, NULL);
+    wq_wait_np(&self->wq, TICKS_MAX);
 }
 
 // Invoked by sem_timedwait() if the semaphore doesn't have the expected
@@ -34,9 +34,7 @@ void sem_on_wait(sem_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t sem_on_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull wtp)
 {
-    const ticks_t deadline = wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp);
-
-    return wq_wait_np(&self->wq, &deadline);
+    return wq_wait_np(&self->wq, wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp));
 }
 
 // Invoked by sem_post().

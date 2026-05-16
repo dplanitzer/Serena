@@ -148,7 +148,7 @@ SYSCALL_4(woa_wait, volatile atomic_int* _Nonnull addr, int expected, int flags,
             break;
         }
 
-        err = wq_wait_np(&wp->wq, &deadline);
+        err = wq_wait_np(&wp->wq, deadline);
         if (err != EOK) {
             break;
         }

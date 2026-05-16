@@ -30,7 +30,7 @@ SYSCALL_4(sig_wait, const sigset_t* _Nonnull set, int flags, const nanotime_t* _
     const ticks_t deadline = (pa->wtp) ? wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp) : TICKS_MAX;
     ProcessRef pp = vp->proc;
 
-    return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, &deadline, pa->signo);
+    return vcpu_sigwait(&pp->siwa_queue, pa->set, 0, deadline, pa->signo);
 }
 
 SYSCALL_1(sig_pending, sigset_t* _Nonnull set)

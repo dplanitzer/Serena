@@ -45,7 +45,7 @@ static void _delay_by(const nanotime_t* _Nonnull wtp)
     // This is a medium or long wait -> context switch away
     const ticks_t deadline = wq_calc_deadline(g_mono_clock, 0, wtp);
     const int sps = preempt_disable();
-    wq_wait_np(&g_sleep_wq, &deadline);
+    wq_wait_np(&g_sleep_wq, deadline);
     preempt_restore(sps);
 }
 
