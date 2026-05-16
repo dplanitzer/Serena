@@ -9,7 +9,6 @@
     include "cpu.i"
 
     xref _sem_on_wait
-    xref _sem_on_timedwait
     xref _sem_wakeup
 
     xdef _sem_post
@@ -63,7 +62,8 @@ _sem_wait:
         cmp.l   #1, d0
         bge.s   .claim_permit
 
-        ; wait for permits to arrive and then retry
+        ; wait for a permit to arrive and then retry
+        move.l  #0, -(sp)
         move.l  a0, -(sp)
         jsr     _sem_on_wait
         addq.l  #4, sp
@@ -102,10 +102,10 @@ _sem_timedwait:
         move.l  swt_deadline(sp), d0
         move.l  d0, -(sp)
         move.l  a0, -(sp)
-        jsr     _sem_on_timedwait
+        jsr     _sem_on_wait
         addq.l  #8, sp
 
-        ; give up if the sem_on_timedwait came back with an error
+        ; give up if the sem_on_wait came back with an error
         tst.l   d0
         bne.s   .done   ; d0 has the error code
 

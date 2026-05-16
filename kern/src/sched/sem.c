@@ -21,20 +21,14 @@ void sem_deinit(sem_t* _Nonnull self)
     assert(wq_deinit(&self->wq) == EOK);
 }
 
-// Invoked by sem_wait() if the semaphore doesn't have the expected
-// number of permits.
+// Invoked by sem_wait()/sem_timedwait() if the semaphore doesn't have a permit
+// available.
 // @Entry Condition: preemption disabled
-void sem_on_wait(sem_t* _Nonnull self)
+errno_t sem_on_wait(sem_t* _Nonnull self, const nanotime_t* _Nullable wtp)
 {
-    wq_wait_np(&self->wq, TICKS_MAX);
-}
+    const ticks_t deadline = (wtp) ? wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp) : TICKS_MAX;
 
-// Invoked by sem_timedwait() if the semaphore doesn't have the expected
-// number of permits.
-// @Entry Condition: preemption disabled
-errno_t sem_on_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull wtp)
-{
-    return wq_wait_np(&self->wq, wq_calc_deadline(g_mono_clock, TIMER_ABSTIME, wtp));
+    return wq_wait_np(&self->wq, deadline);
 }
 
 // Invoked by sem_post().
