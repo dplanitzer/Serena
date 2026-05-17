@@ -24,7 +24,7 @@ static void _vcpu_reset_penalties_and_boosts(vcpu_t _Nonnull self);
 static bool _vcpu_set_base_priority(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 static errno_t _validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
 static void _vcpu_yield(vcpu_t _Nonnull self);
-static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self);
+static errno_t _vcpu_await_suspension_np(vcpu_t _Nonnull self);
 
 
 // Initializes a virtual processor. A virtual processor always starts execution
@@ -59,6 +59,7 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
+    vcpu_t vp = NULL;
     bool doFree = false;
 
 
@@ -70,7 +71,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
 
 
     // Try to get a vcpu from the global pool
-    vcpu_t vp = vcpu_pool_checkout(g_vcpu_pool);
+    vp = vcpu_pool_checkout(g_vcpu_pool);
 
 
     // Create a new vcpu if we were not able to reuse a cached one
@@ -88,13 +89,31 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // proceed with reconfiguring it. We only become the owner of the vcpu once
     // it has entered suspended state.
     const int sps = preempt_disable();
-    while (_vcpu_await_suspension(vp) != EOK);
+    while (_vcpu_await_suspension_np(vp) != EOK);
     preempt_restore(sps);
 
     
     //
     // The vcpu is guaranteed to be suspended at this point
     //
+
+    // First wipe out the old state and create a clean slate. We do this here
+    // because doing this at relinquish time would be unsafe since the vcpu is
+    // still running at the start of the relinquish phase
+    vp->dispatch_worker = NULL;
+    vp->proc = NULL;
+    vp->udata = 0;
+    vp->uerrno = 0;
+    vp->pending_sigs = 0;
+    vp->excpt_handler = (excpt_handler_t){0};
+    vp->excpt_state = (cpu_excpt_state_t){0};
+    vp->excpt_sa = NULL;
+    vp->syscall_sa = NULL;
+    vp->user_ticks = 0;
+    vp->system_ticks = 0;
+    vp->wait_ticks = 0;
+    vp->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_DID_WAIT);
+
 
     // Configure the vcpu
     try(_vcpu_reset_machine_state(vp, ac, true));
@@ -110,29 +129,18 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     if (ac->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
     }
-    else {
-        vp->flags &= ~VP_FLAG_USER_OWNED;
-    }
     vp->id = ac->id;
     vp->group_id = ac->group_id;
-    vp->flags &= ~VP_FLAG_DID_WAIT;
-    vp->flags |= VP_FLAG_ACQUIRED;
 
-    vp->user_ticks = 0;
-    vp->system_ticks = 0;
-    vp->wait_ticks = 0;
     clock_gettime(g_mono_clock, &vp->acquisition_time);
-
-    *pOutVP = vp;
-    return EOK;
 
 
 catch:
-    if (doFree) {
+    if (err != EOK && doFree) {
         kfree(vp);
     }
 
-    *pOutVP = NULL;
+    *pOutVP = vp;
     return err;
 }
 
@@ -151,38 +159,21 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     preempt_restore(sps);
 
 
-    // Cleanup
-    self->dispatch_worker = NULL;
-    self->proc = NULL;
-    self->udata = 0;
-    self->id = 0;
-    self->group_id = 0;
-    self->uerrno = 0;
-    self->pending_sigs = 0;
-    self->excpt_handler = (excpt_handler_t){0};
-    self->excpt_state = (cpu_excpt_state_t){0};
-    self->excpt_sa = NULL;
-    self->syscall_sa = NULL;
-    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_ACQUIRED);
-
-
     // Check ourselves back into the vcpu pool
-    const bool reused = vcpu_pool_checkin(g_vcpu_pool, self);
+    vcpu_pool_checkin(g_vcpu_pool, self);
 
 
-    // Suspend ourselves if the pool accepted us; otherwise terminate ourselves
-    if (reused) {
-        try_bang(vcpu_suspend(self));
-    }
-    else {
-        sched_terminate_vcpu(g_sched, self);
-    }
+    // Do a synchronous suspend. We have teh guarantee that we are suspended
+    // before the next call returns.
+    try_bang(vcpu_suspend(self));
     /* NOT REACHED */
 }
 
 void vcpu_destroy(vcpu_t _Nullable self)
 {
     if (self) {
+        assert(self->run_state == VCPU_STATE_INITIATED || self->run_state == VCPU_STATE_SUSPENDED);
+
         stk_destroy(&self->kernel_stack);
         stk_destroy(&self->user_stack);
         kfree(self);
@@ -352,10 +343,6 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
             }
             break;
 
-        case VCPU_STATE_TERMINATING:
-            err = ESRCH;
-            break;
-
         default:
             abort();
     }
@@ -394,7 +381,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     decl_try_err();
     const int sps = preempt_disable();
 
-    if (self->run_state == VCPU_STATE_TERMINATING || self == g_sched->idle_vp || self == g_sched->boot_vp) {
+    if (self == g_sched->idle_vp || self == g_sched->boot_vp) {
         throw(ESRCH);
     }
     if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->run_state != VCPU_STATE_INITIATED && self->run_state != VCPU_STATE_RUNNING)) {
@@ -460,7 +447,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 // waits for suspension to have completed and returns EOK. Returns EBUSY if
 // 'self' is not in process suspension and not suspended either. 
 // @Entry Condition: preemption disabled
-static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
+static errno_t _vcpu_await_suspension_np(vcpu_t _Nonnull self)
 {
     while (self->suspension_count > 0) {
         if (self->run_state == VCPU_STATE_SUSPENDED || self->run_state == VCPU_STATE_WAITING) {
@@ -476,7 +463,7 @@ static errno_t _vcpu_await_suspension(vcpu_t _Nonnull self)
 errno_t vcpu_await_suspension(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
-    const errno_t err = _vcpu_await_suspension(self);
+    const errno_t err = _vcpu_await_suspension_np(self);
     preempt_restore(sps);
 
     return err;
@@ -509,7 +496,7 @@ errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull sta
     // Must be suspended if we are not the running vcpu
     if (!is_running) {
         sps = preempt_disable();
-        err = _vcpu_await_suspension(self);
+        err = _vcpu_await_suspension_np(self);
     }
 
     if (err == EOK) {
@@ -586,7 +573,7 @@ errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _N
     // Must be suspended if we are not the running vcpu
     if (!is_running) {
         sps = preempt_disable();
-        err = _vcpu_await_suspension(self);
+        err = _vcpu_await_suspension_np(self);
     }
 
     if (err == EOK) {

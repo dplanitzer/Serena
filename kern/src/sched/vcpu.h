@@ -94,9 +94,8 @@ typedef struct cpu_excpt_state {
 #define VP_FLAG_HAS_BC              0x02    // Clear branch cache on context switch
 // bits 0..3 are reserved for flags that are accessible to C and asm code
 #define VP_FLAG_USER_OWNED          0x10    // This VP is owned by a user process
-#define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
-#define VP_FLAG_DID_WAIT            0x40    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
-#define VP_FLAG_FIXED_PRI           0x80    // set if the vcpu should be scheduled using a fixed priority policy. Derived from the QoS scheduling parameters
+#define VP_FLAG_DID_WAIT            0x20    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
+#define VP_FLAG_FIXED_PRI           0x40    // set if the vcpu should be scheduled using a fixed priority policy. Derived from the QoS scheduling parameters
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -161,7 +160,7 @@ struct vcpu {
     ticks_t                         wait_ticks;             // accumulated number of ticks spent in waiting or suspended state (since acquisition)
 
     // Process
-    struct Process* _Nullable _Weak proc;                   // Process owning this VP
+    struct Process* _Nullable _Weak proc;                   // Process owning this VP. Note that sched_irq.c assumes that this field is never NULL while the vcpu is acquired and active 
 
     // kdispatch
     void* _Nullable _Weak           dispatch_worker;        // kdispatch_worker if this VP is part of a dispatcher
@@ -331,6 +330,8 @@ extern void vcpu_uret_exit(void);
 
 extern void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 
+// Destroys the vcpu 'self' and frees all its resources. Note that the vcpu has
+// to be in state INITIATED or SUSPENDED.
 extern void vcpu_destroy(vcpu_t _Nullable self);
 
 // Indicates that at least one of the receiver's scheduling parameters (QoS,

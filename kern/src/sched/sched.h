@@ -89,7 +89,6 @@ struct sched {
     int8_t                      reserved;
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
-    deque_t                     finalizer_queue;
     ready_queue_t               ready_queue;
 };
 typedef struct sched* sched_t;
@@ -108,11 +107,6 @@ extern sched_t _Nonnull g_sched;
 // sched_switch_to_boot_vcpu() function. 
 extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
 
-// Gives the virtual processor scheduler opportunities to run tasks that take
-// care of internal duties. This function must be called from the boot virtual
-// processor. This function does not return to the caller. 
-extern _Noreturn void sched_run_chores(sched_t _Nonnull self);
-
 // Disable and restore preemptive context switches. Scheduling and cooperative
 // context switches will continue to function as expected. Also note that if a
 // VP A disables preemptive context switches and it then does a cooperative
@@ -124,10 +118,6 @@ extern void preempt_restore(int sps);
 //
 // The following functions are for use by the vcpu implementation.
 //
-
-// Terminates the given virtual processor that is executing the caller. Does not
-// return to the caller. The VP must already have been marked as terminating.
-extern _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // Adds 'vp' to the ready queue that corresponds to its effective priority. The
 // VP is added to the tail end of the ready queue if 'doAddToTail' is true; to

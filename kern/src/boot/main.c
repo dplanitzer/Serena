@@ -184,9 +184,9 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     Object_Release(pRootFh);
 
     
-    // The boot virtual processor now takes over the duties of running the
-    // virtual processor scheduler service tasks.
-    sched_run_chores(g_sched);
+    // The boot virtual processor now takes over the duties of reaping no longer
+    // needed vcpus.
+    vcpu_pool_reaper_main(g_vcpu_pool);
 
 catch:
     irq_set_mask(IRQ_MASK_ALL);

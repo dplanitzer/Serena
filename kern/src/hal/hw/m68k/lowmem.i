@@ -106,12 +106,10 @@ sched_irq_nest_count                so.b    1       ; 1
 sched_reserved2                     so.b    1       ; 1
 sched_idle_virtual_processor        so.l    1       ; 4
 sched_boot_virtual_processor        so.l    1       ; 4
-sched_finalizer_queue_first         so.l    1       ; 4
-sched_finalizer_queue_last          so.l    1       ; 4
 sched_ready_queue                   so.l    SCHED_PRI_COUNT * 2 ; 640
 sched_ready_queue_populated         so.l    3       ; 3
 sched_SIZEOF                        so
-    ifeq (sched_SIZEOF == 680)
+    ifeq (sched_SIZEOF == 672)
         fail "sched_t structure size is incorrect."
     endif
 
@@ -122,7 +120,6 @@ VCPU_STATE_READY           equ 1   ; VP is able to run and is currently sitting 
 VCPU_STATE_RUNNING         equ 2   ; VP is running
 VCPU_STATE_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
 VCPU_STATE_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
-VCPU_STATE_TERMINATING     equ 5   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
 
 
 ; vcpu flags (keep in sync with vcpu.h)
