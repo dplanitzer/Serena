@@ -39,11 +39,6 @@ size_t min_vcpu_kernel_stack_size(void)
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
 errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
 {
-    struct func_frame {
-        void* ret_addr;
-        void* arg;
-    };
-
     decl_try_err();
     const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
     const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
@@ -65,6 +60,23 @@ errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t
         return err;
     }
 
+
+    _vcpu_setup_stack_frames(self, ac, bEnableInterrupts);
+    return EOK;
+}
+
+// Sets up the kernel and user stack frames that are needed to get a vcpu running.
+// Expects that a sufficiently big kernel and user stack has been allocated.
+//
+// \param self the virtual processor
+// \param act the activation record
+// \param bEnableInterrupts true if IRQs should be enabled; false if disabled
+void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
+{
+    struct func_frame {
+        void* ret_addr;
+        void* arg;
+    };
 
     // Initialize the CPU context:
     // Integer state: zeroed out
@@ -146,8 +158,6 @@ errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t
     }
     
     self->csw_sa = csw_sa;
-
-    return EOK;
 }
 
 

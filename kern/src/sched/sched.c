@@ -108,7 +108,7 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
         if (!stk_isvalidsp(&vp->kernel_stack, vp->csw_sa)) {
             abort();
         }
-        if (vcpu_has_user_state(vp) && !stk_isvalidsp(&vp->user_stack, vp->csw_sa->b.usp)) {
+        if (vcpu_is_user(vp) && !stk_isvalidsp(&vp->user_stack, vp->csw_sa->b.usp)) {
             abort();
         }
 
@@ -259,6 +259,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     ac.isUser = false;
 
     try_bang(_vcpu_reset_machine_state(self, &ac, true));
+    self->tag = VP_TAG_IDLE;
 
     return self;
 }

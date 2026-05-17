@@ -112,7 +112,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     vp->user_ticks = 0;
     vp->system_ticks = 0;
     vp->wait_ticks = 0;
-    vp->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_DID_WAIT);
+    vp->flags &= ~(VP_FLAG_DID_WAIT);
 
 
     // Configure the vcpu
@@ -126,9 +126,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     vcpu_on_sched_param_changed(vp);
 
     
-    if (ac->isUser) {
-        vp->flags |= VP_FLAG_USER_OWNED;
-    }
+    vp->tag = (ac->isUser) ? VP_TAG_USER : VP_TAG_SYS;
     vp->id = ac->id;
     vp->group_id = ac->group_id;
 
@@ -384,7 +382,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     if (self == g_sched->idle_vp || self == g_sched->boot_vp) {
         throw(ESRCH);
     }
-    if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->run_state != VCPU_STATE_INITIATED && self->run_state != VCPU_STATE_RUNNING)) {
+    if (!vcpu_is_user(self) && (self->run_state != VCPU_STATE_INITIATED && self->run_state != VCPU_STATE_RUNNING)) {
         // no involuntary suspension of kernel owned VPs
         throw(EPERM);
     }
@@ -627,7 +625,7 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
         case VCPU_INFO_STACK: {
             vcpu_stack_info_t* ip = info;
 
-            if (vcpu_has_user_state(self)) {
+            if (vcpu_is_user(self)) {
                 ip->base_ptr = self->user_stack.base;
                 ip->size = self->user_stack.size;
             }

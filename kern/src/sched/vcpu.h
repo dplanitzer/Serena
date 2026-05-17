@@ -93,9 +93,8 @@ typedef struct cpu_excpt_state {
 #define VP_FLAG_HAS_FPU             0x01    // Save/restore the FPU state
 #define VP_FLAG_HAS_BC              0x02    // Clear branch cache on context switch
 // bits 0..3 are reserved for flags that are accessible to C and asm code
-#define VP_FLAG_USER_OWNED          0x10    // This VP is owned by a user process
-#define VP_FLAG_DID_WAIT            0x20    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
-#define VP_FLAG_FIXED_PRI           0x40    // set if the vcpu should be scheduled using a fixed priority policy. Derived from the QoS scheduling parameters
+#define VP_FLAG_DID_WAIT            0x10    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
+#define VP_FLAG_FIXED_PRI           0x20    // set if the vcpu should be scheduled using a fixed priority policy. Derived from the QoS scheduling parameters
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -106,6 +105,12 @@ __max(__min(__boost, INT8_MAX), 0)
 
 #define VCPU_CLAMPED_NICE_PRIORITY(__nice) \
 __max(__min(__nice, VCPU_QOS_URGENT * VCPU_PRI_COUNT), 0)
+
+
+// VP tags
+#define VP_TAG_SYS  1   /* This VP is owned by  the system/kernel */
+#define VP_TAG_USER 2   /* This VP is owned by a user process */
+#define VP_TAG_IDLE 3   /* This VP consumes all idle time */
 
 
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
@@ -152,6 +157,8 @@ struct vcpu {
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int16_t                         suspension_count;       // > 0 -> VP is suspended
+    int8_t                          tag;
+    int8_t                          reserved;
 
     // Usage stats
     nanotime_t                      acquisition_time;
@@ -204,8 +211,8 @@ extern _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self);
 
 // Returns true if the vcpu supports user space operations; false if it supports
 // kernel space operations only.
-#define vcpu_has_user_state(__self) \
-(((__self)->flags & VP_FLAG_USER_OWNED) == VP_FLAG_USER_OWNED)
+#define vcpu_is_user(__self) \
+((__self)->tag == VP_TAG_USER)
 
 // Returns a copy of the given virtual processor's scheduling policy. 'version'
 // specifies which version of the policy structure should be returned. Returns
@@ -310,6 +317,7 @@ extern errno_t vcpu_await_suspension(vcpu_t _Nonnull self);
 
 // Sets the closure which the virtual processor should run when it is next resumed.
 extern errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
+extern void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts);
 
 extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_m68k_t* _Nonnull sp);
 extern void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_m68k_float_t* _Nonnull sp);
