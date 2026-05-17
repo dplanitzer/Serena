@@ -136,7 +136,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int target
     if ((SIGSET_NON_ROUTABLE & sig_bit(signo)) != 0) {
         return EPERM;
     }
-    if (self == gKernelProcess) {
+    if (!_proc_is_user(self)) {
         return EPERM;
     }
 

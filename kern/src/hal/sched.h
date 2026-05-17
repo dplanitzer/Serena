@@ -21,8 +21,8 @@
 // changed to VCPU_STATE_READY and the virtual processor is moved to the correct
 // ready queue. Otherwise the run_state is not changed and the virtual
 // processor is not moved to the ready queue because this function assumes that
-// the correct state transition has already happend. Eg the vp has been moved to
-// waiting or suspended state. 
+// the correct state transition has already happened. Eg the vp has been moved
+// to waiting or suspended state. 
 extern void sched_switch_context(void);
 
 // Restores the state of the boot vp into the currently active CPU context. This

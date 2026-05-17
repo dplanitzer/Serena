@@ -27,7 +27,7 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
         throw(EINVAL);
     }
 
-    err = Process_CreateChild(vp->proc, pa->attr, NULL, &cp);
+    err = Process_CreateUserChild(vp->proc, pa->attr, NULL, &cp);
     if (err == EOK) {
         if (pa->actions) {
             err_phase = SPAWN_PHASE_ACTIONS;

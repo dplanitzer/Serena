@@ -56,7 +56,8 @@ typedef struct proc_rel {
 
 
 // Process flags
-#define PROC_FLAG_TERMINATING   1
+#define PROC_FLAG_TERMINATING   0x01    /* Process_Terminate() has been called */
+#define PROC_FLAG_USER          0x02    /* This process is owned by the kernel (e.g. special privileges apply; vcpus do not acquire a user stack) */
 
 
 typedef struct Process {
@@ -126,12 +127,23 @@ typedef struct Process {
 } Process;
 
 
-extern void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent, FileHierarchyRef _Nonnull fh, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir);
-extern errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _Nonnull attr, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
+extern void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent, bool isUser, FileHierarchyRef _Nonnull fh, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir);
+
+// Creates a new child user process and publishes it to the process manager.
+// This function returns a strong reference to the new process. The caller should
+// release this strong reference when no longer needed. Note that the process
+// manager maintains a strong reference to all living processes. This reference
+// keeps them alive.
+extern errno_t Process_CreateUserChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _Nonnull attr, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild);
+
+// Applies the given list of spawn actions to the process.
 extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex);
 
 
 extern bool _proc_is_terminating(ProcessRef _Nonnull self);
+
+#define _proc_is_user(__self) \
+(((__self)->flags & PROC_FLAG_USER) == PROC_FLAG_USER)
 
 extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 

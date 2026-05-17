@@ -75,7 +75,7 @@ static void _vcpu_relinquish_self(void)
 errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
-    const bool is_uproc = (self != gKernelProcess) ? true : false;
+    const bool is_uproc = _proc_is_user(self);
     vcpu_t vp = NULL;
     vcpu_acquisition_t ac;
 

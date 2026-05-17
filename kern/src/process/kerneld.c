@@ -39,7 +39,7 @@ errno_t kerneld_init(void)
 
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(kfh);
     
-    Process_Init(&g_kernel_proc_storage, NULL, kfh, rootDir, rootDir);
+    Process_Init(&g_kernel_proc_storage, NULL, false, kfh, rootDir, rootDir);
     Inode_Relinquish(rootDir);
 
     g_kernel_ctx.argc = 1;
@@ -78,7 +78,7 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
     g_systemd_spawn.version = _SPAWNATTR_VERSION;
     g_systemd_spawn.type = SPAWN_SESSION_LEADER;
     
-    err = Process_CreateChild(self, &g_systemd_spawn, fh, &cp);
+    err = Process_CreateUserChild(self, &g_systemd_spawn, fh, &cp);
     if (err == EOK) {
         err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
         if (err == EOK) {

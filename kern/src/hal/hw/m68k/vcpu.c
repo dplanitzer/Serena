@@ -102,6 +102,10 @@ errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t
     fp->ret_addr = (void*)ret_func;
 
 
+    // Create the initial context switch state. This state is stored on the
+    // kernel stack and will be consumed by the first context switch to this
+    // new vcpu.
+    // 
     // General save area layout (high to low addresses):
     // ksp-0:    exception frame type    |
     // ksp-2:    pc                      |  Exception stack frame type #0

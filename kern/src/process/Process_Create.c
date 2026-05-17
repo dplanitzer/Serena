@@ -13,7 +13,7 @@
 #include <kern/kalloc.h>
 
 
-void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent, FileHierarchyRef _Nonnull fh, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir)
+void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent, bool isUser, FileHierarchyRef _Nonnull fh, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir)
 {
     uid_t uid;
     gid_t gid;
@@ -26,6 +26,11 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     self->run_state = PROC_STATE_STOPPED;
     self->run_state_reason.reason = _WAIT_REASON_NONE;
     self->pid = 0;
+
+    if (isUser) {
+        self->flags |= PROC_FLAG_USER;
+    }
+
 
     if (parent) {
         self->ppid = parent->pid;
@@ -62,12 +67,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
 }
 
-// Creates a new child process and publishes it to the process manager. This
-// function returns a strong reference to the new process. The caller should
-// release this strong reference when no longer needed. Note that the process
-// manager maintains a strong reference to all living processes. This reference
-// keeps them alive.
-errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _Nonnull attr, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
+errno_t Process_CreateUserChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _Nonnull attr, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
     ProcessRef cp = NULL;
@@ -100,7 +100,7 @@ errno_t Process_CreateChild(ProcessRef _Nonnull self, const proc_spawnattr_t* _N
     workDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.workingDirectory);
 
     try(kalloc_cleared(sizeof(Process), (void**)&cp));
-    Process_Init(cp, self, fh, rootDir, workDir);
+    Process_Init(cp, self, true, fh, rootDir, workDir);
 
 
     // Now override the inherited state based on the spawn attributes
@@ -158,7 +158,6 @@ catch:
     return err;
 }
 
-// Applies the given list of spawn actions to the process.
 errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex)
 {
     decl_try_err();
