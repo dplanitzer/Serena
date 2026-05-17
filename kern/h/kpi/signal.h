@@ -85,7 +85,8 @@ typedef volatile int sig_atomic_t;
 #define SIG_TARGET_PROC             2   /* process with pid */
 #define SIG_TARGET_PROC_CHILDREN    3   /* all immediate children of process with pid */
 #define SIG_TARGET_PROC_GROUP       4   /* all processes in group with process group id */
-#define SIG_TARGET_SESSION          5   /* all processes in this session */
+#define SIG_TARGET_PROC_PARENT      5   /* parent of process calling sig_send() */
+#define SIG_TARGET_SESSION          6   /* all processes in this session */
 
 #define SIG_ROUTE_DEL   0
 #define SIG_ROUTE_ADD   1

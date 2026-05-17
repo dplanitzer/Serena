@@ -42,19 +42,20 @@ SYSCALL_1(sig_pending, sigset_t* _Nonnull set)
 SYSCALL_3(sig_send, int target, id_t id, int signo)
 {
     ProcessRef pp = vp->proc;
+    int target = pa->target;
     id_t target_id;
 
     // Sending a signal to myself?
-    switch (pa->target) {
+    switch (target) {
         case SIG_TARGET_VCPU:
         case SIG_TARGET_VCPU_GROUP:
             // Targeting myself
-            return Process_ReceiveInternalSignal(pp, pa->target, pa->id, pa->signo);
+            return Process_ReceiveInternalSignal(pp, target, pa->id, pa->signo);
 
         case SIG_TARGET_PROC:
             if (pa->id == PROC_SELF || pa->id == pp->pid) {
                 // Targeting myself
-                return Process_ReceiveInternalSignal(pp, pa->target, pa->id, pa->signo);
+                return Process_ReceiveInternalSignal(pp, target, pa->id, pa->signo);
             }
             break;
 
@@ -64,7 +65,7 @@ SYSCALL_3(sig_send, int target, id_t id, int signo)
 
 
     // Sending a signal to some other process
-    switch (pa->target) {
+    switch (target) {
         case SIG_TARGET_PROC:
             target_id = pa->id;     // proc_self case is handled above 
             break;
@@ -77,6 +78,11 @@ SYSCALL_3(sig_send, int target, id_t id, int signo)
             target_id = (pa->id == PROC_SELF) ? pp->pgrp : pa->id;
             break;
 
+        case SIG_TARGET_PROC_PARENT:
+            target_id = pp->ppid;
+            target = SIG_TARGET_PROC;
+            break;
+
         case SIG_TARGET_SESSION:
             target_id = (pa->id == PROC_SELF) ? pp->sid : pa->id;
             break;
@@ -85,5 +91,5 @@ SYSCALL_3(sig_send, int target, id_t id, int signo)
             return EINVAL;
     }
 
-    return Process_SendSignal(pp, pa->target, target_id, 0, pa->signo);
+    return Process_SendSignal(pp, target, target_id, 0, pa->signo);
 }
