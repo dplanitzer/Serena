@@ -147,24 +147,7 @@ catch:
 // function does not return to the caller.
 _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
 {
-    decl_try_err();
-    assert(vcpu_current() == self);
-    
-    // Reset priority penalty and boost
-    const int sps = preempt_disable();
-    _vcpu_reset_penalties_and_boosts(self);
-    vcpu_on_sched_param_changed(self);
-    preempt_restore(sps);
-
-
-    // Check ourselves back into the vcpu pool
-    vcpu_pool_checkin(g_vcpu_pool, self);
-
-
-    // Do a synchronous suspend. We have teh guarantee that we are suspended
-    // before the next call returns.
-    try_bang(vcpu_suspend(self));
-    /* NOT REACHED */
+    vcpu_pool_checkin_current(g_vcpu_pool);
 }
 
 void vcpu_destroy(vcpu_t _Nullable self)
