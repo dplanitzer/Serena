@@ -78,10 +78,11 @@ void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _N
         void* arg;
     };
 
+    assert(ac->ret_func != NULL);
+
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    VoidFunc_0 ret_func = (ac->ret_func) ? ac->ret_func : (VoidFunc_0)vcpu_relinquish_current;
     uintptr_t ksp = (uintptr_t) stk_getinitialsp(&self->kernel_stack);
     uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
 
@@ -111,7 +112,7 @@ void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _N
         fp = (struct func_frame*)ksp;
     }
     fp->arg = ac->arg;
-    fp->ret_addr = (void*)ret_func;
+    fp->ret_addr = (void*)ac->ret_func;
 
 
     // Create the initial context switch state. This state is stored on the

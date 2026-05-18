@@ -33,7 +33,7 @@ struct vcpu;
 typedef struct vcpu_acquisition {
     VoidFunc_1 _Nonnull     func;
     void* _Nullable _Weak   arg;
-    VoidFunc_0 _Nullable    ret_func;
+    VoidFunc_0 _Nonnull     ret_func;
     void* _Nullable         kernelStackBase;
     size_t                  kernelStackSize;
     size_t                  userStackSize;

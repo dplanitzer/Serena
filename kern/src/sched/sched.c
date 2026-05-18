@@ -184,6 +184,11 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 ////////////////////////////////////////////////////////////////////////////////
 
 
+_Noreturn void _vcpu_unexpected_relinquish(void)
+{
+    abort();
+}
+
 // Initializes a boot virtual processor. This is the virtual processor which
 // is used to grandfather in the initial thread of execution at boot time. It is
 // the first VP that is created for a physical processor. It then takes over
@@ -212,6 +217,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)fn;
     ac.arg = arg;
+    ac.ret_func = _vcpu_unexpected_relinquish;
     ac.kernelStackBase = pKernelStackBase;
     ac.kernelStackSize = kernelStackSize;
     ac.policy = policy;
@@ -253,6 +259,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)idle_vcpu_run;
+    ac.ret_func = _vcpu_unexpected_relinquish;
     ac.kernelStackBase = pKernelStackBase;
     ac.kernelStackSize = kernelStackSize;
     ac.policy = policy;
