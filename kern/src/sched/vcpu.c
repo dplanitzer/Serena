@@ -142,10 +142,7 @@ catch:
     return err;
 }
 
-// Relinquishes a virtual processor which means that it is finished executing
-// code and that it should be moved back to the virtual processor pool. This
-// function does not return to the caller.
-_Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
+_Noreturn void vcpu_relinquish_current(void)
 {
     vcpu_pool_checkin_current(g_vcpu_pool);
 }

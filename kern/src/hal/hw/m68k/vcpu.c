@@ -81,7 +81,7 @@ void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _N
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    VoidFunc_0 ret_func = (ac->ret_func) ? ac->ret_func : (VoidFunc_0)vcpu_relinquish;
+    VoidFunc_0 ret_func = (ac->ret_func) ? ac->ret_func : (VoidFunc_0)vcpu_relinquish_current;
     uintptr_t ksp = (uintptr_t) stk_getinitialsp(&self->kernel_stack);
     uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
 

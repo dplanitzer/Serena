@@ -145,6 +145,6 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
 
     
     // Finally relinquish myself
-    vcpu_relinquish(vcpu_current());
+    vcpu_relinquish_current();
     /* NOT REACHED */
 }

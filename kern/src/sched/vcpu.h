@@ -193,10 +193,10 @@ extern void vcpu_platform_init(void);
 // is available from the global vcpu pool. The vcpu is configured based on 'ac'.
 extern errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP);
 
-// Relinquishes a virtual processor which means that it is finished executing
-// code and that it should be moved back to the virtual processor pool. This
-// function does not return to the caller.
-extern _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self);
+// Relinquishes the current (calling) vcpu which means that it is finished
+// executing code and that it should be moved back to the virtual processor pool.
+// This function does not return to the caller.
+extern _Noreturn void vcpu_relinquish_current(void);
 
 
 // Returns a reference to the currently running virtual processor. This is the

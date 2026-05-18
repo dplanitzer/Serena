@@ -82,7 +82,7 @@ _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull sel
     mtx_unlock(&self->mtx);
 
 
-    vcpu_relinquish(vcpu_current());
+    vcpu_relinquish_current();
     /* NOT REACHED */
 }
 

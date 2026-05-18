@@ -73,7 +73,7 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
 
     err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp);
     if (err == EOK) {
-        vcpu_relinquish(vp);
+        vcpu_relinquish_current();
         /* NOT REACHED */
     }
 
