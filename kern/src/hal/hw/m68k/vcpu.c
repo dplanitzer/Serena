@@ -32,30 +32,6 @@ size_t min_vcpu_kernel_stack_size(void)
     return 4*(sizeof(excpt_frame_t) + sizeof(cpu_full_state_t)) + 256;
 }
 
-// Sets the closure which the virtual processor should run when it is next resumed.
-//
-// \param self the virtual processor
-// \param act the activation record
-// \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
-{
-    decl_try_err();
-    const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
-    const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
-
-    err = stk_setmaxsize(&self->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize));
-    if (err == EOK) {
-        err = stk_setmaxsize(&self->user_stack, __max(ac->userStackSize, minUserStackSize));
-        if (err != EOK) {
-            return err;
-        }
-    }
-
-
-    _vcpu_setup_stack_frames(self, ac, bEnableInterrupts);
-    return EOK;
-}
-
 // Sets up the kernel and user stack frames that are needed to get a vcpu running.
 // Expects that a sufficiently big kernel and user stack has been allocated.
 //

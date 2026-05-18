@@ -77,10 +77,10 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // Create a new vcpu if we were not able to reuse a cached one
     if (vp == NULL) {
         try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
-        doFree = true;
 
         vcpu_init(vp, &ac->policy);
         vcpu_suspend(vp);
+        doFree = true;
     }
 
 
@@ -115,9 +115,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     vp->flags &= ~(VP_FLAG_DID_WAIT);
 
 
-    // Configure the vcpu
-    try(_vcpu_reset_machine_state(vp, ac, true));
-
+    // Setup QoS, nice, boosts
     _vcpu_reset_penalties_and_boosts(vp);
     _vcpu_set_base_priority(vp, &ac->policy);
     vcpu_set_nice(vp, ac->sched_nice);
@@ -125,7 +123,18 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     vcpu_reset_quantum(vp);
     vcpu_on_sched_param_changed(vp);
 
+
+    // Setup kernel and user stacks
+    const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
+    const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
+
+    try(stk_setmaxsize(&vp->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize)));
+    try(stk_setmaxsize(&vp->user_stack, __max(ac->userStackSize, minUserStackSize)));
+
+    _vcpu_setup_stack_frames(vp, ac, true);
+
     
+    // Setup tag, id, group id, etc
     vp->tag = (ac->isUser) ? VP_TAG_USER : VP_TAG_SYS;
     vp->id = ac->id;
     vp->group_id = ac->group_id;
@@ -135,7 +144,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
 
 catch:
     if (err != EOK && doFree) {
-        kfree(vp);
+        vcpu_destroy(vp);
     }
 
     *pOutVP = vp;

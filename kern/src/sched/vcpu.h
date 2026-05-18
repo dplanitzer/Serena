@@ -315,7 +315,6 @@ extern errno_t vcpu_await_suspension(vcpu_t _Nonnull self);
 //
 
 // Sets the closure which the virtual processor should run when it is next resumed.
-extern errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
 extern void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts);
 
 extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_m68k_t* _Nonnull sp);
