@@ -44,19 +44,6 @@ SYSCALL_0(vcpu_relinquish_self)
     return 0;
 }
 
-static vcpu_t _Nullable _get_vcpu_by_id_locked(ProcessRef _Nonnull self, vcpuid_t id)
-{
-    deque_for_each(&self->vcpu_queue, deque_node_t, it,
-        vcpu_t cvp = vcpu_from_owner_qe(it);
-
-        if (cvp->id == id) {
-            return cvp;
-        }
-    )
-
-    return NULL;
-}
-
 SYSCALL_1(vcpu_suspend, vcpuid_t id)
 {
     decl_try_err();
@@ -69,7 +56,7 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
     else {
         // Suspending some other vcpu
         mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
         if (vcp) {
             err = vcpu_suspend(vcp);
@@ -89,7 +76,7 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
     ProcessRef pp = vp->proc;
 
     mtx_lock(&pp->mtx);
-    vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+    vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
     if (vcp) {
         vcpu_resume(vcp, false);
@@ -118,7 +105,7 @@ SYSCALL_3(vcpu_policy, vcpuid_t id, int version, vcpu_policy_t* _Nonnull policy)
     }
     else {
         mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
         if (vcp) {
             err = vcpu_policy(vcp, pa->version, pa->policy);
@@ -142,7 +129,7 @@ SYSCALL_2(vcpu_setpolicy, vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
     }
     else {
         mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
         if (vcp) {
             err = vcpu_set_policy(vcp, pa->policy);
@@ -166,7 +153,7 @@ SYSCALL_3(vcpu_state, vcpuid_t id, int flavor, vcpu_state_ref _Nonnull state)
     }
     else {
         mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
         if (vcp) {
             err = vcpu_state(vcp, pa->flavor, pa->state);
@@ -190,7 +177,7 @@ SYSCALL_3(vcpu_setstate, vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull 
     }
     else {
         mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
         if (vcp) {
             err = vcpu_set_state(vcp, pa->flavor, pa->state);
@@ -214,7 +201,7 @@ SYSCALL_3(vcpu_info, vcpuid_t id, int flavor, vcpu_info_ref _Nonnull info)
     }
     else {
         mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        vcpu_t vcp = _proc_vcpu_for_id(pp, pa->id);
 
         if (vcp) {
             err = vcpu_info(vcp, pa->flavor, pa->info);

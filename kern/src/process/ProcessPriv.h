@@ -156,4 +156,6 @@ extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 extern void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self);
 extern void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self);
 
+extern vcpu_t _Nullable _proc_vcpu_for_id(ProcessRef _Nonnull self, vcpuid_t id);
+
 #endif /* ProcessPriv_h */
