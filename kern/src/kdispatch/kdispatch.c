@@ -129,18 +129,16 @@ errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self)
 
 _Noreturn void _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispatch_worker_t _Nonnull worker)
 {
-    vcpu_t vp = vcpu_current();
-
     deque_remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
-    vp->dispatch_worker = NULL;
+    vcpu_current()->dispatch_worker = NULL;
 
     _kdispatch_worker_destroy(worker);
 
     cnd_broadcast(&self->cond);
     mtx_unlock(&self->mutex);
 
-    Process_RelinquishVirtualProcessor(gKernelProcess, vp);
+    Process_RelinquishCurrentVirtualProcessor(gKernelProcess);
     /* NO RETURN */
 }
 

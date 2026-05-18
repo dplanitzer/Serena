@@ -39,7 +39,7 @@ SYSCALL_2(vcpu_acquire, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _No
 
 SYSCALL_0(vcpu_relinquish_self)
 {
-    Process_RelinquishVirtualProcessor(vp->proc, vp);
+    Process_RelinquishCurrentVirtualProcessor(vcpu_current()->proc);
     /* NOT REACHED */
     return 0;
 }

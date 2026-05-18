@@ -14,9 +14,7 @@
 
 static _Noreturn void _vcpu_relinquish_self(void)
 {
-    vcpu_t vp = vcpu_current();
-
-    Process_RelinquishVirtualProcessor(vp->proc, vp);
+    Process_RelinquishCurrentVirtualProcessor(vcpu_current()->proc);
     /* NOT REACHED */
 }
 
@@ -67,8 +65,10 @@ catch:
     return err;
 }
 
-_Noreturn void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
+_Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull self)
 {
+    vcpu_t vp = vcpu_current();
+
     assert(vp->proc == self);
 
     mtx_lock(&self->mtx);

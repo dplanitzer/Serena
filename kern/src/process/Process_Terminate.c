@@ -117,7 +117,7 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
         // We're in the process of terminating the process and this isn't the
         // first vcpu calling Process_Terminate(). Just relinquish at this point
         // since this is what we're expected to do anyway.
-        Process_RelinquishVirtualProcessor(self, vcpu_current());
+        Process_RelinquishCurrentVirtualProcessor(self);
         /* NOT REACHED */
         return;
     }

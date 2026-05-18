@@ -170,7 +170,7 @@ void vcpu_syscall_epilog(vcpu_t _Nonnull self)
             Process_Terminate(self->proc, WAIT_REASON_SIGNALED, self->proc->signo_causing_termination);
         }
         else {
-            Process_RelinquishVirtualProcessor(self->proc, self);
+            Process_RelinquishCurrentVirtualProcessor(self->proc);
         }
 
         /* NOT REACHED */
