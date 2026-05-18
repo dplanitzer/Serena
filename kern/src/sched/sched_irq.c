@@ -34,11 +34,15 @@ void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
     if (excpt_frame_isuser(efp)) {
         run->user_ticks++;
-        run->proc->user_ticks++;
+        if (run->proc) {    // NULL check because boot & idle vcpus are initially not associated with the kerneld proc
+            run->proc->user_ticks++;
+        }
     }
     else {
         run->system_ticks++;
-        run->proc->system_ticks++;
+        if (run->proc) {
+            run->proc->system_ticks++;
+        }
     }
 }
 
