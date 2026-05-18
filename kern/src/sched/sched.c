@@ -202,11 +202,6 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     memset(self, 0, sizeof(struct vcpu));
 
 
-    // Allocate the boot virtual processor kernel stack
-    const int kernelStackSize = min_vcpu_kernel_stack_size();
-    char* pKernelStackBase = BootAllocator_Allocate(bap, kernelStackSize);
-
-
     // Create the VP
     vcpu_policy_t policy;
     policy.version = sizeof(vcpu_policy_t);
@@ -214,16 +209,17 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     policy.qos.priority = VCPU_PRI_HIGHEST;
     vcpu_init(self, &policy);
 
+    self->kernel_stack.size = min_vcpu_kernel_stack_size();
+    self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
+
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)fn;
     ac.arg = arg;
     ac.ret_func = _vcpu_unexpected_relinquish;
-    ac.kernelStackBase = pKernelStackBase;
-    ac.kernelStackSize = kernelStackSize;
     ac.policy = policy;
     ac.isUser = false;
 
-    try_bang(_vcpu_reset_machine_state(self, &ac, false));
+    _vcpu_setup_stack_frames(self, &ac, false);
     
     return self;
 }
@@ -245,11 +241,6 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     memset(self, 0, sizeof(struct vcpu));
 
 
-    // Allocate the boot virtual processor kernel stack
-    const int kernelStackSize = min_vcpu_kernel_stack_size();
-    char* pKernelStackBase = BootAllocator_Allocate(bap, kernelStackSize);
-
-
     // Create the VP
     vcpu_policy_t policy;
     policy.version = sizeof(vcpu_policy_t);
@@ -257,15 +248,16 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     policy.qos.priority = VCPU_PRI_LOWEST;
     vcpu_init(self, &policy);
 
+    self->kernel_stack.size = min_vcpu_kernel_stack_size();
+    self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
+
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)idle_vcpu_run;
     ac.ret_func = _vcpu_unexpected_relinquish;
-    ac.kernelStackBase = pKernelStackBase;
-    ac.kernelStackSize = kernelStackSize;
     ac.policy = policy;
     ac.isUser = false;
 
-    try_bang(_vcpu_reset_machine_state(self, &ac, true));
+    _vcpu_setup_stack_frames(self, &ac, true);
     self->tag = VP_TAG_IDLE;
 
     return self;

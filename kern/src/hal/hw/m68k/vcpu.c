@@ -43,21 +43,12 @@ errno_t _vcpu_reset_machine_state(vcpu_t _Nonnull self, const vcpu_acquisition_t
     const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
     const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
 
-    if (ac->kernelStackBase == NULL) {
-        err = stk_setmaxsize(&self->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize));
-    } else {
-        // kernel stack allocated by caller
-        assert(ac->kernelStackSize >= minKernelStackSize);
-
-        stk_setmaxsize(&self->kernel_stack, 0);
-        self->kernel_stack.base = ac->kernelStackBase;
-        self->kernel_stack.size = ac->kernelStackSize;
-    }
+    err = stk_setmaxsize(&self->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize));
     if (err == EOK) {
         err = stk_setmaxsize(&self->user_stack, __max(ac->userStackSize, minUserStackSize));
-    }
-    if (err != EOK) {
-        return err;
+        if (err != EOK) {
+            return err;
+        }
     }
 
 

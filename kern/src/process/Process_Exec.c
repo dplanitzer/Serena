@@ -25,7 +25,6 @@ static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnul
     ac.func = (VoidFunc_1)entryPoint;
     ac.arg = arg;
     ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
-    ac.kernelStackBase = NULL;
     ac.kernelStackSize = 0;
     ac.userStackSize = PROC_DEFAULT_USER_STACK_SIZE;
     ac.id = VCPUID_MAIN;
