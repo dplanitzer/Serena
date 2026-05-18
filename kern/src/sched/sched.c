@@ -212,14 +212,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 
-    vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
-    ac.func = (VoidFunc_1)fn;
-    ac.arg = arg;
-    ac.ret_func = _vcpu_unexpected_relinquish;
-    ac.policy = policy;
-    ac.isUser = false;
-
-    _vcpu_setup_stack_frames(self, &ac, false);
+    _vcpu_reset_stacks(self, (VoidFunc_1)fn, arg, _vcpu_unexpected_relinquish, false, false);
     
     return self;
 }
@@ -251,13 +244,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 
-    vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
-    ac.func = (VoidFunc_1)idle_vcpu_run;
-    ac.ret_func = _vcpu_unexpected_relinquish;
-    ac.policy = policy;
-    ac.isUser = false;
-
-    _vcpu_setup_stack_frames(self, &ac, true);
+    _vcpu_reset_stacks(self, (VoidFunc_1)idle_vcpu_run, NULL, _vcpu_unexpected_relinquish, false, true);
     self->tag = VP_TAG_IDLE;
 
     return self;

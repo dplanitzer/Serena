@@ -32,20 +32,16 @@ size_t min_vcpu_kernel_stack_size(void)
     return 4*(sizeof(excpt_frame_t) + sizeof(cpu_full_state_t)) + 256;
 }
 
-// Sets up the kernel and user stack frames that are needed to get a vcpu running.
-// Expects that a sufficiently big kernel and user stack has been allocated.
-//
-// \param self the virtual processor
-// \param act the activation record
-// \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
+void _vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
 {
     struct func_frame {
         void* ret_addr;
         void* arg;
     };
 
-    assert(ac->ret_func != NULL);
+    assert(func != NULL);
+    assert(ret_func != NULL);
+
 
     // Initialize the CPU context:
     // Integer state: zeroed out
@@ -70,7 +66,7 @@ void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _N
     // See __sched_switch_context for an explanation of why we need to push a
     // format #0 exception stack frame here.
     struct func_frame* fp;
-    if (ac->isUser) {
+    if (isUser) {
         usp = sp_grow(usp, sizeof(struct func_frame));
         fp = (struct func_frame*)usp;
     }
@@ -78,8 +74,8 @@ void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _N
         ksp = sp_grow(ksp, sizeof(struct func_frame));
         fp = (struct func_frame*)ksp;
     }
-    fp->arg = ac->arg;
-    fp->ret_addr = (void*)ac->ret_func;
+    fp->arg = arg;
+    fp->ret_addr = (void*)ret_func;
 
 
     // Create the initial context switch state. This state is stored on the
@@ -117,10 +113,12 @@ void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _N
     cpu_full_state_t* csw_sa = (cpu_full_state_t*)(ksp - sizeof(cpu_full_state_t));
     memset(csw_sa, 0, sizeof(cpu_full_state_t));
 
+    // We do not setup the kernel stack pointer (a[7]) here because the csw
+    // restore loads a[7] from vp->csw_sa
     csw_sa->b.usp = usp;
     csw_sa->b.ef.fv = 0;
-    csw_sa->b.ef.pc = (uintptr_t)ac->func;
-    csw_sa->b.ef.sr = (ac->isUser) ? 0 : CPU_SR_S;
+    csw_sa->b.ef.pc = (uintptr_t)func;
+    csw_sa->b.ef.sr = (isUser) ? 0 : CPU_SR_S;
     if (!bEnableInterrupts) {
         csw_sa->b.ef.sr |= CPU_SR_IE_MASK;   // IRQs should be disabled
     }

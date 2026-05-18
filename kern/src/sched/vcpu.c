@@ -131,7 +131,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     try(stk_setmaxsize(&vp->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize)));
     try(stk_setmaxsize(&vp->user_stack, __max(ac->userStackSize, minUserStackSize)));
 
-    _vcpu_setup_stack_frames(vp, ac, true);
+    _vcpu_reset_stacks(vp, ac->func, ac->arg, ac->ret_func, ac->isUser, true);
 
     
     // Setup tag, id, group id, etc

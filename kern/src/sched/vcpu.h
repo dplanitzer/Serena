@@ -314,8 +314,12 @@ extern errno_t vcpu_await_suspension(vcpu_t _Nonnull self);
 // Machine integration
 //
 
-// Sets the closure which the virtual processor should run when it is next resumed.
-extern void _vcpu_setup_stack_frames(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts);
+// Resets the user and kernel stack points back to the base of their respective
+// stacks and then pushes the needed frames on the stack so that 'func' will be
+// invoked with 'arg' in either user space or kernel space. Depending on whether
+// 'isUser' is true or false. 'ret_func' is the address of an argument-less
+// function that will be invoked if 'func' returns with an rts instruction.
+extern void _vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull fsunc, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts);
 
 extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_m68k_t* _Nonnull sp);
 extern void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_m68k_float_t* _Nonnull sp);
