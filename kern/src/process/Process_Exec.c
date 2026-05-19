@@ -44,11 +44,6 @@ static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnul
 
 static void _proc_destroy_pimg(ProcessRef _Nonnull self)
 {
-    if (deque_empty(&self->vcpu_queue)) {
-        return;
-    }
-
-
     _proc_abort_other_vcpus(self);
 
     mtx_unlock(&self->mtx);
@@ -75,7 +70,7 @@ static void _proc_install_pimg(ProcessRef _Nonnull self, const proc_img_t* _Nonn
     self->env_strings = pimg->env_strings;
 }
 
-errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
+errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool isReplace)
 {
     decl_try_err();
     proc_img_t* pimg = NULL;
@@ -107,23 +102,37 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     try(proc_img_load(pimg));
 
 
-    // Create the new main vcpu
-    try(_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, self->sched_nice, self->quantum_boost, &new_main_vcpu));
+    if (!isReplace) {
+        // Create the new main vcpu
+        assert(vcpu_current()->proc != self);
+        
+        try(_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, self->sched_nice, self->quantum_boost, &new_main_vcpu));
+        _proc_install_pimg(self, pimg, new_main_vcpu);
+    }
+    else {
+        vcpu_t me_vp = vcpu_current();
 
-    
-    // We now got:
-    // - a new address space with the executable image mapped in
-    // - a new vcpu suitable to act as a main vcpu
-    // we'll now demolish the existing executable image and install the new
-    // address map and main vcpu
-    _proc_destroy_pimg(self);
-    _proc_install_pimg(self, pimg, new_main_vcpu);
+        assert(me_vp->proc == self);
+        _proc_destroy_pimg(self);
+
+        _vcpu_reset_user_stack(me_vp, (VoidFunc_1)pimg->entry_point, pimg->ctx_base, (VoidFunc_0)vcpu_uret_exit);
+        
+        me_vp->id = VCPUID_MAIN;
+        me_vp->group_id = VCPUID_MAIN_GROUP;
+
+        AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
+        self->ctx_base = pimg->ctx_base;
+        self->arg_size = pimg->arg_size;
+        self->arg_strings = pimg->arg_strings;
+        self->env_size = pimg->env_size;
+        self->env_strings = pimg->env_strings;
+    }
 
 
 catch:
     proc_img_destroy(pimg);
 
-    if (err == EOK && self->run_state == PROC_STATE_RUNNING) {
+    if (err == EOK && self->run_state == PROC_STATE_RUNNING && !isReplace) {
         vcpu_resume(new_main_vcpu, false);
     }
 

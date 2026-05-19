@@ -32,13 +32,13 @@ size_t min_vcpu_kernel_stack_size(void)
     return 4*(sizeof(excpt_frame_t) + sizeof(cpu_full_state_t)) + 256;
 }
 
+struct func_frame {
+    void* ret_addr;
+    void* arg;
+};
+
 void _vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
 {
-    struct func_frame {
-        void* ret_addr;
-        void* arg;
-    };
-
     assert(func != NULL);
     assert(ret_func != NULL);
 
@@ -124,6 +124,28 @@ void _vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _N
     }
     
     self->csw_sa = csw_sa;
+}
+
+void _vcpu_reset_user_stack(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func)
+{
+    assert(func != NULL);
+    assert(ret_func != NULL);
+
+    uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
+    struct func_frame* fp;
+    
+    usp = sp_grow(usp, sizeof(struct func_frame));
+    fp = (struct func_frame*)usp;
+    fp->arg = arg;
+    fp->ret_addr = (void*)ret_func;
+
+
+    // Update the system call save area so that it points to the new usp and
+    // 'func' as the new PC
+    cpu_basic_state_t* sa = vcpu_current()->syscall_sa;
+
+    sa->usp = usp;
+    sa->ef.pc = (uintptr_t)func;
 }
 
 

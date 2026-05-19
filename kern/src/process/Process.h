@@ -61,13 +61,14 @@ extern errno_t Process_GetMatchingState(ProcessRef _Nonnull self, int mstate, pr
 // status report. Returns ECHILD if the requested child process does not exist.
 extern errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res);
 
-// Replaces the current executable image of the process with a new executable
-// image loaded from 'execPath' and starts it executing right away. Note that
-// this function does not relinquish the calling vcpu. This must be done by the
-// caller.
-// \param self the process into which the executable image should be loaded
-// \param execPath path to an executable file
-extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
+// Loads the executable at 'execPath' and prepares it for execution. The existing
+// vcpus are relinquished, signal routes are freed and all open descriptors are
+// closed if 'isReplace' is true. Pass false for 'isReplace' if this is the
+// first time you call exec() after creating a new process. The current (calling)
+// vcpu becomes the new main vcpu if 'isReplace' is true. If 'isReplace' is false
+// then a completely new vcpu is acquired and will serve as the main vcpu of the
+// process.
+extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool isReplace);
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp);
 extern _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull self);

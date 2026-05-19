@@ -36,7 +36,7 @@ SYSCALL_6(proc_spawn, const char* _Nonnull path, const char* _Nullable * _Nullab
 
         if (err == EOK) {
             err_phase = SPAWN_PHASE_EXEC;
-            err = Process_Exec(cp, pa->path, pa->argv, pa->envp);
+            err = Process_Exec(cp, pa->path, pa->argv, pa->envp, false);
             
             if (err == EOK) {
                 // Register the new process with the process manager. This assigns a
@@ -69,15 +69,7 @@ catch:
 
 SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
 {
-    decl_try_err();
-
-    err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp);
-    if (err == EOK) {
-        Process_RelinquishCurrentVirtualProcessor(vp->proc);
-        /* NOT REACHED */
-    }
-
-    return err;
+    return Process_Exec(vp->proc, pa->path, pa->argv, pa->envp, true);
 }
 
 SYSCALL_1(proc_exit, int code)
