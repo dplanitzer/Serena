@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
+#include <assert.h>
 
 // Operations that are mutual exclusive in the context of terminating a process:
 // - exit
@@ -54,29 +55,33 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     }
 }
 
-// Initiate an abort on every virtual processor attached to ourselves. Note that
-// the VP that is running the process termination code has already taking itself
-// out from the VP list.
+// Initiate an abort of every vcpu in the process that isn't the running vcpu.
 void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 {
+    vcpu_t me_vp = vcpu_current();
+
     deque_for_each(&self->vcpu_queue, deque_node_t, it,
         vcpu_t cvp = vcpu_from_owner_qe(it);
 
-        vcpu_send_signal(cvp, SIG_FORCE_QUIT);
+        if (cvp != me_vp) {
+            vcpu_send_signal(cvp, SIG_FORCE_QUIT);
+        }
     )
 }
 
-// Wait for all vcpus to relinquish themselves from the process. Only return
-// once all vcpus are gone and no longer touch the process object.
+// Block the caller until all vcpus in the process (except the caller) have
+// relinquished themselves and are no longer accessing the process object.
 void _proc_reap_vcpus(ProcessRef _Nonnull self)
 {
     bool done = false;
+
+    assert(vcpu_current()->proc == self);
 
     while (!done) {
         vcpu_yield();
 
         mtx_lock(&self->mtx);
-        if (self->vcpu_queue.first == NULL) {
+        if (self->vcpu_count == 1) {
             done = true;
         }
         mtx_unlock(&self->mtx);
@@ -130,8 +135,6 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
     self->flags |= PROC_FLAG_TERMINATING;
     self->terminator_vcpu = vcpu_current();
 
-    deque_remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
-    self->vcpu_count--;
     _proc_abort_other_vcpus(self);
     mtx_unlock(&self->mtx);
 
@@ -145,6 +148,6 @@ _Noreturn void Process_Terminate(ProcessRef _Nonnull self, int reason, int arg)
 
     
     // Finally relinquish myself
-    vcpu_relinquish_current();
+    Process_RelinquishCurrentVirtualProcessor(self);
     /* NOT REACHED */
 }

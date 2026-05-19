@@ -49,8 +49,6 @@ static void _proc_destroy_pimg(ProcessRef _Nonnull self)
     }
 
 
-    deque_remove(&self->vcpu_queue, &(vcpu_current()->owner_qe));
-    self->vcpu_count--;
     _proc_abort_other_vcpus(self);
 
     mtx_unlock(&self->mtx);
