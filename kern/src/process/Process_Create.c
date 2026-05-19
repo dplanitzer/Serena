@@ -26,6 +26,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     self->run_state = PROC_STATE_STOPPED;
     self->run_state_reason.reason = _WAIT_REASON_NONE;
     self->pid = 0;
+    self->sig_routes = DEQUE_INIT;
 
     if (isUser) {
         self->flags |= PROC_FLAG_USER;
@@ -63,7 +64,6 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     wq_init(&self->clk_wait_queue);
     wq_init(&self->siwa_queue);
    
-    _proc_init_default_sigroutes(self);
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
 }
 

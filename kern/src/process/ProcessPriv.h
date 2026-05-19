@@ -25,7 +25,7 @@
 
 // Signal routes
 struct sigroute {
-    queue_node_t    qe;
+    deque_node_t    qe;
     id_t            target_id;
     int16_t         use_count;
     int8_t          signo;
@@ -123,7 +123,7 @@ typedef struct Process {
     struct waitqueue                siwa_queue;
     
     // Signal routes
-    queue_t/*struct sigroute>*/     sig_route[SIG_MAX];
+    deque_t/*<struct sigroute>*/    sig_routes;
 } Process;
 
 
@@ -153,7 +153,6 @@ extern void _proc_continue(ProcessRef _Nonnull _Locked self, int reason, int arg
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 
-extern void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self);
 extern void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self);
 
 extern vcpu_t _Nullable _proc_vcpu_for_id(ProcessRef _Nonnull self, vcpuid_t id);

@@ -39,7 +39,7 @@ static errno_t sigroute_create(int signo, int target, id_t id, sigroute_t _Nulla
 
     err = kalloc(sizeof(struct sigroute), (void**)&self);
     if (err == EOK) {
-        self->qe = QUEUE_NODE_INIT;
+        self->qe = DEQUE_NODE_INIT;
         self->signo = signo;
         self->target = target;
         self->target_id = id;
@@ -56,36 +56,20 @@ static void sigroute_destroy(sigroute_t _Nullable self)
 }
 
 
-void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self)
-{
-    for (size_t i = 0; i < SIG_MAX; i++) {
-        self->sig_route[i] = QUEUE_INIT;
-    }
-}
-
 void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
 {
-    for (size_t i = 0; i < SIG_MAX; i++) {
-        while (!queue_empty(&self->sig_route[i])) {
-            sigroute_t rp = (sigroute_t)queue_remove_first(&self->sig_route[i]);
-            sigroute_destroy(rp);
-        }
+    while (!deque_empty(&self->sig_routes)) {
+        sigroute_t rp = (sigroute_t)deque_remove_first(&self->sig_routes);
+        sigroute_destroy(rp);
     }
 }
 
-static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id, sigroute_t* _Nullable pOutPrevEntry)
+static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id)
 {
-    sigroute_t prp = NULL;
-
-    queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
-        if (it->target == target && it->target_id == id) {
-            if (pOutPrevEntry) {
-                *pOutPrevEntry = prp;
-            }
+    deque_for_each(&self->sig_routes, struct sigroute, it,
+        if (it->signo == signo && it->target == target && it->target_id == id) {
             return it;
         }
-
-        prp = it;
     )
 
     return NULL;
@@ -95,12 +79,11 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
 static errno_t _add_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id)
 {
     decl_try_err();
-    sigroute_t prp;
-    sigroute_t rp = _find_specific_sigroute(self, signo, target, id, &prp);
+    sigroute_t rp = _find_specific_sigroute(self, signo, target, id);
 
     if (rp == NULL) {
         try(sigroute_create(signo, target, id, &rp));
-        queue_add_last(&self->sig_route[signo - 1], &rp->qe);
+        deque_add_last(&self->sig_routes, &rp->qe);
     }
 
     if (rp->use_count == INT16_MAX) {
@@ -114,13 +97,12 @@ catch:
 
 static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id)
 {
-    sigroute_t prp;
-    sigroute_t rp = _find_specific_sigroute(self, signo, target, id, &prp);
+    sigroute_t rp = _find_specific_sigroute(self, signo, target, id);
 
     if (rp) {
         rp->use_count--;
         if (rp->use_count <= 0) {
-            queue_remove(&self->sig_route[signo - 1], &prp->qe, &rp->qe);
+            deque_remove(&self->sig_routes, &rp->qe);
             sigroute_destroy(rp);
         }
     }
@@ -212,6 +194,35 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
     return (hasMatch) ? EOK : ESRCH;
 }
 
+// Routes signal 'signo' to all vcpus and vcpu groups that are interested in
+// receiving it. Returns true if at least one routes exists for this signal and
+// false otherwise.
+static bool _proc_route_signal(ProcessRef _Nonnull _Locked self, int signo)
+{
+    bool hasRoute = false;
+
+    deque_for_each(&self->sig_routes, struct sigroute, it,
+        if (it->signo == signo) {
+            hasRoute = true;
+
+            switch (it->target) {
+                case SIG_TARGET_VCPU:
+                    _proc_send_signal_to_vcpu(self, it->target_id, signo, false);
+                    break;
+
+                case SIG_TARGET_VCPU_GROUP:
+                    _proc_send_signal_to_vcpu_group(self, it->target_id, signo);
+                    break;
+
+                default:
+                    abort();
+            }
+        }
+    )
+
+    return hasRoute;
+}
+
 static void _proc_trigger_termination(ProcessRef _Nonnull _Locked self, int signo)
 {
     if (self->terminator_vcpu) {
@@ -256,23 +267,7 @@ static void _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, int sign
             break;
 
         default:
-            if (!queue_empty(&self->sig_route[signo - 1])) {
-                queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
-                    switch (it->target) {
-                        case SIG_TARGET_VCPU:
-                            _proc_send_signal_to_vcpu(self, it->target_id, signo, false);
-                            break;
-
-                        case SIG_TARGET_VCPU_GROUP:
-                            _proc_send_signal_to_vcpu_group(self, it->target_id, signo);
-                            break;
-
-                        default:
-                            abort();
-                    }
-                )
-            }
-            else {
+            if (!_proc_route_signal(self, signo)) {
                 switch (signo) {
                     case SIG_CPU_LIMIT:
                     case SIG_LOGOUT:
