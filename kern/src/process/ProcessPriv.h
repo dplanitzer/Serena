@@ -140,12 +140,14 @@ extern errno_t Process_CreateUserChild(ProcessRef _Nonnull self, const proc_spaw
 extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex);
 
 
-extern bool _proc_is_terminating(ProcessRef _Nonnull self);
+extern bool proc_is_last_vcpu(ProcessRef _Nonnull self);
+
+extern bool _proc_is_terminating(ProcessRef _Nonnull _Locked self);
 
 #define _proc_is_user(__self) \
 (((__self)->flags & PROC_FLAG_USER) == PROC_FLAG_USER)
 
-extern errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire_attr_t* _Nonnull attr, bool isMain, vcpu_t _Nullable * _Nonnull pOutVp);
+extern errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp);
 
 extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 

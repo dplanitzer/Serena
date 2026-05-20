@@ -97,7 +97,7 @@ static void _proc_zombify(ProcessRef _Nonnull self)
     AddressSpace_UnmapAll(&self->addr_space);
 }
 
-bool _proc_is_terminating(ProcessRef _Nonnull self)
+bool _proc_is_terminating(ProcessRef _Nonnull _Locked self)
 {
     return ((self->flags & PROC_FLAG_TERMINATING) == PROC_FLAG_TERMINATING) ? true : false;
 }

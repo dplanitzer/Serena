@@ -338,7 +338,6 @@ extern void _cpu_get_float_regs(vcpu_state_m68k_float_t* _Nonnull dp);
 
 // These functions expect to be called in userspace.
 extern void vcpu_uret_relinquish_self(void);
-extern void vcpu_uret_exit(void);
 
 
 //

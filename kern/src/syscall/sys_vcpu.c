@@ -39,7 +39,13 @@ SYSCALL_2(vcpu_acquire, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _No
 
 SYSCALL_0(vcpu_relinquish_self)
 {
-    Process_RelinquishCurrentVirtualProcessor(vcpu_current()->proc);
+    if (!proc_is_last_vcpu(vp->proc)) {
+        Process_RelinquishCurrentVirtualProcessor(vcpu_current()->proc);
+    }
+    else {
+        Process_Terminate(vp->proc, WAIT_REASON_EXITED, 0);
+    }
+    
     /* NOT REACHED */
     return 0;
 }
