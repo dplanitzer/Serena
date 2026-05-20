@@ -18,21 +18,42 @@ static _Noreturn void _vcpu_relinquish_self(void)
     /* NOT REACHED */
 }
 
-errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp)
+errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire_attr_t* _Nonnull attr, bool isMain, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
     const bool is_uproc = _proc_is_user(self);
     vcpu_t vp = NULL;
+    VoidFunc_0 ret_func = NULL;
     vcpu_acquisition_t ac;
 
-    mtx_lock(&self->mtx);
+    if (isMain) {
+        assert(self->vcpu_count == 0);
+        assert(is_uproc != false);
+    }
     if (_proc_is_terminating(self)) {
         throw(ECANCELED);
     }
 
+
+    if (isMain) {
+        ret_func = (VoidFunc_0)vcpu_uret_exit;
+    }
+    else if (is_uproc) {
+        ret_func = vcpu_uret_relinquish_self;
+    }
+    else {
+        ret_func = _vcpu_relinquish_self;
+    }
+
+
+    if (isMain) {
+        self->next_avail_vcpuid = VCPUID_MAIN;
+    }
+
+
     ac.func = (VoidFunc_1)attr->func;
     ac.arg = attr->arg;
-    ac.ret_func = (is_uproc) ? vcpu_uret_relinquish_self : _vcpu_relinquish_self;
+    ac.ret_func = ret_func;
     ac.kernelStackSize = 0;
     ac.userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
     ac.id = self->next_avail_vcpuid++;
@@ -51,6 +72,19 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     self->vcpu_lifetime_count++;
     
 catch:
+
+    *pOutVp = vp;
+
+    return err;
+}
+
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp)
+{
+    decl_try_err();
+    vcpu_t vp = NULL;
+
+    mtx_lock(&self->mtx);
+    err = _proc_acquire_vcpu(self, attr, false, &vp);
     mtx_unlock(&self->mtx);
 
     if (err == EOK) {

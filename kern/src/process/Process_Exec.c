@@ -16,53 +16,11 @@
 #include <sched/vcpu.h>
 
 
-static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull arg, int nice, int quantum_boost, vcpu_t _Nonnull * _Nullable pOutVcpu)
-{
-    decl_try_err();
-    vcpu_t vp = NULL;
-    vcpu_acquisition_t ac;
-
-    ac.func = (VoidFunc_1)entryPoint;
-    ac.arg = arg;
-    ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
-    ac.kernelStackSize = 0;
-    ac.userStackSize = PROC_DEFAULT_USER_STACK_SIZE;
-    ac.id = VCPUID_MAIN;
-    ac.group_id = VCPUID_MAIN_GROUP;
-    ac.policy.version = sizeof(vcpu_policy_t);
-    ac.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    ac.policy.qos.priority = VCPU_PRI_NORMAL;
-    ac.sched_nice = nice;
-    ac.sched_quantum_boost = quantum_boost;
-    ac.isUser = true;
-
-    err = vcpu_acquire(&ac, &vp);
-
-    *pOutVcpu = vp;
-    return err;
-}
-
-static void _proc_install_pimg(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg, vcpu_t new_main_vcpu)
-{
-    AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
-
-    new_main_vcpu->proc = self;
-    deque_add_last(&self->vcpu_queue, &new_main_vcpu->owner_qe);
-    self->vcpu_count++;
-    self->vcpu_lifetime_count++;
-
-    self->ctx_base = pimg->ctx_base;
-    self->arg_size = pimg->arg_size;
-    self->arg_strings = pimg->arg_strings;
-    self->env_size = pimg->env_size;
-    self->env_strings = pimg->env_strings;
-}
-
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool isReplace)
 {
     decl_try_err();
     proc_img_t* pimg = NULL;
-    vcpu_t new_main_vcpu = NULL;
+    vcpu_t vcpu_to_resume = NULL;
 
     if (*execPath == '\0') {
         return EINVAL;
@@ -93,9 +51,19 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     if (!isReplace) {
         // Create the new main vcpu
         assert(vcpu_current()->proc != self);
-        
-        try(_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->ctx_base, self->sched_nice, self->quantum_boost, &new_main_vcpu));
-        _proc_install_pimg(self, pimg, new_main_vcpu);
+        _vcpu_acquire_attr_t ac;
+
+        ac.func = (VoidFunc_1)pimg->entry_point;
+        ac.arg = pimg->ctx_base;
+        ac.stack_size = PROC_DEFAULT_USER_STACK_SIZE;
+        ac.group_id = VCPUID_MAIN_GROUP;
+        ac.policy.version = sizeof(vcpu_policy_t);
+        ac.policy.qos.grade = VCPU_QOS_INTERACTIVE;
+        ac.policy.qos.priority = VCPU_PRI_NORMAL;
+        ac.flags = 0;
+        ac.data = 0;
+
+        try(_proc_acquire_vcpu(self, &ac, true, &vcpu_to_resume));
     }
     else {
         vcpu_t me_vp = vcpu_current();
@@ -122,23 +90,23 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         _proc_reassign_sigroutes_to_vcpuid(self, me_vp->id, VCPUID_MAIN);
         me_vp->id = VCPUID_MAIN;
         me_vp->group_id = VCPUID_MAIN_GROUP;
-
-
-        // Free the old address space and switch to the new one 
-        AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
-        self->ctx_base = pimg->ctx_base;
-        self->arg_size = pimg->arg_size;
-        self->arg_strings = pimg->arg_strings;
-        self->env_size = pimg->env_size;
-        self->env_strings = pimg->env_strings;
     }
+
+
+    // Free the old address space and switch to the new one 
+    AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
+    self->ctx_base = pimg->ctx_base;
+    self->arg_size = pimg->arg_size;
+    self->arg_strings = pimg->arg_strings;
+    self->env_size = pimg->env_size;
+    self->env_strings = pimg->env_strings;
 
 
 catch:
     proc_img_destroy(pimg);
 
-    if (err == EOK && self->run_state == PROC_STATE_RUNNING && !isReplace) {
-        vcpu_resume(new_main_vcpu, false);
+    if (err == EOK && self->run_state == PROC_STATE_RUNNING && vcpu_to_resume) {
+        vcpu_resume(vcpu_to_resume, false);
     }
 
     mtx_unlock(&self->mtx);

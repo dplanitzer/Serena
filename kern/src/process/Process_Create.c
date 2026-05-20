@@ -55,7 +55,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
 
 
     self->vcpu_queue = DEQUE_INIT;
-    self->next_avail_vcpuid = VCPUID_MAIN + 1;
+    self->next_avail_vcpuid = VCPUID_MAIN;
     
     IOChannelTable_Init(&self->ioChannelTable);
 

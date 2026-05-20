@@ -145,6 +145,8 @@ extern bool _proc_is_terminating(ProcessRef _Nonnull self);
 #define _proc_is_user(__self) \
 (((__self)->flags & PROC_FLAG_USER) == PROC_FLAG_USER)
 
+extern errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire_attr_t* _Nonnull attr, bool isMain, vcpu_t _Nullable * _Nonnull pOutVp);
+
 extern void _proc_set_state(ProcessRef _Nonnull _Locked self, int state, int reason, intptr_t arg, bool notify_parent);
 
 extern void _proc_stop(ProcessRef _Nonnull _Locked self, int reason, int arg, bool notify_parent);
