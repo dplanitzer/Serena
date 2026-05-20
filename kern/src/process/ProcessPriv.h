@@ -140,6 +140,8 @@ extern errno_t Process_CreateUserChild(ProcessRef _Nonnull self, const proc_spaw
 extern errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_t* _Nonnull actions, ProcessRef _Nonnull parent, size_t* _Nonnull pOutFailedActionIndex);
 
 
+extern _Noreturn void uproc_relinquish_vcpu_self(void);
+
 extern bool proc_is_last_vcpu(ProcessRef _Nonnull self);
 
 extern bool _proc_is_terminating(ProcessRef _Nonnull _Locked self);

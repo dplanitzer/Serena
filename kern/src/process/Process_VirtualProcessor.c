@@ -10,9 +10,16 @@
 #include <assert.h>
 #include <string.h>
 #include <kern/kalloc.h>
+#include <kpi/syscall.h>
 
 
-static _Noreturn void _vcpu_relinquish_self(void)
+_Noreturn void uproc_relinquish_vcpu_self(void)
+{
+    _syscall(SC_vcpu_relinquish_self);
+    /* NOT REACHED */
+}
+
+static _Noreturn void kproc_relinquish_vcpu_self(void)
 {
     Process_RelinquishCurrentVirtualProcessor(vcpu_current()->proc);
     /* NOT REACHED */
@@ -33,7 +40,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
 
     ac.func = (VoidFunc_1)attr->func;
     ac.arg = attr->arg;
-    ac.ret_func = (is_uproc) ? vcpu_uret_relinquish_self : _vcpu_relinquish_self;
+    ac.ret_func = (is_uproc) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
     ac.kernelStackSize = 0;
     ac.userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
     ac.id = self->next_avail_vcpuid++;
