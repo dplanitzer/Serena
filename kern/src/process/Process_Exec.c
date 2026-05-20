@@ -42,18 +42,6 @@ static errno_t _acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnul
     return err;
 }
 
-static void _proc_destroy_pimg(ProcessRef _Nonnull self)
-{
-    _proc_abort_other_vcpus(self);
-
-    mtx_unlock(&self->mtx);
-    _proc_reap_vcpus(self);
-    mtx_lock(&self->mtx);
-
-    _proc_destroy_sigroutes(self);
-    IOChannelTable_ReleaseChannelsOnExec(&self->ioChannelTable);
-}
-
 static void _proc_install_pimg(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg, vcpu_t new_main_vcpu)
 {
     AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
@@ -113,13 +101,30 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         vcpu_t me_vp = vcpu_current();
 
         assert(me_vp->proc == self);
-        _proc_destroy_pimg(self);
 
+        // Destroy the existing process image
+        _proc_abort_other_vcpus(self);
+
+        mtx_unlock(&self->mtx);
+        _proc_reap_vcpus(self);
+        mtx_lock(&self->mtx);
+
+        _proc_destroy_sigroutes_except_for_vcpuid(self, me_vp->id);
+        IOChannelTable_ReleaseChannelsOnExec(&self->ioChannelTable);
+
+
+        // Reset our user stack so that we'll start executing the new process
+        // image once we return to user space
         _vcpu_reset_user_stack(me_vp, (VoidFunc_1)pimg->entry_point, pimg->ctx_base, (VoidFunc_0)vcpu_uret_exit);
         
+
+        // Rename this vcpu so that it will be known as the main vcpu 
+        _proc_reassign_sigroutes_to_vcpuid(self, me_vp->id, VCPUID_MAIN);
         me_vp->id = VCPUID_MAIN;
         me_vp->group_id = VCPUID_MAIN_GROUP;
 
+
+        // Free the old address space and switch to the new one 
         AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
         self->ctx_base = pimg->ctx_base;
         self->arg_size = pimg->arg_size;

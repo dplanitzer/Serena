@@ -154,6 +154,8 @@ extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 
 extern void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self);
+extern void _proc_destroy_sigroutes_except_for_vcpuid(ProcessRef _Nonnull _Locked self, vcpuid_t vid);
+extern void _proc_reassign_sigroutes_to_vcpuid(ProcessRef _Nonnull _Locked self, vcpuid_t oldid, vcpuid_t newid);
 
 extern vcpu_t _Nullable _proc_vcpu_for_id(ProcessRef _Nonnull self, vcpuid_t id);
 

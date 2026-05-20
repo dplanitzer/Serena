@@ -64,6 +64,27 @@ void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
     }
 }
 
+void _proc_destroy_sigroutes_except_for_vcpuid(ProcessRef _Nonnull _Locked self, vcpuid_t vid)
+{
+    deque_for_each(&self->sig_routes, struct sigroute, it,
+        if (it->target == SIG_TARGET_VCPU && it->target_id == vid) {
+            continue;
+        }
+
+        deque_remove(&self->sig_routes, &it->qe);
+        sigroute_destroy(it);
+    );
+}
+
+void _proc_reassign_sigroutes_to_vcpuid(ProcessRef _Nonnull _Locked self, vcpuid_t oldid, vcpuid_t newid)
+{
+    deque_for_each(&self->sig_routes, struct sigroute, it,
+        if (it->target == SIG_TARGET_VCPU && it->target_id == oldid) {
+            it->target_id = newid;
+        }
+    );
+}
+
 static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int target, id_t id)
 {
     deque_for_each(&self->sig_routes, struct sigroute, it,
