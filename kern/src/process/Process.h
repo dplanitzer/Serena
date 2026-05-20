@@ -63,12 +63,10 @@ extern errno_t Process_WaitForState(ProcessRef _Nonnull self, int wstate, int ma
 
 // Loads the executable at 'execPath' and prepares it for execution. The existing
 // vcpus are relinquished, signal routes are freed and all open descriptors are
-// closed if 'isReplace' is true. Pass false for 'isReplace' if this is the
-// first time you call exec() after creating a new process. The current (calling)
-// vcpu becomes the new main vcpu if 'isReplace' is true. If 'isReplace' is false
-// then a completely new vcpu is acquired and will serve as the main vcpu of the
-// process.
-extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool isReplace);
+// closed if this is a replacement exec. The current (calling) vcpu becomes the
+// new main vcpu in this case. If on the other hand this is the first exec() call
+// on a new process then this function acquires a new main vcpu.
+extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp);
 extern _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull self);

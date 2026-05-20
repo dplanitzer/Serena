@@ -80,7 +80,7 @@ errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnul
     
     err = Process_CreateUserChild(self, &g_systemd_spawn, fh, &cp);
     if (err == EOK) {
-        err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL, false);
+        err = Process_Exec(cp, g_systemd_argv[0], g_systemd_argv, NULL);
         if (err == EOK) {
             (void)ProcessManager_Register(gProcessManager, cp);
             Process_Continue(cp, _WAIT_REASON_NONE, 0, false);

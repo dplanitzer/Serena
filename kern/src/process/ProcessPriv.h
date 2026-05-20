@@ -81,7 +81,7 @@ typedef struct Process {
 
     // Process image
     AddressSpace                    addr_space;
-    proc_ctx_t* _Nullable           ctx_base;       // Base address to the contiguous memory region holding the proc_ctx_t structure, command line arguments and environment
+    proc_ctx_t* _Nullable           ctx_base;       // Base address to the contiguous memory region holding the proc_ctx_t structure, command line arguments and environment. NULL until the first exec()
     size_t                          arg_size;       // Size of arg_strings in terms of bytes. Includes the trailing '\0'
     char* _Nullable                 arg_strings;    // Consecutive list of NUL-terminated process argument strings. End is marked by an empty string  
     size_t                          env_size;       // Size of env_strings in terms of bytes. Includes the trailing '\0'

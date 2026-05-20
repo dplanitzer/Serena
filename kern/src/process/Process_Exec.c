@@ -16,7 +16,7 @@
 #include <sched/vcpu.h>
 
 
-errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool isReplace)
+errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     proc_img_t* pimg = NULL;
@@ -48,8 +48,10 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     try(proc_img_load(pimg));
 
 
-    if (!isReplace) {
-        // Create the new main vcpu
+    if (self->ctx_base == NULL) {
+        // No executable image exists at this point and thus this is the first
+        // time we're doing a proc_exec() in this process. Acquire a new main
+        // vcpu from scratch.
         assert(vcpu_current()->proc != self);
         _vcpu_acquire_attr_t ac;
 
@@ -66,6 +68,8 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         try(_proc_acquire_vcpu(self, &ac, true, &vcpu_to_resume));
     }
     else {
+        // We're replacing an existing executable image. The current vcpu will
+        // become the new main vcpu.
         vcpu_t me_vp = vcpu_current();
 
         assert(me_vp->proc == self);
