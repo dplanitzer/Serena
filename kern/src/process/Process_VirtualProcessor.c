@@ -46,11 +46,6 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     }
 
 
-    if (isMain) {
-        self->next_avail_vcpuid = VCPUID_MAIN;
-    }
-
-
     ac.func = (VoidFunc_1)attr->func;
     ac.arg = attr->arg;
     ac.ret_func = ret_func;

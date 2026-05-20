@@ -65,6 +65,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         ac.flags = 0;
         ac.data = 0;
 
+        self->next_avail_vcpuid = VCPUID_MAIN;
         try(_proc_acquire_vcpu(self, &ac, true, &vcpu_to_resume));
     }
     else {
@@ -92,6 +93,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
         // Rename this vcpu so that it will be known as the main vcpu 
         _proc_reassign_sigroutes_to_vcpuid(self, me_vp->id, VCPUID_MAIN);
+        self->next_avail_vcpuid = VCPUID_MAIN + 1;
         me_vp->id = VCPUID_MAIN;
         me_vp->group_id = VCPUID_MAIN_GROUP;
     }
