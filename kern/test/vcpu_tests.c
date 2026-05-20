@@ -18,6 +18,16 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// vcpu_main_test
+
+void vcpu_main_test(int argc, char *argv[])
+{
+    assert_int_eq(VCPUID_MAIN, vcpu_id(vcpu_self()));
+    assert_int_eq(VCPUID_MAIN_GROUP, vcpu_groupid(vcpu_self()));
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // vcpu_acquire_test
 
 static void test_acquire_loop(const char* _Nonnull str)

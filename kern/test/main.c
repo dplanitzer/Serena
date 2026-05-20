@@ -97,6 +97,7 @@ extern void uint64_test(int argc, char *argv[]);
 
 // vcpu
 extern void vcpu_acquire_test(int argc, char *argv[]);
+extern void vcpu_main_test(int argc, char *argv[]);
 extern void vcpu_scheduling_test(int argc, char *argv[]);
 extern void vcpu_sigkill_test(int argc, char *argv[]);
 extern void vcpu_suspend_test(int argc, char *argv[]);
@@ -169,6 +170,7 @@ static const test_t gTests[] = {
     {"uint64", uint64_test, false},
 
     {"vcpu_aq", vcpu_acquire_test, true},
+    {"vcpu_main", vcpu_main_test, false},
     {"vcpu_sched", vcpu_scheduling_test, true},
     {"vcpu_sigkill", vcpu_sigkill_test, true},
     {"vcpu_suspend", vcpu_suspend_test, true},
