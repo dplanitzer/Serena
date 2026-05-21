@@ -153,7 +153,15 @@ catch:
 
 _Noreturn void vcpu_relinquish_current(void)
 {
-    vcpu_pool_checkin_current(g_vcpu_pool);
+    vcpu_t vp = vcpu_current();
+
+    vcpu_pool_checkin(g_vcpu_pool, vp);
+
+
+    // Do a synchronous suspend. We have the guarantee that we are suspended
+    // before this call returns.
+    try_bang(vcpu_suspend(vp));
+    /* NOT REACHED */
 }
 
 void vcpu_destroy(vcpu_t _Nullable self)

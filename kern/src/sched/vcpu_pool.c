@@ -56,10 +56,8 @@ vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self)
     return vp;
 }
 
-_Noreturn void vcpu_pool_checkin_current(vcpu_pool_t _Nonnull self)
+void vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    vcpu_t vp = vcpu_current();
-
     mtx_lock(&self->mtx);
     deque_add_last(&self->q, &vp->owner_qe);
     self->count++;
@@ -71,12 +69,6 @@ _Noreturn void vcpu_pool_checkin_current(vcpu_pool_t _Nonnull self)
         cnd_signal(&self->cnd);
     }
     mtx_unlock(&self->mtx);
-
-
-    // Do a synchronous suspend. We have the guarantee that we are suspended
-    // before this call returns.
-    try_bang(vcpu_suspend(vp));
-    /* NOT REACHED */
 }
 
 void vcpu_pool_reaper_main(vcpu_pool_t _Nonnull self)
