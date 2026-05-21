@@ -25,19 +25,8 @@ static void _vcpu_yield(vcpu_t _Nonnull self);
 static errno_t _vcpu_await_suspension_np(vcpu_t _Nonnull self);
 
 
-// Initializes a virtual processor. A virtual processor always starts execution
-// in supervisor mode. The user stack size may be 0. Note that a virtual processor
-// always starts out in suspended state.
-//
-// \param pVP the boot virtual processor record
-// \param priority the initial VP priority
-void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
+void vcpu_init(vcpu_t _Nonnull self)
 {
-    assert(policy->version == sizeof(vcpu_policy_t));
-    assert(policy->qos.grade >= VCPU_QOS_BACKGROUND && policy->qos.grade <= VCPU_QOS_REALTIME);
-    assert(policy->qos.priority >= VCPU_PRI_LOWEST && policy->qos.priority <= VCPU_PRI_HIGHEST);
-
-
     memset(self, 0, sizeof(struct vcpu));
     stk_init(&self->kernel_stack);
     stk_init(&self->user_stack);
@@ -50,7 +39,7 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     self->flags |= (cpu_68k_fpu(g_sys_desc->cpu_subtype) != CPU_FPU_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->flags |= (cpu_68k_family(g_sys_desc->cpu_subtype) == CPU_FAMILY_68060) ? VP_FLAG_HAS_BC : 0;
 
-    _vcpu_set_base_priority(self, policy);
+    self->base_priority = SCHED_PRI_FROM_QOS(VCPU_QOS_BACKGROUND, VCPU_PRI_LOWEST + 1);
     vcpu_on_sched_param_changed(self);
 }
 

@@ -207,7 +207,8 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     policy.version = sizeof(vcpu_policy_t);
     policy.qos.grade = VCPU_QOS_REALTIME;
     policy.qos.priority = VCPU_PRI_HIGHEST;
-    vcpu_init(self, &policy);
+    vcpu_init(self);
+    vcpu_set_policy(self, &policy);
 
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
@@ -239,8 +240,9 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     policy.version = sizeof(vcpu_policy_t);
     policy.qos.grade = VCPU_QOS_BACKGROUND;
     policy.qos.priority = VCPU_PRI_LOWEST;
-    vcpu_init(self, &policy);
-
+    vcpu_init(self);
+    vcpu_set_policy(self, &policy);
+    
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 

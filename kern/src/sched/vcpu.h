@@ -322,8 +322,10 @@ extern void _cpu_get_float_regs(vcpu_state_m68k_float_t* _Nonnull dp);
 // Scheduler
 //
 
-// Initializes 'self' as a vcpu in suspended state.
-extern void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
+// Initializes 'self' as a vcpu in suspended state. Note that the default QoS
+// is BACKGROUND with LOWEST+1 priority. Change the scheduling policy to the
+// desired policy by calling vcpu_set_policy() before you resume.
+extern void vcpu_init(vcpu_t _Nonnull self);
 
 // Destroys the vcpu 'self' and frees all its resources. Note that the vcpu has
 // to be in SUSPENDED state.

@@ -54,7 +54,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     if (vp == NULL) {
         try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
 
-        vcpu_init(vp, &attr->policy);
+        vcpu_init(vp);
         doFree = true;
     }
 
