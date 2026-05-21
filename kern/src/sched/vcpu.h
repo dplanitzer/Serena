@@ -29,24 +29,6 @@ struct Process;
 struct vcpu;
 
 
-// Parameters for a VP activation
-typedef struct vcpu_acquisition {
-    VoidFunc_1 _Nonnull     func;
-    void* _Nullable _Weak   arg;
-    VoidFunc_0 _Nonnull     ret_func;
-    size_t                  kernelStackSize;
-    size_t                  userStackSize;
-    vcpuid_t                id;
-    vcpuid_t                group_id;
-    vcpu_policy_t           policy;
-    int                     sched_nice;
-    int                     sched_quantum_boost;
-    bool                    isUser;
-} vcpu_acquisition_t;
-
-#define VCPU_ACQUISITION_INIT {0}
-
-
 // Exception state. Valid if teh vcpu has taken an exception and is in the
 // process of handling it. Set up by cpu_exception() and torn down by
 // cpu_exception_return().
@@ -188,16 +170,6 @@ extern size_t min_vcpu_kernel_stack_size(void);
 extern void vcpu_platform_init(void);
 
 
-// Acquires a vcpu from the vcpu pool and creates a new vcpu from scratch if none
-// is available from the global vcpu pool. The vcpu is configured based on 'ac'.
-extern errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP);
-
-// Relinquishes the current (calling) vcpu which means that it is finished
-// executing code and that it should be moved back to the virtual processor pool.
-// This function does not return to the caller.
-extern _Noreturn void vcpu_relinquish_current(void);
-
-
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
 #define vcpu_current() \
@@ -308,6 +280,10 @@ extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 // waits for suspension to have completed and returns EOK. Returns EBUSY if
 // 'self' is not in process suspension and not suspended either. 
 extern errno_t vcpu_await_suspension(vcpu_t _Nonnull self);
+
+
+extern errno_t validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
+extern void vcpu_reset(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int nice, int quantum_boost);
 
 
 //

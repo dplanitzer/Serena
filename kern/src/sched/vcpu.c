@@ -8,7 +8,6 @@
 
 #include "vcpu.h"
 #include "sched.h"
-#include "vcpu_pool.h"
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
@@ -22,7 +21,6 @@
 
 static void _vcpu_reset_penalties_and_boosts(vcpu_t _Nonnull self);
 static bool _vcpu_set_base_priority(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
-static errno_t _validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
 static void _vcpu_yield(vcpu_t _Nonnull self);
 static errno_t _vcpu_await_suspension_np(vcpu_t _Nonnull self);
 
@@ -56,114 +54,6 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     vcpu_on_sched_param_changed(self);
 }
 
-errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP)
-{
-    decl_try_err();
-    vcpu_t vp = NULL;
-    bool doFree = false;
-
-
-    // Validate the acquisition record
-    try(_validate_vcpu_policy(&ac->policy));
-    if (ac->func == NULL) {
-        throw(EINVAL);
-    }
-
-
-    // Try to get a vcpu from the global pool
-    vp = vcpu_pool_checkout(g_vcpu_pool);
-
-
-    // Create a new vcpu if we were not able to reuse a cached one
-    if (vp == NULL) {
-        try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
-
-        vcpu_init(vp, &ac->policy);
-        vcpu_suspend(vp);
-        doFree = true;
-    }
-
-
-    // Note that a vcpu freshly checked out from the pool may not have entered
-    // the suspend state yet. Wait until it is actually suspended and before we
-    // proceed with reconfiguring it. We only become the owner of the vcpu once
-    // it has entered suspended state.
-    const int sps = preempt_disable();
-    while (_vcpu_await_suspension_np(vp) != EOK);
-    preempt_restore(sps);
-
-    
-    //
-    // The vcpu is guaranteed to be suspended at this point
-    //
-
-    // First wipe out the old state and create a clean slate. We do this here
-    // because doing this at relinquish time would be unsafe since the vcpu is
-    // still running at the start of the relinquish phase
-    vp->dispatch_worker = NULL;
-    vp->proc = NULL;
-    vp->udata = 0;
-    vp->uerrno = 0;
-    vp->pending_sigs = 0;
-    vp->excpt_handler = (excpt_handler_t){0};
-    vp->excpt_state = (cpu_excpt_state_t){0};
-    vp->excpt_sa = NULL;
-    vp->syscall_sa = NULL;
-    vp->user_ticks = 0;
-    vp->system_ticks = 0;
-    vp->wait_ticks = 0;
-    vp->flags &= ~(VP_FLAG_DID_WAIT);
-
-
-    // Setup QoS, nice, boosts
-    _vcpu_reset_penalties_and_boosts(vp);
-    _vcpu_set_base_priority(vp, &ac->policy);
-    vcpu_set_nice(vp, ac->sched_nice);
-    vcpu_set_quantum_boost(vp, ac->sched_quantum_boost);
-    vcpu_reset_quantum(vp);
-    vcpu_on_sched_param_changed(vp);
-
-
-    // Setup kernel and user stacks
-    const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
-    const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
-
-    try(stk_setmaxsize(&vp->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize)));
-    try(stk_setmaxsize(&vp->user_stack, __max(ac->userStackSize, minUserStackSize)));
-
-    _vcpu_reset_stacks(vp, ac->func, ac->arg, ac->ret_func, ac->isUser, true);
-
-    
-    // Setup tag, id, group id, etc
-    vp->tag = (ac->isUser) ? VP_TAG_USER : VP_TAG_SYS;
-    vp->id = ac->id;
-    vp->group_id = ac->group_id;
-
-    clock_gettime(g_mono_clock, &vp->acquisition_time);
-
-
-catch:
-    if (err != EOK && doFree) {
-        vcpu_destroy(vp);
-    }
-
-    *pOutVP = vp;
-    return err;
-}
-
-_Noreturn void vcpu_relinquish_current(void)
-{
-    vcpu_t vp = vcpu_current();
-
-    vcpu_pool_checkin(g_vcpu_pool, vp);
-
-
-    // Do a synchronous suspend. We have the guarantee that we are suspended
-    // before this call returns.
-    try_bang(vcpu_suspend(vp));
-    /* NOT REACHED */
-}
-
 void vcpu_destroy(vcpu_t _Nullable self)
 {
     if (self) {
@@ -173,6 +63,35 @@ void vcpu_destroy(vcpu_t _Nullable self)
         stk_destroy(&self->user_stack);
         kfree(self);
     }
+}
+
+void vcpu_reset(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int nice, int quantum_boost)
+{
+    // First wipe out the old state and create a clean slate. We do this here
+    // because doing this at relinquish time would be unsafe since the vcpu is
+    // still running at the start of the relinquish phase
+    self->dispatch_worker = NULL;
+    self->proc = NULL;
+    self->udata = 0;
+    self->uerrno = 0;
+    self->pending_sigs = 0;
+    self->excpt_handler = (excpt_handler_t){0};
+    self->excpt_state = (cpu_excpt_state_t){0};
+    self->excpt_sa = NULL;
+    self->syscall_sa = NULL;
+    self->user_ticks = 0;
+    self->system_ticks = 0;
+    self->wait_ticks = 0;
+    self->flags &= ~(VP_FLAG_DID_WAIT);
+
+
+    // Setup QoS, nice, boosts
+    _vcpu_reset_penalties_and_boosts(self);
+    _vcpu_set_base_priority(self, policy);
+    vcpu_set_nice(self, nice);
+    vcpu_set_quantum_boost(self, quantum_boost);
+    vcpu_reset_quantum(self);
+    vcpu_on_sched_param_changed(self);
 }
 
 // @Entry Condition: preemption disabled
@@ -278,7 +197,7 @@ errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull p
     return EOK;
 }
 
-static errno_t _validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy)
+errno_t validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy)
 {
     if (policy->version != sizeof(vcpu_policy_t)) {
         return EINVAL;
@@ -305,7 +224,7 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
 {
     decl_try_err();
 
-    err = _validate_vcpu_policy(policy);
+    err = validate_vcpu_policy(policy);
     if (err != EOK) {
         return err;
     }

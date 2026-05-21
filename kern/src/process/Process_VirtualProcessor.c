@@ -11,6 +11,7 @@
 #include <string.h>
 #include <kern/kalloc.h>
 #include <kpi/syscall.h>
+#include <sched/vcpu_pool.h>
 
 
 _Noreturn void uproc_relinquish_vcpu_self(void)
@@ -30,38 +31,83 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     decl_try_err();
     const bool is_uproc = _proc_is_user(self);
     vcpu_t vp = NULL;
-    VoidFunc_0 ret_func = NULL;
-    vcpu_acquisition_t ac;
+    bool doFree = false;
 
+    // Validate 'attr'
+    try(validate_vcpu_policy(&attr->policy));
+    if (attr->func == NULL) {
+        throw(EINVAL);
+    }
+
+
+    // Don't acquire a new vcpu if we're in teh process of terminating
     if (_proc_is_terminating(self)) {
         throw(ECANCELED);
     }
 
 
-    ac.func = (VoidFunc_1)attr->func;
-    ac.arg = attr->arg;
-    ac.ret_func = (is_uproc) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
-    ac.kernelStackSize = 0;
-    ac.userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
-    ac.id = self->next_avail_vcpuid++;
-    ac.group_id = attr->group_id;
-    ac.policy = attr->policy;
-    ac.sched_nice = self->sched_nice;
-    ac.sched_quantum_boost = self->quantum_boost;
-    ac.isUser = is_uproc;
+    // Try to get a vcpu from the global pool
+    vp = vcpu_pool_checkout(g_vcpu_pool);
 
-    try(vcpu_acquire(&ac, &vp));
+
+    // Create a new vcpu if we were not able to reuse a cached one
+    if (vp == NULL) {
+        try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
+
+        vcpu_init(vp, &attr->policy);
+        vcpu_suspend(vp);
+        doFree = true;
+    }
+
+
+    // Note that a vcpu freshly checked out from the pool may not have entered
+    // the suspend state yet. Wait until it is actually suspended and before we
+    // proceed with reconfiguring it. We only become the owner of the vcpu once
+    // it has entered suspended state.
+    while (vcpu_await_suspension(vp) != EOK);
+
     
+    //
+    // The vcpu is guaranteed to be suspended at this point
+    //
+
+    // First wipe out the old state and create a clean slate. We do this here
+    // because doing this at relinquish time would be unsafe since the vcpu is
+    // still running at the start of the relinquish phase
+    vcpu_reset(vp, &attr->policy, self->sched_nice, self->quantum_boost);
+
+
+    // Setup kernel and user stacks
+    const size_t kernelStackSize = min_vcpu_kernel_stack_size();
+    const size_t userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
+
+    try(stk_setmaxsize(&vp->kernel_stack, kernelStackSize));
+    try(stk_setmaxsize(&vp->user_stack, userStackSize));
+
+    VoidFunc_0 ret_func = (is_uproc) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
+    _vcpu_reset_stacks(vp, attr->func, attr->arg, ret_func, is_uproc, true);
+
+    
+    // Setup tag, id, group id, etc
+    vp->tag = (is_uproc) ? VP_TAG_USER : VP_TAG_SYS;
+    vp->id = self->next_avail_vcpuid++;
+    vp->group_id = attr->group_id;
     vp->proc = self;
     vp->udata = attr->data;
+
     deque_add_last(&self->vcpu_queue, &vp->owner_qe);
     self->vcpu_count++;
     self->vcpu_lifetime_count++;
-    
+
+    clock_gettime(g_mono_clock, &vp->acquisition_time);
+
+
 catch:
+    if (err != EOK && doFree) {
+        vcpu_destroy(vp);
+    }
 
     *pOutVp = vp;
-
     return err;
 }
 
@@ -102,7 +148,8 @@ _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull sel
     mtx_unlock(&self->mtx);
 
 
-    vcpu_relinquish_current();
+    vcpu_pool_checkin(g_vcpu_pool, vp);
+    try_bang(vcpu_suspend(vp));
     /* NOT REACHED */
 }
 
