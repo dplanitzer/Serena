@@ -51,7 +51,6 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     self->flags |= (cpu_68k_family(g_sys_desc->cpu_subtype) == CPU_FAMILY_68060) ? VP_FLAG_HAS_BC : 0;
 
     _vcpu_set_base_priority(self, policy);
-    vcpu_reset_quantum(self);
     vcpu_on_sched_param_changed(self);
 }
 
@@ -91,7 +90,6 @@ void vcpu_reset(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int 
     _vcpu_set_base_priority(self, policy);
     vcpu_set_nice(self, nice);
     vcpu_set_quantum_boost(self, quantum_boost);
-    vcpu_reset_quantum(self);
     vcpu_on_sched_param_changed(self);
 }
 
@@ -181,6 +179,12 @@ void vcpu_on_sched_param_changed(vcpu_t _Nonnull self)
 //    assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
 
     self->cur_priority = (int8_t)eff_pri;
+    self->quantum_countdown = _vcpu_effective_quantum_length(self);
+
+    //XXX Note that we should not fully reset the quantum countdown here because
+    // this effectively gives the vcpu a double-long quantum. Instead we should
+    // calculate the fraction of the old quantum that is still unused and only
+    // grant this fraction of the new quantum.
 }
 
 errno_t vcpu_policy(vcpu_t _Nonnull self, int version, vcpu_policy_t* _Nonnull policy)
@@ -245,9 +249,6 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
         case VCPU_STATE_WAITING:
         case VCPU_STATE_SUSPENDED:
             if (_vcpu_set_base_priority(self, policy)) {
-                if (self->run_state == VCPU_STATE_RUNNING) {
-                    vcpu_reset_quantum(self);
-                }
                 vcpu_on_sched_param_changed(self);
             }
             break;
