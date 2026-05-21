@@ -43,6 +43,20 @@ void vcpu_init(vcpu_t _Nonnull self)
     vcpu_on_sched_param_changed(self);
 }
 
+errno_t vcpu_create(vcpu_t _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    vcpu_t vp = NULL;
+
+    err = kalloc(sizeof(struct vcpu), (void**) &vp);
+    if (err == EOK) {
+        vcpu_init(vp);
+    }
+
+    *pOutSelf = vp;
+    return err;
+}
+
 void vcpu_destroy(vcpu_t _Nullable self)
 {
     if (self) {

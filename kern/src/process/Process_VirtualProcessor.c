@@ -52,9 +52,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
 
     // Create a new vcpu if we were not able to reuse a cached one
     if (vp == NULL) {
-        try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
-
-        vcpu_init(vp);
+        try(vcpu_create(&vp));
         doFree = true;
     }
 

@@ -327,6 +327,9 @@ extern void _cpu_get_float_regs(vcpu_state_m68k_float_t* _Nonnull dp);
 // desired policy by calling vcpu_set_policy() before you resume.
 extern void vcpu_init(vcpu_t _Nonnull self);
 
+// Creates a new vcpu in suspended state.
+extern errno_t vcpu_create(vcpu_t _Nullable * _Nonnull pOutSelf);
+
 // Destroys the vcpu 'self' and frees all its resources. Note that the vcpu has
 // to be in SUSPENDED state.
 extern void vcpu_destroy(vcpu_t _Nullable self);
