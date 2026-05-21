@@ -56,12 +56,12 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the boot virtual processor
     self->boot_vp = boot_vcpu_create(bap, fn, ctx);
-    sched_set_ready(self, self->boot_vp, true);
+    vcpu_resume(self->boot_vp, false);
 
 
     // Initialize the idle virtual processor
     self->idle_vp = idle_vcpu_create(bap);
-    sched_set_ready(self, self->idle_vp, true);
+    vcpu_resume(self->idle_vp, false);
 
 
     // Initialize the scheduler    

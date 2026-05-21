@@ -43,7 +43,8 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
     stk_init(&self->user_stack);
     
     self->timeout = CLOCK_DEADLINE_INIT;    
-    self->run_state = VCPU_STATE_INITIATED;
+    self->run_state = VCPU_STATE_SUSPENDED;
+    self->suspension_count = 1;
 
     self->flags = 0;
     self->flags |= (cpu_68k_fpu(g_sys_desc->cpu_subtype) != CPU_FPU_NONE) ? VP_FLAG_HAS_FPU : 0;
@@ -57,7 +58,7 @@ void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy)
 void vcpu_destroy(vcpu_t _Nullable self)
 {
     if (self) {
-        assert(self->run_state == VCPU_STATE_INITIATED || self->run_state == VCPU_STATE_SUSPENDED);
+        assert(self->run_state == VCPU_STATE_SUSPENDED);
 
         stk_destroy(&self->kernel_stack);
         stk_destroy(&self->user_stack);
@@ -232,12 +233,6 @@ errno_t vcpu_set_policy(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull poli
 
     const int sps = preempt_disable();
     switch (self->run_state) {
-        case VCPU_STATE_INITIATED:
-            if (_vcpu_set_base_priority(self, policy)) {
-                vcpu_on_sched_param_changed(self);
-            }
-            break;
-
         case VCPU_STATE_READY:
             sched_set_unready(g_sched, self, false);
             if (_vcpu_set_base_priority(self, policy)) {
@@ -294,11 +289,12 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
 {
     decl_try_err();
     const int sps = preempt_disable();
+    vcpu_t cur_vp = vcpu_current();
 
     if (self == g_sched->idle_vp || self == g_sched->boot_vp) {
         throw(ESRCH);
     }
-    if (!vcpu_is_user(self) && (self->run_state != VCPU_STATE_INITIATED && self->run_state != VCPU_STATE_RUNNING)) {
+    if (!vcpu_is_user(self) && self != cur_vp) {
         // no involuntary suspension of kernel owned VPs
         throw(EPERM);
     }
@@ -308,11 +304,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
 
     self->suspension_count++;
 
-    if (self->run_state == VCPU_STATE_INITIATED) {
-        // 'self' was just created. Move it to suspended state immediately
-        self->run_state = VCPU_STATE_SUSPENDED;
-    }
-    else if (vcpu_current() == self) {
+    if (cur_vp == self) {
         // 'self' is currently running. Move it to suspended state immediately
         self->run_state = VCPU_STATE_SUSPENDED;
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));

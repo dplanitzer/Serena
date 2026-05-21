@@ -170,6 +170,12 @@ extern size_t min_vcpu_kernel_stack_size(void);
 extern void vcpu_platform_init(void);
 
 
+// Resets the state of a vcpu. All state is reset to defaults and the provided
+// scheduling parameters except the kernel and user stack. You must reset the
+// stacks separately.
+extern void vcpu_reset(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int nice, int quantum_boost);
+
+
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
 #define vcpu_current() \
@@ -283,7 +289,6 @@ extern errno_t vcpu_await_suspension(vcpu_t _Nonnull self);
 
 
 extern errno_t validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
-extern void vcpu_reset(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int nice, int quantum_boost);
 
 
 //
@@ -317,10 +322,11 @@ extern void _cpu_get_float_regs(vcpu_state_m68k_float_t* _Nonnull dp);
 // Scheduler
 //
 
+// Initializes 'self' as a vcpu in suspended state.
 extern void vcpu_init(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy);
 
 // Destroys the vcpu 'self' and frees all its resources. Note that the vcpu has
-// to be in state INITIATED or SUSPENDED.
+// to be in SUSPENDED state.
 extern void vcpu_destroy(vcpu_t _Nullable self);
 
 // Indicates that at least one of the receiver's scheduling parameters (QoS,

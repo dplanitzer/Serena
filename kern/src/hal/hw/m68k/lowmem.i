@@ -115,11 +115,10 @@ sched_SIZEOF                        so
 
 
 ; The vcpu
-VCPU_STATE_INITIATED       equ 0   ; VP was just created and has not been scheduled yet
-VCPU_STATE_READY           equ 1   ; VP is able to run and is currently sitting on the ready queue
-VCPU_STATE_RUNNING         equ 2   ; VP is running
-VCPU_STATE_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-VCPU_STATE_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
+VCPU_STATE_READY           equ 0   ; VP is able to run and is currently sitting on the ready queue
+VCPU_STATE_RUNNING         equ 1   ; VP is running
+VCPU_STATE_WAITING         equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+VCPU_STATE_SUSPENDED       equ 3   ; VP has just been created, was running or ready and is now suspended (it is not on any queue)
 
 
 ; vcpu flags (keep in sync with vcpu.h)
