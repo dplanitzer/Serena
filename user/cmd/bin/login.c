@@ -13,9 +13,9 @@
 #include <string.h>
 #include <serena/file.h>
 #include <serena/process.h>
-#include <serena/wait.h>
+#include <serena/proc_wait.h>
 #include <serena/signal.h>
-#include <serena/spawn.h>
+#include <serena/proc_spawn.h>
 #include <serena/vcpu.h>
 
 
@@ -91,10 +91,10 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     
     // XXX enable dispatch queue based notifications again
     // XXX broken for now. Typing exit in the login shell will throw an error
-    // XXX because this proc_waitstate() here consumes the pid and the proc_waitstate()
+    // XXX because this proc_wait() here consumes the pid and the proc_wait()
     // XXX in on_shell_termination() can't get the pid anymore.
     proc_waitres_t ps;
-    proc_waitstate(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
+    proc_wait(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
     on_shell_termination(NULL);
     // XXX enable dispatch queue based notifications again
 
@@ -128,7 +128,7 @@ static void login_user(void)
 static void on_shell_termination(void* _Nullable ignore)
 {
     proc_waitres_t ps;
-    const int r = proc_waitstate(WAIT_FOR_TERMINATED, WAIT_ANY, 0, WAIT_NONBLOCKING, &ps);
+    const int r = proc_wait(WAIT_FOR_TERMINATED, WAIT_ANY, 0, WAIT_NONBLOCKING, &ps);
 
     if (r == -1) {
         printf("Error: %s.\n", strerror(errno));

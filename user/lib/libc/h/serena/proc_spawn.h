@@ -1,17 +1,17 @@
 //
-//  spawn.h
+//  proc_spawn.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 4/26/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SERENA_SPAWN_H
-#define _SERENA_SPAWN_H 1
+#ifndef _SERENA_PROC_SPAWN_H
+#define _SERENA_PROC_SPAWN_H 1
 
 #include <_cmndef.h>
 #include <stdbool.h>
-#include <kpi/spawn.h>
+#include <kpi/proc_spawn.h>
 
 __CPP_BEGIN
 
@@ -105,4 +105,4 @@ extern int proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], c
 
 __CPP_END
 
-#endif /* _SERENA_SPAWN_H */
+#endif /* _SERENA_PROC_SPAWN_H */

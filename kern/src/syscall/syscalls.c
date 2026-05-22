@@ -62,7 +62,7 @@ SYSCALL_REF(proc_exit);
 SYSCALL_REF(proc_spawn);
 SYSCALL_REF(proc_property);
 SYSCALL_REF(proc_setcwd);
-SYSCALL_REF(proc_waitstate);
+SYSCALL_REF(proc_wait);
 SYSCALL_REF(proc_exec);
 SYSCALL_REF(proc_schedparam);
 SYSCALL_REF(proc_setschedparam);
@@ -114,7 +114,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(woa_wait, SC_ERRNO),
     SYSCALL_ENTRY(fs_open, SC_ERRNO),
     SYSCALL_ENTRY(fd_close, SC_ERRNO),
-    SYSCALL_ENTRY(proc_waitstate, SC_ERRNO),
+    SYSCALL_ENTRY(proc_wait, SC_ERRNO),
     SYSCALL_ENTRY(fd_seek, SC_ERRNO),
     SYSCALL_ENTRY(proc_property, SC_ERRNO),
     SYSCALL_ENTRY(proc_setcwd, SC_ERRNO),

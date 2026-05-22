@@ -36,7 +36,7 @@ typedef struct sigroute* sigroute_t;
 
 // The reason for a state change
 typedef struct state_change_reason {
-    int      reason;    // reason for state change; 0 if no reason has been recorded yet or proc_waitstate() has already consumed it
+    int      reason;    // reason for state change; 0 if no reason has been recorded yet or proc_wait() has already consumed it
     union {
         int exit_code;  // child process exit code
         int signo;      // signal that caused the process to terminate

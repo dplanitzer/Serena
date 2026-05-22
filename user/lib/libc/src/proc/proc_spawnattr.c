@@ -8,7 +8,7 @@
 
 #include <errno.h>
 #include <kpi/process.h>
-#include <serena/spawn.h>
+#include <serena/proc_spawn.h>
 
 int proc_spawnattr_init(proc_spawnattr_t* _Nonnull attr)
 {

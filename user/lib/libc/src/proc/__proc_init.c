@@ -8,7 +8,7 @@
 
 #include <__stdlib.h>
 #include <kpi/fd.h>
-#include <kpi/spawn.h>
+#include <kpi/proc_spawn.h>
 
 static proc_spawn_actions_t    __gDfltSpawnActions;
 static _proc_spawn_action_t    __gStdioActions[3];

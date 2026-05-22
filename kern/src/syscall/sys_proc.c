@@ -79,7 +79,7 @@ SYSCALL_1(proc_exit, int code)
     return 0;
 }
 
-SYSCALL_5(proc_waitstate, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
+SYSCALL_5(proc_wait, int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res)
 {
     const int user_flags = WAIT_NONBLOCKING;
 

@@ -1,30 +1,30 @@
 //
-//  kpi/wait.h
+//  kpi/proc_wait.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 5/02/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_WAIT_H
-#define _KPI_WAIT_H 1
+#ifndef _KPI_PROC_WAIT_H
+#define _KPI_PROC_WAIT_H 1
 
 #include <_cmndef.h>
 #include <stdint.h>
 #include <kpi/types.h>
 
-// proc_waitstate() state to wait for
+// proc_wait() state to wait for
 #define WAIT_FOR_ANY        0
 #define WAIT_FOR_RESUMED    1
 #define WAIT_FOR_SUSPENDED  2
 #define WAIT_FOR_TERMINATED 3
 
-// proc_waitstate() match type
+// proc_wait() match type
 #define WAIT_PID    0   /* Status of child process with pid */
 #define WAIT_GROUP  1   /* Status of any member of the specified child process group */
 #define WAIT_ANY    2   /* Status of any of the process' child processes */
 
-// proc_waitstate() flags
+// proc_wait() flags
 #define WAIT_NONBLOCKING    1   /* Do not block waiting for a status change. Return EAGAIN if no status change found.*/
 #if defined(__KERNEL__)
 #define _WAIT_NOCANCEL      2
@@ -36,7 +36,7 @@
 #define WAIT_REASON_EXCEPTION   3
 
 
-// Result of a proc_waitstate() call.
+// Result of a proc_wait() call.
 typedef struct proc_waitres {
     pid_t   pid;        // pid of the child process
     int     state;      // new process state (see PROC_STATE_XXX)
@@ -49,4 +49,4 @@ typedef struct proc_waitres {
     intptr_t    reserved[5];
 } proc_waitres_t;
 
-#endif /* _KPI_WAIT_H */
+#endif /* _KPI_PROC_WAIT_H */

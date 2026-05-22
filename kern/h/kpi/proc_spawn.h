@@ -1,13 +1,13 @@
 //
-//  kpi/spawn.h
+//  kpi/proc_spawn.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_SPAWN_H
-#define _KPI_SPAWN_H 1
+#ifndef _KPI_PROC_SPAWN_H
+#define _KPI_PROC_SPAWN_H 1
 
 #include <_cmndef.h>
 #include <kpi/types.h>
@@ -92,4 +92,4 @@ typedef struct proc_spawnres {
     int     err_info;       // if called failed and phase is ACTIONS, the index of the action that failed
 } proc_spawnres_t;
 
-#endif /* _KPI_SPAWN_H */
+#endif /* _KPI_PROC_SPAWN_H */

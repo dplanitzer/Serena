@@ -15,8 +15,8 @@
 #include <string.h>
 #include <ext/stdlib.h>
 #include <serena/exception.h>
-#include <serena/wait.h>
-#include <serena/spawn.h>
+#include <serena/proc_wait.h>
+#include <serena/proc_spawn.h>
 
 //
 // Notes:
@@ -251,7 +251,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
     // Wait for the command to complete its task
     proc_waitres_t ps;
-    proc_waitstate(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
+    proc_wait(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
     if (ps.reason == WAIT_REASON_EXCEPTION) {
         if (ps.u.excptno == EXCPT_FORCED_ABORT) {
             fprintf(stderr, "%s aborted.\n", argv[0]);

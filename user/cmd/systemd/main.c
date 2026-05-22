@@ -16,7 +16,7 @@
 #include <serena/clock.h>
 #include <serena/filesystem.h>
 #include <serena/process.h>
-#include <serena/spawn.h>
+#include <serena/proc_spawn.h>
 
 
 static _Noreturn void halt_machine(void)

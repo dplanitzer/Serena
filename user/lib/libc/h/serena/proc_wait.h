@@ -1,15 +1,15 @@
 //
-//  wait.h
+//  proc_wait.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/02/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SERENA_WAIT_H
-#define _SERENA_WAIT_H 1
+#ifndef _SERENA_PROC_WAIT_H
+#define _SERENA_PROC_WAIT_H 1
 
-#include <kpi/wait.h>
+#include <kpi/proc_wait.h>
 
 __CPP_BEGIN
 
@@ -19,8 +19,8 @@ __CPP_BEGIN
 // function returns immediately with EOK and the state change information or it
 // returns EAGAIN if no state change has occurred. ECHILD is returned if the
 // specified child does not exist.
-extern int proc_waitstate(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res);
+extern int proc_wait(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull res);
 
 __CPP_END
 
-#endif /* _SERENA_WAIT_H */
+#endif /* _SERENA_PROC_WAIT_H */

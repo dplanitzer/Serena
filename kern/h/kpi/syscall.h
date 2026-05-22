@@ -26,7 +26,7 @@ enum {
     SC_woa_wait,            // errno_t woa_wait(volatile atomic_int* _Nonnull addr, int expected, int flags, const nanotime_t* _Nullable wtp)
     SC_fs_open,             // errno_t fs_open(int wd, const char * _Nonnull path, int oflags, int* _Nonnull fd)
     SC_fd_close,            // errno_t fd_close(int fd)
-    SC_proc_waitstate,      // errno_t proc_waitstate(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull status)
+    SC_proc_wait,           // errno_t proc_wait(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull status)
     SC_fd_seek,             // errno_t fd_seek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
     SC_proc_property,       // errno_t proc_property(pid_t pid, int flavor, void* _Nonnull buf, size_t bufSize)
     SC_proc_setcwd,         // errno_t proc_setcwd(const char* _Nonnull path)

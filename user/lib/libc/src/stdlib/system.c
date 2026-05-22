@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <serena/file.h>
-#include <serena/wait.h>
+#include <serena/proc_wait.h>
 #include <serena/signal.h>
-#include <serena/spawn.h>
+#include <serena/proc_spawn.h>
 #include <serena/vcpu.h>
 
 
@@ -54,7 +54,7 @@ static int __system(const char *string)
 
     r = proc_spawn(__shellPath, argv, NULL, &sa, NULL, &sres);
     if (r == 0) {
-        r = proc_waitstate(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
+        r = proc_wait(WAIT_FOR_TERMINATED, WAIT_PID, sres.pid, 0, &ps);
     }
 
     

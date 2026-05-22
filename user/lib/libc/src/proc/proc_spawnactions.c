@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <ext/math.h>
 #include <kpi/fd.h>
-#include <serena/spawn.h>
+#include <serena/proc_spawn.h>
 #include <stdlib.h>
 #include <string.h>
 

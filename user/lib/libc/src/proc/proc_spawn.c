@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 #include <serena/fd.h>
-#include <serena/spawn.h>
+#include <serena/proc_spawn.h>
 #include <kpi/syscall.h>
 
 extern const proc_spawn_actions_t* _Nonnull __proc_default_spawn_actions(void);
