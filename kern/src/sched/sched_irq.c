@@ -102,7 +102,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
             if (do_sched_params_changed) {
-                vcpu_on_sched_param_changed(run);
+                vcpu_on_sched_param_changed_np(run);
             }
         }
 
@@ -110,6 +110,6 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
         // Reset the quantum
-        vcpu_reset_quantum(run);
+        vcpu_reset_quantum_np(run);
     }
 }

@@ -128,12 +128,12 @@ struct vcpu {
     int8_t                          wakeup_reason;
     
     // Scheduling related state
-    int8_t                          base_priority;          // call vcpu_on_sched_param_changed() on change
-    int8_t                          cur_priority;           // computed priority used for scheduling. Computed by vcpu_on_sched_param_changed()
-    int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_on_sched_param_changed() on change)
-    int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_on_sched_param_changed() on change)
+    int8_t                          base_priority;          // call vcpu_on_sched_param_changed_np() on change
+    int8_t                          cur_priority;           // computed priority used for scheduling. Computed by vcpu_on_sched_param_changed_np()
+    int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_on_sched_param_changed_np() on change)
+    int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_on_sched_param_changed_np() on change)
     int8_t                          quantum_boost;
-    int8_t                          sched_nice;             // scheduling nice parameter (call vcpu_on_sched_param_changed() on change)
+    int8_t                          sched_nice;             // scheduling nice parameter (call vcpu_on_sched_param_changed_np() on change)
     int8_t                          run_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
@@ -173,7 +173,7 @@ extern void vcpu_platform_init(void);
 // Resets the state of a vcpu. All state is reset to defaults and the provided
 // scheduling parameters except the kernel and user stack. You must reset the
 // stacks separately.
-extern void vcpu_reset(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int nice, int quantum_boost);
+extern void vcpu_reset_np(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, int nice, int quantum_boost);
 
 
 // Returns a reference to the currently running virtual processor. This is the
@@ -338,15 +338,15 @@ extern void vcpu_destroy(vcpu_t _Nullable self);
 // priority, boost, penalty, etc) has changed and that the effective priority
 // should be recomputed.
 // @Entry Condition: preemption disabled
-extern void vcpu_on_sched_param_changed(vcpu_t _Nonnull self);
+extern void vcpu_on_sched_param_changed_np(vcpu_t _Nonnull self);
 
 // Resets the receiver's quantum tick count back to the full count for another
 // quantum. The quantum length is based on the effective QoS class.
 // @Entry Condition: preemption disabled
-extern void vcpu_reset_quantum(vcpu_t _Nonnull self);
+extern void vcpu_reset_quantum_np(vcpu_t _Nonnull self);
 
 // Returns true if the vcpu should be scheduled using a fixed priority policy.
-// Only valid after vcpu_on_sched_param_changed() has been called
+// Only valid after vcpu_on_sched_param_changed_np() has been called
 // @Entry Condition: preemption disabled
 #define vcpu_is_fixed_pri(__self) \
 (((__self)->flags & VP_FLAG_FIXED_PRI) == VP_FLAG_FIXED_PRI)
@@ -364,12 +364,12 @@ SCHED_QOS_GRADE((__self)->cur_priority)
 // Sets the quantum boost value. The value is clamped to the range 0..INT8_MAX.
 // The boost is applied starting with the next quantum.
 // @Entry Condition: preemption disabled
-extern void vcpu_set_quantum_boost(vcpu_t _Nonnull self, int boost);
+extern void vcpu_set_quantum_boost_np(vcpu_t _Nonnull self, int boost);
 
 // Sets the scheduling nice value. The value is clamped to the range 0..64.
-// Note: call vcpu_on_sched_param_changed() next to update the sched state.
+// Note: call vcpu_on_sched_param_changed_np() next to update the sched state.
 // @Entry Condition: preemption disabled
-extern void vcpu_set_nice(vcpu_t _Nonnull self, int nice);
+extern void vcpu_set_nice_np(vcpu_t _Nonnull self, int nice);
 
 
 //

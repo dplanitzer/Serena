@@ -59,7 +59,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     // First wipe out the old state and create a clean slate. We do this here
     // because doing this at relinquish time would be unsafe since the vcpu is
     // still running at the start of the relinquish phase
-    vcpu_reset(vp, &attr->policy, self->sched_nice, self->quantum_boost);
+    vcpu_reset_np(vp, &attr->policy, self->sched_nice, self->quantum_boost);
 
 
     // Setup kernel and user stacks

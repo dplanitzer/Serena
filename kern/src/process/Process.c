@@ -144,15 +144,15 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
 
             switch (type) {
                 case SCHED_QUANTUM_BOOST:
-                    vcpu_set_quantum_boost(cvp, self->quantum_boost);
+                    vcpu_set_quantum_boost_np(cvp, self->quantum_boost);
                     break;
 
                 case SCHED_NICE:
-                    vcpu_set_nice(cvp, self->sched_nice);
+                    vcpu_set_nice_np(cvp, self->sched_nice);
                     break;
             }
 
-            vcpu_on_sched_param_changed(cvp);
+            vcpu_on_sched_param_changed_np(cvp);
             preempt_restore(sps);
         );
     }

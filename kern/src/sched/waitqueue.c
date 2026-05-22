@@ -175,14 +175,14 @@ void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags,
         }
 
         if (do_sched_params_changed) {
-            vcpu_on_sched_param_changed(vp);
+            vcpu_on_sched_param_changed_np(vp);
         }
     }
 
 
     // Restore the quantum for some QoS classes
     if (vcpu_effective_qos_class(vp) == VCPU_QOS_REALTIME) {
-        vcpu_reset_quantum(vp);
+        vcpu_reset_quantum_np(vp);
     }
 
 
