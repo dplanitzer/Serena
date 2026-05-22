@@ -13,7 +13,7 @@
 #include <kobj/Object.h>
 #include <kpi/framebuffer.h>
 #include <kpi/hid.h>
-#include <kpi/hidevent.h>
+#include <kpi/hid_event.h>
 
 
 extern HIDManagerRef _Nonnull gHIDManager;

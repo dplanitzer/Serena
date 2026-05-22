@@ -10,7 +10,7 @@
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <kern/kernlib.h>
-#include <kpi/hidkeycodes.h>
+#include <kpi/hid_keys.h>
 
 
 enum {

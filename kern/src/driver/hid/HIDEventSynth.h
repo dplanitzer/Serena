@@ -9,7 +9,7 @@
 #ifndef HIDEventSynth_h
 #define HIDEventSynth_h
 
-#include <kpi/hidevent.h>
+#include <kpi/hid_event.h>
 
 
 // Action to take next as the result of calling HIDEventSynth_Tick()

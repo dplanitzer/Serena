@@ -14,8 +14,8 @@
 #include <serena/framebuffer.h>
 #include <serena/file.h>
 #include <serena/hid.h>
-#include <serena/hidevent.h>
-#include <serena/hidkeycodes.h>
+#include <serena/hid_event.h>
+#include <serena/hid_keys.h>
 #include <serena/ioctl.h>
 #include "Asserts.h"
 

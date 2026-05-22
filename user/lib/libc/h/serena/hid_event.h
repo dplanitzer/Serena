@@ -9,6 +9,6 @@
 #ifndef _SERENA_HID_EVENT_H
 #define _SERENA_HID_EVENT_H 1
 
-#include <kpi/hidevent.h>
+#include <kpi/hid_event.h>
 
 #endif /* _SERENA_HID_EVENT_H */

@@ -10,8 +10,8 @@
 #define KeyMap_h
 
 #include <stdint.h>
-#include <kpi/hidevent.h>
-#include <kpi/hidkeycodes.h>
+#include <kpi/hid_event.h>
+#include <kpi/hid_keys.h>
 
 // A key map maps a USB key code to a single character or a string. The mapping
 // can take the current state of the modifier flags into account.

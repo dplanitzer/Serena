@@ -1,5 +1,5 @@
 //
-//  kpi/hidevent.h
+//  kpi/hid_event.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 5/31/21.
