@@ -26,7 +26,7 @@ static _Noreturn void kproc_relinquish_vcpu_self(void)
     /* NOT REACHED */
 }
 
-errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
+errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, vcpu_func_t _Nonnull func, void* _Nullable arg, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
     const bool is_uproc = _proc_is_user(self);
@@ -38,7 +38,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const vcpu_attr_t* 
     if (err != EOK) {
         return err;
     }
-    if (attr->func == NULL) {
+    if (func == NULL) {
         return EINVAL;
     }
 
@@ -70,7 +70,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const vcpu_attr_t* 
     try(stk_setmaxsize(&vp->user_stack, userStackSize));
 
     VoidFunc_0 ret_func = (is_uproc) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
-    vcpu_reset_stacks(vp, attr->func, attr->arg, ret_func, is_uproc, true);
+    vcpu_reset_stacks(vp, func, arg, ret_func, is_uproc, true);
 
     
     // Setup tag, id, group id, etc
@@ -96,13 +96,13 @@ catch:
     return err;
 }
 
-errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, vcpu_func_t _Nonnull func, void* _Nullable arg, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
     vcpu_t vp = NULL;
 
     mtx_lock(&self->mtx);
-    err = _proc_acquire_vcpu(self, attr, udata, &vp);
+    err = _proc_acquire_vcpu(self, func, arg, attr, udata, &vp);
     mtx_unlock(&self->mtx);
 
     if (err == EOK) {

@@ -11,24 +11,21 @@
 #include <stdlib.h>
 #include <time.h>
 #include <serena/signal.h>
+#include <serena/vcpu_acquire.h>
 
 
 static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
 {
     dispatch_t owner = self->owner;
+    vcpu_attr_t attr;
 
-    vcpu_attr_t r_attr;
-    r_attr.func = (vcpu_func_t)_dispatch_worker_run;
-    r_attr.arg = self;
-    r_attr.stack_size = 0;
-    r_attr.group_id = owner->group_id;
-    r_attr.policy.version = sizeof(vcpu_policy_t);
-    r_attr.policy.qos.grade = owner->attr.qos;
-    r_attr.policy.qos.priority = owner->attr.priority;
-    r_attr.flags = 0;
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, owner->attr.qos, owner->attr.priority);
+    vcpu_attr_setgroupid(&attr, owner->group_id);
+    vcpu_attr_setsuspended(&attr, true);
 
     self->allow_relinquish = !_dispatch_is_fixed_concurrency(owner);
-    self->vcpu = vcpu_acquire(&r_attr);
+    self->vcpu = vcpu_acquire((vcpu_func_t)_dispatch_worker_run, self, &attr);
     if (self->vcpu) {
         self->id = vcpu_id(self->vcpu);
 

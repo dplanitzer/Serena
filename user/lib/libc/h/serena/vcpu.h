@@ -35,13 +35,6 @@ extern vcpu_t _Nonnull vcpu_main(void);
 extern vcpuid_t vcpu_id(vcpu_t _Nonnull self);
 extern vcpuid_t vcpu_groupid(vcpu_t _Nonnull self);
 
-// Acquires a vcpu. 'attr' specifies various attributes and how the vcpu should
-// be acquired. Returns the id of the newly acquired vcpu on success and -1 if
-// acquisition has failed. Each vcpu has a unique id and may be assigned a group
-// id. Note that you should use the new_vcpu_groupid() function to generate a
-// unique group id to ensure that your group id will not clash with the group
-// id that some other library wants to use.
-extern vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr);
 
 // Relinquishes the vcpu on which this call is executed back to the system and
 // makes it available for reuse. This is teh same as returning from the vcpu

@@ -14,6 +14,7 @@
 #include <serena/clock.h>
 #include <serena/process.h>
 #include <serena/vcpu.h>
+#include <serena/vcpu_acquire.h>
 #include "Asserts.h"
 
 
@@ -46,34 +47,22 @@ void proc_exit_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY] = {"WAIT", "SPIN"};
     static vcpu_t gId[CONCURRENCY + 1];
+    vcpu_attr_t attr;
 
     for (size_t i = 0; i < CONCURRENCY; i++) {
-        vcpu_attr_t attr = VCPU_ATTR_INIT;
         size_t r = i%2;
+        vcpu_func_t func = (vcpu_func_t)((r) ? spin_loop : just_wait);
+        void* arg = gStr[r];
 
-        attr.func = (vcpu_func_t)((r) ? spin_loop : just_wait);
-        attr.arg = gStr[r];
-        attr.stack_size = 0;
-        attr.policy.version = sizeof(vcpu_policy_t);
-        attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-        attr.policy.qos.priority = VCPU_PRI_NORMAL + i;
-        attr.group_id = 0;
-        attr.flags = VCPU_ACQUIRE_RESUMED;
-        gId[i] = vcpu_acquire(&attr);
+        vcpu_attr_init(&attr);
+        vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL + i);
+        gId[i] = vcpu_acquire(func, arg, &attr);
         assert_not_null(gId[i]);
     }
 
-    vcpu_attr_t attr = VCPU_ATTR_INIT;
-
-    attr.func = (vcpu_func_t)just_suspend;
-    attr.arg = "SUSPENDED";
-    attr.stack_size = 0;
-    attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr.group_id = 0;
-    attr.flags = VCPU_ACQUIRE_RESUMED;
-    gId[CONCURRENCY] = vcpu_acquire(&attr);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
+    gId[CONCURRENCY] = vcpu_acquire((vcpu_func_t)just_suspend, "SUSPENDED", &attr);
     assert_not_null(gId[CONCURRENCY]);
 
     

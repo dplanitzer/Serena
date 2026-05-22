@@ -16,8 +16,7 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     kdispatch_t owner = self->owner;
 
     vcpu_attr_t attr;
-    attr.func = (vcpu_func_t)_kdispatch_worker_run;
-    attr.arg = self;
+    attr.version = 0;
     attr.stack_size = 0;
     attr.group_id = VCPUID_MAIN_GROUP;
     attr.policy.version = sizeof(vcpu_policy_t);
@@ -25,7 +24,7 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     attr.policy.qos.priority = owner->attr.priority;
     attr.flags = 0;
 
-    err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, 0, &self->vcpu);
+    err = Process_AcquireVirtualProcessor(gKernelProcess, (vcpu_func_t)_kdispatch_worker_run, self, &attr, 0, &self->vcpu);
     if (err == EOK) {
 
         vcpu_resume(self->vcpu, false);

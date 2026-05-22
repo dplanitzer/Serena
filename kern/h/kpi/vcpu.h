@@ -17,7 +17,8 @@
 #define VCPUID_SELF 0
 #define VCPUID_MAIN 1
 
-#define VCPUID_MAIN_GROUP   1
+#define VCPUID_MAIN_GROUP       1
+#define VCPUID_DEFAULT_GROUP    2
 
 
 struct vcpu;
@@ -92,13 +93,11 @@ typedef struct vcpu_policy {
 typedef void (*vcpu_func_t)(void* _Nullable);
 
 typedef struct vcpu_attr {
-    int                     version;                // Version 0
-    vcpu_func_t _Nullable   func;
-    void* _Nullable         arg;
-    size_t                  stack_size;
-    vcpuid_t                group_id;
-    vcpu_policy_t           policy;
-    unsigned int            flags;
+    int             version;                // Version 0
+    size_t          stack_size;
+    vcpuid_t        group_id;
+    vcpu_policy_t   policy;
+    unsigned int    flags;
 } vcpu_attr_t;
 
 #define VCPU_ATTR_INIT  {0}

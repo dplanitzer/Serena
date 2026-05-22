@@ -26,10 +26,10 @@ SYSCALL_1(vcpu_setdata, intptr_t data)
     return EOK;
 }
 
-SYSCALL_3(vcpu_acquire, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpuid_t* _Nonnull idp)
+SYSCALL_5(vcpu_acquire, vcpu_func_t _Nonnull func, void* _Nullable arg, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpuid_t* _Nonnull idp)
 {
     vcpu_t new_vp;
-    const errno_t err = Process_AcquireVirtualProcessor(vp->proc, pa->attr, pa->udata, &new_vp);
+    const errno_t err = Process_AcquireVirtualProcessor(vp->proc, pa->func, pa->arg, pa->attr, pa->udata, &new_vp);
 
     if (err == EOK) {
         *(pa->idp) = new_vp->id;

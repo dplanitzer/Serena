@@ -14,6 +14,7 @@
 #include <serena/clock.h>
 #include <serena/signal.h>
 #include <serena/vcpu.h>
+#include <serena/vcpu_acquire.h>
 #include "Asserts.h"
 
 
@@ -43,19 +44,13 @@ void vcpu_acquire_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY_A] = {"A", "B"};
     static vcpu_t gId[CONCURRENCY_A];
+    vcpu_attr_t attr;
 
     for (int i = 0; i < CONCURRENCY_A; i++) {
-        vcpu_attr_t attr = VCPU_ATTR_INIT;
+        vcpu_attr_init(&attr);
+        vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
 
-        attr.func = (vcpu_func_t)test_acquire_loop;
-        attr.arg = gStr[i];
-        attr.stack_size = 0;
-        attr.policy.version = sizeof(vcpu_policy_t);
-        attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-        attr.policy.qos.priority = VCPU_PRI_NORMAL;
-        attr.group_id = 0;
-        attr.flags = VCPU_ACQUIRE_RESUMED;
-        gId[i] = vcpu_acquire(&attr);
+        gId[i] = vcpu_acquire((vcpu_func_t)test_acquire_loop, gStr[i], &attr);
         assert_not_null(gId[i]);
     }
 }
@@ -88,30 +83,17 @@ static void test_scheduling_print_loop(void)
 //    sure that (b) receives some CPU time to do its job.
 void vcpu_scheduling_test(int argc, char *argv[])
 {
-    vcpu_attr_t attr = VCPU_ATTR_INIT;
     vcpu_t vcpu_a, vcpu_b;
+    vcpu_attr_t attr;
 
-    attr.func = (vcpu_func_t)test_scheduling_infinite_loop;
-    attr.arg = NULL;
-    attr.stack_size = 0;
-    attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr.group_id = 0;
-    attr.flags = VCPU_ACQUIRE_RESUMED;
-    vcpu_a = vcpu_acquire(&attr);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
+    vcpu_a = vcpu_acquire((vcpu_func_t)test_scheduling_infinite_loop, NULL, &attr);
     assert_not_null(vcpu_a);
 
-    vcpu_attr_t attr2 = VCPU_ATTR_INIT;
-    attr2.func = (vcpu_func_t)test_scheduling_print_loop;
-    attr2.arg = NULL;
-    attr2.stack_size = 0;
-    attr2.policy.version = sizeof(vcpu_policy_t);
-    attr2.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr2.policy.qos.priority = VCPU_PRI_LOWEST;
-    attr2.group_id = 0;
-    attr2.flags = VCPU_ACQUIRE_RESUMED;
-    vcpu_b = vcpu_acquire(&attr2);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_LOWEST);
+    vcpu_b = vcpu_acquire((vcpu_func_t)test_scheduling_print_loop, NULL, &attr);
     assert_not_null(vcpu_b);
 }
 
@@ -150,30 +132,17 @@ static void test_sigkill_terminator(void)
 // -> forces (a) to relinquish
 void vcpu_sigkill_test(int argc, char *argv[])
 {
-    vcpu_attr_t attr = VCPU_ATTR_INIT;
+    vcpu_attr_t attr;
     vcpu_t vcpu_b;
 
-    attr.func = (vcpu_func_t)test_sigkill_print_loop;
-    attr.arg = NULL;
-    attr.stack_size = 0;
-    attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr.group_id = 0;
-    attr.flags = VCPU_ACQUIRE_RESUMED;
-    test_sigkill_vcpu_a = vcpu_acquire(&attr);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
+    test_sigkill_vcpu_a = vcpu_acquire((vcpu_func_t)test_sigkill_print_loop, NULL, &attr);
     assert_not_null(test_sigkill_vcpu_a);
 
-    vcpu_attr_t attr2 = VCPU_ATTR_INIT;
-    attr2.func = (vcpu_func_t)test_sigkill_terminator;
-    attr2.arg = NULL;
-    attr2.stack_size = 0;
-    attr2.policy.version = sizeof(vcpu_policy_t);
-    attr2.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr2.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr2.group_id = 0;
-    attr2.flags = VCPU_ACQUIRE_RESUMED;
-    vcpu_b = vcpu_acquire(&attr2);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
+    vcpu_b = vcpu_acquire((vcpu_func_t)test_sigkill_terminator, NULL, &attr);
     assert_not_null(vcpu_b);
 }
 
@@ -218,29 +187,16 @@ static void test_suspend_A_loop(void)
 // b) suspends (a) every 1 second for 1 second and then resumes it
 void vcpu_suspend_test(int argc, char *argv[])
 {
-    vcpu_attr_t attr = VCPU_ATTR_INIT;
+    vcpu_attr_t attr;
     vcpu_t vcpu_b;
 
-    attr.func = (vcpu_func_t)test_suspend_print_loop;
-    attr.arg = NULL;
-    attr.stack_size = 0;
-    attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr.group_id = 0;
-    attr.flags = VCPU_ACQUIRE_RESUMED;
-    test_suspend_vcpu_a = vcpu_acquire(&attr);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
+    test_suspend_vcpu_a = vcpu_acquire((vcpu_func_t)test_suspend_print_loop, NULL, &attr);
     assert_not_null(test_suspend_vcpu_a);
 
-    vcpu_attr_t attr2 = VCPU_ATTR_INIT;
-    attr2.func = (vcpu_func_t)test_suspend_A_loop;
-    attr2.arg = NULL;
-    attr2.stack_size = 0;
-    attr2.policy.version = sizeof(vcpu_policy_t);
-    attr2.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-    attr2.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr2.group_id = 0;
-    attr2.flags = VCPU_ACQUIRE_RESUMED;
-    vcpu_b = vcpu_acquire(&attr2);
+    vcpu_attr_init(&attr);
+    vcpu_attr_setqos(&attr, VCPU_QOS_INTERACTIVE, VCPU_PRI_NORMAL);
+    vcpu_b = vcpu_acquire((vcpu_func_t)test_suspend_A_loop, NULL, &attr);
     assert_not_null(vcpu_b);
 }

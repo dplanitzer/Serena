@@ -22,7 +22,7 @@ static _Noreturn void __vcpu_start(vcpu_t self)
     /* NOT REACHED */
 }
 
-vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
+vcpu_t _Nullable vcpu_acquire(vcpu_func_t _Nonnull func, void* _Nullable arg, const vcpu_attr_t* _Nonnull attr)
 {
     vcpu_t self = calloc(1, sizeof(struct vcpu));
     vcpu_attr_t sys_attr;
@@ -32,18 +32,16 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
     }
 
     self->group_id = attr->group_id;
-    self->func = attr->func;
-    self->arg = attr->arg;
+    self->func = func;
+    self->arg = arg;
 
 
-    sys_attr.func = (vcpu_func_t)__vcpu_start;
-    sys_attr.arg = self;
     sys_attr.stack_size = attr->stack_size;
     sys_attr.group_id = attr->group_id;
     sys_attr.policy = attr->policy;
     sys_attr.flags = attr->flags & ~VCPU_ACQUIRE_RESUMED;
 
-    if (_syscall(SC_vcpu_acquire, &sys_attr, (intptr_t)self, &self->id) < 0) {
+    if (_syscall(SC_vcpu_acquire, (vcpu_func_t)__vcpu_start, self, &sys_attr, (intptr_t)self, &self->id) < 0) {
         free(self);
         return NULL;
     }

@@ -73,7 +73,7 @@ enum {
     SC_host_filesystems,    // errno_t host_filesystems(fsid_t* _Nonnull buf, size_t bufSize)
     SC_fs_info,             // errno_t fs_info(int flavor, fs_info_ref _Nonnull info)
     SC_fd_dup_to,           // errno_t fd_dup_to(int fd, int target_fd, int* _Nonnull new_fd)
-    SC_vcpu_acquire,        // int vcpu_acquire(const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpuid_t* _Nonnull idp)
+    SC_vcpu_acquire,        // int vcpu_acquire(vcpu_func_t _Nonnull func, void* _Nullable arg, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpuid_t* _Nonnull idp)
     SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
     SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)
     SC_vcpu_resume,         // int vcpu_resume(vcpuid_t vcpu)

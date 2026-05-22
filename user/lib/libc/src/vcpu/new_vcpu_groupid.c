@@ -13,7 +13,7 @@
 vcpuid_t new_vcpu_groupid(void)
 {
     static spinlock_t l;
-    static vcpuid_t id;
+    static vcpuid_t id = VCPUID_DEFAULT_GROUP;
 
     spin_lock(&l);
     const newid = ++id;

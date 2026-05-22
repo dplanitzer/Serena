@@ -55,8 +55,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         assert(vcpu_current()->proc != self);
         vcpu_attr_t attr;
 
-        attr.func = (VoidFunc_1)pimg->entry_point;
-        attr.arg = pimg->ctx_base;
+        attr.version = 0;
         attr.stack_size = PROC_DEFAULT_USER_STACK_SIZE;
         attr.group_id = VCPUID_MAIN_GROUP;
         attr.policy.version = sizeof(vcpu_policy_t);
@@ -65,7 +64,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         attr.flags = 0;
 
         self->next_avail_vcpuid = VCPUID_MAIN;
-        try(_proc_acquire_vcpu(self, &attr, 0, &vcpu_to_resume));
+        try(_proc_acquire_vcpu(self, (vcpu_func_t)pimg->entry_point, pimg->ctx_base, &attr, 0, &vcpu_to_resume));
     }
     else {
         // We're replacing an existing executable image. The current vcpu will
