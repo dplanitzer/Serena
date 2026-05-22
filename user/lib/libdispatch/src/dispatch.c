@@ -641,17 +641,11 @@ dispatch_item_t _Nullable dispatch_current_item(void)
 
 static void _dispatch_apply_policy(dispatch_t _Nonnull _Locked self, int qos, int priority)
 {
-    vcpu_policy_t policy;
-
-    policy.version = sizeof(vcpu_policy_t);
-    policy.qos.grade = qos;
-    policy.qos.priority = priority;
-    
     self->attr.qos = qos;
     self->attr.priority = priority;
 
     deque_for_each(&self->workers, struct dispatch_worker, it,
-        vcpu_setpolicy(it->vcpu, &policy);
+        vcpu_setqos(it->vcpu, qos, priority);
     )
 }
 

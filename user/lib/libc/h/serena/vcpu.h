@@ -46,9 +46,9 @@ extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
 extern void vcpu_yield(void);
 
-// Gets/sets the scheduling policy and parameters of vcpu 'vcpu'.
-extern int vcpu_policy(vcpu_t _Nullable vcpu, int version, vcpu_policy_t* _Nonnull policy);
-extern int vcpu_setpolicy(vcpu_t _Nullable vcpu, const vcpu_policy_t* _Nonnull policy);
+// Gets/sets the scheduling QoS parameters of vcpu 'vcpu'.
+extern int vcpu_qos(vcpu_t _Nullable vcpu, int* _Nullable qos, int* _Nullable priority);
+extern int vcpu_setqos(vcpu_t _Nullable vcpu, int qos, int priority);
 
 
 // Gets/sets the requested state of the vcpu 'vcpu'. Supported state values are
