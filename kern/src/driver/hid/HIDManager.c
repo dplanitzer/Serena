@@ -79,7 +79,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     decl_try_err();
 
     // Create the event vcpu
-    _vcpu_acquire_attr_t attr;
+    vcpu_attr_t attr;
     attr.func = (vcpu_func_t)_reports_collector_loop;
     attr.arg = self;
     attr.stack_size = 0;
@@ -88,8 +88,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     attr.policy.qos.grade = VCPU_QOS_REALTIME;
     attr.policy.qos.priority = VCPU_PRI_HIGHEST - 1;
     attr.flags = VCPU_ACQUIRE_RESUMED;
-    attr.data = 0;
-    try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->reportsCollector));
+    try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, 0, &self->reportsCollector));
 
 
     // Enable VBL interrupts

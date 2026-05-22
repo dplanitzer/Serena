@@ -20,19 +20,6 @@ struct vcpu_key;
 typedef struct vcpu_key* vcpu_key_t;
 
 
-typedef struct vcpu_attr {
-    int                     version;                // Version 0
-    vcpu_func_t _Nullable   func;
-    void* _Nullable         arg;
-    size_t                  stack_size;
-    vcpuid_t                group_id;
-    vcpu_policy_t           policy;
-    unsigned int            flags;
-} vcpu_attr_t;
-
-#define VCPU_ATTR_INIT  {0}
-
-
 // Generates a new process-wide unique vcpu group id
 extern vcpuid_t new_vcpu_groupid(void);
 

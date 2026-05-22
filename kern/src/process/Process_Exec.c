@@ -53,20 +53,19 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         // time we're doing a proc_exec() in this process. Acquire a new main
         // vcpu from scratch.
         assert(vcpu_current()->proc != self);
-        _vcpu_acquire_attr_t ac;
+        vcpu_attr_t attr;
 
-        ac.func = (VoidFunc_1)pimg->entry_point;
-        ac.arg = pimg->ctx_base;
-        ac.stack_size = PROC_DEFAULT_USER_STACK_SIZE;
-        ac.group_id = VCPUID_MAIN_GROUP;
-        ac.policy.version = sizeof(vcpu_policy_t);
-        ac.policy.qos.grade = VCPU_QOS_INTERACTIVE;
-        ac.policy.qos.priority = VCPU_PRI_NORMAL;
-        ac.flags = 0;
-        ac.data = 0;
+        attr.func = (VoidFunc_1)pimg->entry_point;
+        attr.arg = pimg->ctx_base;
+        attr.stack_size = PROC_DEFAULT_USER_STACK_SIZE;
+        attr.group_id = VCPUID_MAIN_GROUP;
+        attr.policy.version = sizeof(vcpu_policy_t);
+        attr.policy.qos.grade = VCPU_QOS_INTERACTIVE;
+        attr.policy.qos.priority = VCPU_PRI_NORMAL;
+        attr.flags = 0;
 
         self->next_avail_vcpuid = VCPUID_MAIN;
-        try(_proc_acquire_vcpu(self, &ac, &vcpu_to_resume));
+        try(_proc_acquire_vcpu(self, &attr, 0, &vcpu_to_resume));
     }
     else {
         // We're replacing an existing executable image. The current vcpu will

@@ -26,7 +26,7 @@ static _Noreturn void kproc_relinquish_vcpu_self(void)
     /* NOT REACHED */
 }
 
-errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp)
+errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
     const bool is_uproc = _proc_is_user(self);
@@ -78,7 +78,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     vp->id = self->next_avail_vcpuid++;
     vp->group_id = attr->group_id;
     vp->proc = self;
-    vp->udata = attr->data;
+    vp->udata = udata;
 
     deque_add_last(&self->vcpu_queue, &vp->owner_qe);
     self->vcpu_count++;
@@ -96,13 +96,13 @@ catch:
     return err;
 }
 
-errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp)
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
     vcpu_t vp = NULL;
 
     mtx_lock(&self->mtx);
-    err = _proc_acquire_vcpu(self, attr, &vp);
+    err = _proc_acquire_vcpu(self, attr, udata, &vp);
     mtx_unlock(&self->mtx);
 
     if (err == EOK) {

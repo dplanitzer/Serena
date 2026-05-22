@@ -44,7 +44,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     wq_init(&self->copvpWaitQueue);
     self->copvpSigs = sig_bit(SIGCOPRUN);
 
-    _vcpu_acquire_attr_t attr;
+    vcpu_attr_t attr;
     attr.func = (vcpu_func_t)GraphicsDriver_CopperManager;
     attr.arg = self;
     attr.stack_size = 0;
@@ -53,8 +53,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     attr.policy.qos.grade = VCPU_QOS_URGENT;
     attr.policy.qos.priority = VCPU_PRI_NORMAL;
     attr.flags = 0;
-    attr.data = 0;
-    try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->copvp));
+    try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, 0, &self->copvp));
 
     
     // Initialize the Copper scheduler

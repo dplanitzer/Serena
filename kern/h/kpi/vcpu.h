@@ -91,15 +91,17 @@ typedef struct vcpu_policy {
 
 typedef void (*vcpu_func_t)(void* _Nullable);
 
-typedef struct _vcpu_acquire_attr {
+typedef struct vcpu_attr {
+    int                     version;                // Version 0
     vcpu_func_t _Nullable   func;
     void* _Nullable         arg;
     size_t                  stack_size;
     vcpuid_t                group_id;
     vcpu_policy_t           policy;
     unsigned int            flags;
-    intptr_t                data;
-} _vcpu_acquire_attr_t;
+} vcpu_attr_t;
+
+#define VCPU_ATTR_INIT  {0}
 
 
 // VCPU specific state. The actual state records are defined in the architecture

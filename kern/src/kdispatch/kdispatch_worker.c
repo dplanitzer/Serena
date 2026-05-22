@@ -15,7 +15,7 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     decl_try_err();
     kdispatch_t owner = self->owner;
 
-    _vcpu_acquire_attr_t attr;
+    vcpu_attr_t attr;
     attr.func = (vcpu_func_t)_kdispatch_worker_run;
     attr.arg = self;
     attr.stack_size = 0;
@@ -24,9 +24,8 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     attr.policy.qos.grade = owner->attr.qos;
     attr.policy.qos.priority = owner->attr.priority;
     attr.flags = 0;
-    attr.data = 0;
 
-    err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->vcpu);
+    err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, 0, &self->vcpu);
     if (err == EOK) {
 
         vcpu_resume(self->vcpu, false);
