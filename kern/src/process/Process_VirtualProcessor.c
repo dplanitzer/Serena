@@ -34,40 +34,28 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     bool doFree = false;
 
     // Validate 'attr'
-    try(validate_vcpu_policy(&attr->policy));
+    err = validate_vcpu_policy(&attr->policy);
+    if (err != EOK) {
+        return err;
+    }
     if (attr->func == NULL) {
-        throw(EINVAL);
+        return EINVAL;
     }
 
 
     // Don't acquire a new vcpu if we're in teh process of terminating
     if (_proc_is_terminating(self)) {
-        throw(ECANCELED);
+        return ECANCELED;
     }
 
 
     // Try to get a vcpu from the global pool
     vp = vcpu_pool_checkout(g_vcpu_pool);
-
-
-    // Create a new vcpu if we were not able to reuse a cached one
     if (vp == NULL) {
-        try(vcpu_create(&vp));
-        doFree = true;
+        return ENOMEM;
     }
 
-
-    // Note that a vcpu freshly checked out from the pool may not have entered
-    // the suspend state yet. Wait until it is actually suspended and before we
-    // proceed with reconfiguring it. We only become the owner of the vcpu once
-    // it has entered suspended state.
-    while (vcpu_await_suspension(vp) != EOK);
-
     
-    //
-    // The vcpu is guaranteed to be suspended at this point
-    //
-
     // First wipe out the old state and create a clean slate. We do this here
     // because doing this at relinquish time would be unsafe since the vcpu is
     // still running at the start of the relinquish phase
@@ -100,8 +88,8 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
 
 
 catch:
-    if (err != EOK && doFree) {
-        vcpu_destroy(vp);
+    if (err != EOK) {
+        vcpu_pool_checkin(g_vcpu_pool, vp);
     }
 
     *pOutVp = vp;
@@ -146,7 +134,6 @@ _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull sel
 
 
     vcpu_pool_checkin(g_vcpu_pool, vp);
-    try_bang(vcpu_suspend(vp));
     /* NOT REACHED */
 }
 

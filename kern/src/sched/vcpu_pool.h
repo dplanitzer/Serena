@@ -33,11 +33,13 @@ extern vcpu_pool_t _Nonnull g_vcpu_pool;
 
 extern errno_t vcpu_pool_create(vcpu_pool_t _Nullable * _Nonnull pOutSelf);
 
-// Checks out a vcpu from teh vcpu pool. Returns NULL if no vcpu is available in
-// the pool. The caller becomes the owner of the checked out vcpu. 
+// Checks out a vcpu from the vcpu pool. Returns NULL if there's not enough
+// memory to create/check-out a vcpu. The checked out vcpu is in SUSPENDED state
+// and the caller becomes the owner of this vcpu. 
 extern vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self);
 
-// Checks the vcpu 'vp' into the vcpu pool.
+// Checks the vcpu 'vp' into the vcpu pool and suspends it. Note that this
+// function does not return if 'vp' is the currently running vcpu.
 extern void vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp);
 
 extern void vcpu_pool_reaper_main(vcpu_pool_t _Nonnull self);

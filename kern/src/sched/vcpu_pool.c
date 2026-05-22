@@ -41,17 +41,30 @@ catch:
 
 vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self)
 {
-    vcpu_t vp;
+    vcpu_t vp = NULL;
 
     mtx_lock(&self->mtx);
     if (!deque_empty(&self->q)) {
         vp = vcpu_from_owner_qe(deque_remove_first(&self->q));
         self->count--;
     }
-    else {
-        vp = NULL;
-    }
     mtx_unlock(&self->mtx);
+
+
+    // Create a new vcpu if we were not able to reuse a cached one
+    if (vp == NULL) {
+        if (vcpu_create(&vp) != EOK) {
+            return NULL;
+        }
+    }
+
+
+    // Note that a vcpu freshly checked out from the pool may not have entered
+    // the suspend state yet. Wait until it is actually suspended and before we
+    // proceed with reconfiguring it. We only become the owner of the vcpu once
+    // it has entered suspended state.
+    while (vcpu_await_suspension(vp) != EOK);
+
 
     return vp;
 }
@@ -69,6 +82,10 @@ void vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
         cnd_signal(&self->cnd);
     }
     mtx_unlock(&self->mtx);
+
+
+    try_bang(vcpu_suspend(vp));
+    /* NOT REACHED if 'vp' == vcpu_current() */
 }
 
 void vcpu_pool_reaper_main(vcpu_pool_t _Nonnull self)
