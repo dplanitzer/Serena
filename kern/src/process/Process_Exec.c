@@ -55,7 +55,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         assert(vcpu_current()->proc != self);
         vcpu_attr_t attr;
 
-        attr.version = 0;
+        attr.version = sizeof(vcpu_attr_t);
         attr.stack_size = PROC_DEFAULT_USER_STACK_SIZE;
         attr.group_id = VCPUID_MAIN_GROUP;
         attr.policy.version = sizeof(vcpu_policy_t);

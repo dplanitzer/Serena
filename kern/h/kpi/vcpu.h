@@ -87,20 +87,19 @@ typedef struct vcpu_policy {
 } vcpu_policy_t;
 
 
-// Acquire the VP and immediately resume it
-#define VCPU_ACQUIRE_RESUMED    1
-
 typedef void (*vcpu_func_t)(void* _Nullable);
 
+
+// Acquire the VP and immediately resume it
+#define _VCPU_RESUMED    1
+
 typedef struct vcpu_attr {
-    int             version;                // Version 0
+    int             version;                // sizeof(vcpu_attr_t)
     size_t          stack_size;
     vcpuid_t        group_id;
     vcpu_policy_t   policy;
     unsigned int    flags;
 } vcpu_attr_t;
-
-#define VCPU_ATTR_INIT  {0}
 
 
 // VCPU specific state. The actual state records are defined in the architecture

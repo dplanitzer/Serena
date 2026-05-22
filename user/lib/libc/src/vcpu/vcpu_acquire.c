@@ -36,10 +36,11 @@ vcpu_t _Nullable vcpu_acquire(vcpu_func_t _Nonnull func, void* _Nullable arg, co
     self->arg = arg;
 
 
+    sys_attr.version = sizeof(vcpu_attr_t);
     sys_attr.stack_size = attr->stack_size;
     sys_attr.group_id = attr->group_id;
     sys_attr.policy = attr->policy;
-    sys_attr.flags = attr->flags & ~VCPU_ACQUIRE_RESUMED;
+    sys_attr.flags = attr->flags & ~_VCPU_RESUMED;
 
     if (_syscall(SC_vcpu_acquire, (vcpu_func_t)__vcpu_start, self, &sys_attr, (intptr_t)self, &self->id) < 0) {
         free(self);
@@ -51,7 +52,7 @@ vcpu_t _Nullable vcpu_acquire(vcpu_func_t _Nonnull func, void* _Nullable arg, co
     spin_unlock(&__g_lock);
 
 
-    if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+    if ((attr->flags & _VCPU_RESUMED) == _VCPU_RESUMED) {
         vcpu_resume(self);
     }
     return self;

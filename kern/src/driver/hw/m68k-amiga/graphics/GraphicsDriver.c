@@ -45,7 +45,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     self->copvpSigs = sig_bit(SIGCOPRUN);
 
     vcpu_attr_t attr;
-    attr.version = 0;
+    attr.version = sizeof(vcpu_attr_t);
     attr.stack_size = 0;
     attr.group_id = VCPUID_MAIN_GROUP;
     attr.policy.version = sizeof(vcpu_policy_t);

@@ -34,6 +34,9 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, vcpu_func_t _Nonnul
     bool doFree = false;
 
     // Validate 'attr'
+    if (attr->version != sizeof(vcpu_attr_t)) {
+        return EINVAL;
+    }
     err = validate_vcpu_policy(&attr->policy);
     if (err != EOK) {
         return err;
@@ -108,7 +111,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, vcpu_func_t _N
     if (err == EOK) {
         *pOutVp = vp;
 
-        if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+        if ((attr->flags & _VCPU_RESUMED) == _VCPU_RESUMED) {
             vcpu_resume(vp, false);
         }
     }

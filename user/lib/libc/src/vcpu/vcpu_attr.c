@@ -12,13 +12,13 @@
 
 int vcpu_attr_init(vcpu_attr_t* _Nonnull attr)
 {
-    attr->version = 0;
+    attr->version = sizeof(vcpu_attr_t);
     attr->stack_size = 0;
     attr->group_id = VCPUID_DEFAULT_GROUP;
     attr->policy.version = sizeof(vcpu_policy_t);
     attr->policy.qos.grade = VCPU_QOS_UTILITY;
     attr->policy.qos.priority = VCPU_PRI_NORMAL;
-    attr->flags = VCPU_ACQUIRE_RESUMED;
+    attr->flags = _VCPU_RESUMED;
 
     return 0;
 }
@@ -47,16 +47,16 @@ int vcpu_attr_setgroupid(vcpu_attr_t * _Nonnull attr, vcpuid_t id)
 
 bool vcpu_attr_suspended(const vcpu_attr_t* _Nonnull attr)
 {
-    return (attr->flags & VCPU_ACQUIRE_RESUMED) == 0 ? true : false;
+    return (attr->flags & _VCPU_RESUMED) == 0 ? true : false;
 }
 
 void vcpu_attr_setsuspended(vcpu_attr_t* _Nonnull attr, bool flag)
 {
     if (flag) {
-        attr->flags &= ~VCPU_ACQUIRE_RESUMED;
+        attr->flags &= ~_VCPU_RESUMED;
     }
     else {
-        attr->flags |= VCPU_ACQUIRE_RESUMED;
+        attr->flags |= _VCPU_RESUMED;
     }
 }
 
