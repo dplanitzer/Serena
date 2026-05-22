@@ -10,9 +10,13 @@
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
 #include <kern/kalloc.h>
+#ifndef __DISKIMAGE__
 #include <kern/sigset.h>
+#endif
 #include <kpi/fs_perms.h>
+#ifndef __DISKIMAGE__
 #include <kpi/process.h>
+#endif
 
 errno_t perm_check_node_access(InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
 {
@@ -78,6 +82,7 @@ errno_t perm_check_node_attr_update(InodeRef _Nonnull _Locked pNode, uid_t uid)
     return (Inode_GetUserId(pNode) == uid) ? EOK : EPERM;
 }
 
+#ifndef __DISKIMAGE__
 errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, pid_t rcv_pid, uid_t rcv_uid, int signo)
 {
     if (rcv_pid == PID_KERNELD) {
@@ -99,3 +104,4 @@ errno_t perm_check_send_signal(const sig_sndr_t* _Nonnull sndr, int rcv_scope, p
 
     return EPERM;
 }
+#endif
