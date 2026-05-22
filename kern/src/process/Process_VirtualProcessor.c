@@ -70,7 +70,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, const _vcpu_acquire
     try(stk_setmaxsize(&vp->user_stack, userStackSize));
 
     VoidFunc_0 ret_func = (is_uproc) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
-    _vcpu_reset_stacks(vp, attr->func, attr->arg, ret_func, is_uproc, true);
+    vcpu_reset_stacks(vp, attr->func, attr->arg, ret_func, is_uproc, true);
 
     
     // Setup tag, id, group id, etc

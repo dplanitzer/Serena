@@ -37,7 +37,7 @@ struct func_frame {
     void* arg;
 };
 
-void _vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
+void vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
 {
     assert(func != NULL);
     assert(ret_func != NULL);
@@ -126,7 +126,7 @@ void _vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _N
     self->csw_sa = csw_sa;
 }
 
-void _vcpu_reset_user_stack(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func)
+void vcpu_reset_user_stack(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func)
 {
     assert(func != NULL);
     assert(ret_func != NULL);
