@@ -188,6 +188,14 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
     return the_p;
 }
 
+size_t ProcessManager_GetProcessCount(ProcessManagerRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const size_t r = self->proc_count;
+    mtx_unlock(&self->mtx);
+    return r;
+}
+
 
 struct matchres {
     ProcessRef _Nullable        p;

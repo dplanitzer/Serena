@@ -260,6 +260,14 @@ errno_t FilesystemManager_GetFilesystemIds(FilesystemManagerRef _Nonnull self, f
     return err;
 }
 
+size_t FilesystemManager_GetFilesystemCount(FilesystemManagerRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const size_t r = self->fs_count;
+    mtx_unlock(&self->mtx);
+    return r;
+}
+
 void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);

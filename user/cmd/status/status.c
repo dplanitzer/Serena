@@ -207,7 +207,7 @@ static void display_status(void)
 
     const run_procs_info_t* rp_info = run_procs_info();
     printf("Processes: %zu total, %zu running, %zu sleeping\n", rp_info->proc_count, rp_info->run_proc_count, rp_info->slp_proc_count);
-    printf("VCPUs: %zu acquired    CPUs: %zu\n", rp_info->vcpu_count, rp_info->cpu_count);
+    printf("VCPUs: %zu acquired, %zu pooled    CPUs: %zu\n", rp_info->vcpu_count, rp_info->vcpu_pool_size, rp_info->cpu_count);
     printf("RAM: %s total\n\n", fmt_mem_size(rp_info->phys_mem_size, num_buf));
     
     table_draw(g_table);

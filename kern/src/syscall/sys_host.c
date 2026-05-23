@@ -11,6 +11,7 @@
 #include <kpi/host.h>
 #include <filemanager/FilesystemManager.h>
 #include <process/ProcessManager.h>
+#include <sched/vcpu_pool.h>
 
 
 SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
@@ -29,6 +30,15 @@ SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
             ip->logical_max_cpu_count = 1;
             ip->phys_mem_size = sys_desc_getramsize(g_sys_desc);
             ip->page_size = CPU_PAGE_SIZE;
+            break;
+        }
+
+        case HOST_INFO_RESCOUNTS: {
+            host_rescounts_info_t* ip = pa->info;
+
+            ip->proc_count = ProcessManager_GetProcessCount(gProcessManager);
+            ip->vcpu_pool_size = vcpu_pool_size(g_vcpu_pool);
+            ip->fs_count = FilesystemManager_GetFilesystemCount(gFilesystemManager);
             break;
         }
 

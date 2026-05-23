@@ -121,3 +121,11 @@ void vcpu_pool_reaper_main(vcpu_pool_t _Nonnull self)
 
     mtx_unlock(&self->mtx);
 }
+
+size_t vcpu_pool_size(vcpu_pool_t _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const size_t r = self->count;
+    mtx_unlock(&self->mtx);
+    return r;
+}

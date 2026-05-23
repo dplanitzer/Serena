@@ -53,6 +53,9 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemM
 // Returns the ids of all currently mounted filesystems.
 extern errno_t FilesystemManager_GetFilesystemIds(FilesystemManagerRef _Nonnull self, fsid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 
+// Returns the number of registered filesystems.
+extern size_t FilesystemManager_GetFilesystemCount(FilesystemManagerRef _Nonnull self);
+
 // Syncs all filesystems and modified blocks to disk. Blocks until the sync is
 // complete.
 extern void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self);

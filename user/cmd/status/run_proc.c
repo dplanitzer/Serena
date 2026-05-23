@@ -176,10 +176,15 @@ void run_procs_sample(void)
     // Update the global info
     memset(&g_info, 0, sizeof(struct run_procs_info));
 
-    host_basic_info_t host_basic;
+    static host_basic_info_t host_basic;
     if (host_info(HOST_INFO_BASIC, &host_basic) == 0) {
         g_info.cpu_count = host_basic.physical_cpu_count;
         g_info.phys_mem_size = host_basic.phys_mem_size;
+    }
+
+    static host_rescounts_info_t host_rescounts;
+    if (host_info(HOST_INFO_RESCOUNTS, &host_rescounts) == 0) {
+        g_info.vcpu_pool_size = host_rescounts.vcpu_pool_size;
     }
 
 

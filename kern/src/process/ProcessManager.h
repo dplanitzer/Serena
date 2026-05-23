@@ -36,6 +36,9 @@ extern errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessR
 // once no longer needed.
 extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, int pid);
 
+// Returns the number of processes currently registered.
+extern size_t ProcessManager_GetProcessCount(ProcessManagerRef _Nonnull self);
+
 extern errno_t ProcessManager_GetProcessIds(ProcessManagerRef _Nonnull self, pid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 
 extern errno_t ProcessManager_GetStatusForProcessMatchingState(ProcessManagerRef _Nonnull self, int mstate, pid_t ppid, int match, pid_t id, proc_waitres_t* _Nonnull res);

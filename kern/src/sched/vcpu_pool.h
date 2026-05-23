@@ -42,6 +42,9 @@ extern vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self);
 // function does not return if 'vp' is the currently running vcpu.
 extern void vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp);
 
+// Returns the number of vcpus in the pool.
+extern size_t vcpu_pool_size(vcpu_pool_t _Nonnull self);
+
 extern void vcpu_pool_reaper_main(vcpu_pool_t _Nonnull self);
 
 #endif /* _VCPU_POOL_H */

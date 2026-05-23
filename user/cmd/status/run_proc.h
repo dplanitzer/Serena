@@ -49,6 +49,7 @@ typedef struct run_procs_info {
     size_t      slp_proc_count;
 
     size_t      vcpu_count;
+    size_t      vcpu_pool_size;
     
     size_t      cpu_count;
     

@@ -17,7 +17,8 @@
 // Information about a host
 typedef void* host_info_ref;
 
-#define HOST_INFO_BASIC 1
+#define HOST_INFO_BASIC     1
+#define HOST_INFO_RESCOUNTS 2
 
 
 typedef struct host_basic_info {
@@ -34,6 +35,14 @@ typedef struct host_basic_info {
 } host_basic_info_t;
 
 
+// Use this to get a pretty good estimate of how big the buffer needs to be that
+// you should pass to host_processes(), host_filesystems(), etc.
+typedef struct host_rescounts_info {
+    size_t  proc_count;     // number of process alive right now
+    size_t  vcpu_pool_size; // number of vcpus currently in the global vcpu pool
+    size_t  fs_count;       // number of filesystems registered right now
+} host_rescounts_info_t;
+
 //XXX NOT YET
 //		-- sched info
 //          --- scheduler clock id
@@ -41,7 +50,6 @@ typedef struct host_basic_info {
 //			--- min quantum size
 //		-- resource counts
 //			--- proc_count				// num procs right now
-//			--- vcpus_acquired_count	// num vcpus across all procs right now
 //			--- vcpus_cached_count		// num vcpus in vcpu pool right now
 //		--- load info
 //			--- loadavg[3]
