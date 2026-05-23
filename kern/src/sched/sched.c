@@ -213,7 +213,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 
-    vcpu_reset_stacks(self, (VoidFunc_1)fn, arg, _vcpu_unexpected_relinquish, false, false);
+    vcpu_hard_reset_stacks(self, (VoidFunc_1)fn, arg, _vcpu_unexpected_relinquish, false, false);
     
     return self;
 }
@@ -246,7 +246,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 
-    vcpu_reset_stacks(self, (VoidFunc_1)idle_vcpu_run, NULL, _vcpu_unexpected_relinquish, false, true);
+    vcpu_hard_reset_stacks(self, (VoidFunc_1)idle_vcpu_run, NULL, _vcpu_unexpected_relinquish, false, true);
     self->tag = VP_TAG_IDLE;
 
     return self;

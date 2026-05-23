@@ -295,12 +295,15 @@ extern errno_t validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
 // Machine integration
 //
 
-// Resets the user and kernel stack points back to the base of their respective
-// stacks and then pushes the needed frames on the stack so that 'func' will be
-// invoked with 'arg' in either user space or kernel space. Depending on whether
-// 'isUser' is true or false. 'ret_func' is the address of an argument-less
+// Does a hard reset of the kernel and user stacks in the sense that a new
+// integer & floating point register context is established to run the function
+// 'func' with argument 'arg'. 'ret_func' is the address of an argument-less
 // function that will be invoked if 'func' returns with an rts instruction.
-extern void vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull fsunc, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts);
+// 'func' will execute in user space if 'isUser' is true and kernel space
+// otherwise. This function expects that the vcpu is suspended and the
+// established context will be picked up by the vcpu next time vcpu_resume() is
+// called on it.
+extern void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull fsunc, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts);
 
 // Resets the user stack of the current (calling) vcpu such that the existing
 // user stack is wiped out, a frame is pushed with 'arg' as the argument for

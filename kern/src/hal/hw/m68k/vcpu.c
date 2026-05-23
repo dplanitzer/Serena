@@ -37,17 +37,15 @@ struct func_frame {
     void* arg;
 };
 
-void vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
+void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
 {
+    assert(self->run_state == VCPU_STATE_SUSPENDED);
     assert(func != NULL);
     assert(ret_func != NULL);
 
-
-    // Initialize the CPU context:
-    // Integer state: zeroed out
-    // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
     uintptr_t ksp = stk_getinitialsp(&self->kernel_stack);
-    uintptr_t usp = stk_getinitialsp(&self->user_stack);
+    uintptr_t usp = 0;
+    struct func_frame* fp;
 
 
     // User stack:
@@ -65,8 +63,8 @@ void vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nu
     //
     // See __sched_switch_context for an explanation of why we need to push a
     // format #0 exception stack frame here.
-    struct func_frame* fp;
     if (isUser) {
+        usp = stk_getinitialsp(&self->user_stack);
         usp = sp_grow(usp, sizeof(struct func_frame));
         fp = (struct func_frame*)usp;
     }
@@ -81,6 +79,9 @@ void vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nu
     // Create the initial context switch state. This state is stored on the
     // kernel stack and will be consumed by the first context switch to this
     // new vcpu.
+    //
+    // Integer state: zeroed out
+    // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
     // 
     // General save area layout (high to low addresses):
     // ksp-0:    exception frame type    |

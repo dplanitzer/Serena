@@ -78,7 +78,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, vcpu_func_t _Nonnul
 
 
     VoidFunc_0 ret_func = (is_user) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
-    vcpu_reset_stacks(vp, func, arg, ret_func, is_user, true);
+    vcpu_hard_reset_stacks(vp, func, arg, ret_func, is_user, true);
 
     
     // Setup tag, id, group id, etc
