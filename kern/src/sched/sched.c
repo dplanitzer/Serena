@@ -19,7 +19,7 @@
 
 static void sched_dump_rdyq_locked(sched_t _Nonnull self);
 
-static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak arg);
+static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, vcpu_func_t _Nonnull fn, void* _Nullable _Weak arg);
 static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 
@@ -43,7 +43,7 @@ const int8_t g_quantum_max_length[VCPU_QOS_COUNT] = {
 };
 
 
-void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
+void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, vcpu_func_t _Nonnull fn, void* _Nullable _Weak ctx)
 {
     sched_t self = BootAllocator_Allocate(bap, sizeof(struct sched));
     memset(self, 0, sizeof(struct sched));
@@ -195,7 +195,7 @@ _Noreturn void _vcpu_unexpected_relinquish(void)
 // duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param closure the closure that should be invoked by the virtual processor
-static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak arg)
+static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, vcpu_func_t _Nonnull fn, void* _Nullable _Weak arg)
 {
     decl_try_err();
     vcpu_t self = BootAllocator_Allocate(bap, sizeof(struct vcpu));
@@ -213,7 +213,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 
-    vcpu_hard_reset_stacks(self, (VoidFunc_1)fn, arg, _vcpu_unexpected_relinquish, false, false);
+    vcpu_hard_reset_stacks(self, (vcpu_func_t)fn, arg, _vcpu_unexpected_relinquish, false, false);
     
     return self;
 }
@@ -246,7 +246,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     self->kernel_stack.size = min_vcpu_kernel_stack_size();
     self->kernel_stack.base = BootAllocator_Allocate(bap, self->kernel_stack.size);
 
-    vcpu_hard_reset_stacks(self, (VoidFunc_1)idle_vcpu_run, NULL, _vcpu_unexpected_relinquish, false, true);
+    vcpu_hard_reset_stacks(self, (vcpu_func_t)idle_vcpu_run, NULL, _vcpu_unexpected_relinquish, false, true);
     self->tag = VP_TAG_IDLE;
 
     return self;

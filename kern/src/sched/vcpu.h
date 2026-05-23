@@ -303,14 +303,14 @@ extern errno_t validate_vcpu_policy(const vcpu_policy_t* _Nonnull policy);
 // otherwise. This function expects that the vcpu is suspended and the
 // established context will be picked up by the vcpu next time vcpu_resume() is
 // called on it.
-extern void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull fsunc, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts);
+extern void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, vcpu_func_t _Nonnull fsunc, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts);
 
 // Resets the user stack of the current (calling) vcpu such that the existing
 // user stack is wiped out, a frame is pushed with 'arg' as the argument for
 // 'func' and 'ret_func' as the return address of 'func'. Then the PC is changed
 // to 'func' such that 'func' will be executed when the currently active system
 // call returns.
-extern void vcpu_reset_user_stack(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func);
+extern void vcpu_reset_user_stack(vcpu_t _Nonnull self, vcpu_func_t _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func);
 
 extern void _cpu_set_basic_state(cpu_basic_state_t* _Nonnull dp, const vcpu_state_m68k_t* _Nonnull sp);
 extern void _cpu_set_float_state(cpu_float_state_t* _Nonnull dp, const vcpu_state_m68k_float_t* _Nonnull sp);

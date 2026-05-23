@@ -80,8 +80,6 @@ typedef unsigned long   ticks_t;
 
 // Function types
 typedef void (*VoidFunc_0)(void);
-typedef void (*VoidFunc_1)(void*);
-typedef void (*VoidFunc_2)(void*, void*);
 
 #endif
 

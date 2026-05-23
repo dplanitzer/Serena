@@ -86,7 +86,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
 
         // Reset our user stack so that we'll start executing the new process
         // image once we return to user space
-        vcpu_reset_user_stack(me_vp, (VoidFunc_1)pimg->entry_point, pimg->ctx_base, (VoidFunc_0)uproc_relinquish_vcpu_self);
+        vcpu_reset_user_stack(me_vp, (vcpu_func_t)pimg->entry_point, pimg->ctx_base, (VoidFunc_0)uproc_relinquish_vcpu_self);
         
 
         // Rename this vcpu so that it will be known as the main vcpu 

@@ -74,9 +74,4 @@ typedef long long   ticks_t;
 typedef long    ticks_t;
 #endif
 
-
-// Function types 
-typedef void (*VoidFunc_1)(void*);
-typedef void (*VoidFunc_2)(void*, void*);
-
 #endif /* _DI_TYPES_H */

@@ -105,7 +105,7 @@ extern sched_t _Nonnull g_sched;
 // 'ctx' argument. The first context switch from the machine reset context to
 // the boot virtual processor context is triggered by calling the
 // sched_switch_to_boot_vcpu() function. 
-extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
+extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, vcpu_func_t _Nonnull fn, void* _Nullable _Weak ctx);
 
 // Disable and restore preemptive context switches. Scheduling and cooperative
 // context switches will continue to function as expected. Also note that if a

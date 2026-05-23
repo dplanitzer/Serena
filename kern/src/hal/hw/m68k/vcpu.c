@@ -37,7 +37,7 @@ struct func_frame {
     void* arg;
 };
 
-void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
+void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, vcpu_func_t _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func, bool isUser, bool bEnableInterrupts)
 {
     assert(self->run_state == VCPU_STATE_SUSPENDED);
     assert(func != NULL);
@@ -127,7 +127,7 @@ void vcpu_hard_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void
     self->csw_sa = csw_sa;
 }
 
-void vcpu_reset_user_stack(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func)
+void vcpu_reset_user_stack(vcpu_t _Nonnull self, vcpu_func_t _Nonnull func, void* _Nullable _Weak arg, VoidFunc_0 _Nonnull ret_func)
 {
     assert(func != NULL);
     assert(ret_func != NULL);
