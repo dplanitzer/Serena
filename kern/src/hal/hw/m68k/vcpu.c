@@ -46,8 +46,8 @@ void vcpu_reset_stacks(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nu
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    uintptr_t ksp = (uintptr_t) stk_getinitialsp(&self->kernel_stack);
-    uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
+    uintptr_t ksp = stk_getinitialsp(&self->kernel_stack);
+    uintptr_t usp = stk_getinitialsp(&self->user_stack);
 
 
     // User stack:
@@ -131,7 +131,7 @@ void vcpu_reset_user_stack(vcpu_t _Nonnull self, VoidFunc_1 _Nonnull func, void*
     assert(func != NULL);
     assert(ret_func != NULL);
 
-    uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
+    uintptr_t usp = stk_getinitialsp(&self->user_stack);
     struct func_frame* fp;
     
     usp = sp_grow(usp, sizeof(struct func_frame));

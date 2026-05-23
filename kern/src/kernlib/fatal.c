@@ -92,8 +92,10 @@ _Noreturn void _fatalException(void* _Nonnull ksp)
     vcpu_t vp = vcpu_current();
     const cpu_full_state_t* sa = vp->excpt_sa;
     excpt_frame_t* efp = (excpt_frame_t*)&sa->b.ef;
-    char* sp = (excpt_frame_isuser(efp)) ? (char*)sa->b.usp : ksp;
-    const stk_t* stk = (excpt_frame_isuser(efp)) ? &vp->user_stack : &vp->kernel_stack;
+    const bool is_user = excpt_frame_isuser(efp);
+    char* sp = (is_user) ? (char*)sa->b.usp : ksp;
+    char* stk_base = (is_user) ? vp->user_stack.base : vp->kernel_stack.base;
+    char* stk_initial = (is_user) ? (char*)stk_getinitialsp(&vp->user_stack) : (char*)stk_getinitialsp(&vp->kernel_stack);
     kdispatch_t dq = kdispatch_current_queue();
 
     static char dq_nam[KDISPATCH_MAX_NAME_LENGTH + 1];
@@ -123,14 +125,14 @@ _Noreturn void _fatalException(void* _Nonnull ksp)
         "DISP %08lx name=\"%s\"  ",
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
-        (excpt_frame_isuser(efp)) ? "USR" : "KERN",
+        (is_user) ? "USR" : "KERN",
 
         sa->b.d[0], sa->b.d[1], sa->b.d[2], sa->b.d[3],
         sa->b.d[4], sa->b.d[5], sa->b.d[6], sa->b.d[7],
         sa->b.a[0], sa->b.a[1], sa->b.a[2], sa->b.a[3],
         sa->b.a[4], sa->b.a[5], sa->b.a[6], sp,
         excpt_frame_getpc(efp), excpt_frame_getsr(efp),
-        (excpt_frame_isuser(efp)) ? "USTK" : "KSTK", stk->base, stk_getinitialsp(stk),
+        (is_user) ? "USTK" : "KSTK", stk_base, stk_initial,
         efp,
         vp->excpt_state.fault_addr,
         vp, vp->id, vp->group_id,
