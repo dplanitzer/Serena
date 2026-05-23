@@ -29,7 +29,7 @@ static _Noreturn void kproc_relinquish_vcpu_self(void)
 errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, vcpu_func_t _Nonnull func, void* _Nullable arg, const vcpu_attr_t* _Nonnull attr, intptr_t udata, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
-    const bool is_uproc = _proc_is_user(self);
+    const bool is_user = _proc_is_user(self);
     vcpu_t vp = NULL;
     bool doFree = false;
 
@@ -65,19 +65,24 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, vcpu_func_t _Nonnul
     vcpu_reset_np(vp, &attr->policy, self->sched_nice, self->quantum_boost);
 
 
-    // Setup kernel and user stacks
-    const size_t kernelStackSize = min_vcpu_kernel_stack_size();
-    const size_t userStackSize = (is_uproc) ? __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE) : 0;
+    // Setup kernel stack
+    try(stk_setmaxsize(&vp->kernel_stack, min_vcpu_kernel_stack_size()));
 
-    try(stk_setmaxsize(&vp->kernel_stack, kernelStackSize));
-    try(stk_setmaxsize(&vp->user_stack, userStackSize));
 
-    VoidFunc_0 ret_func = (is_uproc) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
-    vcpu_reset_stacks(vp, func, arg, ret_func, is_uproc, true);
+    // Setup user stack if this is a user process
+    if (is_user) {
+        const size_t userStackSize = __max(attr->stack_size, PROC_DEFAULT_USER_STACK_SIZE);
+
+        try(stk_setmaxsize(&vp->user_stack, userStackSize));
+    }
+
+
+    VoidFunc_0 ret_func = (is_user) ? uproc_relinquish_vcpu_self : kproc_relinquish_vcpu_self;
+    vcpu_reset_stacks(vp, func, arg, ret_func, is_user, true);
 
     
     // Setup tag, id, group id, etc
-    vp->tag = (is_uproc) ? VP_TAG_USER : VP_TAG_SYS;
+    vp->tag = (is_user) ? VP_TAG_USER : VP_TAG_SYS;
     vp->id = self->next_avail_vcpuid++;
     vp->group_id = attr->group_id;
     vp->proc = self;
@@ -134,6 +139,12 @@ _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull sel
     self->vcpu_count--;
 
     mtx_unlock(&self->mtx);
+
+
+    // Free the user stack if we got one
+    if (vp->user_stack.size > 0) {
+        stk_setmaxsize(&vp->user_stack, 0);
+    }
 
 
     vcpu_pool_checkin(g_vcpu_pool, vp);

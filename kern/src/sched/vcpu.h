@@ -100,8 +100,8 @@ struct vcpu {
 
     cpu_full_state_t* _Nonnull      csw_sa;                 // Points to base of the context switcher CPU state save area 
     cpu_basic_state_t* _Nullable    syscall_sa;             // Points to base of the system call CPU state save area
-    stk_t                           kernel_stack;
-    stk_t                           user_stack;
+    stk_t                           kernel_stack;           // Kernel stack is required and owned by the vcpu
+    stk_t                           user_stack;             // User stack is optional and owned by the (user) process
 
     vcpuid_t                        id;                     // unique VP id (>= 1; 0 is reserved to indicate the absence of a vcpuid; vcpuids are process relative and assigned at acquisition time)
     vcpuid_t                        group_id;                // virtual processor group id. Assigned at acquisition time 

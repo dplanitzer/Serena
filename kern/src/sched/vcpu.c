@@ -63,7 +63,7 @@ void vcpu_destroy(vcpu_t _Nullable self)
         assert(self->run_state == VCPU_STATE_SUSPENDED);
 
         stk_destroy(&self->kernel_stack);
-        stk_destroy(&self->user_stack);
+        // Note: user stack is owned by the process
         kfree(self);
     }
 }
