@@ -48,9 +48,6 @@ typedef struct host_rescounts_info {
 //          --- scheduler clock id
 //			--- min timeout ??? may not be needed since can use clock_info(); though more convenient to have it here
 //			--- min quantum size
-//		-- resource counts
-//			--- proc_count				// num procs right now
-//			--- vcpus_cached_count		// num vcpus in vcpu pool right now
 //		--- load info
 //			--- loadavg[3]
 //      -- kernel info

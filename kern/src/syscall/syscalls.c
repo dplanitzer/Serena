@@ -140,7 +140,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fs_property, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_errno, SC_INT),
+    SYSCALL_ENTRY(vcpu_errno, SC_PTR),
     SYSCALL_ENTRY(fs_setowner, SC_ERRNO),
     SYSCALL_ENTRY(fd_setflags, SC_ERRNO),
     SYSCALL_ENTRY(fs_setperms, SC_ERRNO),
