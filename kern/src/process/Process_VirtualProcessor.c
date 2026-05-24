@@ -133,8 +133,8 @@ _Noreturn void Process_RelinquishCurrentVirtualProcessor(ProcessRef _Nonnull sel
     mtx_lock(&self->mtx);
     deque_remove(&self->vcpu_queue, &vp->owner_qe);
 
-    self->rq_user_ticks += vp->user_ticks;
-    self->rq_system_ticks += vp->system_ticks;
+    self->rq_usr_ticks += vp->usr_ticks;
+    self->rq_sys_ticks += vp->sys_ticks;
     self->rq_wait_ticks += vp->wait_ticks;
     self->vcpu_count--;
 

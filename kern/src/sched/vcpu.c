@@ -82,8 +82,8 @@ void vcpu_reset_np(vcpu_t _Nonnull self, const vcpu_policy_t* _Nonnull policy, i
     self->excpt_state = (cpu_excpt_state_t){0};
     self->excpt_sa = NULL;
     self->syscall_sa = NULL;
-    self->user_ticks = 0;
-    self->system_ticks = 0;
+    self->usr_ticks = 0;
+    self->sys_ticks = 0;
     self->wait_ticks = 0;
     self->flags &= ~(VP_FLAG_DID_WAIT);
 
@@ -578,8 +578,8 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
         case VCPU_INFO_TIMES: {
             vcpu_times_info_t* ip = info;
 
-            clock_ticks2time(g_mono_clock, self->user_ticks, &ip->user_time);
-            clock_ticks2time(g_mono_clock, self->system_ticks, &ip->system_time);
+            clock_ticks2time(g_mono_clock, self->usr_ticks, &ip->user_time);
+            clock_ticks2time(g_mono_clock, self->sys_ticks, &ip->system_time);
             clock_ticks2time(g_mono_clock, self->wait_ticks, &ip->wait_time);
             ip->acquisition_time = self->acquisition_time;
             break;

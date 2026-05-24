@@ -43,6 +43,34 @@ typedef struct host_rescounts_info {
     size_t  fs_count;       // number of filesystems registered right now
 } host_rescounts_info_t;
 
+
+
+// Information about a logical CPU
+typedef void* cpu_info_ref;
+
+#define CPU_INFO_BASIC          1
+#define CPU_INFO_UTILIZATION    2
+#define CPU_INFO_LOAD_AVGS      3   /* Not yet */
+
+
+typedef struct cpu_basic_info {
+    cpu_type_t      cpu_type;
+    cpu_subtype_t   cpu_subtype;
+
+    cpuid_t         physical_cpuid;     // Core in a CPU package/socket
+    cpuid_t         pkgid;              // Package/socket
+
+    //XXX should probably have something like a power_state: OFF, DEEP_SLEEP, RUNNING, etc
+} cpu_basic_info_t;
+
+
+typedef struct cpu_utilization_info {
+    nanotime_t  user_time;      // Time the CPU has spent since boot executing user mode code
+    nanotime_t  system_time;    // Time the CPU has spent since boot executing system/kernel mode code
+    nanotime_t  idle_time;      // Time the CPU has spent since boot sitting idle
+} cpu_utilization_info_t;
+
+
 //XXX NOT YET
 //		-- sched info
 //          --- scheduler clock id

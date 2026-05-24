@@ -291,13 +291,13 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_ref _Non
             ticks_t tt;
 
             ip->creation_time = self->creation_time;
-            clock_ticks2time(g_mono_clock, self->user_ticks, &ip->user_time);
-            clock_ticks2time(g_mono_clock, self->system_ticks, &ip->system_time);
+            clock_ticks2time(g_mono_clock, self->usr_ticks, &ip->user_time);
+            clock_ticks2time(g_mono_clock, self->sys_ticks, &ip->system_time);
             clock_ticks2time(g_mono_clock, self->wait_ticks, &ip->wait_time);
 
-            tt = self->user_ticks - self->rq_user_ticks;
+            tt = self->usr_ticks - self->rq_usr_ticks;
             clock_ticks2time(g_mono_clock, tt, &ip->user_time);
-            tt = self->system_ticks - self->rq_system_ticks;
+            tt = self->sys_ticks - self->rq_sys_ticks;
             clock_ticks2time(g_mono_clock, tt, &ip->system_time);
             tt = self->wait_ticks - self->rq_wait_ticks;
             clock_ticks2time(g_mono_clock, tt, &ip->wait_time);

@@ -20,7 +20,7 @@ __CPP_BEGIN
 // Returns 0 on success and if the buffer is big enough to hold the ids of
 // all existing processes. Returns 1 if the buffer isn't big enough to hold the
 // ids of all processes. However the buffer is still filled with as many ids as
-// fit. Returns -1 on an error.
+// do fit. Returns -1 on an error.
 //
 // Note that the list of returned processes includes processes in all possible
 // states, including the zombie state.
@@ -34,13 +34,30 @@ extern int host_processes(pid_t* _Nonnull buf, size_t bufSize);
 // Returns 0 on success and if the buffer is big enough to hold the ids of
 // all mounted filesystems. Returns 1 if the buffer isn't big enough to hold the
 // ids of all filesystems. However the buffer is still filled with as many ids
-// as fit. Returns -1 on an error.
+// as do fit. Returns -1 on an error.
 extern int host_filesystems(fsid_t* _Nonnull buf, size_t bufSize);
+
+// Fills the buffer with an array of cpuid_t's of all detected and active logical
+// CPUs. 'bufSize' is the size of the buffer in terms of the number of
+// cpuid_t objects that it can hold. 'buf' will be terminated by a 0 cpuid_t.
+// Thus 'bufSize' is expected to be equal to the number of cpuid_t's that should
+// be returned plus 1.
+// Returns 0 on success and if the buffer is big enough to hold the ids of
+// all logical CPUs. Returns 1 if the buffer isn't big enough to hold the
+// ids of all logical CPUs. However the buffer is still filled with as many ids
+// as do fit. Returns -1 on an error.
+extern int host_cpus(cpuid_t* _Nonnull buf, size_t bufSize);
 
 
 // Returns information about the local host. 'flavor' selects the kinds of
 // information that should be returned.
 extern int host_info(int flavor, host_info_ref _Nonnull info);
+
+
+// Returns information about the CPU with logical CPU id 'cpuid'. 'flavor'
+// selects the kinds of information that should be returned.
+extern int cpu_info(cpuid_t cpuid, int flavor, cpu_info_ref _Nonnull info);
+
 
 //XXX NOT YET
 //extern int host_reboot();

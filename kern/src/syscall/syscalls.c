@@ -24,6 +24,9 @@ SYSCALL_REF(excpt_sethandler);
 SYSCALL_REF(host_info);
 SYSCALL_REF(host_processes);
 SYSCALL_REF(host_filesystems);
+SYSCALL_REF(host_cpus);
+
+SYSCALL_REF(cpu_info);
 
 SYSCALL_REF(fs_info);
 SYSCALL_REF(fs_property);
@@ -109,7 +112,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vm_allocate, SC_ERRNO),
     SYSCALL_ENTRY(proc_exit, SC_NORETURN),
     SYSCALL_ENTRY(proc_spawn, SC_ERRNO),
-    SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
+    SYSCALL_ENTRY(host_cpus, SC_ERRNO),
     SYSCALL_ENTRY(proc_vcpus, SC_ERRNO),
     SYSCALL_ENTRY(woa_wait, SC_ERRNO),
     SYSCALL_ENTRY(fs_open, SC_ERRNO),
@@ -132,7 +135,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_truncate, SC_ERRNO),
     SYSCALL_ENTRY(fs_create_file, SC_ERRNO),
     SYSCALL_ENTRY(pipe_create, SC_ERRNO),
-    SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
+    SYSCALL_ENTRY(cpu_info, SC_ERRNO),
     SYSCALL_ENTRY(clock_time, SC_ERRNO),
     SYSCALL_ENTRY(fs_mount, SC_ERRNO),
     SYSCALL_ENTRY(fs_unmount, SC_ERRNO),

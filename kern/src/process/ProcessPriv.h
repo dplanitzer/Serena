@@ -109,11 +109,11 @@ typedef struct Process {
 
     // Times stats
     nanotime_t                      creation_time;
-    ticks_t                         user_ticks;         // number of clock ticks this process has spent running in user space across all vcpus (former + current)
-    ticks_t                         system_ticks;       // number of clock ticks this process has spent running in system space across all vcpus (former + current)
+    ticks_t                         usr_ticks;         // number of clock ticks this process has spent running in user space across all vcpus (former + current)
+    ticks_t                         sys_ticks;       // number of clock ticks this process has spent running in system space across all vcpus (former + current)
     ticks_t                         wait_ticks;         // number of clock ticks this process has spent waiting or suspended across all vcpus (former + current)
-    ticks_t                         rq_user_ticks;      // number of clock ticks this process has spent running in user space across all relinquished vcpus
-    ticks_t                         rq_system_ticks;    // number of clock ticks this process has spent running in system space across all relinquished vcpus
+    ticks_t                         rq_usr_ticks;      // number of clock ticks this process has spent running in user space across all relinquished vcpus
+    ticks_t                         rq_sys_ticks;    // number of clock ticks this process has spent running in system space across all relinquished vcpus
     ticks_t                         rq_wait_ticks;      // number of clock ticks this process has spent waiting or suspended across all relinquished vcpus
 
     // All VPs that belong to this process and are currently in a clock_sleep()

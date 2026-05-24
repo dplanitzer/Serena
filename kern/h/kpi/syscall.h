@@ -21,7 +21,7 @@ enum {
     SC_vm_allocate,         // errno_t vm_allocate(size_t nbytes, void **pOutMem)
     SC_proc_exit,           // _Noreturn void proc_exit(int code)
     SC_proc_spawn,          // errno_t proc_spawn(const char* _Nonnull path, const char* _Nullable argv[], , const char* _Nullable envp[], proc_spawnattr_t * _Nonnull options, const proc_spawn_actions_t* _Nullable actions, proc_spawnres_t * _Nullable result)
-    SC_unused_0,            // UNUSED
+    SC_host_cpus,           // errno_t host_cpus(cpuid_t* _Nonnull buf, size_t bufSize)
     SC_proc_vcpus,          // int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize)
     SC_woa_wait,            // errno_t woa_wait(volatile atomic_int* _Nonnull addr, int expected, int flags, const nanotime_t* _Nullable wtp)
     SC_fs_open,             // errno_t fs_open(int wd, const char * _Nonnull path, int oflags, int* _Nonnull fd)
@@ -44,7 +44,7 @@ enum {
     SC_fd_truncate,         // errno_t fd_truncate(int fd, off_t length)
     SC_fs_create_file,      // errno_t fs_create_file(int wd, const char* _Nonnull path, int options, fs_perms_t fsperms, int* _Nonnull fd)
     SC_pipe_create,         // errno_t pipe_create(int fds[2])
-    SC_unused_1,            // UNUSED
+    SC_cpu_info,            // errno_t cpu_info(cpuid_t cpuid, int flavor, cpu_info_ref _Nonnull info)
     SC_clock_time,          // errno_t clock_time(clockid_t clock, nanotime_t* _Nonnull ts)
     SC_fs_mount,            // errno_t fs_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
     SC_fs_unmount,          // errno_t fs_unmount(const char* _Nonnull atDirPath, int flags)

@@ -41,6 +41,10 @@ typedef size_t  scnt_t;
 typedef unsigned int    fsid_t;
 
 
+// Non-persistent, globally unique ID of a logical CPU.
+typedef unsigned int    cpuid_t;
+
+
 // The persistent, filesystem unique ID of a filesystem inode. This ID is only
 // unique with respect to the filesystem to which it belongs.
 #ifndef __INO_T_DEFINED

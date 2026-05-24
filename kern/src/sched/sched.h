@@ -89,6 +89,9 @@ struct sched {
     int8_t                      reserved;
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
+    ticks_t                     sys_ticks;                      // Accumulated number of ticks this cpu has spent on running in kernel/system mode
+    ticks_t                     usr_ticks;                      // Accumulated number of ticks this cpu has spent on running in user mode
+    ticks_t                     idle_ticks;                     // Accumulated number of ticks this cpu has spent on sitting idle
     ready_queue_t               ready_queue;
 };
 typedef struct sched* sched_t;

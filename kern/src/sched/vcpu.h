@@ -143,8 +143,8 @@ struct vcpu {
 
     // Usage stats
     nanotime_t                      acquisition_time;
-    ticks_t                         user_ticks;
-    ticks_t                         system_ticks;
+    ticks_t                         usr_ticks;
+    ticks_t                         sys_ticks;
     ticks_t                         wait_ticks;             // accumulated number of ticks spent in waiting or suspended state (since acquisition)
 
     // Process

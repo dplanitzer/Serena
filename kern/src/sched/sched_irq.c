@@ -32,16 +32,24 @@ void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         run->quantum_countdown -= SCHED_QUANTUM_SCALE;
     }
 
+    
     if (excpt_frame_isuser(efp)) {
-        run->user_ticks++;
-        if (run->proc) {    // NULL check because boot & idle vcpus are initially not associated with the kerneld proc
-            run->proc->user_ticks++;
-        }
+        // User mode
+        run->usr_ticks++;
+        run->proc->usr_ticks++;
+        self->usr_ticks++;
     }
     else {
-        run->system_ticks++;
-        if (run->proc) {
-            run->proc->system_ticks++;
+        // System/kernel mode
+        run->sys_ticks++;
+        if (run->proc) {    // NULL check because boot & idle vcpus are initially not associated with the kerneld proc
+            run->proc->sys_ticks++;
+        }
+        if (run->tag == VP_TAG_SYS) {
+            self->sys_ticks++;
+        }
+        else {
+            self->idle_ticks++;
         }
     }
 }

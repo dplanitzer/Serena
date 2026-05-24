@@ -106,10 +106,13 @@ sched_irq_nest_count                so.b    1       ; 1
 sched_reserved2                     so.b    1       ; 1
 sched_idle_virtual_processor        so.l    1       ; 4
 sched_boot_virtual_processor        so.l    1       ; 4
+sched_sys_ticks                     so.l    1       ; 4
+sched_usr_ticks                     so.l    1       ; 4
+sched_idle_ticks                    so.l    1       ; 4
 sched_ready_queue                   so.l    SCHED_PRI_COUNT * 2 ; 640
 sched_ready_queue_populated         so.l    3       ; 3
 sched_SIZEOF                        so
-    ifeq (sched_SIZEOF == 672)
+    ifeq (sched_SIZEOF == 684)
         fail "sched_t structure size is incorrect."
     endif
 
@@ -172,8 +175,8 @@ vp_tag                                  so.b    1           ; 1
 vp_reserved                             so.b    1           ; 1
 vp_acquisition_time_secs                so.l    1           ; 4
 vp_acquisition_time_nanos               so.l    1           ; 4
-vp_user_ticks                           so.l    1           ; 4
-vp_system_ticks                         so.l    1           ; 4
+vp_usr_ticks                           so.l    1           ; 4
+vp_sys_ticks                         so.l    1           ; 4
 vp_wait_ticks                           so.l    1           ; 4
 vp_proc                                 so.l    1           ; 4
 vp_dispatch_worker                      so.l    1           ; 4
