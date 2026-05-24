@@ -40,7 +40,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
 
-    if (mtx_init(&self->mutex) != 0) {
+    if (mtx_init(&self->mutex, mtx_plain) != 0) {
         return false;
     }
 

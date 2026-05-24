@@ -11,18 +11,26 @@
 
 #include <_cmndef.h>
 #include <ext/atomic.h>
+#include <ext/nanotime.h>
 #include <ext/errno.h>
 
 __CPP_BEGIN
 
 typedef struct mtx {
     volatile atomic_int state;
-    int                 reserved[3];
+    int                 caps;
+    int                 reserved[2];
 } mtx_t;
 
 
+// Mutex types
+#define mtx_plain       0   /* basic mutex which supports mtx_lock() and mtx_trylock() */
+#define mtx_timed       1   /* mutex which additionally supports mtx_timedlock() */
+#define mtx_recursive   2   /* mutex which additionally supports recursion; (*) not yet supported */
+
+
 // Initializes a mutex.
-extern errno_t mtx_init(mtx_t* _Nonnull mutex);
+extern errno_t mtx_init(mtx_t* _Nonnull mutex, int type);
 
 // Deinitializes the given mutex. Triggers undefined behavior if the mutex is
 // currently locked.

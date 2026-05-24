@@ -91,5 +91,5 @@ void __malloc_init(void)
         abort();
     }
 
-    mtx_init(&__gMallocLock);
+    mtx_init(&__gMallocLock, mtx_plain);
 }

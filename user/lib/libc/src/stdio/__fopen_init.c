@@ -37,7 +37,7 @@ int __fopen_init(FILE* _Nonnull _Restrict self, void* _Nullable context, const F
         memset(self, 0, sizeof(FILE));
 
         if ((sm & __kStreamMode_NoLocking) == 0) {
-            if (mtx_init(&self->lock) != 0) {
+            if (mtx_init(&self->lock, mtx_plain) != 0) {
                 return EOF;
             }
         }

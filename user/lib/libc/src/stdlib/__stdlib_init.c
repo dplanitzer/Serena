@@ -49,8 +49,8 @@ void __stdlibc_init(proc_ctx_t* _Nonnull pctx)
     __gIsExiting = false;
     __gAtExitLock = SPINLOCK_INIT;
 
-    mtx_init(&__g_dtoa_mtx[0]);
-    mtx_init(&__g_dtoa_mtx[1]);
+    mtx_init(&__g_dtoa_mtx[0], mtx_plain);
+    mtx_init(&__g_dtoa_mtx[1], mtx_plain);
 
     __env_init(pctx->envc, pctx->envv);
     __vcpu_init();

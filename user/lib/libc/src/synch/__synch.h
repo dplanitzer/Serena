@@ -36,6 +36,15 @@ __CPP_BEGIN
 // mtx, cnd could be changed to be better at avoiding system calls.
 //
 
+
+// Mtx capabilities
+#define _MTX_TIMED(__self) \
+(((__self)->caps & mtx_timed) != 0)
+
+#define _MTX_RECURSIVE(__self) \
+(((__self)->caps & mtx_recursive) != 0)
+
+
 // mtx states
 #define _MTX_AVAILABLE  0   /* Noone os holding the mutex */
 #define _MTX_LOCKED     1   /* Mutex is locked and noone else is trying to get it */

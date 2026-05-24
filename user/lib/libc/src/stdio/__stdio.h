@@ -105,7 +105,7 @@ extern deque_t  __gOpenFiles;
 extern mtx_t    __gOpenFilesLock;
 
 #define __init_open_files_lock() \
-mtx_init(&__gOpenFilesLock)
+mtx_init(&__gOpenFilesLock, mtx_plain)
 
 #define __open_files_lock() \
 mtx_lock(&__gOpenFilesLock)

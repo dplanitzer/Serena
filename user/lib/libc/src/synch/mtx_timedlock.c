@@ -13,6 +13,11 @@
 
 errno_t mtx_timedlock(mtx_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wtp)
 {
+    if (!_MTX_TIMED(self)) {
+        return EINVAL;
+    }
+
+
     int r = 0;
     int s = _MTX_AVAILABLE;
     atomic_int_compare_exchange_strong(&self->state, &s, _MTX_LOCKED);

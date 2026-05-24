@@ -58,5 +58,5 @@ void __locale_init(void)
     __FIRST_USER_LC = QUEUE_INIT;
     __CUR_LC = &__LOCALE_C;
 
-    mtx_init(&__MTX_LC);
+    mtx_init(&__MTX_LC, mtx_plain);
 }
