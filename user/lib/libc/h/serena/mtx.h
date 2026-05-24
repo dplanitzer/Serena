@@ -36,9 +36,14 @@ extern void mtx_destroy(mtx_t* _Nonnull mutex);
 extern errno_t mtx_trylock(mtx_t* _Nonnull mutex);
 
 // Blocks the caller until the mutex can be successfully taken. Returns EOK on
-// success and EINVAL if the mutex is not properly initialized.
+// success and a suitable error code if the lock operation failed for some reason.
 // @Concurrency: Safe
 extern errno_t mtx_lock(mtx_t* _Nonnull mutex);
+
+// Blocks the caller until either the mutex can be successfully taken or a timeout
+// has occurred. Returns EOK on success and ETIMEDOUT on a timeout.
+// @Concurrency: Safe
+extern errno_t mtx_timedlock(mtx_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wtp);
 
 // Unlocks the mutex. Returns EPERM if the caller does not hold the mutex.
 // Returns EOK on success.
