@@ -8,6 +8,6 @@
 
 #include "__synch.h"
 
-void cnd_deinit(cnd_t* _Nonnull self)
+void cnd_destroy(cnd_t* _Nonnull self)
 {
 }

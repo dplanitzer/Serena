@@ -8,6 +8,6 @@
 
 #include "__synch.h"
 
-void sem_deinit(sem_t* _Nonnull self)
+void sem_destroy(sem_t* _Nonnull self)
 {
 }

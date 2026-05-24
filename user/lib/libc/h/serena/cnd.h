@@ -25,7 +25,7 @@ typedef struct cnd {
 extern errno_t cnd_init(cnd_t* _Nonnull cv);
 
 // Deinitializes the given condition variable.
-extern void cnd_deinit(cnd_t* _Nonnull cv);
+extern void cnd_destroy(cnd_t* _Nonnull cv);
 
 
 // Signals the given condition variable. Signaling a condition variable will

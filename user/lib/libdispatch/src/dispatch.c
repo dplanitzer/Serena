@@ -113,8 +113,8 @@ int dispatch_destroy(dispatch_t _Nullable self)
         self->zombie_items = QUEUE_INIT;
         self->timers = QUEUE_INIT;
 
-        cnd_deinit(&self->cond);
-        mtx_deinit(&self->mutex);
+        cnd_destroy(&self->cond);
+        mtx_destroy(&self->mutex);
 
         free(self);
     }

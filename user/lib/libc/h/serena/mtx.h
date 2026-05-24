@@ -26,7 +26,7 @@ extern errno_t mtx_init(mtx_t* _Nonnull mutex);
 
 // Deinitializes the given mutex. Triggers undefined behavior if the mutex is
 // currently locked.
-extern void mtx_deinit(mtx_t* _Nonnull mutex);
+extern void mtx_destroy(mtx_t* _Nonnull mutex);
 
 
 // Attempts to acquire the given mutex. Returns 0 on success and -1 with errno

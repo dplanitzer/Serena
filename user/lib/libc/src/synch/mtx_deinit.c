@@ -8,6 +8,6 @@
 
 #include "__synch.h"
 
-void mtx_deinit(mtx_t* _Nonnull self)
+void mtx_destroy(mtx_t* _Nonnull self)
 {
 }

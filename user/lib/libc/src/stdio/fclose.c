@@ -23,7 +23,7 @@ int fclose(FILE * _Nonnull s)
         r = __fclose(s);
         __setvbuf(s, NULL, _IONBF, 0);
         __funlock(s);
-        mtx_deinit(&s->lock);
+        mtx_destroy(&s->lock);
 
         if (s->flags.shouldFreeOnClose) {
             free(s);

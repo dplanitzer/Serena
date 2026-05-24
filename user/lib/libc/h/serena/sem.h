@@ -26,7 +26,7 @@ typedef struct sem {
 extern errno_t sem_init(sem_t* _Nonnull sema, int value);
 
 // Deinitializes the given semaphore.
-extern void sem_deinit(sem_t* _Nonnull sema);
+extern void sem_destroy(sem_t* _Nonnull sema);
 
 
 // Relinquishes a permit to the semaphore.
