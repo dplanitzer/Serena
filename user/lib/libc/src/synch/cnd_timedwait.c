@@ -10,13 +10,8 @@
 
 #include "__synch.h"
 
-int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const nanotime_t* _Nonnull wtp)
+errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const nanotime_t* _Nonnull wtp)
 {
-    if (self->signature != CND_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
     const int seq = atomic_int_load(&self->seq);
 
     mtx_unlock(mutex);
@@ -28,5 +23,5 @@ int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const 
         woa_wait(&mutex->state, _MTX_CONTENDED, 0, NULL);
     }
 
-    return r;
+    return (r == 0) ? EOK : errno;
 }

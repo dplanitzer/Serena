@@ -9,16 +9,10 @@
 #include "__synch.h"
 #include <serena/clock.h>
 
-int sem_timedwait(sem_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wtp)
+errno_t sem_timedwait(sem_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wtp)
 {
     int r = 0;
     nanotime_t now, a_timeout;
-
-    if (self->signature != SEM_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
 
     if ((flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
         a_timeout = *wtp;
@@ -41,5 +35,5 @@ int sem_timedwait(sem_t* _Nonnull self, int flags, const nanotime_t* _Nonnull wt
         }
     }
 
-    return r;
+    return (r == 0) ? EOK : errno;
 }

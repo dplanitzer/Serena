@@ -8,10 +8,8 @@
 
 #include "__synch.h"
 
-int cnd_init(cnd_t* _Nonnull self)
+errno_t cnd_init(cnd_t* _Nonnull self)
 {
-    atomic_init(&self->seq, 0);
-    self->signature = CND_SIGNATURE;
-    
-    return 0;
+    atomic_init(&self->seq, 0);    
+    return EOK;
 }

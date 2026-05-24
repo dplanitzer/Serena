@@ -8,13 +8,6 @@
 
 #include "__synch.h"
 
-int sem_deinit(sem_t* _Nonnull self)
+void sem_deinit(sem_t* _Nonnull self)
 {
-    if (self->signature != SEM_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    self->signature = 0;
-    return 0;
 }

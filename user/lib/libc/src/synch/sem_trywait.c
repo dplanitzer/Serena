@@ -31,18 +31,12 @@ bool __sem_trywait(sem_t* _Nonnull self)
     /* NOT REACHED */
 }
 
-int sem_trywait(sem_t* _Nonnull self)
+errno_t sem_trywait(sem_t* _Nonnull self)
 {
-    if (self->signature != SEM_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
     if (__sem_trywait(self)) {
-        return 0;
+        return EOK;
     }
     else {
-        errno = EAGAIN;
-        return -1;
+        return EAGAIN;
     }
 }

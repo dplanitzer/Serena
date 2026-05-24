@@ -8,13 +8,6 @@
 
 #include "__synch.h"
 
-int cnd_deinit(cnd_t* _Nonnull self)
+void cnd_deinit(cnd_t* _Nonnull self)
 {
-    if (self->signature != CND_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    self->signature = 0;
-    return 0;
 }

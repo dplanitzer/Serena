@@ -10,39 +10,39 @@
 #define _SERENA_CND_H 1
 
 #include <time.h>
+#include <ext/errno.h>
 #include <serena/mtx.h>
 
 __CPP_BEGIN
 
 typedef struct cnd {
     volatile atomic_int seq;
-    int                 signature;
-    int                 reserved[2];
+    int                 reserved[3];
 } cnd_t;
 
 
 // Initializes a condition variable object.
-extern int cnd_init(cnd_t* _Nonnull cv);
+extern errno_t cnd_init(cnd_t* _Nonnull cv);
 
 // Deinitializes the given condition variable.
-extern int cnd_deinit(cnd_t* _Nonnull cv);
+extern void cnd_deinit(cnd_t* _Nonnull cv);
 
 
 // Signals the given condition variable. Signaling a condition variable will
 // wake up one waiter.
 // @Concurrency: Safe
-extern int cnd_signal(cnd_t* _Nonnull cv);
+extern errno_t cnd_signal(cnd_t* _Nonnull cv);
 
 // Broadcasts the given condition variable. Broadcasting a condition variable
 // will wake up all waiters.
 // @Concurrency: Safe
-extern int cnd_broadcast(cnd_t* _Nonnull cv);
+extern errno_t cnd_broadcast(cnd_t* _Nonnull cv);
 
 // Blocks the caller until the given condition variable has been signaled or
 // broadcast. Atomically unlocks 'mutex' and enters the wait state. Acquires 
 // 'mutex' after wakeup.
 // @Concurrency: Safe
-extern int cnd_wait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex);
+extern errno_t cnd_wait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex);
 
 // Blocks the caller until the given condition variable has been signaled or
 // broadcast. Atomically unlocks 'mutex' and enters the wait state. Acquires 
@@ -50,7 +50,7 @@ extern int cnd_wait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex);
 // Returns 0 on success and -1 and errno set to ETIMEOUT if the condition
 // variable isn't signaled before the point in time defined by 'wtp'.
 // @Concurrency: Safe
-extern int cnd_timedwait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex, int flags, const nanotime_t* _Nonnull wtp);
+extern errno_t cnd_timedwait(cnd_t* _Nonnull cv, mtx_t* _Nullable mutex, int flags, const nanotime_t* _Nonnull wtp);
 
 __CPP_END
 

@@ -36,10 +36,6 @@ __CPP_BEGIN
 // mtx, cnd could be changed to be better at avoiding system calls.
 //
 
-#define CND_SIGNATURE 0x53454d41
-#define MTX_SIGNATURE 0x4c4f434b
-#define SEM_SIGNATURE 0x53454d41
-
 // mtx states
 #define _MTX_AVAILABLE  0   /* Noone os holding the mutex */
 #define _MTX_LOCKED     1   /* Mutex is locked and noone else is trying to get it */

@@ -8,10 +8,8 @@
 
 #include "__synch.h"
 
-int sem_init(sem_t* _Nonnull self, int value)
+errno_t sem_init(sem_t* _Nonnull self, int value)
 {
     atomic_init(&self->value, value);
-    self->signature = SEM_SIGNATURE;
-
-    return 0;
+    return EOK;
 }

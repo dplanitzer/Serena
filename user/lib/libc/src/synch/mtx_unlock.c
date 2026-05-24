@@ -10,13 +10,8 @@
 
 #include "__synch.h"
 
-int mtx_unlock(mtx_t* _Nonnull self)
+errno_t mtx_unlock(mtx_t* _Nonnull self)
 {
-    if (self->signature != MTX_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
     if (atomic_int_fetch_sub(&self->state, 1) != _MTX_LOCKED) {
 #if defined(__M68K__)
         // CPU store instruction provides enough intrinsic atomicity that we can
@@ -27,5 +22,5 @@ int mtx_unlock(mtx_t* _Nonnull self)
 #endif
         woa_wakeup(&self->state, WAKEUP_ONE);
     }
-    return 0;
+    return EOK;
 }

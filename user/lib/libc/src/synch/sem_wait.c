@@ -8,15 +8,9 @@
 
 #include "__synch.h"
 
-int sem_wait(sem_t* _Nonnull self)
+errno_t sem_wait(sem_t* _Nonnull self)
 {
     int r = 0;
-
-    if (self->signature != SEM_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
 
     for (;;) {
         if (__sem_trywait(self)) {
@@ -29,5 +23,5 @@ int sem_wait(sem_t* _Nonnull self)
         }
     }
 
-    return r;
+    return (r == 0) ? EOK : errno;
 }

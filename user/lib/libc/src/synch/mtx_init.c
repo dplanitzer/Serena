@@ -8,10 +8,8 @@
 
 #include "__synch.h"
 
-int mtx_init(mtx_t* _Nonnull self)
+errno_t mtx_init(mtx_t* _Nonnull self)
 {
     atomic_init(&self->state, 0);
-    self->signature = MTX_SIGNATURE;
-    
-    return 0;
+    return EOK;
 }

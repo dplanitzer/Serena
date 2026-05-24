@@ -10,14 +10,8 @@
 
 #include "__synch.h"
 
-int mtx_lock(mtx_t* _Nonnull self)
+errno_t mtx_lock(mtx_t* _Nonnull self)
 {
-    if (self->signature != MTX_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
-
     int s = _MTX_AVAILABLE;
     atomic_int_compare_exchange_strong(&self->state, &s, _MTX_LOCKED);
 
@@ -32,5 +26,5 @@ int mtx_lock(mtx_t* _Nonnull self)
         }
     }
 
-    return 0;
+    return EOK;
 }
