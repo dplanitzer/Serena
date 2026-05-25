@@ -50,10 +50,10 @@ static errno_t _get_table_size(const char* const _Nullable tb[], ctx_table_t* _N
 
     while (tb[count]) {
         const char* p = tb[count];
-        const ssize_t slen = strnlen_s(p, __ARG_STRLEN_MAX);
+        const ssize_t slen = strnlen_s(p, _ARG_STRLEN_MAX);
         const ssize_t entry_size = slen + 1;
 
-        if (p[slen] != '\0' || (nbytes + entry_size) > __ARG_MAX) {
+        if (p[slen] != '\0' || (nbytes + entry_size) > _ARG_MAX) {
             return E2BIG;
         }
 

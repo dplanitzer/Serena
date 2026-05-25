@@ -206,6 +206,7 @@ static void display_status(void)
     term_cls();
 
     const run_procs_info_t* rp_info = run_procs_info();
+    printf("CPU usage: %d%% user, %d%% sys, %d%% idle\n", rp_info->usr_cpu_usage, rp_info->sys_cpu_usage, rp_info->idle_cpu_usage);
     printf("Processes: %zu total, %zu running, %zu sleeping\n", rp_info->proc_count, rp_info->run_proc_count, rp_info->slp_proc_count);
     printf("VCPUs: %zu acquired, %zu pooled    CPUs: %zu\n", rp_info->vcpu_count, rp_info->vcpu_pool_size, rp_info->cpu_count);
     printf("RAM: %s total\n\n", fmt_mem_size(rp_info->phys_mem_size, num_buf));
@@ -215,6 +216,10 @@ static void display_status(void)
 
 static bool init(void)
 {
+    if (run_procs_setup() != 0) {
+        return false;
+    }
+
     g_table = table_create(g_table_cols, sizeof(g_table_cols) / sizeof(table_column_t));
     if (g_table == NULL) {
         return false;

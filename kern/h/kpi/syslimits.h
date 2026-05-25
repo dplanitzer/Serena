@@ -20,16 +20,20 @@
 
 
 // Maximum size of a single command line argument or environment entry
-#define __ARG_STRLEN_MAX PATH_MAX
+#define _ARG_STRLEN_MAX PATH_MAX
 
 // Maximum size of the command line arguments and environment that can be passed to a process
-#define __ARG_MAX 98304
+#define _ARG_MAX 98304
 
 
 // Max number of spawn actions allowed per spawn operation
-#define __SPAWN_ACTIONS_MAX 32
+#define _SPAWN_ACTIONS_MAX 32
 
 // Highest allowed fd number
-#define __FDNO_MAX  2048
+#define _FDNO_MAX  2048
+
+
+// Highest possible cpuid_t
+#define _CPU_MAX   1
 
 #endif /* _KPI_SYSLIMITS_H */

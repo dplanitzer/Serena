@@ -167,7 +167,7 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
     if (actions->version < _SPAWN_ACTIONS_VERSION) {
         return EINVAL;
     }
-    if (actions->count > __SPAWN_ACTIONS_MAX) {
+    if (actions->count > _SPAWN_ACTIONS_MAX) {
         return ERANGE;
     }
 

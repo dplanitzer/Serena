@@ -64,7 +64,7 @@ static errno_t _ensure_fd_slot_exists(IOChannelTable* _Nonnull _Locked self, int
     if (self->table_size > fd_slot) {
         return EOK;
     }
-    if (fd_slot > __FDNO_MAX) {
+    if (fd_slot > _FDNO_MAX) {
         return EMFILE;
     }
 

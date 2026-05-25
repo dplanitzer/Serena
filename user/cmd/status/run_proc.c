@@ -11,9 +11,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <kpi/syslimits.h>
 #include <serena/clock.h>
 #include <serena/host.h>
 #include <serena/process.h>
+#include <machine/cpu.h>
+
+struct cpu_data {
+    nanotime_t  prev_usr_time;
+    nanotime_t  prev_sys_time;
+    nanotime_t  prev_idle_time;
+};
+
 
 static deque_t  g_run_procs;    //XXX change to hashtable keyed on pid
 static size_t   g_run_proc_count;
@@ -25,6 +34,32 @@ const char*     g_run_proc_state_name[5] = {
 };
 
 static run_procs_info_t g_info;
+static cpuid_t          g_cpu_ids[_CPU_MAX];
+static struct cpu_data  g_cpu_data[_CPU_MAX];
+
+
+int run_procs_setup(void)
+{
+    int r = host_cpus(g_cpu_ids, _CPU_MAX + 1);
+
+    if (r == 0) {
+        cpu_basic_info_t basic_info;
+        cpu_utilization_info_t util_info;
+        size_t i = 0;
+
+        while (g_cpu_ids[i] > 0) {
+            cpu_info(g_cpu_ids[i], CPU_INFO_BASIC, &basic_info);
+
+            cpu_info(g_cpu_ids[i], CPU_INFO_UTILIZATION, &util_info);
+            g_cpu_data[i].prev_usr_time = util_info.user_time;
+            g_cpu_data[i].prev_sys_time = util_info.system_time;
+            g_cpu_data[i].prev_idle_time = util_info.idle_time;
+
+            i++;
+        }
+    }
+    return r;
+}
 
 
 const char* _Nonnull run_proc_state_name(int state)
@@ -167,6 +202,7 @@ static const pid_t* _Nonnull get_all_proc_pids(void)
 void run_procs_sample(void)
 {
     const pid_t* pids = get_all_proc_pids();
+    size_t i;
 
     if (pids == NULL) {
         return;
@@ -187,8 +223,39 @@ void run_procs_sample(void)
         g_info.vcpu_pool_size = host_rescounts.vcpu_pool_size;
     }
 
-
     clock_time(CLOCK_MONOTONIC, &g_info.current_time);
+
+
+    // Calculate the CPU utilization over the past second
+    cpu_utilization_info_t util_info;
+    nanotime_t t_delta;
+    int64_t sum_usr_ns = 0;
+    int64_t sum_sys_ns = 0;
+    int64_t sum_idle_ns = 0;
+    
+    i = 0;
+    while (g_cpu_ids[i] > 0) {
+        cpu_info(g_cpu_ids[i], CPU_INFO_UTILIZATION, &util_info);
+
+        nanotime_sub(&t_delta, &util_info.user_time, &g_cpu_data[i].prev_usr_time);
+        sum_usr_ns += nanotime_ns(&t_delta);
+        g_cpu_data[i].prev_usr_time = util_info.user_time;
+
+        nanotime_sub(&t_delta, &util_info.system_time, &g_cpu_data[i].prev_sys_time);
+        sum_sys_ns += nanotime_ns(&t_delta);
+        g_cpu_data[i].prev_sys_time = util_info.system_time;
+
+        nanotime_sub(&t_delta, &util_info.idle_time, &g_cpu_data[i].prev_idle_time);
+        sum_idle_ns += nanotime_ns(&t_delta);
+        g_cpu_data[i].prev_idle_time = util_info.idle_time;
+
+        i++;
+    }
+
+    const int64_t sum_all_ns = sum_usr_ns + sum_sys_ns + sum_idle_ns;
+    g_info.usr_cpu_usage = (int)(sum_usr_ns * 100 / sum_all_ns);
+    g_info.sys_cpu_usage = (int)(sum_sys_ns * 100 / sum_all_ns);
+    g_info.idle_cpu_usage = 100 - g_info.usr_cpu_usage - g_info.sys_cpu_usage;
 
 
     // Create new run procs for processes we haven't seen before, update processes
@@ -197,7 +264,7 @@ void run_procs_sample(void)
         it->flags.alive = 0;
     );
 
-    size_t i = 0;
+    i = 0;
     while (pids[i] > 0) {
         run_proc_sample(pids[i++]);
     }

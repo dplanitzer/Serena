@@ -9,6 +9,7 @@
 #ifndef RUN_PROC_H
 #define RUN_PROC_H 1
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <ext/nanotime.h>
 #include <ext/queue.h>
@@ -54,7 +55,14 @@ typedef struct run_procs_info {
     size_t      cpu_count;
     
     uint64_t    phys_mem_size;
+
+    int         usr_cpu_usage;  // non-fractional percentage
+    int         sys_cpu_usage;
+    int         idle_cpu_usage;
 } run_procs_info_t;
+
+
+extern int run_procs_setup(void);
 
 
 extern void run_procs_sample(void);
