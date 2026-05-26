@@ -1,9 +1,9 @@
 //
 //  dispatch_tests.c
-//  Kernel Tests
+//  libdispatch tests
 //
-//  Created by Dietmar Planitzer on 5/3/21.
-//  Copyright © 2021 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/35/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include <dispatch.h>
@@ -15,7 +15,7 @@
 #include <ext/nanotime.h>
 #include <serena/clock.h>
 #include <serena/signal.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 static dispatch_t gDispatcher;
 static int gCounter;
@@ -36,7 +36,7 @@ static void OnAsync(void* _Nonnull ign)
     assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
 
-void dq_async_test(int argc, char *argv[])
+void async_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     
@@ -60,7 +60,7 @@ static int OnSync(void* _Nonnull ign)
     return 1234;
 }
 
-void dq_sync_test(int argc, char *argv[])
+void sync_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
@@ -84,7 +84,7 @@ static void OnAfter(void* _Nonnull ign)
     assert_ok(dispatch_after(gDispatcher, 0, &DELAY_500MS, (dispatch_async_func_t)OnAfter, NULL));
 }
 
-void dq_after_test(int argc, char *argv[])
+void after_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
@@ -105,7 +105,7 @@ static void OnRepeating(void* _Nonnull ign)
     printf("%d\n", gCounter++);
 }
 
-void dq_repeating_test(int argc, char *argv[])
+void repeating_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
@@ -130,7 +130,7 @@ static void OnRepeating2(intptr_t _Nonnull value)
 }
 
 // Should print async 1 - 3 and then terminate
-void dq_terminate_test(int argc, char *argv[])
+void terminate_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
@@ -181,7 +181,7 @@ static void OnSendSignal(struct siginfo* _Nonnull si)
 }
 
 // Should print 'Sending signal' and 'Received signal' once every second
-void dq_signal_test(int argc, char *argv[])
+void signal_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);

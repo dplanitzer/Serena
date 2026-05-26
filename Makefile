@@ -140,6 +140,9 @@ SNAKE_FILE := $(PRODUCT_DEMO_DIR)/snake
 KERNEL_TESTS_PROJECT_DIR := $(WORKSPACE_DIR)/kern/test
 KERNEL_TESTS_FILE := $(PRODUCT_DEMO_DIR)/test
 
+DQ_TEST_PROJECT_DIR := $(LIBDISPATCH_PROJECT_DIR)/test
+DQ_TEST_FILE := $(PRODUCT_DEMO_DIR)/dqtest
+
 
 # --------------------------------------------------------------------------
 # SDK
@@ -250,6 +253,7 @@ include $(CMD_BIN_PROJECT_DIR)/project.mk
 
 include $(HELLODISPATCH_PROJECT_DIR)/project.mk
 include $(SNAKE_PROJECT_DIR)/project.mk
+include $(DQ_TEST_PROJECT_DIR)/project.mk
 
 
 build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE)
@@ -259,7 +263,8 @@ build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				$(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
 				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE)
 
-build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(KERNEL_TESTS_FILE)
+build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(KERNEL_TESTS_FILE) \
+				$(DQ_TEST_FILE)
 
 $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	@echo Making boot_disk.adf
@@ -290,6 +295,7 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(KERNEL_TESTS_FILE) /Users/admin/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DQ_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/admin/ $(BOOT_DMG_FILE)

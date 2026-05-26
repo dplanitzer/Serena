@@ -89,7 +89,7 @@ void mtx_test(int argc, char *argv[])
     gDispatcher = dispatch_create(&attr);
     assert_not_null(gDispatcher);
 
-    assert_ok(mtx_init(&gMutex));
+    assert_ok(mtx_init(&gMutex, mtx_plain));
    // setvbuf(stdout, NULL, _IONBF, 0);
     
     gCurrentPatternIndex = 0;
