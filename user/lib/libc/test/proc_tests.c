@@ -85,9 +85,9 @@ void proc_exec_test(int argc, char *argv[])
 
     const char* argv2[3];
 
-    argv2[0] = "test";
+    argv2[0] = "ctest";
     argv2[1] = "list";
     argv2[2] = NULL;
 
-    assert_ok(proc_exec("test", argv2, NULL));
+    assert_ok(proc_exec(argv2[0], argv2, NULL));
 }

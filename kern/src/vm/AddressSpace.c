@@ -19,15 +19,16 @@ typedef struct MemEntry {
 
 #define MEM_BLOCKS_CAPACITY 8
 typedef struct MemBlocks {
-    queue_node_t   node;
-    size_t      count;  // Number of entries in use
-    MemEntry    blocks[MEM_BLOCKS_CAPACITY];
+    queue_node_t    node;
+    size_t          count;  // Number of entries in use
+    MemEntry        blocks[MEM_BLOCKS_CAPACITY];
 } MemBlocks;
 
 
 void AddressSpace_Init(AddressSpaceRef _Nonnull self)
 {
     self->mblocks = QUEUE_INIT;
+    self->virt_size = 0;
     mtx_init(&self->mtx);
 }
 
@@ -134,6 +135,8 @@ void AddressSpace_AdoptMappingsFrom(AddressSpaceRef _Nonnull self, AddressSpaceR
 
     self->mblocks = other->mblocks;
     self->virt_size = other->virt_size;
+
     other->mblocks = QUEUE_INIT;
+    other->virt_size = 0;
     mtx_unlock(&self->mtx);
 }
