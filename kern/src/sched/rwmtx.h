@@ -12,11 +12,9 @@
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 
-enum {
-    kSELState_Unlocked = 0,
-    kSELState_LockedShared,
-    kSELState_LockedExclusive
-};
+#define _RWMTX_UNLOCKED         0
+#define _RWMTX_LOCKED_SHARED    1
+#define _RWMTX_LOCKED_EXCLUSIVE 2
 
 
 // A shared-exclusive lock offers two modes of locking:

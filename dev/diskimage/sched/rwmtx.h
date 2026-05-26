@@ -13,9 +13,9 @@
 #include <windows.h>
 
 enum {
-    kSELState_Unlocked = 0,
-    kSELState_LockedShared,
-    kSELState_LockedExclusive
+    _RWMTX_UNLOCKED = 0,
+    _RWMTX_LOCKED_SHARED,
+    _RWMTX_LOCKED_EXCLUSIVE
 };
 
 typedef struct rwmtx {

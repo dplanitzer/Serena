@@ -28,7 +28,7 @@ extern void ResolvedPath_Init(ResolvedPath* _Nonnull self);
 // serve as attachments points for other filesystems.
 typedef struct FsNode {
     FilesystemRef _Nonnull  filesystem;
-    deque_t                    attachmentPoints;   // deque_t<AtNode>
+    deque_t                 attachmentPoints;   // deque_t<AtNode>
 } FsNode;
 
 // Represents a single attachment point in a filesystem. Names the directory and
@@ -72,7 +72,7 @@ final_class_ivars(FileHierarchy, Object,
     rwmtx_t             lock;
     FsNode* _Nonnull    root;
     InodeRef _Nonnull   rootDirectory;
-    deque_t                hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
+    deque_t             hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
 );
 
 

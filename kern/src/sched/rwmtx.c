@@ -20,21 +20,21 @@ void rwmtx_init(rwmtx_t* _Nonnull self)
     cnd_init(&self->cv);
     self->exclusiveOwnerVpId = 0;
     self->ownerCount = 0;
-    self->state = kSELState_Unlocked;
+    self->state = _RWMTX_UNLOCKED;
 }
 
 // Deinitializes a lock.
 void rwmtx_deinit(rwmtx_t* _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    assert(self->state == kSELState_Unlocked);
+    assert(self->state == _RWMTX_UNLOCKED);
     mtx_unlock(&self->mtx);
 
     cnd_deinit(&self->cv);
     mtx_deinit(&self->mtx);
 }
 
-static errno_t _SELock_AcquireSharedLockSlow(rwmtx_t* _Nonnull self)
+static errno_t _rwmtx_rdlock_slow(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
 
@@ -44,8 +44,8 @@ static errno_t _SELock_AcquireSharedLockSlow(rwmtx_t* _Nonnull self)
             break;
         }
 
-        if (self->state == kSELState_Unlocked || self->state == kSELState_LockedShared) {
-            self->state = kSELState_LockedShared;
+        if (self->state == _RWMTX_UNLOCKED || self->state == _RWMTX_LOCKED_SHARED) {
+            self->state = _RWMTX_LOCKED_SHARED;
             self->ownerCount++;
             break;
         }
@@ -64,31 +64,32 @@ errno_t rwmtx_rdlock(rwmtx_t* _Nonnull self)
 
     mtx_lock(&self->mtx);
     switch (self->state) {
-        case kSELState_Unlocked:
-            self->state = kSELState_LockedShared;
+        case _RWMTX_UNLOCKED:
+            self->state = _RWMTX_LOCKED_SHARED;
             self->ownerCount = 1;
             break;
 
-        case kSELState_LockedShared:
-            self->state = kSELState_LockedShared;
+        case _RWMTX_LOCKED_SHARED:
+            self->state = _RWMTX_LOCKED_SHARED;
             self->ownerCount++;
             break;
 
-        case kSELState_LockedExclusive:
+        case _RWMTX_LOCKED_EXCLUSIVE:
             // Someone is holding the lock in exclusive mode -> gotta wait until
             // that guy drops the exclusive lock
-            err = _SELock_AcquireSharedLockSlow(self);
+            err = _rwmtx_rdlock_slow(self);
             break;
 
         default:
-            abort(); break;
+            abort();
+            break;
     }
     mtx_unlock(&self->mtx);
 
     return err;
 }
 
-static errno_t _SELock_AcquireExclusiveLockSlow(rwmtx_t* _Nonnull self)
+static errno_t _rwmtx_wrlock_slow(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
 
@@ -98,8 +99,8 @@ static errno_t _SELock_AcquireExclusiveLockSlow(rwmtx_t* _Nonnull self)
             break;
         }
 
-        if (self->state == kSELState_Unlocked) {
-            self->state = kSELState_LockedExclusive;
+        if (self->state == _RWMTX_UNLOCKED) {
+            self->state = _RWMTX_LOCKED_EXCLUSIVE;
             self->ownerCount = 1;
             self->exclusiveOwnerVpId = vcpu_current_id();
             break;
@@ -118,22 +119,22 @@ errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self)
 
     mtx_lock(&self->mtx);
     switch (self->state) {
-        case kSELState_Unlocked:
-            self->state = kSELState_LockedExclusive;
+        case _RWMTX_UNLOCKED:
+            self->state = _RWMTX_LOCKED_EXCLUSIVE;
             self->ownerCount = 1;
             self->exclusiveOwnerVpId = vcpu_current_id();
             break;
 
-        case kSELState_LockedShared:
-            _SELock_AcquireExclusiveLockSlow(self);
+        case _RWMTX_LOCKED_SHARED:
+            _rwmtx_wrlock_slow(self);
             break;
 
-        case kSELState_LockedExclusive:
+        case _RWMTX_LOCKED_EXCLUSIVE:
             if (self->exclusiveOwnerVpId == vcpu_current_id()) {
                 self->ownerCount++;
             }
             else {
-                err = _SELock_AcquireExclusiveLockSlow(self);
+                err = _rwmtx_wrlock_slow(self);
             }
             break;
 
@@ -154,10 +155,10 @@ errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
 
     mtx_lock(&self->mtx);
     switch (self->state) {
-        case kSELState_LockedShared:
+        case _RWMTX_LOCKED_SHARED:
             if (self->ownerCount == 1) {
                 self->ownerCount = 0;
-                self->state = kSELState_Unlocked;
+                self->state = _RWMTX_UNLOCKED;
                 doBroadcast = true;
             }
             else {
@@ -165,7 +166,7 @@ errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
             }
             break;
 
-        case kSELState_LockedExclusive:
+        case _RWMTX_LOCKED_EXCLUSIVE:
             if (self->exclusiveOwnerVpId != vcpu_current_id()) {
                 err = EPERM;
             }
@@ -173,7 +174,7 @@ errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
                 if (self->ownerCount == 1) {
                     self->ownerCount = 0;
                     self->exclusiveOwnerVpId = 0;
-                    self->state = kSELState_Unlocked;
+                    self->state = _RWMTX_UNLOCKED;
                     doBroadcast = true;
                 }
                 else {
@@ -182,7 +183,7 @@ errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
             }
             break;
 
-        case kSELState_Unlocked:
+        case _RWMTX_UNLOCKED:
             err = EPERM;
             break;
 

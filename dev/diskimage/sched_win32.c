@@ -71,7 +71,7 @@ errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const nanotime_t* _Nonnull de
 void rwmtx_init(rwmtx_t* self)
 {
     InitializeSRWLock(&self->lock);
-    self->state = kSELState_Unlocked;
+    self->state = _RWMTX_UNLOCKED;
 }
 
 void rwmtx_deinit(rwmtx_t* self)
@@ -81,28 +81,28 @@ void rwmtx_deinit(rwmtx_t* self)
 errno_t rwmtx_rdlock(rwmtx_t* self)
 {
     AcquireSRWLockShared(&self->lock);
-    self->state = kSELState_LockedShared;
+    self->state = _RWMTX_LOCKED_SHARED;
     return EOK;
 }
 
 errno_t rwmtx_wrlock(rwmtx_t* self)
 {
     AcquireSRWLockExclusive(&self->lock);
-    self->state = kSELState_LockedExclusive;
+    self->state = _RWMTX_LOCKED_EXCLUSIVE;
     return EOK;
 }
 
 errno_t rwmtx_unlock(rwmtx_t* self)
 {
     switch (self->state) {
-        case kSELState_Unlocked:
+        case _RWMTX_UNLOCKED:
             return EPERM;
 
-        case kSELState_LockedShared:
+        case _RWMTX_LOCKED_SHARED:
             ReleaseSRWLockShared(&self->lock);
             break;
 
-        case kSELState_LockedExclusive:
+        case _RWMTX_LOCKED_EXCLUSIVE:
             ReleaseSRWLockExclusive(&self->lock);
             break;
 

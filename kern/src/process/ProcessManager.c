@@ -80,7 +80,7 @@ static bool _has_session_leader(ProcessManagerRef _Nonnull _Locked self, pid_t s
     return (p->sid == sid) ? true : false;
 }
 
-static errno_t _publish_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull pp)
+static errno_t _register_process(ProcessManagerRef _Nonnull _Locked self, ProcessRef _Nonnull pp)
 {
     // Validate parameters:
     // pp->pid == 0
@@ -163,7 +163,7 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    err = _publish_process(self, pp);
+    err = _register_process(self, pp);
     if (err == EOK) {
         // Take a strong reference out on the new process
         Process_Retain(pp);
