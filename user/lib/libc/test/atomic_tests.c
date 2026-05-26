@@ -1,13 +1,13 @@
 //
 //  atomic_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/4/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include <ext/atomic.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void atomic_test(int argc, char *argv[])

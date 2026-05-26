@@ -1,6 +1,6 @@
 //
 //  scanf_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 3/2/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,7 @@
 #include <limits.h>
 #include <ext/stdlib.h>
 #include <string.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void scanf_test(int argc, char *argv[])

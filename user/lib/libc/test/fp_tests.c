@@ -1,6 +1,6 @@
 //
 //  fp_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 2/6/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.

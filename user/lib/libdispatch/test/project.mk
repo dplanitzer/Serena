@@ -3,7 +3,7 @@
 #
 
 DQ_TEST_SOURCES_DIR := $(DQ_TEST_PROJECT_DIR)
-DQ_TEST_OBJS_DIR := $(OBJS_DIR)/libdispatch_test
+DQ_TEST_OBJS_DIR := $(LIB_OBJS_DIR)/libdispatch/test
 
 DQ_TEST_C_SOURCES := $(wildcard $(DQ_TEST_SOURCES_DIR)/*.c)
 DQ_TEST_OBJS := $(patsubst $(DQ_TEST_SOURCES_DIR)/%.c, $(DQ_TEST_OBJS_DIR)/%.o, $(DQ_TEST_C_SOURCES))

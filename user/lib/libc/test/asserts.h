@@ -1,13 +1,13 @@
 //
-//  Asserts.h
-//  Kernel Tests
+//  asserts.h
+//  C Tests
 //
-//  Created by Dietmar Planitzer on 1/30/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/26/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Asserts_h
-#define Asserts_h 1
+#ifndef ASSERTS_H
+#define ASSERTS_H 1
 
 #include <_cmndef.h>
 #include <errno.h>
@@ -49,4 +49,4 @@ extern void Assert(const char* _Nonnull pFuncname, int lineNum, const char* _Non
 
 __CPP_END
 
-#endif /* Asserts_h */
+#endif /* ASSERTS_H */

@@ -1,6 +1,6 @@
 //
 //  int32_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 12/28/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,7 @@
 #include <limits.h>
 #include <ext/stdlib.h>
 #include <string.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void int32_test(int argc, char *argv[])

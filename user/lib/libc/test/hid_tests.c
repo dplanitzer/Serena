@@ -1,6 +1,6 @@
 //
 //  hid_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
@@ -17,7 +17,7 @@
 #include <serena/hid_event.h>
 #include <serena/hid_keys.h>
 #include <serena/ioctl.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
     (uint16_t)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\

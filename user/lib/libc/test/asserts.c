@@ -1,9 +1,9 @@
 //
-//  Asserts.c
-//  Kernel Tests
+//  asserts.c
+//  C Tests
 //
-//  Created by Dietmar Planitzer on 1/30/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/26/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include <stdarg.h>

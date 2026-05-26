@@ -1,13 +1,13 @@
 //
 //  rc_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/5/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include <ext/rc.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void rc_test(int argc, char *argv[])

@@ -1,6 +1,6 @@
 //
-//  kern_tests.c
-//  Kernel Tests
+//  syscall_tests.c
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/11/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <kpi/syscall.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void kern_test(int argc, char *argv[])

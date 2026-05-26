@@ -1,6 +1,6 @@
 //
 //  sig_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 5/03/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -11,7 +11,7 @@
 #include <string.h>
 #include <serena/process.h>
 #include <serena/signal.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////

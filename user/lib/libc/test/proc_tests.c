@@ -1,6 +1,6 @@
 //
 //  proc_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 7/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
@@ -15,7 +15,7 @@
 #include <serena/process.h>
 #include <serena/vcpu.h>
 #include <serena/vcpu_acquire.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////

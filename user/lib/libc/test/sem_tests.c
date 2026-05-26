@@ -1,6 +1,6 @@
 //
 //  sem_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 7/8/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
@@ -17,7 +17,7 @@
 #include <serena/clock.h>
 #include <serena/process.h>
 #include <serena/sem.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 // See: https://medium.com/swlh/the-dining-philosophers-problem-solution-in-c-90e2593f64e8
 #define NUM 5

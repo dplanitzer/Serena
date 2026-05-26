@@ -1,6 +1,6 @@
 //
 //  main.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 7/9/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

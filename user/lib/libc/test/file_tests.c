@@ -1,6 +1,6 @@
 //
 //  file_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 11/22/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void overwrite_file_test(int argc, char *argv[])

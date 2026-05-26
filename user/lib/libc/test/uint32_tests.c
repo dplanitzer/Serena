@@ -1,6 +1,6 @@
 //
 //  uint32_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/1/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #include <ext/stdlib.h>
 #include <string.h>
 #include <ext/bit.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void uint32_test(int argc, char *argv[])

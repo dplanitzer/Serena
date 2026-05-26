@@ -1,6 +1,6 @@
 //
 //  pipe_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 2/20/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -16,7 +16,7 @@
 #include <serena/clock.h>
 #include <serena/pipe.h>
 #include <serena/process.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 static int fds[2];
 static dispatch_t gDispatcher;

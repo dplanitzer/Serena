@@ -1,6 +1,6 @@
 //
 //  mem_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/10/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 static bool has_value(char* p, char ch, size_t count)

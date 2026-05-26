@@ -1,6 +1,6 @@
 //
 //  stdio_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 1/30/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 void fopen_memory_fixed_size_test(int argc, char *argv[])

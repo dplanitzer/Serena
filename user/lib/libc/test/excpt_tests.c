@@ -1,6 +1,6 @@
 //
 //  excpt_tests.c
-//  Kernel Tests
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 5/03/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <serena/exception.h>
 #include <serena/vcpu.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////

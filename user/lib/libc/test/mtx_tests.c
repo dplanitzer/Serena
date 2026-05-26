@@ -1,6 +1,6 @@
 //
-//  mutex_tests.c
-//  Kernel Tests
+//  mtx_tests.c
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 8/24/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -15,7 +15,7 @@
 #include <ext/math.h>
 #include <ext/nanotime.h>
 #include <serena/mtx.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 #define NUM_WORKERS     16

@@ -1,6 +1,6 @@
 //
-//  str_tests.c
-//  Kernel Tests
+//  string_tests.c
+//  C Tests
 //
 //  Created by Dietmar Planitzer on 2/28/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <ext/string.h>
-#include "Asserts.h"
+#include "asserts.h"
 
 
 static bool str_equ(const char * _Nonnull lhs, const char * _Nonnull rhs)
