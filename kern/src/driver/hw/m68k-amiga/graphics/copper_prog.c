@@ -111,6 +111,12 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     assert((fb && fb->planeCount < PLANE_COUNT) || (fb == NULL));
 
 
+    // We wait here so that the Copper program editing code gets more time to
+    // change sprite pointers before the Copper program pokes them into the DMA
+    // registers. 
+    *ip++ = COP_WAIT(17, 0);
+
+    
     // CLUT
     if (locs) {
         locs->clut = ip - orig;
@@ -118,13 +124,6 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
         *ip++ = COP_MOVE(r, clut->entry[i]);
     }
-
-
-    // SPRxPTR/BPLxPTR DMA Barrier
-    // We wait here so that the Copper program editing code gets more time to
-    // change sprite pointers before this program pokes them into the DMA
-    // registers. 
-    *ip++ = COP_WAIT(20, 0, 0xff, 0);
 
 
     // SPRxPT
