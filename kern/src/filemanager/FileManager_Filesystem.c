@@ -73,7 +73,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     }
     else {
         *pOutFs = NULL;
-        return ENOENT;
+        return ENOFS;
     }
 
     *pOutFs = Object_RetainAs(fs, Filesystem);
