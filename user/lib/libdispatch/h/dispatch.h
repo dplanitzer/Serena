@@ -300,13 +300,17 @@ extern void dispatch_free_signal(dispatch_t _Nonnull self, int signo);
 // SIG_TARGET_VCPU_GROUP.
 extern vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self);
 
-// Sends the signal 'signo' to the dispatcher. 'signo' should have been allocated
-// with the dispatch_alloc_signal() function. Calling this function is slightly
-// preferred over the alternative of calling sig_send() and passing the vcpu
-// group id of the dispatcher retrieved by calling dispatch_signal_target(). The
-// reason is that this function is able to apply some optimizations to the signal
-// sending process that sig_send() can not.
+// Sends the signal 'signo' to a single vcpu controlled by the dispatcher 'self'.
+// 'signo' should have been allocated with the dispatch_alloc_signal() function.
+// Calling this function is slightly preferred over the alternative of calling
+// sig_send() and passing the vcpu group id of the dispatcher retrieved by
+// calling dispatch_signal_target(). The reason is that this function is able to
+// apply some optimizations to the signal sending process that sig_send() can not.
 extern int dispatch_send_signal(dispatch_t _Nonnull self, int signo);
+
+// Sends the signal 'signo' to all vcpus controlled by the dispatcher 'self'.
+// Otherwise works like 'dispatch_send_signal()'.
+extern int dispatch_broadcast_signal(dispatch_t _Nonnull self, int signo);
 
 
 // Cancels a scheduled work item or timer and removes it from the dispatcher.

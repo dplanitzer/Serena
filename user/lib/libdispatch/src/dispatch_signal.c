@@ -222,7 +222,7 @@ vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self)
     return id;
 }
 
-int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
+static int _dispatch_send_signal(dispatch_t _Nonnull self, int signo, bool broadcast)
 {
     vcpuid_t id;
     int r, target;
@@ -239,10 +239,20 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     }
     else {
         id = self->group_id;
-        target = SIG_TARGET_VCPU_GROUP;
+        target = (broadcast) ? SIG_TARGET_VCPU_GROUP : SIG_TARGET_VCPU_GROUP_ASAM;
     }
 
     r = sig_send(target, id, signo);
     mtx_unlock(&self->mutex);
     return r;
+}
+
+int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
+{
+    return _dispatch_send_signal(self, signo, false);
+}
+
+int dispatch_broadcast_signal(dispatch_t _Nonnull self, int signo)
+{
+    return _dispatch_send_signal(self, signo, true);
 }

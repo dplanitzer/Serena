@@ -49,6 +49,7 @@ SYSCALL_3(sig_send, int target, id_t id, int signo)
     switch (target) {
         case SIG_TARGET_VCPU:
         case SIG_TARGET_VCPU_GROUP:
+        case SIG_TARGET_VCPU_GROUP_ASAM:
             // Targeting myself
             return Process_ReceiveInternalSignal(pp, target, pa->id, pa->signo);
 

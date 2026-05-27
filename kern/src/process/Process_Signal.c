@@ -197,7 +197,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
     }
 }
 
-static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self, id_t id, int signo)
+static errno_t _proc_broadcast_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self, id_t id, int signo)
 {
     bool hasMatch = false;
 
@@ -213,6 +213,34 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
     )
 
     return (hasMatch) ? EOK : ESRCH;
+}
+
+static errno_t _proc_send_signal_to_vcpu_group_asam(ProcessRef _Nonnull _Locked self, id_t id, int signo)
+{
+    // 1. Pass: send signal to a waiting vcpu
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
+
+        if (cvp->group_id == id && cvp->run_state == VCPU_STATE_WAITING) {
+            vcpu_send_signal(cvp, signo);
+            return EOK;
+        }
+    )
+
+
+    // 2.Pass: send the signal to any vcpu, no matter what its state is
+    //XXX don't just always dump it at the first group member. Choose one pseudo
+    //XXX randomly to spread out the load.
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
+
+        if (cvp->group_id == id) {
+            vcpu_send_signal(cvp, signo);
+            return EOK;
+        }
+    )
+
+    return ESRCH;
 }
 
 // Routes signal 'signo' to all vcpus and vcpu groups that are interested in
@@ -232,7 +260,7 @@ static bool _proc_route_signal(ProcessRef _Nonnull _Locked self, int signo)
                     break;
 
                 case SIG_TARGET_VCPU_GROUP:
-                    _proc_send_signal_to_vcpu_group(self, it->target_id, signo);
+                    _proc_broadcast_signal_to_vcpu_group(self, it->target_id, signo);
                     break;
 
                 default:
@@ -344,7 +372,11 @@ errno_t Process_ReceiveInternalSignal(ProcessRef _Nonnull self, int target, vcpu
                 break;
 
             case SIG_TARGET_VCPU_GROUP:
-                err = _proc_send_signal_to_vcpu_group(self, vid, signo);
+                err = _proc_broadcast_signal_to_vcpu_group(self, vid, signo);
+                break;
+
+            case SIG_TARGET_VCPU_GROUP_ASAM:
+                err = _proc_send_signal_to_vcpu_group_asam(self, vid, signo);
                 break;
 
             case SIG_TARGET_PROC:

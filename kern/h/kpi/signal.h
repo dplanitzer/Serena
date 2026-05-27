@@ -80,13 +80,14 @@ typedef volatile int sig_atomic_t;
 #define sig_bit(__signo) (1 << ((__signo) - 1))
 
 
-#define SIG_TARGET_VCPU             0   /* vcpu inside this process */
-#define SIG_TARGET_VCPU_GROUP       1   /* vcpu group inside this process */
-#define SIG_TARGET_PROC             2   /* process with pid */
-#define SIG_TARGET_PROC_CHILDREN    3   /* all immediate children of process with pid */
-#define SIG_TARGET_PROC_GROUP       4   /* all processes in group with process group id */
+#define SIG_TARGET_VCPU             0   /* specific vcpu inside this process */
+#define SIG_TARGET_VCPU_GROUP       1   /* all members of the vcpu group inside this process */
+#define SIG_TARGET_VCPU_GROUP_ASAM  2   /* auto-select a single member of the vcpu group */
+#define SIG_TARGET_PROC             3   /* specific process */
+#define SIG_TARGET_PROC_CHILDREN    4   /* all immediate children of the process with a specific pid */
 #define SIG_TARGET_PROC_PARENT      5   /* parent of process calling sig_send() */
-#define SIG_TARGET_SESSION          6   /* all processes in this session */
+#define SIG_TARGET_PROC_GROUP       6   /* all processes in group with process group id */
+#define SIG_TARGET_SESSION          7   /* all processes in this session */
 
 #define SIG_ROUTE_DEL   0
 #define SIG_ROUTE_ADD   1

@@ -221,7 +221,7 @@ vcpuid_t kdispatch_signal_target(kdispatch_t _Nonnull self)
     return id;
 }
 
-errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
+static errno_t _kdispatch_send_signal(kdispatch_t _Nonnull self, int signo, bool broadcast)
 {
     decl_try_err();
     vcpuid_t id;
@@ -235,12 +235,40 @@ errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
     if (self->attr.maxConcurrency == 1 && self->workers.first) {
         vcpu_send_signal(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
     }
-    else {
+    else if (broadcast) {
         deque_for_each(&self->workers, struct kdispatch_worker, it,
             vcpu_send_signal(it->vcpu, signo);
         )
     }
+    else {
+        bool done = false;
+
+        // 1. pass: pick a waiting vcpu
+        deque_for_each(&self->workers, struct kdispatch_worker, it,
+            if (it->vcpu->run_state == VCPU_STATE_WAITING) {
+                vcpu_send_signal(it->vcpu, signo);
+                done = true;
+                break;
+            }
+        )
+
+        // 2.pass pick any vcpu
+        //XXX be smarter about this to spread the load
+        if (!done && !deque_empty(&self->workers)) {
+            vcpu_send_signal(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
+        }
+    }
 
     mtx_unlock(&self->mutex);
     return EOK;
+}
+
+errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
+{
+    return _kdispatch_send_signal(self, signo, false);
+}
+
+errno_t kdispatch_broadcast_signal(kdispatch_t _Nonnull self, int signo)
+{
+    return _kdispatch_send_signal(self, signo, true);
 }
