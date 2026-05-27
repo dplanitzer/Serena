@@ -32,7 +32,7 @@ typedef struct mem_desc {
 } mem_desc_t;
 
 typedef struct mem_layout {
-    int         desc_count;
+    size_t      desc_count;
     mem_desc_t  desc[MEM_DESC_CAPACITY];
 } mem_layout_t;
 

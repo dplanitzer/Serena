@@ -40,6 +40,11 @@ errno_t PlatformController_detectDevices(PlatformControllerRef _Nonnull _Locked 
     return EOK;
 }
 
+uint64_t PlatformController_getPhysicalMemorySize(PlatformControllerRef _Nonnull self)
+{
+    return 0ull;
+}
+
 const struct SMG_Header* _Nullable PlatformController_getBootImage(PlatformControllerRef _Nonnull self)
 {
     return EOK;
@@ -49,5 +54,6 @@ const struct SMG_Header* _Nullable PlatformController_getBootImage(PlatformContr
 class_func_defs(PlatformController, Driver,
 override_func_def(onStart, PlatformController, Driver)
 func_def(detectDevices, PlatformController)
+func_def(getPhysicalMemorySize, PlatformController)
 func_def(getBootImage, PlatformController)
 );

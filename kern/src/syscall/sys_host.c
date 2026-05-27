@@ -10,6 +10,7 @@
 #include <hal/clock.h>
 #include <hal/sys_desc.h>
 #include <kpi/host.h>
+#include <driver/PlatformController.h>
 #include <filemanager/FilesystemManager.h>
 #include <process/ProcessManager.h>
 #include <sched/vcpu_pool.h>
@@ -29,7 +30,7 @@ SYSCALL_2(host_info, int flavor, host_info_ref _Nonnull info)
             ip->physical_max_cpu_count = 1;
             ip->logical_cpu_count = 1;
             ip->logical_max_cpu_count = 1;
-            ip->phys_mem_size = sys_desc_getramsize(g_sys_desc);
+            ip->phys_mem_size = PlatformController_GetPhysicalMemorySize(gPlatformController);
             ip->page_size = CPU_PAGE_SIZE;
             break;
         }

@@ -30,6 +30,13 @@ open_class_funcs(PlatformController, Driver,
     // Default Behavior: Does nothing and returns EOK
     errno_t (*detectDevices)(void* _Nonnull self);
 
+    // Override in a subclass to return the amount of physical RAM in the machine.
+    // This is the RAM o the motherboard and all expansion boards that is useable
+    // by Serena OS.
+    // Override: Required
+    // Default Behavior: Returns 0
+    uint64_t (*getPhysicalMemorySize)(void* _Nonnull self);
+
     // Override in a subclass to return a Rom-based disk image from which to boot
     // the system off. Return NULL if no such image exists and the system should
     // boot off eg a disk instead.
@@ -49,6 +56,9 @@ extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Null
 
 #define PlatformController_DetectDevices(__self) \
 invoke_0(detectDevices, PlatformController, __self)
+
+#define PlatformController_GetPhysicalMemorySize(__self) \
+invoke_0(getPhysicalMemorySize, PlatformController, __self)
 
 #define PlatformController_GetBootImage(__self) \
 invoke_0(getBootImage, PlatformController, __self)

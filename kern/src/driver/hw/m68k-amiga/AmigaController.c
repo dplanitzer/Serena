@@ -14,12 +14,15 @@
 #include <driver/hw/m68k-amiga/hid/GamePortController.h>
 #include <driver/hw/m68k-amiga/hid/KeyboardDriver.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroController.h>
+#include <driver/hw/m68k-amiga/zorro/ZorroDriver.h>
 #include <hal/cpu.h>
+#include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kpi/smg.h>
 
 
 final_class_ivars(AmigaController, PlatformController,
+    ZorroControllerRef _Nonnull zorroController;
 );
 
 // This function effectively "leaks" drivers when it fails. This doesn't matter
@@ -58,12 +61,35 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
 
 
     // Zorro Bus
-    ZorroControllerRef zorroController = NULL;
-    try(ZorroController_Create(&zorroController));
-    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)zorroController, slotId++));
+    try(ZorroController_Create(&self->zorroController));
+    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)self->zorroController, slotId++));
 
 catch:
     return err;
+}
+
+uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull self)
+{
+    uint64_t msize = 0;
+
+    // Get the motherboard RAM
+    msize += sys_desc_getramsize(g_sys_desc);
+
+
+    // Look for RAM expansion boards o the Zorro bus. Only pick up RAM expansions
+    // that were properly detected and where a ZRamDriver instance has been
+    // assigned.
+    const size_t nboards = Driver_GetChildCount((DriverRef)self->zorroController);
+    for (size_t i = 0; i < nboards; i++) {
+        DriverRef drv = Driver_GetChildAt((DriverRef)self->zorroController, i);
+        const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(drv);
+
+        if (cfg->type == ZORRO_TYPE_RAM && Driver_GetChildCount(drv) > 0) {
+            msize += cfg->logicalSize;
+        }
+    }
+
+    return msize;
 }
 
 // Scans the ROM area following the end of the kernel looking for an embedded
@@ -93,5 +119,6 @@ const struct SMG_Header* _Nullable AmigaController_getBootImage(struct AmigaCont
 
 class_func_defs(AmigaController, PlatformController,
 override_func_def(detectDevices, AmigaController, PlatformController)
+override_func_def(getPhysicalMemorySize, AmigaController, PlatformController)
 override_func_def(getBootImage, AmigaController, PlatformController)
 );

@@ -259,7 +259,7 @@ size_t sys_desc_getramsize(const sys_desc_t* _Nonnull self)
 {
     size_t size = 0;
 
-    for (int i = 0; i < self->motherboard_ram.desc_count; i++) {
+    for (size_t i = 0; i < self->motherboard_ram.desc_count; i++) {
         size += (self->motherboard_ram.desc[i].upper - self->motherboard_ram.desc[i].lower);
     }
 
