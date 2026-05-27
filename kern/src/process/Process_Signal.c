@@ -193,7 +193,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
         return EOK;
     }
     else {
-        return ESRCH;
+        return ENOVCPU;
     }
 }
 
@@ -212,7 +212,7 @@ static errno_t _proc_broadcast_signal_to_vcpu_group(ProcessRef _Nonnull _Locked 
         }
     )
 
-    return (hasMatch) ? EOK : ESRCH;
+    return (hasMatch) ? EOK : ENOVCPU;
 }
 
 static errno_t _proc_send_signal_to_vcpu_group_asam(ProcessRef _Nonnull _Locked self, id_t id, int signo)
@@ -240,7 +240,7 @@ static errno_t _proc_send_signal_to_vcpu_group_asam(ProcessRef _Nonnull _Locked 
         }
     )
 
-    return ESRCH;
+    return ENOVCPU;
 }
 
 // Routes signal 'signo' to all vcpus and vcpu groups that are interested in

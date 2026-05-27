@@ -288,7 +288,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     vcpu_t cur_vp = vcpu_current();
 
     if (self == g_sched->idle_vp || self == g_sched->boot_vp) {
-        throw(ESRCH);
+        throw(EINVAL);
     }
     if (!vcpu_is_user(self) && self != cur_vp) {
         // no involuntary suspension of kernel owned VPs
@@ -382,7 +382,7 @@ errno_t vcpu_state(vcpu_t _Nonnull self, int flavor, vcpu_state_ref _Nonnull sta
 
     if (_VCPU_IS_EXCPT_FLAVOR(flavor)) {
         if (!vcpu_is_handling_exception(self)) {
-            return ESRCH;
+            return EINVAL;
         }
 
         flavor = _VCPU_STRIP_EXCPT_FLAVOR(flavor);
@@ -459,7 +459,7 @@ errno_t vcpu_set_state(vcpu_t _Nonnull self, int flavor, const vcpu_state_ref _N
 
     if (_VCPU_IS_EXCPT_FLAVOR(flavor)) {
         if (!vcpu_is_handling_exception(self)) {
-            return ESRCH;
+            return EINVAL;
         }
 
         flavor = _VCPU_STRIP_EXCPT_FLAVOR(flavor);
@@ -534,7 +534,7 @@ errno_t vcpu_info(vcpu_t _Nonnull self, int flavor, vcpu_info_ref _Nonnull info)
                 ip->size = self->user_stack.size;
             }
             else {
-                err = ESRCH;
+                err = EINVAL;
             }
             break;
         }

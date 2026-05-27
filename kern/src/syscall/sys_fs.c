@@ -231,7 +231,7 @@ SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)
         Object_Release(fsp);
     }
     else {
-        err = ESRCH;
+        err = ENOFS;
     }
 
     return err;
@@ -253,7 +253,7 @@ SYSCALL_4(fs_property, fsid_t fsid, int flavor, char* _Nonnull buf, size_t bufSi
                 Object_Release(fsp);
             }
             else {
-                err = ESRCH;
+                err = ENOFS;
             }
             break;
         }
@@ -282,7 +282,7 @@ SYSCALL_2(fs_setlabel, fsid_t fsid, const char* _Nonnull label)
         Object_Release(fsp);
     }
     else {
-        err = ESRCH;
+        err = ENOFS;
     }
     mtx_unlock(&pp->mtx);
     return err;

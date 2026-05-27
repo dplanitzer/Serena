@@ -54,13 +54,15 @@
 #define ENOTSUP         41
 #define ENXIO           42
 #define ENOTATTACHED    43
+#define ENOFS           44
+#define ENOVCPU         45
 
 #if defined(__KERNEL__)
 #define EABORTED    ETERMINATED
 #endif
 
 #define __EFIRST    1
-#define __ELAST     43
+#define __ELAST     45
 
 #endif /* __KPI_ERRNO_H */
 

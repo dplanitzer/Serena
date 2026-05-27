@@ -871,7 +871,7 @@ int dispatch_await_termination(dispatch_t _Nonnull self)
         case _DISPATCHER_STATE_ACTIVE:
         case _DISPATCHER_STATE_SUSPENDING:
         case _DISPATCHER_STATE_SUSPENDED:
-            errno = ESRCH;
+            errno = EINVAL;
             r = -1;
             break;
 

@@ -821,7 +821,7 @@ errno_t kdispatch_await_termination(kdispatch_t _Nonnull self)
         case _DISPATCHER_STATE_ACTIVE:
         case _DISPATCHER_STATE_SUSPENDING:
         case _DISPATCHER_STATE_SUSPENDED:
-            err = ESRCH;
+            err = EINVAL;
             break;
 
         case _DISPATCHER_STATE_TERMINATING:

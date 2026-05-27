@@ -53,8 +53,10 @@ ETERMINATED     equ 40
 ENOTSUP         equ 41
 ENXIO           equ 42
 ENOTATTACHED    equ 43
+ENOFS           equ 44
+ENOVCPU         equ 45
 
 __EFIRST    equ 1
-__ELAST     equ 43
+__ELAST     equ 45
 
         endif   ; __ERRNO_I

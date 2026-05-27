@@ -68,7 +68,7 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
             err = vcpu_suspend(vcp);
         }
         else {
-            err = ESRCH;
+            err = ENOVCPU;
         }
         mtx_unlock(&pp->mtx);
     }
@@ -88,7 +88,7 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
         vcpu_resume(vcp, false);
     }
     else {
-        err = ESRCH;
+        err = ENOVCPU;
     }
     mtx_unlock(&pp->mtx);
 
@@ -117,7 +117,7 @@ SYSCALL_3(vcpu_policy, vcpuid_t id, int version, vcpu_policy_t* _Nonnull policy)
             err = vcpu_policy(vcp, pa->version, pa->policy);
         }
         else {
-            err = ESRCH;
+            err = ENOVCPU;
         }
         mtx_unlock(&pp->mtx);
     }
@@ -141,7 +141,7 @@ SYSCALL_2(vcpu_setpolicy, vcpuid_t id, const vcpu_policy_t* _Nonnull policy)
             err = vcpu_set_policy(vcp, pa->policy);
         }
         else {
-            err = ESRCH;
+            err = ENOVCPU;
         }
         mtx_unlock(&pp->mtx);
     }
@@ -165,7 +165,7 @@ SYSCALL_3(vcpu_state, vcpuid_t id, int flavor, vcpu_state_ref _Nonnull state)
             err = vcpu_state(vcp, pa->flavor, pa->state);
         }
         else {
-            err = ESRCH;
+            err = ENOVCPU;
         }
         mtx_unlock(&pp->mtx);
     }
@@ -189,7 +189,7 @@ SYSCALL_3(vcpu_setstate, vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull 
             err = vcpu_set_state(vcp, pa->flavor, pa->state);
         }
         else {
-            err = ESRCH;
+            err = ENOVCPU;
         }
         mtx_unlock(&pp->mtx);
     }
@@ -213,7 +213,7 @@ SYSCALL_3(vcpu_info, vcpuid_t id, int flavor, vcpu_info_ref _Nonnull info)
             err = vcpu_info(vcp, pa->flavor, pa->info);
         }
         else {
-            err = ESRCH;
+            err = ENOVCPU;
         }
         mtx_unlock(&pp->mtx);
     }
