@@ -46,17 +46,27 @@ char* fmt_mem_size(uint64_t msize, char* _Nonnull buf)
 {
 #define N_UNITS 4
     static const char* postfix[N_UNITS] = { "", "K", "M", "G" };
-    int pi = 0;
+    uint64_t unit_size = msize;
+    int i = 0;
 
     for (;;) {
-        if (msize < 1024ull || pi == N_UNITS) {
-            ulltoa(msize, buf, 10);
-            strcat(buf, postfix[pi]);
+        if (unit_size < 1024ull || i == N_UNITS) {
+            // Round up if needed. Because i.e. a little bit of RAM may be used 
+            // by the firmware/boot services and we don't want to show 1MB when
+            // there's really 2MB and firmware uses 16KB of it...
+            const uint64_t tmp_size = unit_size << (i * 10);
+
+            if (tmp_size < msize) {
+                unit_size++;
+            }
+            
+            ulltoa(unit_size, buf, 10);
+            strcat(buf, postfix[i]);
             break;
         }
 
-        msize >>= 10ull;
-        pi++;
+        unit_size >>= 10ull;
+        i++;
     }
 
     return buf;

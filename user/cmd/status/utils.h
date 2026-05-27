@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <ext/nanotime.h>
 
-#define FMT_MEM_SIZE_BUFFER_SIZE    __LLONG_MAX_BASE_10_DIGITS + 1
+#define FMT_MEM_SIZE_BUFFER_SIZE    8
 #define FMT_DURATION_BUFFER_SIZE    9
 
 extern void term_cursor_on(bool onOff);
