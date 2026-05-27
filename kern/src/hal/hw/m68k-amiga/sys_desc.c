@@ -166,10 +166,8 @@ static void ramsey_configure(const sys_desc_t* _Nonnull pSysDesc)
     // code.
     bool isA3000 = true;
     switch (pSysDesc->chipset_version) {
-        case CHIPSET_8374_rev2_PAL:
-        case CHIPSET_8374_rev2_NTSC:
-        case CHIPSET_8374_rev3_PAL:
-        case CHIPSET_8374_rev3_NTSC:
+        case AGNUS_8374_rev2:
+        case AGNUS_8374_rev3:
             isA3000 = false;
             break;
     }
@@ -226,7 +224,7 @@ void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesM
     pSysDesc->cpu_type = CPU_TYPE_68K;
     pSysDesc->cpu_subtype = _CPU_68K_DEF(cpu_family, fpu);
 
-    pSysDesc->chipset_version = (int8_t)chipset_get_version();
+    pSysDesc->chipset_version = (int8_t)chipset_get_agnus_version();
     pSysDesc->chipset_ramsey_version = (int8_t)chipset_get_ramsey_version();
     pSysDesc->chipset_upper_dma_limit = chipset_get_upper_dma_limit(pSysDesc->chipset_version);
         

@@ -28,15 +28,17 @@ void chipset_wait_bof(void)
 // Returns true if the machine is a NTSC machine; false if it is a PAL machine
 bool chipset_is_ntsc(void)
 {
-    return (chipset_get_version() & (1 << 4)) != 0;
+    CHIPSET_BASE_DECL(cp);
+
+    return ((*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x10) != 0;
 }
 
 // See: <https://eab.abime.net/showthread.php?t=34838>
-uint8_t chipset_get_version(void)
+uint8_t chipset_get_agnus_version(void)
 {
     CHIPSET_BASE_DECL(cp);
 
-    return (*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x7f;
+    return (*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x6f;
 }
 
 uint8_t chipset_get_ramsey_version(void)
@@ -54,21 +56,17 @@ uint8_t chipset_get_ramsey_version(void)
     }
 }
 
-char* chipset_get_upper_dma_limit(int chipset_version)
+char* chipset_get_upper_dma_limit(int agnus_version)
 {
     char* p;
 
-    switch (chipset_version) {
-        case CHIPSET_8370_NTSC:             p = (char*) (512 * 1024); break;
-        case CHIPSET_8371_PAL:              p = (char*) (512 * 1024); break;
-        case CHIPSET_8372_rev4_PAL:         p = (char*) (1 * 1024 * 1024); break;
-        case CHIPSET_8372_rev4_NTSC:        p = (char*) (1 * 1024 * 1024); break;
-        case CHIPSET_8372_rev5_NTSC:        p = (char*) (1 * 1024 * 1024); break;
-        case CHIPSET_8374_rev2_PAL:         p = (char*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev2_NTSC:        p = (char*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev3_PAL:         p = (char*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev3_NTSC:        p = (char*) (2 * 1024 * 1024); break;
-        default:                            p = (char*) (2 * 1024 * 1024); break;
+    switch (agnus_version) {
+        case AGNUS_8371:      p = (char*) (512 * 1024); break;
+        case AGNUS_8372_rev4: p = (char*) (1 * 1024 * 1024); break;
+        case AGNUS_8372_rev5: p = (char*) (1 * 1024 * 1024); break;
+        case AGNUS_8374_rev2: p = (char*) (2 * 1024 * 1024); break;
+        case AGNUS_8374_rev3: p = (char*) (2 * 1024 * 1024); break;
+        default:              p = (char*) (2 * 1024 * 1024); break;
     }
 
     return p;

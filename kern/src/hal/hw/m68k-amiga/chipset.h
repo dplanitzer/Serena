@@ -197,24 +197,11 @@
     ((volatile uint32_t*)(cp + r))
 
 
-// 8361 (Regular) or 8370 (Fat) (Agnus-NTSC) = 10, 512KB
-// 8367 (Pal) or 8371 (Fat-Pal) (Agnus-PAL) = 00, 512KB
-// 8372 (Fat-hr) (agnushr),thru rev4 = 20 PAL, 30 NTSC, 1MB
-// 8372 (Fat-hr) (agnushr),rev 5 = 22 PAL, 31 NTSC, 1MB
-// 8374 (Alice) thru rev 2 = 22 PAL, 32 NTSC, 2MB (AA / Pandora Chipset)
-// 8374 (Alice) rev 3 thru rev 4 = 23 PAL, 33 NTSC, 2MB (AA / Pandora Chipset)
-#define CHIPSET_8361_NTSC       0x10
-#define CHIPSET_8367_PAL        0x00
-#define CHIPSET_8370_NTSC       0x10
-#define CHIPSET_8371_PAL        0x00
-#define CHIPSET_8372_rev4_PAL   0x20
-#define CHIPSET_8372_rev4_NTSC  0x30
-#define CHIPSET_8372_rev5_PAL   0x22
-#define CHIPSET_8372_rev5_NTSC  0x31
-#define CHIPSET_8374_rev2_PAL   0x22
-#define CHIPSET_8374_rev2_NTSC  0x32
-#define CHIPSET_8374_rev3_PAL   0x23
-#define CHIPSET_8374_rev3_NTSC  0x33
+#define AGNUS_8371      0x00    /* Also: 8361/8367 Agnus, 8370/8371 Fat Agnus */
+#define AGNUS_8372_rev4 0x20    /* ECS */
+#define AGNUS_8372_rev5 0x21    /* ECS */
+#define AGNUS_8374_rev2 0x22    /* AGA */
+#define AGNUS_8374_rev3 0x23    /* AGA */
 
 
 // Chipset registers
@@ -710,11 +697,11 @@
 
 // Stops all hardware timers and DMAs and stops all interrupts of the platform's
 // motherboard chipset.
-extern uint8_t chipset_get_version(void);
+extern uint8_t chipset_get_agnus_version(void);
 extern uint8_t chipset_get_ramsey_version(void);
 extern void chipset_wait_bof(void);
 extern bool chipset_is_ntsc(void);
-extern char* chipset_get_upper_dma_limit(int chipset_version);
+extern char* chipset_get_upper_dma_limit(int agnus_version);
 
 extern uint32_t chipset_get_hsync_counter(void);
 
