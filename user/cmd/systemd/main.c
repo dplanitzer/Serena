@@ -55,7 +55,7 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 int main(int argc, char *argv[])
 {
     // Mount kernel object catalogs
-    fs_mount(FS_MOUNT_CATALOG, FS_CATALOG_DRIVERS, "/dev", "");
+    fs_mount(FS_MOUNT_CATALOG, FS_CATALOG_DEV, "/dev", "");
 
 
     // Startup login

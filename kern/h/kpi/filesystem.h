@@ -16,7 +16,7 @@
 #define FS_MOUNT_SEFS       "sefs"
 
 // Mountable catalogs
-#define FS_CATALOG_DRIVERS  "dev"
+#define FS_CATALOG_DEV      "dev"
 
 // Unmount flags
 #define FS_UNMOUNT_FORCE    0x0001   /* Force the unmount even if there are still files open */

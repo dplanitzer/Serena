@@ -84,7 +84,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     decl_try_err();
     FilesystemRef fs = NULL;
 
-    if (!strcmp(catalogName, FS_CATALOG_DRIVERS)) {
+    if (!strcmp(catalogName, FS_CATALOG_DEV)) {
         fs = DriverManager_GetCatalog(gDriverManager);
     }
     else {
@@ -179,7 +179,7 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
         const char* name;
 
         if (DriverManager_GetCatalog(gDriverManager)->fsid == fsid) {
-            name = FS_CATALOG_DRIVERS;
+            name = FS_CATALOG_DEV;
         }
         else {
             return EOK;

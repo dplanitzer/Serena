@@ -8,7 +8,7 @@
 
 #include "DriverManager.h"
 #include "Driver.h"
-#include "Catalog.h"
+#include "IOCatalog.h"
 #include <ext/hash.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
@@ -52,7 +52,7 @@ errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSelf)
 
     try(kalloc_cleared(sizeof(struct DriverManager), (void**)&self));
     mtx_init(&self->mtx);
-    try(Catalog_Create(&self->catalog));
+    try(IOCatalog_Create(&self->catalog));
 
 catch:
     *pOutSelf = self;
@@ -61,22 +61,22 @@ catch:
 
 FilesystemRef _Nonnull DriverManager_GetCatalog(DriverManagerRef _Nonnull self)
 {
-    return Catalog_GetFilesystem(self->catalog);
+    return IOCatalog_GetFilesystem(self->catalog);
 }
 
 errno_t DriverManager_Open(DriverManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return Catalog_Open(self->catalog, path, mode, pOutChannel);
+    return IOCatalog_Open(self->catalog, path, mode, pOutChannel);
 }
 
 errno_t DriverManager_HasDriver(DriverManagerRef _Nonnull self, const char* _Nonnull path)
 {
-    return Catalog_IsPublished(self->catalog, path);
+    return IOCatalog_IsPublished(self->catalog, path);
 }
 
 errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
 {
-    return Catalog_AcquireNodeForPath(self->catalog, path, rp);
+    return IOCatalog_AcquireNodeForPath(self->catalog, path, rp);
 }
 
 
@@ -124,7 +124,7 @@ errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Non
     mtx_lock(&self->mtx);
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(self->catalog, parentDirId, de->name, de->uid, de->gid, de->perms, drv, de->arg, &ep->id));
+    try(IOCatalog_PublishDriver(self->catalog, parentDirId, de->name, de->uid, de->gid, de->perms, drv, de->arg, &ep->id));
 
     queue_add_first(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->dirId = parentDirId;
@@ -163,7 +163,7 @@ void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id)
         driver = the_ep->driver;
     }
 
-    Catalog_Unpublish(self->catalog, the_ep->dirId, id);
+    IOCatalog_Unpublish(self->catalog, the_ep->dirId, id);
     queue_remove(the_chain, &prev_ep->qe, &the_ep->qe);
 
     mtx_unlock(&self->mtx);
@@ -175,13 +175,13 @@ void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id)
 
 errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, CatalogId parentDirId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId)
 {
-    return Catalog_PublishFolder(self->catalog, parentDirId, be->name, be->uid, be->gid, be->perms, pOutDirId);
+    return IOCatalog_PublishFolder(self->catalog, parentDirId, be->name, be->uid, be->gid, be->perms, pOutDirId);
 }
 
 errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId dirId)
 {
     if (dirId != kCatalogId_None) {
-        return Catalog_Unpublish(self->catalog, dirId, kCatalogId_None);
+        return IOCatalog_Unpublish(self->catalog, dirId, kCatalogId_None);
     }
     else {
         return EOK;

@@ -1,5 +1,5 @@
 //
-//  Catalog.c
+//  IOCatalog.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/11/24.
@@ -7,7 +7,7 @@
 //
 
 
-#include "Catalog.h"
+#include "IOCatalog.h"
 #include <string.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/kernfs/KernFS.h>
@@ -22,7 +22,7 @@ typedef struct Catalog {
 } Catalog;
 
 
-errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
+errno_t IOCatalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CatalogRef self;
@@ -42,12 +42,12 @@ catch:
     return err;
 }
 
-FilesystemRef _Nonnull Catalog_GetFilesystem(CatalogRef _Nonnull self)
+FilesystemRef _Nonnull IOCatalog_GetFilesystem(CatalogRef _Nonnull self)
 {
     return self->fs;
 }
 
-errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
+errno_t IOCatalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
     ResolvedPath rp;
@@ -58,12 +58,12 @@ errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
     return err;
 }
 
-errno_t Catalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
+errno_t IOCatalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
 {
     return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, rp);
 }
 
-errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOCatalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath rp;
@@ -84,7 +84,7 @@ errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsign
     return err;
 }
 
-static errno_t _Catalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
+static errno_t _IOCatalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
 {
     if (folderId == kCatalogId_None) {
         return Filesystem_AcquireRootDirectory(self->fs, pOutDir);
@@ -94,9 +94,9 @@ static errno_t _Catalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folder
     }
 }
 
-// Publishes a folder with the name 'name' to the catalog. Pass kCatalog_None as
+// Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, CatalogId* _Nonnull pOutFolderId)
+errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, CatalogId* _Nonnull pOutFolderId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -108,7 +108,7 @@ errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId
     pc.name = name;
     pc.count = strlen(name);
 
-    err = _Catalog_AcquireFolder(self, parentFolderId, &pDir);
+    err = _IOCatalog_AcquireFolder(self, parentFolderId, &pDir);
     if (err == EOK) {
         err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, uid, gid, FS_FTYPE_DIR, fsperms, &pNode);
         if (err == EOK) {
@@ -123,7 +123,7 @@ errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId
 }
 
 
-errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId)
+errno_t IOCatalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -134,7 +134,7 @@ errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogI
     }
     
     // Get the bus directory or devfs root
-    err = _Catalog_AcquireFolder(self, folderId, &pDir);
+    err = _IOCatalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
         // Get the parent of the directory or the driver entry
         if (entryId == kCatalogId_None) {
@@ -162,7 +162,7 @@ catch:
 }
 
 
-errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
+errno_t IOCatalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -174,7 +174,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
     pc.name = name;
     pc.count = strlen(name);
 
-    err = _Catalog_AcquireFolder(self, folderId, &pDir);
+    err = _IOCatalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
         err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, arg, uid, gid, fsperms, &pNode);
         if (err == EOK) {

@@ -60,7 +60,7 @@ errno_t kerneld_init(void)
 
     // Mount the driver catalog at /dev
     try(FileManager_CreateDirectory(&gKernelProcess->fm, "/dev", 0550));
-    try(FileManager_Mount(&gKernelProcess->fm, FS_MOUNT_CATALOG, FS_CATALOG_DRIVERS, "/dev", ""));
+    try(FileManager_Mount(&gKernelProcess->fm, FS_MOUNT_CATALOG, FS_CATALOG_DEV, "/dev", ""));
 
 
     // Finally publish kerneld

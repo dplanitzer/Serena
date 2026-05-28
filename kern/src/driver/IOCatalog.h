@@ -1,13 +1,13 @@
 //
-//  Catalog.h
+//  IOIOCatalog.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Catalog_h
-#define Catalog_h
+#ifndef IOIOCatalog_h
+#define IOIOCatalog_h
 
 #include <kobj/Object.h>
 #include <kpi/fs_perms.h>
@@ -23,34 +23,34 @@ typedef uint32_t    CatalogId;
 #define kCatalogId_None   0
 
 
-extern errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);
+extern errno_t IOCatalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);
 
-extern FilesystemRef _Nonnull Catalog_GetFilesystem(CatalogRef _Nonnull self);
+extern FilesystemRef _Nonnull IOCatalog_GetFilesystem(CatalogRef _Nonnull self);
 
 // Returns EOK if an entry  is published at the in-kernel path 'path'. Otherwise
 // ENOENT is returned.
-extern errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path);
+extern errno_t IOCatalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path);
 
 // Looks up the inode for the given path and returns it.
-extern errno_t Catalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
+extern errno_t IOCatalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
 
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
 // returns the resulting channel in 'pOutChannel'. This call does not support
 // opening a folder.
-extern errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOCatalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 
-// Publishes a folder with the name 'name' to the catalog. Pass kCatalog_None as
+// Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-extern errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, CatalogId* _Nonnull pOutFolderId);
+extern errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, CatalogId* _Nonnull pOutFolderId);
 
 
 // Either removes a published entry or a published folder from the catalog.
 // Pass both a folder ID and the entry ID if you want to remove an entry.
 // Note that this removes just the entry and not the published folder. Pass a
-// folder ID and kCatalog_None as the entry ID to remove a folder. Note that the
+// folder ID and kIOCatalog_None as the entry ID to remove a folder. Note that the
 // folder must be empty in order to remove it.
-extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId);
+extern errno_t IOCatalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId);
 
 
 // Publish the driver instance 'drv' with the name 'name' as a child of the
@@ -59,6 +59,6 @@ extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, C
 // Returns a suitable error if another entry with the same name already exists.
 // 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
-extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
+extern errno_t IOCatalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, fs_perms_t fsperms, DriverRef _Nonnull drv, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
 
-#endif /* Catalog_h */
+#endif /* IOIOCatalog_h */
