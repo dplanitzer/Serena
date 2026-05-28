@@ -10,6 +10,7 @@
 #include "IOCatalog.h"
 #include <string.h>
 #include <filemanager/FileHierarchy.h>
+#include <filemanager/FilesystemManager.h>
 #include <filesystem/kernfs/KernFS.h>
 #include <kern/kalloc.h>
 
@@ -30,6 +31,7 @@ errno_t IOCatalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
     try(kalloc_cleared(sizeof(Catalog), (void**) &self));
     
     try(KernFS_Create((KernFSRef*)&self->fs));
+    try(FilesystemManager_RegisterFilesystem(gFilesystemManager, self->fs));
     try(Filesystem_Start(self->fs, ""));
     try(FileHierarchy_Create(self->fs, &self->fh));
     try(Filesystem_AcquireRootDirectory(self->fs, &self->rootDirectory));
