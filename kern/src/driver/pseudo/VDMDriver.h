@@ -11,6 +11,9 @@
 
 #include <driver/pseudo/PseudoDriver.h>
 
+#define VDM_TYPE_RAM        0   /* R/W RAM disk */
+#define VDM_TYPE_REF_ROM    1   /* ROM disk which references static & constant data */
+
 
 final_class(VDMDriver, PseudoDriver);
 class_ref(VDMDriver);
@@ -18,7 +21,6 @@ class_ref(VDMDriver);
 
 extern errno_t VDMDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image);
-extern errno_t VDMDriver_CreateRomDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nonnull image);
+extern errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image);
 
 #endif /* VDMDriver_h */

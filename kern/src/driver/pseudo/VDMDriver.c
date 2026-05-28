@@ -53,22 +53,35 @@ catch:
     return err;
 }
 
-errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image)
+errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image)
 {
     decl_try_err();
     DriverRef dp = NULL;
     IOChannelRef ch = NULL;
-    ssize_t nBytesWritten;
+    ssize_t nBytesToWrite = 0, nBytesWritten;
 
     if (sectorSize == 0 || sectorCount == 0) {
         throw(EIO);
     }
 
-    try(RamDisk_Create(name, sectorSize, sectorCount, 128, (RamDiskRef*)&dp));
+    switch (type) {
+        case VDM_TYPE_RAM:
+            err = RamDisk_Create(name, sectorSize, sectorCount, 128, (RamDiskRef*)&dp);
+            nBytesToWrite = sectorSize * sectorCount;
+            break;
 
-    if (image) {
-        const ssize_t nBytesToWrite = sectorSize * sectorCount;
+        case VDM_TYPE_REF_ROM:
+            err = RomDisk_Create(name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dp);
+            break;
 
+        default:
+            err = EINVAL;
+            break;
+    }
+    throw_iferr(err);
+
+    
+    if (nBytesToWrite > 0 && image) {
         try(Driver_Open(dp, O_WRONLY, 0, &ch));
         try(IOChannel_Write(ch, image, sectorSize * sectorCount, &nBytesWritten));
         if (nBytesWritten != nBytesToWrite) {
@@ -78,25 +91,9 @@ errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull
 
     try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
     
+
 catch:
     IOChannel_Release(ch);
-    Object_Release(dp);
-    return err;
-}
-
-errno_t VDMDriver_CreateRomDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nonnull image)
-{
-    decl_try_err();
-    DriverRef dp = NULL;
-
-    if (sectorSize == 0 || sectorCount == 0) {
-        throw(EIO);
-    }
-
-    try(RomDisk_Create(name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dp));
-    try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
-
-catch:
     Object_Release(dp);
     return err;
 }

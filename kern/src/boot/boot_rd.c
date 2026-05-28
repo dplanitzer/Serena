@@ -36,13 +36,16 @@ void auto_discover_boot_rd(void)
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
     // that the disk image is exactly 64k in size.
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
+    int type;
 
     if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
-        try(VDMDriver_CreateRomDisk(vdm, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
+        type = VDM_TYPE_RAM;
     }
     else {
-        try(VDMDriver_CreateRamDisk(vdm, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
+        type = VDM_TYPE_REF_ROM;
     }
+
+    try(VDMDriver_CreateDisk(vdm, type, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
 
 catch:
     IOChannel_Release(vdmChannel);
