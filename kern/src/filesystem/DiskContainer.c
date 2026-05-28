@@ -8,18 +8,22 @@
 
 #include "DiskContainer.h"
 #include <driver/disk/DiskDriver.h>
+#include <filesystem/Filesystem.h>
+#include <filesystem/Inode.h>
 #include <filesystem/IOChannel.h>
 #include <kpi/file.h>
 
 
-errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskContainer_Create(InodeRef _Locked _Nonnull driverNode, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    IOChannelRef chan = NULL;
     struct DiskContainer* self = NULL;
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDiskInfo, &info));
+    try(Inode_CreateChannel(driverNode, mode, &chan));
+    try(IOChannel_Ioctl(chan, kDiskCommand_GetDiskInfo, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
         flags |= FS_FLAG_READ_ONLY;
@@ -31,59 +35,66 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     //XXX select the disk cache based on FS needs and driver sector size
     DiskCacheRef diskCache = gDiskCache;
     DiskSession s;
-    DiskCache_OpenSession(diskCache, pChannel, &info, &s);
+    DiskCache_OpenSession(diskCache, chan, &info, &s);
 
     try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(diskCache), flags, (FSContainerRef*)&self));
+    self->driverNode = Inode_Reacquire(driverNode);
     self->diskCache = diskCache;
     self->session = s;
 
 catch:
+    IOChannel_Release(chan);
     *pOutSelf = (FSContainerRef)self;
     return err;
 }
 
-void DiskContainer_deinit(struct DiskContainer* _Nonnull self)
+void DiskContainer_deinit(DiskContainerRef _Nonnull self)
 {
     if (self->diskCache) {
         DiskCache_CloseSession(self->diskCache, &self->session);
         self->diskCache = NULL;
+        Inode_Relinquish(self->driverNode);
     }
 }
 
-void DiskContainer_disconnect(struct DiskContainer* _Nonnull self)
+void DiskContainer_disconnect(DiskContainerRef _Nonnull self)
 {
     DiskCache_Sync(self->diskCache, &self->session);
     DiskCache_CloseSession(self->diskCache, &self->session);
 }
 
+InodeRef _Nonnull DiskContainer_GetDriverNode(DiskContainerRef _Nonnull self)
+{
+    return self->driverNode;
+}
 
-errno_t DiskContainer_mapBlock(struct DiskContainer* _Nonnull self, blkno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t DiskContainer_mapBlock(DiskContainerRef _Nonnull self, blkno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     return DiskCache_MapBlock(self->diskCache, &self->session, lba, mode, blk);
 }
 
-errno_t DiskContainer_unmapBlock(struct DiskContainer* _Nonnull self, intptr_t token, WriteBlock mode)
+errno_t DiskContainer_unmapBlock(DiskContainerRef _Nonnull self, intptr_t token, WriteBlock mode)
 {
     return DiskCache_UnmapBlock(self->diskCache, &self->session, token, mode);
 }
 
-errno_t DiskContainer_prefetchBlock(struct DiskContainer* _Nonnull self, blkno_t lba)
+errno_t DiskContainer_prefetchBlock(DiskContainerRef _Nonnull self, blkno_t lba)
 {
     return DiskCache_PrefetchBlock(self->diskCache, &self->session, lba);
 }
 
 
-errno_t DiskContainer_syncBlock(struct DiskContainer* _Nonnull self, blkno_t lba)
+errno_t DiskContainer_syncBlock(DiskContainerRef _Nonnull self, blkno_t lba)
 {
     return DiskCache_SyncBlock(self->diskCache, &self->session, lba);
 }
 
-errno_t DiskContainer_sync(struct DiskContainer* _Nonnull self)
+errno_t DiskContainer_sync(DiskContainerRef _Nonnull self)
 {
     return DiskCache_Sync(self->diskCache, &self->session);
 }
 
-errno_t DiskContainer_getDiskInfo(struct DiskContainer* _Nonnull self, disk_info_t* _Nonnull info)
+errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
     return IOChannel_Ioctl(self->session.channel, kDiskCommand_GetDiskInfo, info);
 }

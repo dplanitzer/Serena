@@ -24,6 +24,7 @@ class_ref(ConsoleChannel);
 class_ref(Console);
 class_ref(DiskBlock);
 class_ref(DiskCache);
+class_ref(DiskContainer);
 class_ref(DiskDriver);
 class_ref(DisplayDriver);
 class_ref(Driver);

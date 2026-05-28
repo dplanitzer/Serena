@@ -22,7 +22,6 @@
 typedef struct fsentry {
     deque_node_t            node;
     FilesystemRef _Nonnull  fs;
-    InodeRef _Nonnull       driverNode;
 } fsentry_t;
 
 static void fsentry_destroy(fsentry_t* _Nullable self)
@@ -30,31 +29,20 @@ static void fsentry_destroy(fsentry_t* _Nullable self)
     if (self) {
         Object_Release(self->fs);
         self->fs = NULL;
-
-        if (self->driverNode) {
-            Inode_Relinquish(self->driverNode);
-            self->driverNode = NULL;
-        }
-
         kfree(self);    
     }
 }
 
-static errno_t fsentry_create(FilesystemRef _Consuming _Nonnull fs, InodeRef _Nonnull driverNode, fsentry_t* _Nullable * _Nonnull pOutSelf)
+static errno_t fsentry_create(FilesystemRef _Consuming _Nonnull fs, fsentry_t* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     fsentry_t* self;
 
     try(kalloc_cleared(sizeof(fsentry_t), (void**)&self));
     self->fs = fs;
-    self->driverNode = Inode_Reacquire(driverNode);
-
-    *pOutSelf = self;
-    return EOK;
 
 catch:
-    fsentry_destroy(self);
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -70,7 +58,7 @@ typedef struct FilesystemManager {
     deque_t                 filesystems;    // deque_t<FSEntry>
     size_t                  fs_count;       // number of filesystems in 'filesystems'
     deque_t                 reaperQueue;    // deque_t<FSEntry>
-    nanotime_t         bgInterval;
+    nanotime_t              bgInterval;
 } FilesystemManager;
 
 
@@ -113,15 +101,12 @@ errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self
     decl_try_err();
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
-    IOChannelRef chan = NULL;
     fsentry_t* entry = NULL;
 
-    try(Inode_CreateChannel(driverNode, mode, &chan));
-    try(DiskContainer_Create(chan, &fsContainer));
+    try(DiskContainer_Create(driverNode, mode, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(fsentry_create(fs, driverNode, &entry));
+    try(fsentry_create(fs, &entry));
     Object_Release(fsContainer);
-    IOChannel_Release(chan);
 
     mtx_lock(&self->mtx);
     deque_add_last(&self->filesystems, &entry->node);
@@ -133,7 +118,6 @@ errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self
 catch:
     Object_Release(fs);
     Object_Release(fsContainer);
-    IOChannel_Release(chan);
     *pOutFs = NULL;
     return err;
 }
@@ -199,26 +183,6 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
         self->fs_count--;
         mtx_unlock(&self->mtx);
     }
-}
-
-errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull self, fsid_t fsid, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    decl_try_err();
-
-    mtx_lock(&self->mtx);
-    fsentry_t* ep = _fsentry_for_fsid(self, fsid);
-
-    if (ep) {
-        *pOutNode = Inode_Reacquire(ep->driverNode);
-        err = EOK;
-    }
-    else {
-        *pOutNode = NULL;
-        err = ENODEV;
-    }
-    mtx_unlock(&self->mtx);
-    
-    return err;
 }
 
 FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerRef _Nonnull self, fsid_t id)

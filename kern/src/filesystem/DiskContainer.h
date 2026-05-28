@@ -15,6 +15,7 @@
 
 // FSContainer which represents a single disk or disk partition.
 open_class(DiskContainer, FSContainer,
+    InodeRef _Nonnull       driverNode;
     DiskCacheRef _Nonnull   diskCache;
     DiskSession             session;
 );
@@ -22,6 +23,8 @@ open_class_funcs(DiskContainer, FSContainer,
 );
 
 
-extern errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskContainer_Create(InodeRef _Locked _Nonnull driverNode, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf);
+
+extern InodeRef _Nonnull DiskContainer_GetDriverNode(DiskContainerRef _Nonnull self);
 
 #endif /* DiskContainer_h */

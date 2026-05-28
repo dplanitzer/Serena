@@ -12,7 +12,8 @@
 #include "FilesystemManager.h"
 #include <string.h>
 #include <driver/DriverManager.h>
-#include <filesystem/Filesystem.h>
+#include <filesystem/ContainerFilesystem.h>
+#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <kpi/file.h>
 #include <kpi/filesystem.h>
@@ -145,11 +146,13 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
     decl_try_err();
     InodeRef ip = NULL;
 
-    err = FilesystemManager_AcquireDriverNodeForFsid(gFilesystemManager, fsid, &ip);
-    if (err == EOK) {
+    FilesystemRef fs = FilesystemManager_CopyFilesystemForId(gFilesystemManager, fsid);
+    if (fs && instanceof(fs, ContainerFilesystem)) {
+        DiskContainerRef c = (DiskContainerRef)Filesystem_GetContainer(fs);
+        InodeRef ip = DiskContainer_GetDriverNode(c);
+
         //XXX getting insufficient permissions if using the user credentials 
         err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize);
-        Inode_Relinquish(ip);
     }
     else {
         if (bufSize < 1) {
