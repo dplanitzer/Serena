@@ -529,7 +529,6 @@ static void init(void)
     _RegisterClass(class(FSContainer));
     _RegisterClass(class(RamContainer));
     _RegisterClass(class(Filesystem));
-    _RegisterClass(class(ContainerFilesystem));
     _RegisterClass(class(SerenaFS));
     _RegisterClass(class(SfsFile));
     _RegisterClass(class(SfsDirectory));

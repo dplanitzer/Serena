@@ -51,7 +51,7 @@ static fsid_t Filesystem_GetNextAvailableId(void)
     return (fsid_t) atomic_int_fetch_add(&gNextAvailableId, 1);
 }
 
-errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutSelf)
+errno_t Filesystem_Create(Class* pClass, FSContainerRef _Nullable fsContainer, FilesystemRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FilesystemRef self;
@@ -60,6 +60,9 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     try(FSAllocateCleared(sizeof(deque_t) * IN_CACHED_HASH_CHAINS_COUNT, (void**)&self->inCached));
     try(FSAllocateCleared(sizeof(deque_t) * IN_READING_HASH_CHAINS_COUNT, (void**)&self->inReading));
     
+    if (fsContainer) {
+        self->container = Object_RetainAs(fsContainer, FSContainer);
+    }
     self->fsid = Filesystem_GetNextAvailableId();
     cnd_init(&self->inCondVar);
     mtx_init(&self->inLock);
@@ -87,6 +90,9 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 
     FSDeallocate(self->inReading);
     self->inReading = NULL;
+
+    Object_Release(self->container);
+    self->container = NULL;
 
     mtx_deinit(&self->inLock);
     cnd_deinit(&self->inCondVar);
@@ -416,6 +422,9 @@ void Filesystem_Disconnect(FilesystemRef _Nonnull self)
 
 void Filesystem_onDisconnect(FilesystemRef _Nonnull self)
 {
+    if (self->container) {
+        FSContainer_Disconnect(self->container);
+    }
 }
 
 bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
@@ -439,12 +448,37 @@ bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
 
 size_t Filesystem_getNodeBlockSize(FilesystemRef _Nonnull self, InodeRef _Locked _Nonnull node)
 {
-    return 0;
+    if (self->container) {
+        return FSContainer_GetBlockSize(self->container);
+    }
+    else {
+        return 0;
+    }
 }
 
 errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
-    return ENOTSUP;
+    decl_try_err();
+
+    switch (flavor) {
+        case FS_INFO_DISK: {
+            disk_info_t* ip = pOutInfo;
+
+            if (self->container) {
+                err = FSContainer_GetDiskInfo(self->container, ip);
+            }
+            else {
+                err = EINVAL;
+            }
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    return err;
 }
 
 errno_t Filesystem_getLabel(FilesystemRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
@@ -537,6 +571,10 @@ void Filesystem_sync(FilesystemRef _Nonnull self)
 {
     Filesystem_SyncNodes(self);
     Filesystem_OnSync(self);
+
+    if (self->container) {
+        FSContainer_Sync(self->container);
+    }
 }
 
 void Filesystem_onSync(FilesystemRef _Nonnull self)

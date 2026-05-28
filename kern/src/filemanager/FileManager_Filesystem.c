@@ -12,7 +12,6 @@
 #include "FilesystemManager.h"
 #include <string.h>
 #include <driver/DriverManager.h>
-#include <filesystem/ContainerFilesystem.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
@@ -162,9 +161,10 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
     InodeRef ip = NULL;
 
     FilesystemRef fs = FilesystemManager_CopyFilesystemForId(gFilesystemManager, fsid);
-    if (fs && instanceof(fs, ContainerFilesystem)) {
-        DiskContainerRef c = (DiskContainerRef)Filesystem_GetContainer(fs);
-        InodeRef ip = DiskContainer_GetDriverNode(c);
+    FSContainerRef c = (fs) ? Filesystem_GetContainer(fs) : NULL;
+
+    if (c && instanceof(c, DiskContainer)) {
+        InodeRef ip = DiskContainer_GetDriverNode((DiskContainerRef)c);
 
         //XXX getting insufficient permissions if using the user credentials 
         err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize);

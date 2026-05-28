@@ -19,7 +19,7 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
     decl_try_err();
     SerenaFSRef self;
     
-    try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
+    try(Filesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
     mtx_init(&self->moveLock);
     SfsAllocator_Init(&self->blockAllocator);
 
@@ -327,7 +327,7 @@ catch:
 }
 
 
-class_func_defs(SerenaFS, ContainerFilesystem,
+class_func_defs(SerenaFS, Filesystem,
 override_func_def(deinit, SerenaFS, Object)
 override_func_def(onAcquireNode, SerenaFS, Filesystem)
 override_func_def(onWritebackNode, SerenaFS, Filesystem)

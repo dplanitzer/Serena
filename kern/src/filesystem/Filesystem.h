@@ -15,8 +15,9 @@
 #include <kobj/Object.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
-#include "Inode.h"
-#include "PathComponent.h"
+#include <filesystem/FSContainer.h>
+#include <filesystem/Inode.h>
+#include <filesystem/PathComponent.h>
 #include <kpi/filesystem.h>
 #include <kpi/uid.h>
 
@@ -59,11 +60,10 @@ enum {
 // Filesystem base class is concerned: it may be a physical disk, a tape or maybe
 // some kind of object that only exists in memory and does not even persist across
 // reboot.
-// The ContainerFilesystem subclass is a specialization of Filesystem which builds
-// on top of a FSContainer. A FSContainer represents a logical disk which may map
-// 1:1 to a single physical disk or an array of physical disks. Concrete filesystem
-// implementations which are meant to implement a traditional disk-based filesystem
-// should derive from ContainerFilesystem instead of Filesystem.
+// A filesystem is associated with a FSContainer. This object is responsible for
+// abstracting away the actual underlying data storage. A filesystem may not use
+// a FSContainer. I.e. a filesystem that provides access to a tree of objects
+// will most likely not use a FSContainer.
 //
 //
 // Filesystem and Inode Lifetimes:
@@ -170,20 +170,21 @@ enum {
 // while the operation is executing.
 //
 open_class(Filesystem, Object,
-    fsid_t              fsid;
-    cnd_t               inCondVar;
-    mtx_t               inLock;
-    deque_t* _Nonnull   inCached;   // deque_t<Inode>
-    size_t              inCachedCount;
-    deque_t* _Nonnull   inReading;  // deque_t<RDnode>
-    size_t              inReadingCount;
-    size_t              inReadingWaiterCount;
-    deque_t             inReadingCache;
-    size_t              inReadingCacheCount;
-    ino_t               rootDirectoryId;
-    int8_t              state;
-    bool                isReadOnly;
-    int8_t              reserved[2];
+    FSContainerRef _Nullable    container;
+    fsid_t                      fsid;
+    cnd_t                       inCondVar;
+    mtx_t                       inLock;
+    deque_t* _Nonnull           inCached;   // deque_t<Inode>
+    size_t                      inCachedCount;
+    deque_t* _Nonnull           inReading;  // deque_t<RDnode>
+    size_t                      inReadingCount;
+    size_t                      inReadingWaiterCount;
+    deque_t                     inReadingCache;
+    size_t                      inReadingCacheCount;
+    ino_t                       rootDirectoryId;
+    int8_t                      state;
+    bool                        isReadOnly;
+    int8_t                      reserved[2];
 );
 open_class_funcs(Filesystem, Object,
 
@@ -223,8 +224,7 @@ open_class_funcs(Filesystem, Object,
     // has returned. Instead of accessing the storage the filesystem should
     // return a suitable error such as ENODEV to its clients.
     // Override: Optional
-    // Default Behavior: Syncs the disk cache. ContainerFilesystem also
-    // disconnects its FSContainer
+    // Default Behavior: Syncs the disk cache disconnects the container
     void (*onDisconnect)(void* _Nonnull self);
 
 
@@ -232,8 +232,7 @@ open_class_funcs(Filesystem, Object,
     // implementation may return 0 to indicate that the filesystem storage is
     // not block based.
     // Override: Optional
-    // Default Behavior: Container filesystems return the container block size;
-    //                   other types of filesystems return 0
+    // Default Behavior: Returns the block size as reported by the container
     size_t (*getNodeBlockSize)(void* _Nonnull self, InodeRef _Locked _Nonnull node);
 
     // Returns general information about the filesystem.
@@ -397,7 +396,7 @@ open_class_funcs(Filesystem, Object,
 // should not use this function to allocate an instance of the concrete filesystem.
 // This function is for use by Filesystem subclassers to define the filesystem
 // specific instance allocation function.
-extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Filesystem_Create(Class* pClass, FSContainerRef _Nullable fsContainer, FilesystemRef _Nullable * _Nonnull pOutSelf);
 
 // Returns the filesystem ID of the given filesystem.
 #define Filesystem_GetId(__fs) \
@@ -481,6 +480,12 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // Methods for use by filesystem subclassers.
 //
 
+// Returns the FSContainer. Note that this returns NULL if the filesystem is not
+// based on a container.
+#define Filesystem_GetContainer(__fs) \
+    ((FilesystemRef)(__fs))->container
+
+ 
 #define Filesystem_OnStart(__self, __params, __fsProps) \
 invoke_n(onStart, Filesystem, __self, __params, __fsProps)
 

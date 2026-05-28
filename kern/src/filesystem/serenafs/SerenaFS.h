@@ -9,10 +9,10 @@
 #ifndef SerenaFS_h
 #define SerenaFS_h
 
-#include <filesystem/ContainerFilesystem.h>
+#include <filesystem/Filesystem.h>
 
 
-final_class(SerenaFS, ContainerFilesystem);
+final_class(SerenaFS, Filesystem);
 
 
 // Creates an instance of SerenaFS.

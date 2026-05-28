@@ -18,7 +18,7 @@ errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     KernFSRef self;
 
-    try(Filesystem_Create(&kKernFSClass, (FilesystemRef*)&self));
+    try(Filesystem_Create(&kKernFSClass, NULL, (FilesystemRef*)&self));
     try(FSAllocateCleared(sizeof(deque_t) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
 
     mtx_init(&self->inOwnedLock);

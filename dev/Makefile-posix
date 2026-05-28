@@ -111,7 +111,6 @@ FM_OBJS := $(patsubst $(FM_SOURCES_DIR)/%.c, $(FM_OBJS_DIR)/%.o, $(FM_C_SOURCES)
 
 FS_SOURCES_DIR := $(KERN_SOURCES_DIR)/filesystem
 FS_C_SOURCES += $(FS_SOURCES_DIR)/FSContainer.c
-FS_C_SOURCES += $(FS_SOURCES_DIR)/ContainerFilesystem.c
 FS_C_SOURCES += $(FS_SOURCES_DIR)/Filesystem.c
 FS_C_SOURCES += $(FS_SOURCES_DIR)/IOChannel.c
 FS_C_SOURCES += $(FS_SOURCES_DIR)/Inode.c

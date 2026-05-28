@@ -21,7 +21,7 @@
 // SerenaFS Locking:
 //
 // allocationLock: implements atomic block allocation and deallocation
-final_class_ivars(SerenaFS, ContainerFilesystem,
+final_class_ivars(SerenaFS, Filesystem,
     uint8_t* _Nullable      emptyReadOnlyBlock;         // Used for zero-fill reads
 
     SfsAllocator            blockAllocator;
