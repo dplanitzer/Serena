@@ -8,13 +8,8 @@
 
 #include "FilesystemManager.h"
 #include <kdispatch/kdispatch.h>
-#include <driver/disk/DiskDriver.h>
 #include <ext/queue.h>
 #include <ext/nanotime.h>
-#include <filesystem/DiskContainer.h>
-#include <filesystem/IOChannel.h>
-#include <filesystem/kernfs/KernFS.h>
-#include <filesystem/serenafs/SerenaFS.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
 
@@ -96,52 +91,20 @@ errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
 }
 
 
-errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, InodeRef _Locked _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
+errno_t FilesystemManager_RegisterFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs)
 {
     decl_try_err();
-    FSContainerRef fsContainer = NULL;
-    FilesystemRef fs = NULL;
     fsentry_t* entry = NULL;
 
-    try(DiskContainer_Create(driverNode, mode, &fsContainer));
-    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(fsentry_create(fs, &entry));
-    Object_Release(fsContainer);
 
     mtx_lock(&self->mtx);
     deque_add_last(&self->filesystems, &entry->node);
     self->fs_count++;
     mtx_unlock(&self->mtx);
-    *pOutFs = fs;
-    return EOK;
 
 catch:
-    Object_Release(fs);
-    Object_Release(fsContainer);
-    *pOutFs = NULL;
     return err;
-}
-
-errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params)
-{
-    decl_try_err();
-
-    if (instanceof(fs, KernFS)) {
-        return EOK;
-    }
-
-    return Filesystem_Start(fs, params);
-}
-
-errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool forced)
-{
-    decl_try_err();
-
-    if (instanceof(fs, KernFS)) {
-        return EOK;
-    }
-
-    return Filesystem_Stop(fs, forced);
 }
 
 static fsentry_t* _Nullable _fsentry_for_fsid(FilesystemManagerRef _Locked _Nonnull self, fsid_t fsid)
@@ -155,12 +118,8 @@ static fsentry_t* _Nullable _fsentry_for_fsid(FilesystemManagerRef _Locked _Nonn
     return NULL;
 }
 
-void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs)
+void FilesystemManager_DeregisterFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs)
 {
-    if (instanceof(fs, KernFS)) {
-        return;
-    }
-
     Filesystem_Disconnect(fs);
 
     if (Filesystem_CanDestroy(fs)) {

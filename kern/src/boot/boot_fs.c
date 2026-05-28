@@ -10,7 +10,9 @@
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
+#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
+#include <filesystem/serenafs/SerenaFS.h>
 #include <kei/kei.h>
 #include <kern/log.h>
 #include <kpi/file.h>
@@ -114,6 +116,21 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonn
     }
 }
 
+static errno_t create_boot_fs(InodeRef _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
+{
+    decl_try_err();
+    FSContainerRef fsContainer = NULL;
+    FilesystemRef fs = NULL;
+
+    try(DiskContainer_Create(driverNode, mode, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
+
+catch:
+    Object_Release(fsContainer);
+    *pOutFs = fs;
+    return err;
+}
+
 // SerenaFS is the only FS we support at this time for booting.
 static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
@@ -124,11 +141,12 @@ static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nulla
 
     try(DriverManager_AcquireNodeForPath(gDriverManager, diskPath, &rp));
     Inode_Lock(rp.inode);
-    err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp.inode, O_RDWR, &fs);
+    err = create_boot_fs(rp.inode, O_RDWR, &fs);
     Inode_Unlock(rp.inode);
     throw_iferr(err);
 
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, ""));
+    try(FilesystemManager_RegisterFilesystem(gFilesystemManager, fs));
+    try(Filesystem_Start(fs, ""));
     
     ResolvedPath_Deinit(&rp);
     *pOutFs = fs;
@@ -136,7 +154,7 @@ static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nulla
 
 catch:
     if (fs) {
-        FilesystemManager_DisbandFilesystem(gFilesystemManager, fs);
+        FilesystemManager_DeregisterFilesystem(gFilesystemManager, fs);
     }
     ResolvedPath_Deinit(&rp);
     *pOutFs = NULL;

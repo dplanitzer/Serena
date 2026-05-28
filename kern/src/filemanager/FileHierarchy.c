@@ -424,7 +424,9 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     // inodes acquired. Note that the FS manager never stops catalog filesystems.
     Inode_Relinquish(dir);
 #ifndef __DISKIMAGE__
-    err = FilesystemManager_StopFilesystem(gFilesystemManager, fs, forced);
+    if (!instanceof(fs, KernFS)) {
+        err = Filesystem_Stop(fs, forced);
+    }
 #endif
 
     if (err != EBUSY) {
@@ -439,7 +441,9 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     // an FS may push data to the disk and block for a while).
     if (err != EBUSY) {
 #ifndef __DISKIMAGE__
-        FilesystemManager_DisbandFilesystem(gFilesystemManager, fs);
+    if (!instanceof(fs, KernFS)) {
+        FilesystemManager_DeregisterFilesystem(gFilesystemManager, fs);
+    }
 #endif
         destroy_key_collection(&keys);
         destroy_atnode(atNode);

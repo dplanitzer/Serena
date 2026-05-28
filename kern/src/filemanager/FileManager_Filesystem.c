@@ -15,10 +15,27 @@
 #include <filesystem/ContainerFilesystem.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
+#include <filesystem/serenafs/SerenaFS.h>
 #include <kpi/file.h>
 #include <kpi/filesystem.h>
 #include <process/ProcessManager.h>
 
+
+static errno_t create_disk_fs(FileManagerRef _Nonnull self, InodeRef _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
+{
+    decl_try_err();
+    FSContainerRef fsContainer = NULL;
+    FilesystemRef fs = NULL;
+
+    try(_FileManager_OpenFile(self, driverNode, mode));
+    try(DiskContainer_Create(driverNode, mode, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
+
+catch:
+    Object_Release(fsContainer);
+    *pOutFs = fs;
+    return err;
+}
 
 // Establishes and starts the filesystem stored on the disk managed by the disk
 // driver 'diskPath' and returns the filesystem object in 'pOutFs'.
@@ -42,10 +59,7 @@ static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const c
     // Open the disk driver and establish the filesystem
     Inode_Lock(rp_disk.inode);
     if (Inode_IsDevice(rp_disk.inode)) {
-        err = _FileManager_OpenFile(self, rp_disk.inode, mode);
-        if (err == EOK) {
-            err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp_disk.inode, mode, &fs);
-        }
+        err = create_disk_fs(self, rp_disk.inode, mode, &fs);
     }
     else {
         err = ENODEV;
@@ -55,7 +69,8 @@ static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const c
 
 
     // Start the filesystem
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params));
+    try(FilesystemManager_RegisterFilesystem(gFilesystemManager, fs));
+    try(Filesystem_Start(fs, params));
 
 catch:
     ResolvedPath_Deinit(&rp_disk);
