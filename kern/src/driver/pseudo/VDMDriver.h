@@ -18,7 +18,7 @@ class_ref(VDMDriver);
 
 extern errno_t VDMDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount);
+extern errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image);
 extern errno_t VDMDriver_CreateRomDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nonnull image);
 
 #endif /* VDMDriver_h */

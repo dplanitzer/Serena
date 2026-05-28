@@ -9,6 +9,7 @@
 #include "VDMDriver.h"
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
+#include <filesystem/IOChannel.h>
 
 
 final_class_ivars(VDMDriver, PseudoDriver,
@@ -52,15 +53,33 @@ catch:
     return err;
 }
 
-errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)
+errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image)
 {
     decl_try_err();
-    DriverRef dp;
+    DriverRef dp = NULL;
+    IOChannelRef ch = NULL;
+    ssize_t nBytesWritten;
 
-    try(RamDisk_Create(name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dp));
+    if (sectorSize == 0 || sectorCount == 0) {
+        throw(EIO);
+    }
+
+    try(RamDisk_Create(name, sectorSize, sectorCount, 128, (RamDiskRef*)&dp));
+
+    if (image) {
+        const ssize_t nBytesToWrite = sectorSize * sectorCount;
+
+        try(Driver_Open(dp, O_WRONLY, 0, &ch));
+        try(IOChannel_Write(ch, image, sectorSize * sectorCount, &nBytesWritten));
+        if (nBytesWritten != nBytesToWrite) {
+            throw(EIO);
+        }
+    }
+
     try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
     
 catch:
+    IOChannel_Release(ch);
     Object_Release(dp);
     return err;
 }
@@ -68,7 +87,11 @@ catch:
 errno_t VDMDriver_CreateRomDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nonnull image)
 {
     decl_try_err();
-    DriverRef dp;
+    DriverRef dp = NULL;
+
+    if (sectorSize == 0 || sectorCount == 0) {
+        throw(EIO);
+    }
 
     try(RomDisk_Create(name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dp));
     try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
