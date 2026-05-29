@@ -6,6 +6,7 @@
 #
 
 ARCH_M68K_VBCC_C_SOURCES := $(ARCH_M68K_VBCC_SOURCES_DIR)/divmod64_kei.c \
+							$(ARCH_M68K_VBCC_SOURCES_DIR)/intflt_kei.c \
 							$(ARCH_M68K_VBCC_SOURCES_DIR)/mul64_kei.c \
 							$(ARCH_M68K_VBCC_SOURCES_DIR)/rshlsh64_kei.c
 
@@ -52,7 +53,8 @@ ARCH_M68K_VBCC_SC_ASM_SOURCES := $(ARCH_M68K_VBCC_SOURCES_DIR)/__divsint64_020.s
 								 $(ARCH_M68K_VBCC_SOURCES_DIR)/__moduint64_060.s \
 								 $(ARCH_M68K_VBCC_SOURCES_DIR)/__mulint64.s \
 								 $(ARCH_M68K_VBCC_SOURCES_DIR)/__rshsint64.s \
-								 $(ARCH_M68K_VBCC_SOURCES_DIR)/__rshuint64.s
+								 $(ARCH_M68K_VBCC_SOURCES_DIR)/__rshuint64.s \
+								 $(ARCH_M68K_VBCC_SOURCES_DIR)/__uint64toflt64.s
 
 ARCH_M68K_VBCC_SC_OBJS := $(patsubst $(ARCH_M68K_VBCC_SOURCES_DIR)/%.s,$(ARCH_M68K_VBCC_SC_OBJS_DIR)/%.o,$(ARCH_M68K_VBCC_SC_ASM_SOURCES))
 

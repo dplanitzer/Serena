@@ -30,4 +30,46 @@ void fp_test(int argc, char *argv[])
 //    printf("sqrt(%g) -> %g\n", -64.0, sqrt(-64.0));
 //    printf("sqrt(+0.0) -> %g, sqrt(-0.0) -> %g\n", sqrt(0.0), sqrt(-0.0));
 //    printf("sqrt(nan) -> %g, sqrt(-inf) -> %g\n", sqrt(NAN), sqrt(-INFINITY));
+
+
+    printf("\n---\n");
+
+
+    // uin32_t -> float, double
+    volatile uint32_t ui0 = UINT32_MAX;
+    float f0 = (float)ui0;
+    double d0 = (double)ui0;
+    printf("uint32: %u -> f32: %f -> f64: %f\n", ui0, f0, d0);
+
+
+    // float, double -> uin32_t
+    volatile float f1 = 4294967295.0f;
+    volatile double d1 = 4294967295.0;
+    uint32_t ui1 = (uint32_t)f1;
+    uint32_t ui2 = (uint32_t)d1;
+    printf("f32: %f -> uint32: %u, f64: %f -> uint32: %u\n", f1, ui1, d1, ui2);
+
+
+    // in32_t -> float, double
+    volatile int32_t i0 = INT32_MAX;
+    f0 = (float)i0;
+    d0 = (double)i0;
+    printf("int32: %u -> f32: %f -> f64: %f\n", i0, f0, d0);
+
+
+    // float, double -> in32_t
+    f1 = 2147483647.0f;
+    d1 = 2147483647.0;
+    int32_t i1 = (int32_t)f1;
+    int32_t i2 = (int32_t)d1;
+    printf("f32: %f -> int32: %u, f64: %f -> int32: %u\n", f1, i1, d1, i2);
+
+
+    printf("\n---\n");
+
+
+    // uint64_t -> double
+    volatile uint64_t ui3 = 4294968296;
+    d0 = (double)ui3;
+    printf("uint64: %llu -> f64: %f\n", ui3, d0);
 }
