@@ -12,7 +12,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; double __uint64toflt64(uint64_t v)
+; double __uint64toflt64(unsigned long long v)
 __uint64toflt64:
     inline
     cargs ui64_h.l, ui64_l.l

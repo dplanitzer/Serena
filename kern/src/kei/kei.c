@@ -34,6 +34,7 @@ void kei_init(void)
     gKeiTable[KEI_mulu64_64] = (kei_func_t)(is060 ? _muluint64_060 : _muluint64_020);
 
     gKeiTable[KEI_uint64toflt64] = (kei_func_t)_uint64toflt64;
+    gKeiTable[KEI_sint64toflt64] = (kei_func_t)_sint64toflt64;
 
     gKeiTable[KEI_memcpy] = (kei_func_t)memcpy;
     gKeiTable[KEI_memmove] = (kei_func_t)memmove;

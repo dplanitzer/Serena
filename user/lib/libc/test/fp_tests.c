@@ -54,7 +54,7 @@ void fp_test(int argc, char *argv[])
     volatile int32_t i0 = INT32_MAX;
     f0 = (float)i0;
     d0 = (double)i0;
-    printf("int32: %u -> f32: %f -> f64: %f\n", i0, f0, d0);
+    printf("int32: %d -> f32: %f -> f64: %f\n", i0, f0, d0);
 
 
     // float, double -> in32_t
@@ -62,7 +62,7 @@ void fp_test(int argc, char *argv[])
     d1 = 2147483647.0;
     int32_t i1 = (int32_t)f1;
     int32_t i2 = (int32_t)d1;
-    printf("f32: %f -> int32: %u, f64: %f -> int32: %u\n", f1, i1, d1, i2);
+    printf("f32: %f -> int32: %d, f64: %f -> int32: %d\n", f1, i1, d1, i2);
 
 
     printf("\n---\n");
@@ -72,4 +72,12 @@ void fp_test(int argc, char *argv[])
     volatile uint64_t ui3 = 4294968296;
     d0 = (double)ui3;
     printf("uint64: %llu -> f64: %f\n", ui3, d0);
+
+
+    // int64_t -> double
+    volatile int64_t i3 = 4294968296;
+    volatile int64_t i4 = -4294968296;
+    d0 = (double)i3;
+    d1 = (double)i4;
+    printf("int64: %lld -> f64: %f;  int64: %lld -> f64: %f\n", i3, d0, i4, d1);
 }

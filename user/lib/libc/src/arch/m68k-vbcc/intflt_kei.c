@@ -14,3 +14,8 @@ double _uint64toflt64(unsigned long long x)
 {
     return ((double (*)(unsigned long long))__gKeiTab[KEI_uint64toflt64])(x);
 }
+
+double _sint64toflt64(long long x)
+{
+    return ((double (*)(long long))__gKeiTab[KEI_sint64toflt64])(x);
+}
