@@ -496,6 +496,31 @@ errno_t Filesystem_setLabel(FilesystemRef _Nonnull self, const char* _Nonnull bu
     return ENOTSUP;
 }
 
+errno_t Filesystem_getDiskName(FilesystemRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    if (self->container) {
+        return FSContainer_GetDiskName(self->container, buf, bufSize);
+    }
+    else {
+        if (bufSize < 1) {
+            return ERANGE;
+        }
+    
+        *buf = '\0';
+        return EOK;
+    }
+}
+
+InodeRef Filesystem_getDiskNode(FilesystemRef _Nonnull self)
+{
+    if (self->container) {
+        return FSContainer_GetDiskNode(self->container);
+    }
+    else {
+        return NULL;
+    }
+}
+
 
 errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
@@ -595,6 +620,8 @@ func_def(getNodeBlockSize, Filesystem)
 func_def(getInfo, Filesystem)
 func_def(getLabel, Filesystem)
 func_def(setLabel, Filesystem)
+func_def(getDiskName, Filesystem)
+func_def(getDiskNode, Filesystem)
 func_def(acquireParentNode, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)

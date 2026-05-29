@@ -32,7 +32,7 @@ errno_t kerneld_init(void)
     FileHierarchyRef kfh = NULL;
 
     // Create an empty kfs
-    try(KernFS_Create(&kfs));
+    try(KernFS_Create("kroot", &kfs));
     try(Filesystem_Start((FilesystemRef)kfs, ""));
     try(FileHierarchy_Create((FilesystemRef)kfs, &kfh));
 

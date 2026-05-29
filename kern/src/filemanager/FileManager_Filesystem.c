@@ -158,41 +158,21 @@ return err;
 errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
-    InodeRef ip = NULL;
-
     FilesystemRef fs = FilesystemManager_CopyFilesystemForId(gFilesystemManager, fsid);
-    FSContainerRef c = (fs) ? Filesystem_GetContainer(fs) : NULL;
 
-    if (c && instanceof(c, DiskContainer)) {
-        InodeRef ip = DiskContainer_GetDriverNode((DiskContainerRef)c);
+    if (fs) {
+        InodeRef ip = Filesystem_GetDiskNode(fs);
 
-        //XXX getting insufficient permissions if using the user credentials 
-        err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize);
-    }
-    else {
-        if (bufSize < 1) {
-            return ERANGE;
-        }
-        *buf = '\0';
-
-
-        const char* name;
-
-        if (DriverManager_GetCatalog(gDriverManager)->fsid == fsid) {
-            name = FS_CATALOG_DEV;
+        if (ip) {
+            //XXX getting insufficient permissions if using the user credentials 
+            err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize);
         }
         else {
-            return EOK;
+            err = Filesystem_GetDiskName(fs, buf, bufSize);
         }
-
-
-        const size_t nameLength = strlen(name);
-        if (bufSize < (nameLength + 1)) {
-            return ERANGE;
-        }
-
-        memcpy(buf, name, nameLength);
-        buf[nameLength] = '\0';
+    }
+    else {
+        err = ENOFS;
     }
 
     return err;

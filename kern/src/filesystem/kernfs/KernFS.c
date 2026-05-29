@@ -13,7 +13,7 @@
 
 
 // Creates an instance of KernFS.
-errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf)
+errno_t KernFS_Create(const char* _Nonnull name, KernFSRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     KernFSRef self;
@@ -23,6 +23,8 @@ errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf)
 
     mtx_init(&self->inOwnedLock);
     self->nextAvailableInodeId = 1;
+
+    strncpy(self->name, name, KERNFS_NAME_MAX);
 
     *pOutSelf = self;
     return EOK;
@@ -206,6 +208,23 @@ errno_t KernFS_rename(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNod
     return EPERM;
 }
 
+errno_t KernFS_getDiskName(KernFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    if (bufSize < 1) {
+        return EINVAL;
+    }
+    *buf = '\0';
+
+    const size_t len = strlen(self->name);
+    if (bufSize < (len + 1)) {
+        return ERANGE;
+    }
+
+    memcpy(buf, self->name, len);
+    buf[len] = '\0';
+    return EOK;
+}
+
 
 class_func_defs(KernFS, Filesystem,
 override_func_def(deinit, KernFS, Object)
@@ -220,4 +239,5 @@ override_func_def(createNode, KernFS, Filesystem)
 override_func_def(unlink, KernFS, Filesystem)
 override_func_def(move, KernFS, Filesystem)
 override_func_def(rename, KernFS, Filesystem)
+override_func_def(getDiskName, KernFS, Filesystem)
 );

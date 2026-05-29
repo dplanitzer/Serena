@@ -64,10 +64,21 @@ open_class_funcs(FSContainer, Object,
     // FS container to disk(s).
     errno_t (*sync)(void* _Nonnull self);
 
+
     // Returns the information about the disk underlying the container. ENOMEDIUM
     // is returned if no disk is in the drive. ENOTSUP is returned if retrieving
     // the disk information is not supported.
     errno_t (*getDiskInfo)(void* _Nonnull self, disk_info_t* _Nonnull info);
+
+    // Returns a copy of the disk name. 'buf' must be big enough to hold the
+    // full name including the trailing '\0' character. Returns an empty string
+    // by default.
+    errno_t (*getDiskName)(void* _Nonnull self, char* _Nonnull buf, size_t bufSize);
+
+    // If the container is based o a disk driver, then a weak reference to the
+    // inode of this driver is returned; otherwise NULL is returned and you
+    // should use getDiskName() instead.
+    InodeRef _Nullable (*getDiskNode)(void* _Nonnull self);
 );
 
 
@@ -108,8 +119,16 @@ invoke_n(syncBlock, FSContainer, __self, __lba)
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)
 
+
 #define FSContainer_GetDiskInfo(__self, __info) \
 invoke_n(getDiskInfo, FSContainer, __self, __info)
+
+#define FSContainer_GetDiskName(__self, __buf, __bufSize) \
+invoke_n(getDiskName, FSContainer, __self, __buf, __bufSize)
+
+#define FSContainer_GetDiskNode(__self) \
+invoke_0(getDiskNode, FSContainer, __self)
+
 
 
 //

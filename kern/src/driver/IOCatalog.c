@@ -30,7 +30,7 @@ errno_t IOCatalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
 
     try(kalloc_cleared(sizeof(Catalog), (void**) &self));
     
-    try(KernFS_Create((KernFSRef*)&self->fs));
+    try(KernFS_Create(FS_CATALOG_DEV, (KernFSRef*)&self->fs));
     try(FilesystemManager_RegisterFilesystem(gFilesystemManager, self->fs));
     try(Filesystem_Start(self->fs, ""));
     try(FileHierarchy_Create(self->fs, &self->fh));

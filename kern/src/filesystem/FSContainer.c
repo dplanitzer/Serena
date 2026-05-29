@@ -64,9 +64,25 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
     return EOK;
 }
 
+
 errno_t FSContainer_getDiskInfo(FSContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
     return ENOTSUP;
+}
+
+errno_t FSContainer_getDiskName(FSContainerRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    if (bufSize < 1) {
+        return EINVAL;
+    }
+    
+    *buf = '\0';
+    return EOK;
+}
+
+InodeRef FSContainer_getDiskNode(FSContainerRef _Nonnull self)
+{
+    return NULL;
 }
 
 
@@ -78,4 +94,6 @@ func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
 func_def(sync, FSContainer)
 func_def(getDiskInfo, FSContainer)
+func_def(getDiskName, FSContainer)
+func_def(getDiskNode, FSContainer)
 );
