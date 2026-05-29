@@ -164,41 +164,19 @@ errno_t Process_SetSchedParam(ProcessRef _Nonnull self, int type, const int* _No
 // 'bufSize' has to be >= 1
 static errno_t _proc_path(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
-    decl_try_err();
     const char* arg0 = (self->ctx_base) ? self->ctx_base->argv[0] : NULL;
-    const size_t arg0len = (arg0) ? strlen(arg0) : 0;
 
-    if (bufSize >= arg0len + 1) {
-        memcpy(buf, arg0, arg0len);
-        buf[arg0len] = '\0';
-    }
-    else {
-        *buf = '\0';
-        return ERANGE;
-    }
-
-    return err;
+    return strtobuf(buf, bufSize, (arg0) ? arg0 : "");
 }
 
 // 'bufSize' has to be >= 1
 static errno_t _proc_name(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
-    decl_try_err();
     const char* arg0 = (self->ctx_base) ? self->ctx_base->argv[0] : NULL;
     const char* lpc = (arg0) ? strrchr(arg0, '/') : NULL;
     const char* fname = (lpc) ? lpc + 1 : arg0;
-    const size_t fnameLen = (fname) ? strlen(fname) : 0;
 
-    if (bufSize >= fnameLen + 1) {
-        memcpy(buf, fname, fnameLen);
-        buf[fnameLen] = '\0';
-    }
-    else {
-        *buf = '\0';
-        return ERANGE;
-    }
-
-    return err;
+    return strtobuf(buf, bufSize, (fname) ? fname : "");
 }
 
 errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)

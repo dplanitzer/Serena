@@ -124,6 +124,11 @@ SEC_C_SOURCES += $(SEC_SOURCES_DIR)/perm_check.c
 SEC_OBJS_DIR := $(OBJS_DIR)/security
 SEC_OBJS := $(patsubst $(SEC_SOURCES_DIR)/%.c, $(SEC_OBJS_DIR)/%.o, $(SEC_C_SOURCES))
 
+KERNLIB_SOURCES_DIR := $(KERN_SOURCES_DIR)/kernlib
+KERNLIB_C_SOURCES := $(KERNLIB_SOURCES_DIR)/strtobuf.c
+KERNLIB_OBJS_DIR := $(OBJS_DIR)/kernlib
+KERNLIB_OBJS := $(patsubst $(KERNLIB_SOURCES_DIR)/%.c, $(KERNLIB_OBJS_DIR)/%.o, $(KERNLIB_C_SOURCES))
+
 KOBJ_SOURCES_DIR := $(KERN_SOURCES_DIR)/kobj
 KOBJ_C_SOURCES := $(wildcard $(KOBJ_SOURCES_DIR)/*.c)
 KOBJ_OBJS_DIR := $(OBJS_DIR)/kobj
@@ -154,6 +159,9 @@ $(FS_OBJS_DIR):
 $(SEC_OBJS_DIR):
 	$(call mkdir_if_needed,$(SEC_OBJS_DIR))
 
+$(KERNLIB_OBJS_DIR):
+	$(call mkdir_if_needed,$(KERNLIB_OBJS_DIR))
+
 $(KOBJ_OBJS_DIR):
 	$(call mkdir_if_needed,$(KOBJ_OBJS_DIR))
 
@@ -164,7 +172,7 @@ $(DISKIMAGE_OBJS_DIR):
 	$(call mkdir_if_needed,$(DISKIMAGE_OBJS_DIR))
 
 
-$(TOOLS_DIR)/diskimage: $(EXT_OBJS) $(FM_OBJS) $(FS_OBJS) $(SEC_OBJS) $(KOBJ_OBJS) $(SEFS_OBJS) $(DISKIMAGE_OBJS) $(OBJS_DIR)/libclap.ar
+$(TOOLS_DIR)/diskimage: $(EXT_OBJS) $(FM_OBJS) $(FS_OBJS) $(SEC_OBJS) $(KERNLIB_OBJS) $(KOBJ_OBJS) $(SEFS_OBJS) $(DISKIMAGE_OBJS) $(OBJS_DIR)/libclap.ar
 	gcc -o $@ $^
 
 $(EXT_OBJS): | $(EXT_OBJS_DIR) $(TOOLS_DIR)
@@ -174,6 +182,8 @@ $(FM_OBJS): | $(FM_OBJS_DIR) $(TOOLS_DIR)
 $(FS_OBJS): | $(FS_OBJS_DIR) $(TOOLS_DIR)
 
 $(SEC_OBJS): | $(SEC_OBJS_DIR) $(TOOLS_DIR)
+
+$(KERNLIB_OBJS): | $(KERNLIB_OBJS_DIR) $(TOOLS_DIR)
 
 $(KOBJ_OBJS): | $(KOBJ_OBJS_DIR) $(TOOLS_DIR)
 
@@ -191,6 +201,9 @@ $(FS_OBJS_DIR)/%.o: $(FS_SOURCES_DIR)/%.c
 	gcc -c $(DISKIMAGE_INCLUDES) $(DISKIMAGE_CC_FLAGS) $(DEBUG_FLAGS) -o $@ $<
 
 $(SEC_OBJS_DIR)/%.o: $(SEC_SOURCES_DIR)/%.c
+	gcc -c $(DISKIMAGE_INCLUDES) $(DISKIMAGE_CC_FLAGS) $(DEBUG_FLAGS) -o $@ $<
+
+$(KERNLIB_OBJS_DIR)/%.o: $(KERNLIB_SOURCES_DIR)/%.c
 	gcc -c $(DISKIMAGE_INCLUDES) $(DISKIMAGE_CC_FLAGS) $(DEBUG_FLAGS) -o $@ $<
 
 $(KOBJ_OBJS_DIR)/%.o: $(KOBJ_SOURCES_DIR)/%.c

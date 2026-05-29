@@ -210,19 +210,7 @@ errno_t KernFS_rename(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNod
 
 errno_t KernFS_getDiskName(KernFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
-    if (bufSize < 1) {
-        return EINVAL;
-    }
-    *buf = '\0';
-
-    const size_t len = strlen(self->name);
-    if (bufSize < (len + 1)) {
-        return ERANGE;
-    }
-
-    memcpy(buf, self->name, len);
-    buf[len] = '\0';
-    return EOK;
+    return strtobuf(buf, bufSize, self->name);
 }
 
 

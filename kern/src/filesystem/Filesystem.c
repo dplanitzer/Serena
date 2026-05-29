@@ -483,12 +483,7 @@ errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, int flavor, fs_info_ref 
 
 errno_t Filesystem_getLabel(FilesystemRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
-    if (bufSize < 1) {
-        return EINVAL;
-    } else {
-        *buf = '\0';
-        return ENOTSUP;
-    }
+    return strtobuf(buf, bufSize, "");
 }
 
 errno_t Filesystem_setLabel(FilesystemRef _Nonnull self, const char* _Nonnull buf)
@@ -502,12 +497,7 @@ errno_t Filesystem_getDiskName(FilesystemRef _Nonnull self, char* _Nonnull buf, 
         return FSContainer_GetDiskName(self->container, buf, bufSize);
     }
     else {
-        if (bufSize < 1) {
-            return ERANGE;
-        }
-    
-        *buf = '\0';
-        return EOK;
+        return strtobuf(buf, bufSize, "");
     }
 }
 

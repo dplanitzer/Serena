@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <ext/bit.h>
+#include <kern/kernlib.h>
 
 
 errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t flags, FSContainerRef _Nullable * _Nonnull pOutSelf)
@@ -72,12 +73,7 @@ errno_t FSContainer_getDiskInfo(FSContainerRef _Nonnull self, disk_info_t* _Nonn
 
 errno_t FSContainer_getDiskName(FSContainerRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
-    if (bufSize < 1) {
-        return EINVAL;
-    }
-    
-    *buf = '\0';
-    return EOK;
+    return strtobuf(buf, bufSize, "");
 }
 
 InodeRef FSContainer_getDiskNode(FSContainerRef _Nonnull self)

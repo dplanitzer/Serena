@@ -19,6 +19,7 @@
 #include <stdnoreturn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
+#include <ext/try.h>
 #include <../../kern/h/kpi/_access.h>
 #include <../../kern/h/kpi/_seek.h>
 
@@ -61,6 +62,11 @@
 // defined in diskimage.c
 extern _Noreturn void fatal(const char* _Nonnull format, ...);
 extern _Noreturn void vfatal(const char* _Nonnull format, va_list ap);
+
+// 'bufSize' is max string length + 1. All of 'src' has to fit in 'bufSize'.
+// Returns EOK on success; EINVAL if 'bufSize' < 1 and ERANGE if 'src' doesn't
+// fit in 'buf'.
+extern errno_t strtobuf(char* _Nonnull buf, size_t bufSize, const char* _Nonnull src);
 
 __CPP_END
 

@@ -244,7 +244,7 @@ open_class_funcs(Filesystem, Object,
     // filesystem when it is formatted. However, it may be changed at a later
     // time by calling setLabel().
     // Override: Optional
-    // Default Behavior: Returns ENOTSUP
+    // Default Behavior: Returns an empty string
     errno_t (*getLabel)(void* _Nonnull self, char* _Nonnull buf, size_t bufSize);
 
     // Sets the filesystem's label.

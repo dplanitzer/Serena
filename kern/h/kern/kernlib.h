@@ -22,6 +22,7 @@
 #include <stdnoreturn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
+#include <ext/try.h>
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
 
@@ -65,6 +66,11 @@ extern char * _Nullable utoa(unsigned int val, char * _Nonnull buf, int radix);
 extern char * _Nullable ultoa(unsigned long val, char * _Nonnull buf, int radix);
 
 extern long strtol(const char * _Restrict str, char ** _Restrict str_end, int base);
+
+// 'bufSize' is max string length + 1. All of 'src' has to fit in 'bufSize'.
+// Returns EOK on success; EINVAL if 'bufSize' < 1 and ERANGE if 'src' doesn't
+// fit in 'buf'.
+extern errno_t strtobuf(char* _Nonnull buf, size_t bufSize, const char* _Nonnull src);
 
 
 // Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 64 (binary 64bit) + 1 + 1 = 25 bytes
