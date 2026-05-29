@@ -170,6 +170,8 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
         else {
             err = Filesystem_GetDiskName(fs, buf, bufSize);
         }
+
+        Object_Release(fs);
     }
     else {
         err = ENOFS;
