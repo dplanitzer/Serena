@@ -30,8 +30,10 @@
     
 #define KEI_uint64toflt64   14  // double _uint64toflt64(unsigned long long x)
 #define KEI_sint64toflt64   15  // double _sint64toflt64(long long x)
+#define KEI_flt64touint64   16  // unsigned long long _flt64touint64(double x)
+#define KEI_flt64tosint64   17  // long long _flt64tosint64(double x)
 
-#define KEI_Count           16
+#define KEI_Count           18
 
 
 typedef void (*kei_func_t)(void);

@@ -59,6 +59,9 @@ extern unsigned long long _rshuint64(unsigned long long x, int s);
 extern double _uint64toflt64(unsigned long long x);
 extern double _sint64toflt64(long long x);
 
+extern unsigned long long _flt64touint64(double x);
+extern long long _flt64tosint64(double x);
+
 __CPP_END
 
 #endif /* ___CRT_H */

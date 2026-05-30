@@ -80,4 +80,18 @@ void fp_test(int argc, char *argv[])
     d0 = (double)i3;
     d1 = (double)i4;
     printf("int64: %lld -> f64: %f;  int64: %lld -> f64: %f\n", i3, d0, i4, d1);
+
+
+    // double -> uint64_t
+    d1 = 4294968296.0;
+    uint64_t ui4 = (uint64_t)d1;
+    printf("f64: %f -> uint64: %llu\n", d1, ui4);
+
+
+    // double -> int64_t
+    volatile double d2 = 4294968296.0;
+    volatile double d3 = -4294968296.0;
+    i3 = (int64_t)d2;
+    i4 = (int64_t)d3;
+    printf("f64: %f -> int64: %lld;  f64: %f -> int64: %lld\n", d2, i3, d3, i4);
 }
