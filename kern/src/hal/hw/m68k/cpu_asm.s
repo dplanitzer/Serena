@@ -321,18 +321,14 @@ _cpu68k_as_write_byte:
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_sleep(int cpu_family)
+; void cpu_sleep(void)
 ; Moves the CPU to (a low power) sleep state until an interrupt occurs.
+; NOTE: Amiga 3000/4000 motherboards are not compatible with the 68060 lpstop
+; instruction since this instruction expects that the bus is driven in a
+; particular way and the Amiga hardware doesn't know anything about that.
 _cpu_sleep:
     inline
-    cargs cslp_cpu_family.l
-        cmp.l   #CPU_FAMILY_68060, cslp_cpu_family(sp)
-        beq.s   .cpu_sleep_68060
         stop    #$2000
-        rts
-
-.cpu_sleep_68060:
-        lpstop  #$2000
         rts
     einline
 
