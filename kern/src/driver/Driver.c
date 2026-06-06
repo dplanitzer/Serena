@@ -7,7 +7,6 @@
 //
 
 #include "Driver.h"
-#include "DriverManager.h"
 #include <assert.h>
 #include <driver/DriverChannel.h>
 #include <kern/kalloc.h>
@@ -124,7 +123,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
     mtx_unlock(&self->mtx);
 
     if (hasStarted) {
-        DriverManager_OnDriverStarted(gDriverManager, self);
+        IOCatalog_OnDriverStarted(gIOCatalog, self);
     }
 
     return err;
@@ -158,7 +157,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
         return;
     }
 
-    DriverManager_OnDriverStopping(gDriverManager, self);
+    IOCatalog_OnDriverStopping(gIOCatalog, self);
 
     // The list of child drivers is now frozen and can not change anymore.
     // Tell all our child drivers to stop.
@@ -227,7 +226,7 @@ errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
         return EBUSY;
     }
 
-    return DriverManager_CreateEntry(gDriverManager, self, Driver_GetBusDirectory(self), de, &self->id);
+    return IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetBusDirectory(self), de, &self->id);
 }
 
 errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de)
@@ -238,11 +237,11 @@ errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, 
         return EBUSY;
     }
 
-    err = DriverManager_CreateDirectory(gDriverManager, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
+    err = IOCatalog_PublishFolder(gIOCatalog, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
     if (err == EOK && de) {
-        err = DriverManager_CreateEntry(gDriverManager, self, Driver_GetPublishedBusDirectory(self), de, &self->id);
+        err = IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetPublishedBusDirectory(self), de, &self->id);
         if (err != EOK) {
-            DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
+            IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->ownedBusDirId);
             self->ownedBusDirId = 0;
         }
     }
@@ -253,11 +252,11 @@ errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, 
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
     if (self->id > 0) {
-        DriverManager_RemoveEntry(gDriverManager, self->id);
+        IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->id);
         self->id = 0;
     }
     if (self->ownedBusDirId > 0) {
-        DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
+        IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->ownedBusDirId);
         self->ownedBusDirId = 0;
     }
 }

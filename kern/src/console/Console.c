@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <string.h>
 #include <driver/DriverChannel.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
 #include <kpi/console.h>
 #include <kpi/file.h>
@@ -34,11 +34,11 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(kdispatch_create(&attr, &self->dq));
 
-    try(DriverManager_Open(gDriverManager, "/hid", O_RDONLY, &self->hidChannel));
+    try(IOCatalog_Open(gIOCatalog, "/hid", O_RDONLY, &self->hidChannel));
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
-    try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
+    try(IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &self->fbChannel));
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
 

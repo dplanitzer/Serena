@@ -9,7 +9,7 @@
 #include "HIDManagerPriv.h"
 #include <assert.h>
 #include <limits.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <ext/bit.h>
 #include <filesystem/IOChannel.h>
 #include <kern/kalloc.h>
@@ -949,7 +949,7 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 {
     int signo = 0;
 
-    DriverManager_StartMatching(gDriverManager, g_hid_cats, (drv_match_func_t)_matching_driver, self);
+    IOCatalog_StartMatching(gIOCatalog, g_hid_cats, (drv_match_func_t)_matching_driver, self);
 
     mtx_lock(&self->mtx);
 

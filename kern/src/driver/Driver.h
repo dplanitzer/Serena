@@ -55,23 +55,6 @@ enum {
 };
 
 
-typedef struct DirEntry {
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    fs_perms_t              perms;
-} DirEntry;
-
-
-typedef struct DriverEntry {
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    fs_perms_t              perms;
-    intptr_t                arg;
-} DriverEntry;
-
-
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //

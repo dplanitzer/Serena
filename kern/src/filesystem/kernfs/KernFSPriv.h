@@ -21,7 +21,7 @@
 // KernFS
 //
 
-#define IN_HASH_CHAINS_COUNT    8
+#define IN_HASH_CHAINS_COUNT    16
 #define IN_HASH_INDEX(__id)     (hash_scalar(__id) & (IN_HASH_CHAINS_COUNT-1))
 
 #define KfsNodeFromHashChainPointer(__ptr) \
@@ -43,10 +43,11 @@
 // - onWritebackNode: do nothing
 // - onRelinquishNode: delete the node from 'inOwned' if linkCount == 0; do nothing otherwise
 final_class_ivars(KernFS, Filesystem,
-    mtx_t               inOwnedLock;
-    deque_t* _Nonnull   inOwned;            // <KfsNode>
-    ino_t               nextAvailableInodeId;
-    char                name[KERNFS_NAME_MAX + 1];
+    mtx_t                   inOwnedLock;
+    deque_t/*<KfsNode>*/    inOwned[IN_HASH_CHAINS_COUNT];
+    size_t                  drvCount;
+    ino_t                   nextAvailableInodeId;
+    char                    name[KERNFS_NAME_MAX + 1];
 );
 
 

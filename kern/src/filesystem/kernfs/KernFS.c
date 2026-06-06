@@ -8,30 +8,28 @@
 
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
+#include "KfsSpecial.h"
 #include <string.h>
 #include <driver/Driver.h>
+#include <kern/kalloc.h>
 
 
 // Creates an instance of KernFS.
 errno_t KernFS_Create(const char* _Nonnull name, KernFSRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    KernFSRef self;
+    KernFSRef self = NULL;
 
     try(Filesystem_Create(&kKernFSClass, NULL, (FilesystemRef*)&self));
-    try(FSAllocateCleared(sizeof(deque_t) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
 
     mtx_init(&self->inOwnedLock);
+    self->drvCount = 0;
     self->nextAvailableInodeId = 1;
 
     strncpy(self->name, name, KERNFS_NAME_MAX);
 
-    *pOutSelf = self;
-    return EOK;
-
 catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -61,6 +59,10 @@ void _KernFS_AddInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
 
     mtx_lock(&self->inOwnedLock);
     deque_add_first(&self->inOwned[idx], &ip->inChain);
+
+    if (Inode_GetFileType(ip) == FS_FTYPE_DEV) {
+        self->drvCount++;
+    }
     mtx_unlock(&self->inOwnedLock);
 }
 
@@ -74,6 +76,10 @@ void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
         KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
         if (Inode_GetId(curNode) == id) {
+            if (Inode_GetFileType(ip) == FS_FTYPE_DEV) {
+                self->drvCount--;
+            }
+
             deque_remove(&self->inOwned[idx], &ip->inChain);
             Inode_Destroy((InodeRef)ip);
             break;
@@ -211,6 +217,33 @@ errno_t KernFS_rename(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNod
 errno_t KernFS_getDiskName(KernFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
     return strtobuf(buf, bufSize, self->name);
+}
+
+errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers)
+{
+    decl_try_err();
+    DriverRef* drivers = NULL;
+    size_t idx = 0;
+
+    mtx_lock(&self->inOwnedLock);
+    try(kalloc(sizeof(DriverRef) * (self->drvCount + 1), (void**)&drivers));
+
+    for (size_t i = 0; i < IN_HASH_CHAINS_COUNT; i++) {
+        deque_for_each(&self->inOwned[i], struct KfsNode, it,
+            KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
+
+            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)((KfsSpecialRef)curNode)->instance, cats)) {
+                drivers[idx++] = Object_RetainAs(((KfsSpecialRef)curNode)->instance, Driver);
+            }
+        )
+    }
+    drivers[idx] = NULL;
+
+catch:
+    mtx_unlock(&self->inOwnedLock);
+
+    *pOutDrivers = drivers;
+    return err;
 }
 
 

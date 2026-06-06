@@ -10,6 +10,7 @@
 #define KernFS_h
 
 #include <filesystem/Filesystem.h>
+#include <kpi/ioctl.h>
 
 #define KERNFS_NAME_MAX 7
 
@@ -21,5 +22,11 @@ extern errno_t KernFS_Create(const char* _Nonnull name, KernFSRef _Nullable * _N
 
 // Creates a new driver node in the file system.
 extern errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, fs_perms_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
+
+// Returns a snapshot of strong references to all drivers that match the provided
+// categories. The caller is responsible for releasing all references and calling
+// kfree() on the returned pointer when done. The array of driver references is
+// terminated by a NULL entry.
+extern errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
 
 #endif /* KernFS_h */

@@ -6,7 +6,6 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <driver/DriverManager.h>
 #include <driver/pseudo/HIDDriver.h>
 #include <driver/pseudo/LogDriver.h>
 #include <driver/pseudo/NullDriver.h>

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
@@ -145,9 +145,9 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     try(DiskCache_Create(512, sys_desc_getramsize(pSysDesc) >> 5, &gDiskCache));
 
 
-    // Create the HID and driver managers
+    // Create the HID manager and the I/O catalog
     try(HIDManager_Create(&gHIDManager));
-    try(DriverManager_Create(&gDriverManager));
+    try(IOCatalog_Create(&gIOCatalog));
     
 
     // Create the kerneld process and publish it

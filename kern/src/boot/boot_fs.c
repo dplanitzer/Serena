@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
@@ -36,7 +36,7 @@ static const char* _Nullable get_boot_mem_driver_path(void)
     const char* path;
 
     while ((path = gMemDriverTable[i++]) != NULL) {
-        const errno_t err = DriverManager_HasDriver(gDriverManager, path);
+        const errno_t err = IOCatalog_IsPublished(gIOCatalog, path);
         
         if (err == EOK) {
             return path;
@@ -53,7 +53,7 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
     static char* gBootFloppyName = "/hw/fd-bus/fd0";
 
     for (int i = 0; i < 4; i++) {
-        const errno_t err = DriverManager_HasDriver(gDriverManager, gBootFloppyName);
+        const errno_t err = IOCatalog_IsPublished(gIOCatalog, gBootFloppyName);
         
         if (err == EOK) {
             return gBootFloppyName;
@@ -70,7 +70,7 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
     decl_try_err();
     IOChannelRef chan;
 
-    if ((err = DriverManager_Open(gDriverManager, driverPath, O_RDWR, &chan)) == EOK) {
+    if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         disk_info_t info;
 
         err = IOChannel_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
@@ -88,7 +88,7 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonn
     IOChannelRef chan;
     bool isWaitingForDisk = false;
 
-    if ((err = DriverManager_Open(gDriverManager, driverPath, O_RDWR, &chan)) == EOK) {
+    if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         for (;;) {
             disk_info_t info;
 
@@ -139,7 +139,7 @@ static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nulla
     FilesystemRef fs = NULL;
     ResolvedPath rp;
 
-    try(DriverManager_AcquireNodeForPath(gDriverManager, diskPath, &rp));
+    try(IOCatalog_AcquireNodeForPath(gIOCatalog, diskPath, &rp));
     Inode_Lock(rp.inode);
     err = create_boot_fs(rp.inode, O_RDWR, &fs);
     Inode_Unlock(rp.inode);

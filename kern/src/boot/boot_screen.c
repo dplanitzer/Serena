@@ -9,7 +9,7 @@
 #include "boot_screen.h"
 #include <string.h>
 #include <driver/DriverChannel.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <kpi/file.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 
@@ -38,7 +38,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(bt_screen_t));
 
-    if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
+    if ((err = IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
         IOChannel_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
         IOChannel_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);

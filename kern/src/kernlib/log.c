@@ -7,7 +7,7 @@
 //
 
 #include <kern/log.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <ext/__fmt.h>
 #include <filesystem/IOChannel.h>
 #include <kern/cbuf.h>
@@ -65,8 +65,8 @@ static errno_t log_open_console(void)
 {
     decl_try_err();
 
-    if (gDriverManager) {
-        err = DriverManager_Open(gDriverManager, "/console", O_WRONLY, &gConsoleChannel);
+    if (gIOCatalog) {
+        err = IOCatalog_Open(gIOCatalog, "/console", O_WRONLY, &gConsoleChannel);
     }
     else {
         err = ENODEV;

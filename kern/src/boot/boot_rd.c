@@ -7,7 +7,7 @@
 //
 
 #include <string.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <driver/PlatformController.h>
 #include <driver/pseudo/VDMDriver.h>
 #include <filesystem/IOChannel.h>
@@ -29,7 +29,7 @@ void auto_discover_boot_rd(void)
 
     // Open the VDM
     IOChannelRef vdmChannel = NULL;
-    try(DriverManager_Open(gDriverManager, "/vd-bus/self", O_RDWR, &vdmChannel));
+    try(IOCatalog_Open(gIOCatalog, "/vd-bus/self", O_RDWR, &vdmChannel));
     VDMDriverRef vdm = IOChannel_GetResourceAs(vdmChannel, VDMDriver);
 
 

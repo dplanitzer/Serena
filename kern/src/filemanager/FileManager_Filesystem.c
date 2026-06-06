@@ -11,7 +11,7 @@
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
 #include <string.h>
-#include <driver/DriverManager.h>
+#include <driver/IOCatalog.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
@@ -84,7 +84,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     FilesystemRef fs = NULL;
 
     if (!strcmp(catalogName, FS_CATALOG_DEV)) {
-        fs = DriverManager_GetCatalog(gDriverManager);
+        fs = IOCatalog_GetFilesystem(gIOCatalog);
     }
     else {
         *pOutFs = NULL;
