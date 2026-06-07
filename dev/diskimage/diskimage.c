@@ -16,10 +16,10 @@
 #include <ext/endian.h>
 #include <ext/errno.h>
 #include <filemanager/FileHierarchy.h>
-#include <filesystem/InodeChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/serenafs/SfsDirectory.h>
 #include <filesystem/serenafs/SfsRegularFile.h>
+#include <handler/InodeHandler.h>
 #include <kern/kernlib.h>
 #include <kpi/fs_perms.h>
 #include <kpi/smg.h>
@@ -533,8 +533,8 @@ static void init(void)
     _RegisterClass(class(SfsFile));
     _RegisterClass(class(SfsDirectory));
     _RegisterClass(class(SfsRegularFile));
-    _RegisterClass(class(IOChannel));
-    _RegisterClass(class(InodeChannel));
+    _RegisterClass(class(Handler));
+    _RegisterClass(class(InodeHandler));
     _RegisterClass(class(FileHierarchy));
 }
 

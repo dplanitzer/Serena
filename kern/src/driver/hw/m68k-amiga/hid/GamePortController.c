@@ -117,7 +117,7 @@ static errno_t GamePortController_GetPortForDriver(GamePortControllerRef _Nonnul
     return EOK;
 }
 
-errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
+errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, HandlerRef _Nonnull hnd, int cmd, va_list ap)
 {
     switch (cmd) {
         case kGamePortCommand_GetPortDevice: {
@@ -143,7 +143,7 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
         }
 
         default:
-            return super_n(ioctl, Driver, GamePortController, self, pChannel, cmd, ap);
+            return super_n(ioctl, Driver, GamePortController, self, hnd, cmd, ap);
     }
 }
 

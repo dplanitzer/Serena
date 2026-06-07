@@ -100,7 +100,7 @@ enum {
 //
 // Once a driver has been started, driver channels may be created by calling
 // Driver_Open() and a driver channel should be closed by calling
-// IOChannel_Release() on the channel. IOChannel_Release() in turn invokes
+// Handler_Release() on the channel. Handler_Release() in turn invokes
 // Driver_Close().
 //
 // A driver may be voluntarily terminated by calling Driver_Stop() with the.
@@ -133,7 +133,7 @@ enum {
 // Driver_Create()
 //   Driver_Start()
 //     Driver_Open()
-//       IOChannel_Read()
+//       Handler_Read()
 //       ...
 //     Driver_Close()
 //   Driver_Stop()
@@ -384,8 +384,8 @@ open_class_funcs(Driver, Object,
     // subclass can use this information to eg power up the hardware if
     // necessary.
     // Override: Optional
-    // Default Behavior: returns a DriverChannel instance
-    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    // Default Behavior: returns a DriverHandler instance
+    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
     // Invoked by the close() function to close an open I/O channel. The
     // 'openCount' reflects the number of I/O channels that are currently open
@@ -396,18 +396,18 @@ open_class_funcs(Driver, Object,
     // taken care off by the kernel.
     // Override: Optional
     // Default Behavior: does nothing
-    void (*onClose)(void* _Nonnull _Locked self, IOChannelRef _Nonnull ioc, int openCount);
+    void (*onClose)(void* _Nonnull _Locked self, HandlerRef _Nonnull ioc, int openCount);
 
 
     // Opens an I/O channel to the driver.
     // Override: Optional
-    // Default Behavior: returns a DriverChannel instance
-    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    // Default Behavior: returns a DriverHandler instance
+    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
     // Closes the given I/O channel.
     // Override: Optional
     // Default Behavior: Does nothing and returns EOK
-    errno_t (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
+    errno_t (*close)(void* _Nonnull self, HandlerRef _Nonnull hnd);
 
     // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
     // source and returns them in 'buf'. The actual amount of bytes read is
@@ -416,12 +416,12 @@ open_class_funcs(Driver, Object,
     // will read no bytes and return some error.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*read)(void* _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull self, HandlerRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is the value returned by
@@ -434,7 +434,7 @@ open_class_funcs(Driver, Object,
     // arguments 'ap'.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull self, HandlerRef _Nonnull ioc, int cmd, va_list ap);
 );
 
 
@@ -473,20 +473,20 @@ extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 
 
 // Opens an I/O channel to the driver with the mode 'mode'. EOK and the channel
-// is returned in 'pOutChannel' on success and a suitable error code is returned
+// is returned in 'pOutHandler' on success and a suitable error code is returned
 // otherwise.
-#define Driver_Open(__self, __mode, __arg, __pOutChannel) \
-invoke_n(open, Driver, __self, __mode, __arg, __pOutChannel)
+#define Driver_Open(__self, __mode, __arg, __pOutHandler) \
+invoke_n(open, Driver, __self, __mode, __arg, __pOutHandler)
 
 // Closes the given driver channel.
-#define Driver_Close(__self, __pChannel) \
-invoke_n(close, Driver, __self, __pChannel)
+#define Driver_Close(__self, __hnd) \
+invoke_n(close, Driver, __self, __hnd)
 
-#define Driver_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
+#define Driver_Read(__self, __hnd, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, Driver, __self, __hnd, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, Driver, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+#define Driver_Write(__self, __hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, Driver, __self, __hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)
@@ -494,7 +494,7 @@ invoke_0(getSeekableRange, Driver, __self)
 #define Driver_vIoctl(__self, __chan, __cmd, __ap) \
 invoke_n(ioctl, Driver, __self, __chan, __cmd, __ap)
 
-extern errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, ...);
+extern errno_t Driver_Ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, ...);
 
 
 // Returns true if there are open I/O channels referencing this driver.
@@ -605,8 +605,8 @@ invoke_n(onDetaching, Driver, __self, __parent)
 
 // Creates an I/O channel that connects the driver to a user space application
 // or a kernel space service
-#define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutChannel) \
-invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutChannel)
+#define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutHandler) \
+invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutHandler)
 
 // Closes the given I/O channel
 #define Driver_OnClose(__self, __ioc, __openCount) \

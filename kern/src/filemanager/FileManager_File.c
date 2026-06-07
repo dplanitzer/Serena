@@ -8,7 +8,7 @@
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
-#include <filesystem/InodeChannel.h>
+#include <handler/InodeHandler.h>
 #include <security/perm_check.h>
 #include <kpi/file.h>
 
@@ -60,7 +60,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 }
 
 // Creates a file in the given filesystem location.
-errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, fs_perms_t fsperms, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, fs_perms_t fsperms, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath r;
@@ -68,7 +68,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     InodeRef dir = NULL;
     InodeRef ip = NULL;
 
-    *pOutChannel = NULL;
+    *pOutHandler = NULL;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
@@ -132,7 +132,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // Create the file channel
-    try(InodeChannel_Create(ip, oflags, pOutChannel));
+    try(InodeHandler_Create(ip, oflags, pOutHandler));
 
 catch:
     Inode_Relinquish(ip);
@@ -145,12 +145,12 @@ catch:
 
 // Opens the given file or named resource. Opening directories is handled by the
 // FileManager_OpenDirectory() function.
-errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath r;
 
-    *pOutChannel = NULL;
+    *pOutHandler = NULL;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
@@ -159,7 +159,7 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
-    err = Inode_CreateChannel(r.inode, oflags, pOutChannel);
+    err = Inode_CreateHandler(r.inode, oflags, pOutHandler);
 
 catch:
     ResolvedPath_Deinit(&r);

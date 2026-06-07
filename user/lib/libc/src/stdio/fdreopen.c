@@ -18,7 +18,7 @@ FILE *fdreopen(int ioc, const char * _Nonnull _Restrict mode, FILE * _Nonnull _R
         __flock(s);
         __fclose(s);
 
-        r = __fdopen_init((__IOChannel_FILE*)s, ioc, sm | __kStreamMode_Reinit);
+        r = __fdopen_init((__FD_FILE*)s, ioc, sm | __kStreamMode_Reinit);
         __funlock(s);
     }
  

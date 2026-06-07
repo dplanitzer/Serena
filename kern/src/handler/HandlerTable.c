@@ -1,12 +1,12 @@
 //
-//  IOChannelTable.c
+//  HandlerTable.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 4/12/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "IOChannelTable.h"
+#include "HandlerTable.h"
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
@@ -18,7 +18,7 @@
 #define FDTAB_PAGE_SIZE     (1 << FDTAB_PAGE_SHIFT)
 
 
-void IOChannelTable_Init(IOChannelTable* _Nonnull self)
+void HandlerTable_Init(HandlerTable* _Nonnull self)
 {
     self->table = NULL;
     self->table_size = 0;
@@ -26,15 +26,15 @@ void IOChannelTable_Init(IOChannelTable* _Nonnull self)
     mtx_init(&self->mtx);
 }
 
-void IOChannelTable_Deinit(IOChannelTable* _Nonnull self)
+void HandlerTable_Deinit(HandlerTable* _Nonnull self)
 {
-    IOChannelTable_ReleaseAll(self);
+    HandlerTable_ReleaseAll(self);
     mtx_deinit(&self->mtx);
 }
 
-void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
+void HandlerTable_ReleaseAll(HandlerTable* _Nonnull self)
 {
-    IOChannelRef* table;
+    HandlerRef* table;
     int max_fd_num;
 
     mtx_lock(&self->mtx);
@@ -49,14 +49,14 @@ void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
 
     for (int i = 0; i < max_fd_num; i++) {
         if (table[i]) {
-            IOChannel_Release(table[i]);
+            Handler_Release(table[i]);
             table[i] = NULL;
         }
     }
     kfree(table);
 }
 
-static errno_t _ensure_fd_slot_exists(IOChannelTable* _Nonnull _Locked self, int fd_slot)
+static errno_t _ensure_fd_slot_exists(HandlerTable* _Nonnull _Locked self, int fd_slot)
 {
     decl_try_err();
     void* new_table;
@@ -71,7 +71,7 @@ static errno_t _ensure_fd_slot_exists(IOChannelTable* _Nonnull _Locked self, int
 
     const int new_page_count = (fd_slot >> FDTAB_PAGE_SHIFT) + 1;
     const int new_table_size = new_page_count * FDTAB_PAGE_SIZE;
-    const int new_memblk_size = new_table_size * sizeof(IOChannelRef);
+    const int new_memblk_size = new_table_size * sizeof(HandlerRef);
     if (new_memblk_size < 0) {
         // overflow
         return EMFILE;
@@ -81,7 +81,7 @@ static errno_t _ensure_fd_slot_exists(IOChannelTable* _Nonnull _Locked self, int
     err = kalloc_cleared(new_memblk_size, &new_table);
     if (err == EOK) {
         if (self->table) {
-            memcpy(new_table, self->table, sizeof(IOChannelRef) * (self->max_fd_num + 1));
+            memcpy(new_table, self->table, sizeof(HandlerRef) * (self->max_fd_num + 1));
             kfree(self->table);
         }
 
@@ -92,7 +92,7 @@ static errno_t _ensure_fd_slot_exists(IOChannelTable* _Nonnull _Locked self, int
     return err;
 }
 
-static errno_t _alloc_fd_slot(IOChannelTable* _Nonnull _Locked self, int min_fd, int* _Nonnull out_fd)
+static errno_t _alloc_fd_slot(HandlerTable* _Nonnull _Locked self, int min_fd, int* _Nonnull out_fd)
 {
     decl_try_err();
     int new_fd = -1;
@@ -112,7 +112,7 @@ static errno_t _alloc_fd_slot(IOChannelTable* _Nonnull _Locked self, int min_fd,
     return err;
 }
 
-static void _clear_fd_slot(IOChannelTable* _Nonnull _Locked self, int fd)
+static void _clear_fd_slot(HandlerTable* _Nonnull _Locked self, int fd)
 {
     self->table[fd] = NULL;
 
@@ -123,11 +123,7 @@ static void _clear_fd_slot(IOChannelTable* _Nonnull _Locked self, int fd)
     }
 }
 
-// Finds an empty slot in the I/O channel table and stores the I/O channel there.
-// Returns the I/O channel descriptor and EOK on success and a suitable error and
-// -1 otherwise. Note that this function takes ownership of the provided I/O
-// channel.
-errno_t IOChannelTable_AdoptChannel(IOChannelTable* _Nonnull self, IOChannelRef _Consuming _Nonnull pChannel, int * _Nonnull pOutIoc)
+errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef _Consuming _Nonnull hnd, int * _Nonnull pOutIoc)
 {
     decl_try_err();
     int new_fd = -1;
@@ -136,7 +132,7 @@ errno_t IOChannelTable_AdoptChannel(IOChannelTable* _Nonnull self, IOChannelRef 
 
     err = _alloc_fd_slot(self, 0, &new_fd);
     if (err == EOK) {
-        self->table[new_fd] = pChannel;
+        self->table[new_fd] = hnd;
     }
 
     mtx_unlock(&self->mtx);
@@ -145,15 +141,9 @@ errno_t IOChannelTable_AdoptChannel(IOChannelTable* _Nonnull self, IOChannelRef 
     return err;
 }
 
-// Releases the I/O channel at the index 'fd'. Releasing a channel means that
-// the entry (name/descriptor) 'fd' is removed from the table and that one
-// strong reference is dropped. The channel is closed altogether if the last
-// reference is removed. The error that this function returns is the error from
-// the close operation. Note that this error is purely informative. The close
-// will proceed and finish even if an error is encountered while doing so.
-errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int fd)
+errno_t HandlerTable_ReleaseHandler(HandlerTable* _Nonnull self, int fd)
 {
-    IOChannelRef ch = NULL;
+    HandlerRef ch = NULL;
 
     // Do the actual channel release outside the table lock because the release
     // may take some time to execute. Ie it's synchronously draining some buffered
@@ -167,34 +157,28 @@ errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int fd)
 
     mtx_unlock(&self->mtx);
 
-    return (ch) ? IOChannel_Release(ch) : EBADF;
+    return (ch) ? Handler_Release(ch) : EBADF;
 }
 
-// Returns the I/O channel that is named by 'fd'. The channel is guaranteed to
-// stay alive until it is relinquished. You should relinquish the channel by
-// calling IOChannel_EndOperation(). Returns the channel and EOK on
-// success and a suitable error and NULL otherwise.
-errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
-    IOChannelRef ch = NULL;
+    HandlerRef ch = NULL;
 
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
         ch = self->table[fd];
-        IOChannel_BeginOperation(ch);
+        Handler_BeginOperation(ch);
     }
     
     mtx_unlock(&self->mtx);
     
-    *pOutChannel = ch;
+    *pOutHandler = ch;
     return (ch) ? EOK : EBADF;
 }
 
-// Creates a new named reference of the I/O channel 'fd'. The new descriptor/name
-// value will be at least 'min_fd'.
-errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int fd, int min_fd, int * _Nonnull pOutNewIoc)
+errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd, int * _Nonnull pOutNewIoc)
 {
     decl_try_err();
     int new_fd = -1;
@@ -204,7 +188,7 @@ errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int fd, int min
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
         err = _alloc_fd_slot(self, min_fd, &new_fd);
         if (err == EOK) {
-            self->table[new_fd] = IOChannel_Retain(self->table[fd]);
+            self->table[new_fd] = Handler_Retain(self->table[fd]);
         }
     }
 
@@ -214,13 +198,10 @@ errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int fd, int min
     return err;
 }
 
-// Assigns a new strong reference of the existing channel 'fd' from 'self' to
-// 'target_fd' in the table 'other'. If 'target_fd" names an existing
-// I/O channel then this channel is implicitly closed.
-errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, IOChannelTable* _Nonnull other, int target_fd)
+errno_t HandlerTable_DupHandlerTo(HandlerTable* _Nonnull self, int fd, HandlerTable* _Nonnull other, int target_fd)
 {
     decl_try_err();
-    IOChannelRef ch_to_close = NULL;
+    HandlerRef ch_to_close = NULL;
 
     mtx_lock(&self->mtx);
     if (self != other) {
@@ -244,7 +225,7 @@ errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int fd, IOCha
         try(_ensure_fd_slot_exists(other, target_fd));
     }
 
-    other->table[target_fd] = IOChannel_Retain(self->table[fd]);
+    other->table[target_fd] = Handler_Retain(self->table[fd]);
     other->max_fd_num = __max(other->max_fd_num, target_fd);
 
 
@@ -259,13 +240,13 @@ catch:
     // Also note that we always treat a close as successful because the channel
     // is in fact always closed even if it encounters a problem while doing so.
     if (ch_to_close) {
-        IOChannel_Release(ch_to_close);
+        Handler_Release(ch_to_close);
     }
 
     return err;
 }
 
-void IOChannelTable_ReleaseChannelsOnExec(IOChannelTable* _Nonnull self)
+void HandlerTable_ReleaseHandlersOnExec(HandlerTable* _Nonnull self)
 {
     int fd;
 
@@ -273,10 +254,10 @@ void IOChannelTable_ReleaseChannelsOnExec(IOChannelTable* _Nonnull self)
     fd = self->max_fd_num;
 
     while (fd >= 0) {
-        IOChannelRef fh = self->table[fd];
+        HandlerRef fh = self->table[fd];
 
-        if (fh && (IOChannel_GetFlags(fh) & O_PRSVEXEC) == 0) {
-            IOChannel_Release(fh);
+        if (fh && (Handler_GetFlags(fh) & O_PRSVEXEC) == 0) {
+            Handler_Release(fh);
             self->table[fd] = NULL;
         }
         fd--;

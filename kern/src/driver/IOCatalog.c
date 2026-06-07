@@ -82,7 +82,7 @@ errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _No
     return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, rp);
 }
 
-errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath rp;
@@ -91,7 +91,7 @@ errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, un
     if (err == EOK) {
         Inode_Lock(rp.inode);
         if (!Inode_IsDirectory(rp.inode)) {
-            err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
+            err = Inode_CreateHandler(rp.inode, mode, pOutHandler);
         }
         else {
             err = EISDIR;

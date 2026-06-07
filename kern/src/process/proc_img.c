@@ -12,7 +12,7 @@
 #include <ext/math.h>
 #include <ext/string.h>
 #include <filemanager/FileManager.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kei/kei.h>
 #include <kern/kalloc.h>
 #include <kpi/fd.h>
@@ -226,7 +226,7 @@ errno_t proc_img_open_file(proc_img_t* _Nonnull pimg, const char* _Nonnull path)
 
 
     try(FileManager_OpenFile(pimg->fm, pimg->orig_path, O_RDONLY | _O_EXONLY, &pimg->file));
-    try(IOChannel_GetAttributes(pimg->file, &pimg->file_attr));
+    try(Handler_GetAttributes(pimg->file, &pimg->file_attr));
 
     // Do some basic file validation
     if (pimg->file_attr.file_type != FS_FTYPE_REG) {
@@ -241,7 +241,7 @@ errno_t proc_img_open_file(proc_img_t* _Nonnull pimg, const char* _Nonnull path)
 
 
     // Read the file prefix and leave the seek position at the end of the prefix.
-    err = IOChannel_Read(pimg->file, pimg->prefix_buf, PROC_IMG_PREFIX_SIZE, &pimg->prefix_length);
+    err = Handler_Read(pimg->file, pimg->prefix_buf, PROC_IMG_PREFIX_SIZE, &pimg->prefix_length);
 
 catch:
     if (err != EOK) {
@@ -254,7 +254,7 @@ catch:
 static void _proc_img_close_file(proc_img_t* _Nonnull pimg)
 {
     if (pimg->file) {
-        IOChannel_Release(pimg->file);
+        Handler_Release(pimg->file);
         pimg->file = NULL;
     }
 }

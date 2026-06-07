@@ -42,7 +42,7 @@ typedef struct hid_rect {
 
 // State of the logical pointing device (mouse)
 typedef struct logical_mouse {
-    IOChannelRef _Nullable  ch[MAX_POINTING_DEVICES];
+    HandlerRef _Nullable  ch[MAX_POINTING_DEVICES];
     int16_t                 chCount;
     int16_t                 lpCount;
     int16_t                 x;
@@ -53,7 +53,7 @@ typedef struct logical_mouse {
 
 // State of a gamepad/joystick device
 typedef struct gamepad_state {
-    IOChannelRef _Nullable  ch;
+    HandlerRef _Nullable  ch;
     int16_t     x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
     int16_t     y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
     uint32_t    buttons;  // Button #0 -> 0, Button #1 -> 1, ...
@@ -74,12 +74,12 @@ typedef struct HIDManager {
 
 
     // Input Drivers
-    IOChannelRef _Nullable      kbChannel;
+    HandlerRef _Nullable        kbHnd;
     InputDriverRef _Nullable    kb;
 
 
     // Framebuffer interface
-    IOChannelRef _Nullable      fbChannel;
+    HandlerRef _Nullable        fbHnd;
     DisplayDriverRef _Nullable  fb;
 
 

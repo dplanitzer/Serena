@@ -12,7 +12,7 @@
 int fileno(FILE * _Nonnull s)
 {
     __flock(s);
-    const int r = (s->cb.read == (FILE_Read)__fd_read) ? ((__IOChannel_FILE*)s)->v.fd : EOF;
+    const int r = (s->cb.read == (FILE_Read)__fd_read) ? ((__FD_FILE*)s)->v.fd : EOF;
     __funlock(s);
 
     return r;

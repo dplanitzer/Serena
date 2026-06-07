@@ -81,7 +81,7 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
         mtx_lock(&self->mtx);
 
         _proc_destroy_sigroutes_except_for_vcpuid(self, me_vp->id);
-        IOChannelTable_ReleaseChannelsOnExec(&self->ioChannelTable);
+        HandlerTable_ReleaseHandlersOnExec(&self->HandlerTable);
 
 
         // Reset our user stack so that we'll start executing the new process

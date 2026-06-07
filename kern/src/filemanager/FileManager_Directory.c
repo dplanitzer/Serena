@@ -108,12 +108,12 @@ catch:
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
-errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath r;
 
-    *pOutChannel = NULL;
+    *pOutHandler = NULL;
     
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
@@ -127,7 +127,7 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     Inode_Unlock(r.inode);
     throw_iferr(err);
     
-    err = Inode_CreateChannel(r.inode, O_RDONLY, pOutChannel);
+    err = Inode_CreateHandler(r.inode, O_RDONLY, pOutHandler);
     
 catch:
     ResolvedPath_Deinit(&r);

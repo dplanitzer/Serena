@@ -48,17 +48,17 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
         //height = 512;
     }
 
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateCLUT, 32, &self->clutId));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_CreateCLUT, 32, &self->clutId));
 
 
     // Install an ANSI color table
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
+    Handler_Ioctl(self->fbHnd, kFBCommand_SetCLUTEntries, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
 
 
     // Clear & map the framebuffer before we activate the new screen config
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_ClearPixels, self->surfaceId));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_MapSurface, self->surfaceId, SURFACE_MAP_RW, &self->pixels));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_ClearPixels, self->surfaceId));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_MapSurface, self->surfaceId, SURFACE_MAP_RW, &self->pixels));
 
 
     // Make our screen the current screen
@@ -68,7 +68,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     sc[2] = SCREEN_CONF_CLUT;
     sc[3] = self->clutId;
     sc[4] = SCREEN_CONF_END;
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, &sc[0]));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_SetScreenConfig, &sc[0]));
 
 
     // Get the framebuffer size
@@ -85,10 +85,10 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->textCursorSurface, textCursorPlanes, 2, PIXFMT_RGB_IND_2));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_WritePixels, self->textCursorSurface, textCursorPlanes, 2, PIXFMT_RGB_IND_2));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_BindSurface, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
 
     // Initialize the text cursor timer
     self->textCursorTimer.item = KDISPATCH_ITEM_INIT((kdispatch_item_func_t)Console_OnTextCursorBlink, NULL);
@@ -104,13 +104,13 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_UnmapSurface, self->surfaceId);
+    Handler_Ioctl(self->fbHnd, kFBCommand_UnmapSurface, self->surfaceId);
 
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, NULL);
+    Handler_Ioctl(self->fbHnd, kFBCommand_SetScreenConfig, NULL);
 
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, TARGET_SPRITE_0 + self->textCursorSprite, 0);
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);    
+    Handler_Ioctl(self->fbHnd, kFBCommand_BindSurface, TARGET_SPRITE_0 + self->textCursorSprite, 0);
+    Handler_Ioctl(self->fbHnd, kFBCommand_DestroyCLUT, self->clutId);
+    Handler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->surfaceId);    
 }
 
 
@@ -131,7 +131,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[5] = gANSIColors[color.u.index];
     clr[6] = clr[5];
     clr[7] = clr[5];
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 16, 8, clr);
+    Handler_Ioctl(self->fbHnd, kFBCommand_SetCLUTEntries, self->clutId, 16, 8, clr);
 }
 
 // Sets the console's background color to the given color
@@ -148,7 +148,7 @@ static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
 
     mtx_lock(&self->mtx);
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, self->flags.isTextCursorOn);
+    Handler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, self->flags.isTextCursorOn);
     mtx_unlock(&self->mtx);
 }
 
@@ -165,11 +165,11 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
 
     if (self->flags.isTextCursorVisible) {
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePosition, self->textCursorSprite, self->x * self->characterWidth, self->y * self->lineHeight);
+        Handler_Ioctl(self->fbHnd, kFBCommand_SetSpritePosition, self->textCursorSprite, self->x * self->characterWidth, self->y * self->lineHeight);
 
         if (!self->flags.isTextCursorOn) {
             self->flags.isTextCursorOn = true;
-            IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, true);
+            Handler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, true);
         }
 
 
@@ -180,7 +180,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
     else if (self->flags.isTextCursorOn) {
         self->flags.isTextCursorOn = false;
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, false);
+        Handler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, false);
     }
 }
 

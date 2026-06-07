@@ -11,7 +11,7 @@
 #include <limits.h>
 #include <driver/IOCatalog.h>
 #include <ext/bit.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kern/kalloc.h>
 #include <kpi/file.h>
 #include <process/kerneld.h>
@@ -213,7 +213,7 @@ void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->fb) {
         DisplayDriver_ReleaseCursor(self->fb);
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->cursorSurfaceId);
+        Handler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
         self->cursorSurfaceId = 0;
     }
     mtx_unlock(&self->mtx);
@@ -240,17 +240,17 @@ errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable 
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_SPRITE_2, &newId));
+        try(Handler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
         if (self->cursorSurfaceId) {
-            IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->cursorSurfaceId);
+            Handler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
         }
         self->cursorSurfaceId = newId;
     }
 
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
+    try(Handler_Ioctl(self->fbHnd, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
     try(DisplayDriver_BindCursor(self->fb, self->cursorSurfaceId));
     self->hotSpotX = hotSpotX;
     self->hotSpotY = hotSpotY;
@@ -599,7 +599,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
 // to the event queue.
 static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
-    did_t did = Driver_GetId(IOChannel_GetResourceAs(gp->ch, Driver));
+    did_t did = Driver_GetId(Handler_GetResourceAs(gp->ch, Driver));
 
     // Generate button up/down events
     const uint32_t oldButtons = gp->buttons;
@@ -668,8 +668,8 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
 {
     decl_try_err();
 
-    if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
-        err = Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
+    if (self->kbHnd == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
+        err = Driver_Open(driver, O_RDWR, 0, &self->kbHnd);
         if (err == EOK) {
             self->kb = (InputDriverRef)driver;
         }
@@ -707,11 +707,11 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             }
         }
     }
-    else if (self->fbChannel == NULL && Driver_HasCategory(driver, IOVID_FB)) {
+    else if (self->fbHnd == NULL && Driver_HasCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
-        err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
+        err = Driver_Open(driver, O_RDWR, 0, &self->fbHnd);
         if (err == EOK) {
-            self->fb = IOChannel_GetResourceAs(self->fbChannel, DisplayDriver);
+            self->fb = Handler_GetResourceAs(self->fbHnd, DisplayDriver);
             DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
             _collect_framebuffer_size(self);
         }
@@ -722,24 +722,24 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
 static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
 {
     if ((DriverRef)self->kb == driver) {
-        IOChannel_Release(self->kbChannel);
-        self->kbChannel = NULL;
+        Handler_Release(self->kbHnd);
+        self->kbHnd = NULL;
         self->kb = NULL;
         return;
     }
     
     if ((DriverRef)self->fb == driver) {
         DisplayDriver_SetScreenConfigObserver(self->fb, NULL, 0);
-        IOChannel_Release(self->fbChannel);
-        self->fbChannel = NULL;
+        Handler_Release(self->fbHnd);
+        self->fbHnd = NULL;
         self->fb = NULL;
         hid_rect_set_empty(&self->screenBounds);
         return;
     }
 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
-        IOChannelRef ch = self->mouse.ch[i];
-        DriverRef cdp = (ch) ? IOChannel_GetResourceAs(ch, Driver) : NULL;
+        HandlerRef ch = self->mouse.ch[i];
+        DriverRef cdp = (ch) ? Handler_GetResourceAs(ch, Driver) : NULL;
 
         if (cdp == driver) {
             if (self->mouse.lpCount > 0 && Driver_HasCategory(cdp, IOHID_LIGHTPEN)) {
@@ -748,7 +748,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
                     DisplayDriver_SetLightPenEnabled(self->fb, false);
                 }
             }
-            IOChannel_Release(ch);
+            Handler_Release(ch);
             self->mouse.ch[i] = NULL;
             self->mouse.chCount--;
             break;
@@ -758,8 +758,8 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
     for (int i = 0; i < MAX_GAME_PADS; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if (gp->ch && IOChannel_GetResourceAs(gp->ch, Driver) == driver) {
-            IOChannel_Release(gp->ch);
+        if (gp->ch && Handler_GetResourceAs(gp->ch, Driver) == driver) {
+            Handler_Release(gp->ch);
             gp->ch = NULL;
             self->gamepadCount--;
             break;
@@ -826,13 +826,13 @@ static bool _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
     // Collect reports from all devices that control the logical mouse and compute
     // the new logical mouse state
     for (int i = 0; i < self->mouse.chCount; i++) {
-        IOChannelRef ch = self->mouse.ch[i];
+        HandlerRef ch = self->mouse.ch[i];
 
         if (ch) {
             int16_t dx, dy;
             uint32_t bt;
 
-            InputDriver_GetReport(IOChannel_GetResourceAs(ch, InputDriver), &self->report);
+            InputDriver_GetReport(Handler_GetResourceAs(ch, InputDriver), &self->report);
 
             switch (self->report.type) {
                 case kHIDReportType_Mouse:
@@ -910,7 +910,7 @@ static bool _collect_gamepad_reports(HIDManagerRef _Nonnull self)
         gamepad_state_t* gp = &self->gamepad[i];
 
         if (gp->ch) {
-            InputDriver_GetReport(IOChannel_GetResourceAs(gp->ch, InputDriver), &self->report);
+            InputDriver_GetReport(Handler_GetResourceAs(gp->ch, InputDriver), &self->report);
             _post_gamepad_event(self, gp, &self->report);
             r = true;
         }

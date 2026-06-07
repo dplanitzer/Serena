@@ -54,29 +54,29 @@ enum {
 // FILE and subclassing:
 // FILE is the abstract base class of all stream classes. A caveat that subclassers
 // have to deal with is that freopen() exists. Freopen() must be able to convert
-// any instance of a FILE subclass in place into a IOChannelFile subclass.
+// any instance of a FILE subclass in place into a FD_File subclass.
 // Consequently every subclass of FILE must allocate enough space to hold an
-// IOChannelFile even if the subclass itself is smaller.
+// FD_File even if the subclass itself is smaller.
 // This macro here should be used to malloc() the correct amount of space for a
 // FILE subclass. It ensures that there is always enough space to convert the
-// allocated instance into an IOChannelFile.
+// allocated instance into an FD_File.
 // If you use a __fopen_xxx_init() function then you should always pass a pointer
 // to a structure which is typed as the subclass that you want to initialize and
 // you should never call freopen() on an instance that was created with an init()
 // call. Note that there's no problem as long as you never call freopen() on a
 // FILE subclass instance. 
 #define SIZE_OF_FILE_SUBCLASS(__type) \
-((sizeof(__type) > sizeof(__IOChannel_FILE)) ? sizeof(__type) : sizeof(__IOChannel_FILE))
+((sizeof(__type) > sizeof(__FD_FILE)) ? sizeof(__type) : sizeof(__FD_FILE))
 
 
-typedef struct __IOChannel_FILE_Vars {
+typedef struct __FD_FILE_Vars {
     int fd;
-} __IOChannel_FILE_Vars;
+} __FD_FILE_Vars;
 
-typedef struct __IOChannel_FILE {
-    FILE                    super;
-    __IOChannel_FILE_Vars   v;
-} __IOChannel_FILE;
+typedef struct __FD_FILE {
+    FILE            super;
+    __FD_FILE_Vars  v;
+} __FD_FILE;
 
 
 typedef struct __Memory_FILE_Vars {
@@ -117,8 +117,8 @@ mtx_unlock(&__gOpenFilesLock)
 extern int __fopen_parse_mode(const char* _Nonnull _Restrict mode, __FILE_Mode* _Nonnull _Restrict pOutMode);
 
 extern int __fopen_init(FILE* _Nonnull _Restrict self, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm);
-extern int __fdopen_init(__IOChannel_FILE* _Nonnull self, int ioc, __FILE_Mode sm);
-extern int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm);
+extern int __fdopen_init(__FD_FILE* _Nonnull self, int ioc, __FILE_Mode sm);
+extern int __fopen_filename_init(__FD_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm);
 extern int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm);
 extern int __fopen_null_init(FILE* _Nonnull self, __FILE_Mode sm);
 
@@ -131,7 +131,7 @@ extern int __iterate_open_files(__file_func_t _Nonnull f);
 extern int __filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query);
 
 
-extern ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
+extern ssize_t __fd_read(__FD_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
 extern ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead);
 
 

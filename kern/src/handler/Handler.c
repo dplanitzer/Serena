@@ -1,22 +1,22 @@
 //
-//  IOChannel.c
+//  Handler.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 10/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "IOChannel.h"
+#include "Handler.h"
 #include <kern/kalloc.h>
 
 
 typedef errno_t (*finalize_func_t)(void* _Nonnull self);
 
 
-errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, intptr_t resource, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, intptr_t resource, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
-    IOChannelRef self;
+    HandlerRef self;
 
     if ((err = kalloc_cleared(pClass->instanceSize, (void**) &self)) == EOK) {
         self->super.clazz = pClass;
@@ -25,21 +25,21 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int m
         self->ownerCount = 1;
         self->useCount = 0;
         self->mode = mode & (O_ACCMODE | O_FLAGS);
-        self->channelType = channelType;
+        self->type = type;
     }
-    *pOutChannel = self;
+    *pOutHandler = self;
     
     return err;
 }
 
-static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
+static errno_t _Handler_Finalize(HandlerRef _Nonnull self)
 {
     decl_try_err();
     finalize_func_t pPrevFinalizeImpl = NULL;
     Class* pCurClass = classof(self);
 
     for(;;) {
-        finalize_func_t pCurFinalizeImpl = (finalize_func_t)implementationof(finalize, IOChannel, pCurClass);
+        finalize_func_t pCurFinalizeImpl = (finalize_func_t)implementationof(finalize, Handler, pCurClass);
         
         if (pCurFinalizeImpl != pPrevFinalizeImpl) {
             const errno_t err0 = pCurFinalizeImpl(self);
@@ -48,7 +48,7 @@ static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
             pPrevFinalizeImpl = pCurFinalizeImpl;
         }
 
-        if (pCurClass == &kIOChannelClass) {
+        if (pCurClass == &kHandlerClass) {
             break;
         }
 
@@ -61,7 +61,7 @@ static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
     return err;
 }
 
-IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self)
+HandlerRef Handler_Retain(HandlerRef _Nonnull self)
 {
     mtx_lock(&self->countLock);
     self->ownerCount++;
@@ -70,7 +70,7 @@ IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self)
     return self;
 }
 
-errno_t IOChannel_Release(IOChannelRef _Nullable self)
+errno_t Handler_Release(HandlerRef _Nullable self)
 {
     if (self) {
         bool doFinalize = false;
@@ -88,20 +88,20 @@ errno_t IOChannel_Release(IOChannelRef _Nullable self)
         if (doFinalize) {
             // Can be triggered at most once. Thus no need to hold the lock while
             // running finalization
-            return _IOChannel_Finalize(self);
+            return _Handler_Finalize(self);
         }
     }
     return EOK;
 }
 
-void IOChannel_BeginOperation(IOChannelRef _Nonnull self)
+void Handler_BeginOperation(HandlerRef _Nonnull self)
 {
     mtx_lock(&self->countLock);
     self->useCount++;
     mtx_unlock(&self->countLock);
 }
 
-void IOChannel_EndOperation(IOChannelRef _Nonnull self)
+void Handler_EndOperation(HandlerRef _Nonnull self)
 {
     bool doFinalize = false;
 
@@ -118,23 +118,23 @@ void IOChannel_EndOperation(IOChannelRef _Nonnull self)
     if (doFinalize) {
         // Can be triggered at most once. Thus no need to hold the lock while
         // running finalization
-        _IOChannel_Finalize(self);
+        _Handler_Finalize(self);
     }
 }
 
 
 
-errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
+errno_t Handler_finalize(HandlerRef _Nonnull self)
 {
     return EOK;
 }
 
-int IOChannel_GetFlags(IOChannelRef _Nonnull self)
+int Handler_GetFlags(HandlerRef _Nonnull self)
 {
     return self->mode & O_FLAGS; //XXX use atomic_get_int() here
 }
 
-errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags)
+errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 {
     if ((flags & ~O_FLAGS) != 0) {
         return EINVAL;
@@ -161,18 +161,18 @@ errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags)
 }
 
 
-errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Handler_read(HandlerRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EBADF;
 }
 
-errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Handler_write(HandlerRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EBADF;
 }
 
 
-errno_t IOChannel_DoSeek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
 
@@ -185,7 +185,7 @@ errno_t IOChannel_DoSeek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nulla
         }
     }
     else if(whence == SEEK_CUR || whence == SEEK_END) {
-        const off_t refPos = (whence == SEEK_END) ? IOChannel_GetSeekableRange(self) : self->offset;
+        const off_t refPos = (whence == SEEK_END) ? Handler_GetSeekableRange(self) : self->offset;
         
         if (offset < 0ll && -offset > refPos) {
             throw(EINVAL);
@@ -212,41 +212,41 @@ catch:
     return err;
 }
 
-errno_t IOChannel_seek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+errno_t Handler_seek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     return ESPIPE;
 }
 
-off_t IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
+off_t Handler_getSeekableRange(HandlerRef _Nonnull _Locked self)
 {
     return 0ll;
 }
 
 
-errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
+errno_t Handler_ioctl(HandlerRef _Nonnull self, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
 }
 
-errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
+errno_t Handler_Ioctl(HandlerRef _Nonnull self, int cmd, ...)
 {
     decl_try_err();
 
     va_list ap;
     va_start(ap, cmd);
-    err = IOChannel_vIoctl(self, cmd, ap);
+    err = Handler_vIoctl(self, cmd, ap);
     va_end(ap);
 
     return err;
 }
 
-errno_t IOChannel_GetInfo(IOChannelRef _Nonnull self, int flavor, fd_info_ref _Nonnull info)
+errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info)
 {
     switch (flavor) {
         case FD_INFO_BASIC: {
             fd_basic_info_t* ip = info;
 
-            ip->type = self->channelType;
+            ip->type = self->type;
             ip->flags = self->mode & O_FLAGS;
             ip->access_mode = self->mode & O_ACCMODE;
             return EOK;
@@ -258,24 +258,24 @@ errno_t IOChannel_GetInfo(IOChannelRef _Nonnull self, int flavor, fd_info_ref _N
 }
 
 
-errno_t IOChannel_getAttributes(IOChannelRef _Nonnull self, fs_attr_t* _Nonnull attr)
+errno_t Handler_getAttributes(HandlerRef _Nonnull self, fs_attr_t* _Nonnull attr)
 {
     return EBADF;
 }
 
-errno_t IOChannel_truncate(IOChannelRef _Nonnull self, off_t length)
+errno_t Handler_truncate(HandlerRef _Nonnull self, off_t length)
 {
     return EBADF;
 }
 
 
-any_subclass_func_defs(IOChannel,
-func_def(finalize, IOChannel)
-func_def(ioctl, IOChannel)
-func_def(read, IOChannel)
-func_def(write, IOChannel)
-func_def(seek, IOChannel)
-func_def(getSeekableRange, IOChannel)
-func_def(getAttributes, IOChannel)
-func_def(truncate, IOChannel)
+any_subclass_func_defs(Handler,
+func_def(finalize, Handler)
+func_def(ioctl, Handler)
+func_def(read, Handler)
+func_def(write, Handler)
+func_def(seek, Handler)
+func_def(getSeekableRange, Handler)
+func_def(getAttributes, Handler)
+func_def(truncate, Handler)
 );

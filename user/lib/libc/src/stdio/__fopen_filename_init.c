@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <serena/file.h>
 
-int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm)
+int __fopen_filename_init(__FD_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm)
 {
     int oflags = 0;
 

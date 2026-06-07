@@ -11,15 +11,15 @@
 #include <assert.h>
 #include <string.h>
 #include <ext/limits.h>
-#include <filesystem/InodeChannel.h>
+#include <handler/InodeHandler.h>
 #include <kpi/file.h>
 
 
-errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    const off_t offset = IOChannel_GetOffset(ch);
+    const off_t offset = Handler_GetOffset(ch);
     uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
@@ -81,7 +81,7 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeChanne
         if (fs->mountFlags.isAccessUpdateOnReadEnabled) {
             Inode_SetModified(self, kInodeFlag_Accessed);
         }
-        IOChannel_IncrementOffsetBy(ch, nBytesRead);
+        Handler_IncrementOffsetBy(ch, nBytesRead);
     }
 
 catch:
@@ -95,7 +95,7 @@ catch:
 #define MAX_FILE_SIZE   kSFSLimit_FileSizeMax
 #endif
 
-errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -104,11 +104,11 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeChann
     ssize_t nBytesWritten = 0;
     off_t offset;
 
-    if ((IOChannel_GetMode(ch) & O_APPEND) == O_APPEND) {
+    if ((Handler_GetMode(ch) & O_APPEND) == O_APPEND) {
         offset = Inode_GetFileSize(self);
     }
     else {
-        offset = IOChannel_GetOffset(ch);
+        offset = Handler_GetOffset(ch);
     }
 
 
@@ -182,7 +182,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeChann
         }
         Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
         Inode_Writeback((InodeRef)self);
-        IOChannel_IncrementOffsetBy(ch, nBytesWritten);
+        Handler_IncrementOffsetBy(ch, nBytesWritten);
     }
 
 

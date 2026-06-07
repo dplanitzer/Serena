@@ -15,7 +15,7 @@
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {
-    IOChannelRef _Nullable  chan;
+    HandlerRef _Nullable  chan;
     int                     clut;
     int                     srf;
     size_t                  width;

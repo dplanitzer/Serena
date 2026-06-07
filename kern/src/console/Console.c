@@ -9,7 +9,6 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
-#include <driver/DriverChannel.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
 #include <kpi/console.h>
@@ -34,11 +33,11 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(kdispatch_create(&attr, &self->dq));
 
-    try(IOCatalog_Open(gIOCatalog, "/hid", O_RDONLY, &self->hidChannel));
+    try(IOCatalog_Open(gIOCatalog, "/hid", O_RDONLY, &self->hidHnd));
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
-    try(IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &self->fbChannel));
+    try(IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &self->fbHnd));
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
 
@@ -86,11 +85,11 @@ void Console_deinit(ConsoleRef _Nonnull self)
         
     mtx_deinit(&self->mtx);
 
-    IOChannel_Release(self->fbChannel);
-    self->fbChannel = NULL;
+    Handler_Release(self->fbHnd);
+    self->fbHnd = NULL;
 
-    IOChannel_Release(self->hidChannel);
-    self->hidChannel = NULL;
+    Handler_Release(self->hidHnd);
+    self->hidHnd = NULL;
 }
 
 errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
@@ -517,14 +516,14 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverChannel_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
+    return DriverHandler_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, sizeof(ConsoleHandler), pOutHandler);
 }
 
-static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    ConsoleChannel* chp = DriverChannel_GetExtrasAs(pChannel, ConsoleChannel);
+    ConsoleHandler* chp = DriverHandler_GetExtrasAs(hnd, ConsoleHandler);
     ssize_t nBytesRead = 0;
 
     while (nBytesRead < nBytesToRead) {
@@ -564,13 +563,13 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOC
     *nOutBytesRead = nBytesRead;
 }
 
-static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
-    ConsoleChannel* chp = DriverChannel_GetExtrasAs(pChannel, ConsoleChannel);
-    const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
+    ConsoleHandler* chp = DriverHandler_GetExtrasAs(hnd, ConsoleHandler);
+    const bool isNonBlocking = (Handler_GetMode(hnd) & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
 
     while (nBytesRead < nBytesToRead) {
@@ -581,7 +580,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, IOChannelRef 
         mtx_unlock(&self->mtx);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        errno_t e1 = IOChannel_Ioctl(self->hidChannel, kHIDCommand_GetNextEvent, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
+        errno_t e1 = Handler_Ioctl(self->hidHnd, kHIDCommand_GetNextEvent, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
         mtx_lock(&self->mtx);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
@@ -619,10 +618,10 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, IOChannelRef 
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    ConsoleChannel* chp = DriverChannel_GetExtrasAs(pChannel, ConsoleChannel);
+    ConsoleHandler* chp = DriverHandler_GetExtrasAs(hnd, ConsoleHandler);
     char* pChars = pBuffer;
     HIDEvent evt;
     int evtCount;
@@ -642,7 +641,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, v
     if (!cbuf_empty(&self->reportsQueue)) {
         // Now check whether there are terminal reports pending. Those take
         // priority over input device events.
-        Console_ReadReports_NonBlocking_Locked(self, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        Console_ReadReports_NonBlocking_Locked(self, hnd, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         nBytesRead += nTmpBytesRead;
     }
 
@@ -650,7 +649,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, v
     if (nBytesRead == 0 && err == EOK) {
         // We haven't read any data so far. Read input events and block if none
         // are available either.
-        const errno_t e1 = Console_ReadEvents_Locked(self, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        const errno_t e1 = Console_ReadEvents_Locked(self, hnd, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         if (e1 == EOK) {
             nBytesRead += nTmpBytesRead;
         } else {
@@ -669,7 +668,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, v
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_write(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Console_write(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
@@ -689,7 +688,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
     return EOK;
 }
 
-errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
+errno_t Console_ioctl(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, int cmd, va_list ap)
 {
     decl_try_err();
 

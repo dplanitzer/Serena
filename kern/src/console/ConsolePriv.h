@@ -10,8 +10,8 @@
 #define ConsolePriv_h
 
 #include "Console.h"
+#include <handler/DriverHandler.h>
 #include <kdispatch/kdispatch.h>
-#include <driver/DriverChannel.h>
 #include <kern/cbuf.h>
 #include <sched/mtx.h>
 #include "Color.h"
@@ -158,12 +158,12 @@ final_class_ivars(Console, PseudoDriver,
 
     vtparser_t                  vtparser;
 
-    IOChannelRef _Nonnull       hidChannel;
+    HandlerRef _Nonnull         hidHnd;
     const KeyMap* _Nonnull      keyMap;
     cbuf_t                      reportsQueue;
 
     GraphicsDriverRef _Nonnull  fb;
-    IOChannelRef _Nonnull       fbChannel;
+    HandlerRef _Nonnull         fbHnd;
     int                         clutId;
     int                         surfaceId;
     surface_mapping_t           pixels;
@@ -246,7 +246,7 @@ extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines);
 
 
 //
-// Console Channel
+// Console Handler
 //
 
 // Big enough to hold the result of a key mapping and the longest possible
@@ -259,11 +259,11 @@ extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines);
 // We may leave partial character sequences in the buffer if a Console_Read() didn't
 // read all bytes of a sequence. The next Console_Read() will first receive the
 // remaining buffered bytes before it receives bytes from new events.
-typedef struct ConsoleChannel{
+typedef struct ConsoleHandler{
     char    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
     int8_t  rdCount;                        // Number of bytes stored in the buffer
     int8_t  rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
-} ConsoleChannel;
+} ConsoleHandler;
 
 
 //

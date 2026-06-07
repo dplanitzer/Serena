@@ -8,7 +8,7 @@
 
 #include "Driver.h"
 #include <assert.h>
-#include <driver/DriverChannel.h>
+#include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
 #include <kpi/file.h>
 
@@ -279,12 +279,12 @@ bool Driver_IsOpen(DriverRef _Nonnull self)
     return r;
 }
 
-errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverChannel_Create(self, FD_TYPE_DRIVER, mode, 0, pOutChannel);
+    return DriverHandler_Create(self, FD_TYPE_DRIVER, mode, 0, pOutHandler);
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
 
@@ -298,25 +298,25 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
     }
 
 
-    try(Driver_OnOpen(self, self->openCount, mode, arg, pOutChannel));
+    try(Driver_OnOpen(self, self->openCount, mode, arg, pOutHandler));
     self->openCount++;
 
 catch:
     mtx_unlock(&self->mtx);
 
     if (err != EOK) {
-        *pOutChannel = NULL;
+        *pOutHandler = NULL;
     }
 
     return err;
 }
 
 
-void Driver_onClose(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel, int openCount)
+void Driver_onClose(DriverRef _Nonnull _Locked self, HandlerRef _Nonnull hnd, int openCount)
 {
 }
 
-errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+errno_t Driver_close(DriverRef _Nonnull self, HandlerRef _Nonnull hnd)
 {
     decl_try_err();
 
@@ -327,7 +327,7 @@ errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     }
 
 
-    Driver_OnClose(self, pChannel, self->openCount);
+    Driver_OnClose(self, hnd, self->openCount);
     self->openCount--;
 
 catch:
@@ -336,12 +336,12 @@ catch:
     return err;
 }
 
-errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Driver_read(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EBADF;
 }
 
-errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Driver_write(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EBADF;
 }
@@ -351,7 +351,7 @@ off_t Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
-errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
+errno_t Driver_ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, va_list ap)
 {
     switch (cmd) {
         case kDriverCommand_GetId: {
@@ -392,7 +392,7 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd
     }
 }
 
-errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, ...)
+errno_t Driver_Ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, ...)
 {
     va_list ap;
     va_start(ap, cmd);

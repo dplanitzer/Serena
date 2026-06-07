@@ -13,7 +13,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <ext/stdlib.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kpi/directory.h>
 #include <kpi/fs_perms.h>
 
@@ -148,13 +148,13 @@ static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull d
     return print_inode(self, self->pathbuf, entryName);
 }
 
-static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static errno_t iterate_dir(list_ctx_t* _Nonnull self, HandlerRef _Nonnull chan, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     decl_try_err();
     ssize_t nBytesRead;
 
     while (err == EOK) {
-        err = IOChannel_Read(chan, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        err = Handler_Read(chan, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
@@ -180,15 +180,15 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
 static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    HandlerRef chan = NULL;
 
     try(FileManager_OpenDirectory(self->fm, path, &chan));
     try(iterate_dir(self, chan, path, format_dir_entry));
-    try(IOChannel_Seek(chan, 0ll, NULL, SEEK_SET));
+    try(Handler_Seek(chan, 0ll, NULL, SEEK_SET));
     try(iterate_dir(self, chan, path, print_dir_entry));
 
 catch:
-    IOChannel_Release(chan);
+    Handler_Release(chan);
     return err;
 }
 

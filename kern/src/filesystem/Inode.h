@@ -68,12 +68,11 @@ any_subclass_funcs(Inode,
 
 
     //
-    // I/O Channels
+    // Handlers
     //
 
-    // Creates and returns an I/O channel that is suitable for reading/writing
-    // data.
-    errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    // Creates and returns a handler that is suitable for reading/writing data.
+    errno_t (*createHandler)(void* _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 
     //
@@ -108,11 +107,11 @@ any_subclass_funcs(Inode,
 
     // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
     // from the file 'pFile'.
-    errno_t (*read)(void* _Nonnull _Locked self, IOChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull _Locked self, HandlerRef _Nonnull _Locked hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
     // to the file 'pFile'.
-    errno_t (*write)(void* _Nonnull _Locked self, IOChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull _Locked self, HandlerRef _Nonnull _Locked hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
     // to be >= 0. No longer needed blocks are deallocated if the new length is
@@ -281,8 +280,8 @@ void Inode_Unlink(InodeRef _Nonnull self);
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 
-#define Inode_CreateChannel(__self, __mode, __pOutChannel) \
-invoke_n(createChannel, Inode, __self, __mode, __pOutChannel)
+#define Inode_CreateHandler(__self, __mode, __pOutHandler) \
+invoke_n(createHandler, Inode, __self, __mode, __pOutHandler)
 
 
 #define Inode_GetAttributes(__self, __attr) \
@@ -298,11 +297,11 @@ invoke_n(setOwner, Inode, __self, __uid, __gid)
 invoke_n(setTimes, Inode, __self, __times)
 
 
-#define Inode_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, Inode, __self, (IOChannelRef)__pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
+#define Inode_Read(__self, __hnd, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, Inode, __self, (HandlerRef)__hnd, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define Inode_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, Inode, __self, (IOChannelRef)__pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+#define Inode_Write(__self, __hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, Inode, __self, (HandlerRef)__hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Inode_Truncate(__self, __length) \
 invoke_n(truncate, Inode, __self, __length)

@@ -8,11 +8,11 @@
 
 #include "Filesystem.h"
 #include "FSUtilities.h"
-#include "InodeChannel.h"
 #include <assert.h>
 #include <ext/atomic.h>
 #include <ext/hash.h>
 #include <ext/nanotime.h>
+#include <handler/InodeHandler.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
 

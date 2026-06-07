@@ -7,9 +7,9 @@
 //
 
 #include "Inode.h"
-#include "InodeChannel.h"
 #include "Filesystem.h"
 #include "FSUtilities.h"
+#include <handler/InodeHandler.h>
 #include <security/perm_check.h>
 
 typedef void (*deinit_impl_t)(void* _Nonnull self);
@@ -137,17 +137,17 @@ errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
     return err;
 }
 
-errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Inode_createHandler(InodeRef _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     switch (Inode_GetFileType(self)) {
         case FS_FTYPE_DIR:
-            return InodeChannel_Create(self, O_RDONLY, pOutChannel);
+            return InodeHandler_Create(self, O_RDONLY, pOutHandler);
 
         case FS_FTYPE_REG:
-            return InodeChannel_Create(self, mode, pOutChannel);
+            return InodeHandler_Create(self, mode, pOutHandler);
 
         default:
-            *pOutChannel = NULL;
+            *pOutHandler = NULL;
             return EPERM;
     }
 }
@@ -229,12 +229,12 @@ void Inode_setTimes(InodeRef _Nonnull _Locked self, const nanotime_t times[_Null
     Inode_SetModified(self, kInodeFlag_StatusChanged);
 }
 
-errno_t Inode_read(InodeRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Inode_read(InodeRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
 }
 
-errno_t Inode_write(InodeRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Inode_write(InodeRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EIO;
 }
@@ -247,7 +247,7 @@ errno_t Inode_truncate(InodeRef _Nonnull _Locked self, off_t length)
 
 any_subclass_func_defs(Inode,
 func_def(deinit, Inode)
-func_def(createChannel, Inode)
+func_def(createHandler, Inode)
 func_def(getAttributes, Inode)
 func_def(setPermissions, Inode)
 func_def(setOwner, Inode)

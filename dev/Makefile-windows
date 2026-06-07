@@ -101,10 +101,10 @@ KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/ResolvedPath.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/FSContainer.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/Filesystem.c
-KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/IOChannel.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/Inode.c
-KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/InodeChannel.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/PathComponent.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/handler/Handler.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/handler/InodeHandler.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/kernlib/strtobuf.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/security/perm_check.c
 

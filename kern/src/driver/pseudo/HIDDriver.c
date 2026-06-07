@@ -9,7 +9,7 @@
 #include "HIDDriver.h"
 #include <driver/hid/HIDManager.h>
 #include <ext/nanotime.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kpi/file.h>
 #include <kpi/hid.h>
 
@@ -39,10 +39,10 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t HIDDriver_read(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t HIDDriver_read(HIDDriverRef _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    const bool isNonBlocking = (IOChannel_GetMode(ioc) & O_NONBLOCK) == O_NONBLOCK;
+    const bool isNonBlocking = (Handler_GetMode(ioc) & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
     HIDEvent* pe = buf;
     ssize_t nBytesRead = 0;
@@ -67,7 +67,7 @@ errno_t HIDDriver_read(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, vo
     return err;
 }
 
-errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
+errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, va_list ap)
 {
     switch (cmd) {
         case kHIDCommand_GetNextEvent: {

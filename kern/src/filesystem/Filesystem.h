@@ -129,7 +129,7 @@ enum {
 //
 // Locking Protocol(s):
 //
-// File & Directory I/O Channels:
+// File & Directory Handlers:
 //
 // This is handled by the kernel. Files and directories serialize read/write/seek
 // operations to ensure that a read will return all the original data found in the

@@ -10,9 +10,9 @@
 #define ProcessPriv_h
 
 #include "Process.h"
-#include "IOChannelTable.h"
 #include <ext/rc.h>
 #include <filemanager/FileManager.h>
+#include <handler/HandlerTable.h>
 #include <kpi/signal.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>
@@ -101,8 +101,8 @@ typedef struct Process {
     int8_t                          sched_nice;
     int8_t                          reserved[2];
 
-    // I/O Channels
-    IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
+    // Handlers
+    HandlerTable                  HandlerTable;     // I/O channels (aka sharable resources)
     
     // File manager
     FileManager                     fm;

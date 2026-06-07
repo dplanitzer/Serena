@@ -11,8 +11,8 @@
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/DiskContainer.h>
-#include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <handler/Handler.h>
 #include <kei/kei.h>
 #include <kern/log.h>
 #include <kpi/file.h>
@@ -68,33 +68,33 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
 static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
-    IOChannelRef chan;
+    HandlerRef chan;
 
     if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         disk_info_t info;
 
-        err = IOChannel_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
+        err = Handler_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
         if (err == EOK) {
             *diskId = info.diskId;
         }
     } 
-    IOChannel_Release(chan);
+    Handler_Release(chan);
     return err;
 }
 
 static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
-    IOChannelRef chan;
+    HandlerRef chan;
     bool isWaitingForDisk = false;
 
     if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         for (;;) {
             disk_info_t info;
 
-            err = IOChannel_Ioctl(chan, kDiskCommand_SenseDisk);
+            err = Handler_Ioctl(chan, kDiskCommand_SenseDisk);
             if (err == EOK) {
-                IOChannel_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
+                Handler_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
                 if (info.diskId != *diskId) {
                     *diskId = info.diskId;
                     break;
@@ -109,7 +109,7 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonn
             delay_sec(3);
         }
     } 
-    IOChannel_Release(chan);
+    Handler_Release(chan);
 
     if (isWaitingForDisk) {
         bt_drawicon(bscr, &g_icon_serena);
@@ -135,7 +135,7 @@ catch:
 static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
-    IOChannelRef chan;
+    HandlerRef chan;
     FilesystemRef fs = NULL;
     ResolvedPath rp;
 

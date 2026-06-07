@@ -8,8 +8,8 @@
 
 #include "boot_screen.h"
 #include <string.h>
-#include <driver/DriverChannel.h>
 #include <driver/IOCatalog.h>
+#include <handler/DriverHandler.h>
 #include <kpi/file.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 
@@ -18,7 +18,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     GraphicsDriverRef gd = NULL;
-    IOChannelRef chan = NULL;
+    HandlerRef chan = NULL;
     int width, height;
     int srf = -1, clut = -1;
 
@@ -40,8 +40,8 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     if ((err = IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
-        IOChannel_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
-        IOChannel_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
+        Handler_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
+        Handler_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
 
 
         // Define the screen colors
@@ -49,7 +49,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
-        IOChannel_Ioctl(chan, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
+        Handler_Ioctl(chan, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
 
         bscr->chan = chan;
         bscr->clut = clut;
@@ -57,8 +57,8 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         bscr->width = width;
         bscr->height = height;
 
-        IOChannel_Ioctl(chan, kFBCommand_ClearPixels, bscr->srf);
-        IOChannel_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
+        Handler_Ioctl(chan, kFBCommand_ClearPixels, bscr->srf);
+        Handler_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -72,7 +72,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         sc[2] = SCREEN_CONF_CLUT;
         sc[3] = bscr->clut;
         sc[4] = SCREEN_CONF_END;
-        IOChannel_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
+        Handler_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
     }
 }
 
@@ -100,11 +100,11 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->chan) {
-        IOChannel_Ioctl(bscr->chan, kFBCommand_UnmapSurface, bscr->srf);
+        Handler_Ioctl(bscr->chan, kFBCommand_UnmapSurface, bscr->srf);
 
-        IOChannel_Ioctl(bscr->chan, kFBCommand_SetScreenConfig, NULL);
-        IOChannel_Ioctl(bscr->chan, kFBCommand_DestroyCLUT, bscr->clut);
-        IOChannel_Ioctl(bscr->chan, kFBCommand_DestroySurface, bscr->srf);
-        IOChannel_Release(bscr->chan);
+        Handler_Ioctl(bscr->chan, kFBCommand_SetScreenConfig, NULL);
+        Handler_Ioctl(bscr->chan, kFBCommand_DestroyCLUT, bscr->clut);
+        Handler_Ioctl(bscr->chan, kFBCommand_DestroySurface, bscr->srf);
+        Handler_Release(bscr->chan);
     }
 }

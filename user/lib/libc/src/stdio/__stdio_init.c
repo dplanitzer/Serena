@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <serena/file.h>
 
-static __IOChannel_FILE _StdinObj;
-static __IOChannel_FILE _StdoutObj;
-static __IOChannel_FILE _StderrObj;
+static __FD_FILE _StdinObj;
+static __FD_FILE _StdoutObj;
+static __FD_FILE _StderrObj;
 
 FILE* _Stdin;
 FILE* _Stdout;

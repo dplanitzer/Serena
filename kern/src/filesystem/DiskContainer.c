@@ -10,7 +10,7 @@
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kpi/file.h>
 
 final_class_ivars(DiskContainer, FSContainer,
@@ -23,13 +23,13 @@ final_class_ivars(DiskContainer, FSContainer,
 errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    HandlerRef chan = NULL;
     struct DiskContainer* self = NULL;
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(Inode_CreateChannel(diskNode, mode, &chan));
-    try(IOChannel_Ioctl(chan, kDiskCommand_GetDiskInfo, &info));
+    try(Inode_CreateHandler(diskNode, mode, &chan));
+    try(Handler_Ioctl(chan, kDiskCommand_GetDiskInfo, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
         flags |= FS_FLAG_READ_ONLY;
@@ -49,7 +49,7 @@ errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mo
     self->session = s;
 
 catch:
-    IOChannel_Release(chan);
+    Handler_Release(chan);
     *pOutSelf = (FSContainerRef)self;
     return err;
 }
@@ -98,7 +98,7 @@ errno_t DiskContainer_sync(DiskContainerRef _Nonnull self)
 
 errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
-    return IOChannel_Ioctl(self->session.channel, kDiskCommand_GetDiskInfo, info);
+    return Handler_Ioctl(self->session.channel, kDiskCommand_GetDiskInfo, info);
 }
 
 InodeRef DiskContainer_getDiskNode(DiskContainerRef _Nonnull self)

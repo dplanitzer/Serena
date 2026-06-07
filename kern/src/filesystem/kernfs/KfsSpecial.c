@@ -50,23 +50,23 @@ void KfsSpecial_deinit(KfsSpecialRef _Nullable self)
     self->instance = NULL;
 }
 
-errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t KfsSpecial_createHandler(KfsSpecialRef _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     switch (Inode_GetFileType(self)) {
         case FS_FTYPE_DEV:
-            return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
+            return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutHandler);
 
         default:
             return EBADF;
     }
 }
 
-errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EPERM;
 }
 
-errno_t KfsSpecial_write(KfsSpecialRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t KfsSpecial_write(KfsSpecialRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EPERM;
 }
@@ -79,7 +79,7 @@ errno_t KfsSpecial_truncate(KfsSpecialRef _Nonnull _Locked self, off_t length)
 
 class_func_defs(KfsSpecial, KfsNode,
 override_func_def(deinit, KfsSpecial, Inode)
-override_func_def(createChannel, KfsSpecial, Inode)
+override_func_def(createHandler, KfsSpecial, Inode)
 override_func_def(read, KfsSpecial, Inode)
 override_func_def(write, KfsSpecial, Inode)
 override_func_def(truncate, KfsSpecial, Inode)

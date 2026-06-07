@@ -16,9 +16,9 @@ FILE *fdopen(int fd, const char * _Nonnull mode)
     __FILE_Mode sm;
 
     if (ftype > FD_TYPE_INVALID && __fopen_parse_mode(mode, &sm) == 0) {
-        __IOChannel_FILE* self;
+        __FD_FILE* self;
 
-        if ((self = malloc(SIZE_OF_FILE_SUBCLASS(__IOChannel_FILE))) == NULL) {
+        if ((self = malloc(SIZE_OF_FILE_SUBCLASS(__FD_FILE))) == NULL) {
             return NULL;
         }
 

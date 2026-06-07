@@ -13,8 +13,8 @@
 #include <string.h>
 #include <driver/IOCatalog.h>
 #include <filesystem/DiskContainer.h>
-#include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <handler/Handler.h>
 #include <kpi/file.h>
 #include <kpi/filesystem.h>
 #include <process/ProcessManager.h>

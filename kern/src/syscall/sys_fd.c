@@ -7,8 +7,7 @@
 //
 
 #include "syscalldecls.h"
-#include <filesystem/IOChannel.h>
-#include <process/IOChannelTable.h>
+#include <handler/HandlerTable.h>
 #include <process/ProcessPriv.h>
 
 
@@ -16,18 +15,18 @@ SYSCALL_1(fd_close, int fd)
 {
     ProcessRef pp = vp->proc;
 
-    return IOChannelTable_ReleaseChannel(&pp->ioChannelTable, pa->fd);
+    return HandlerTable_ReleaseHandler(&pp->HandlerTable, pa->fd);
 }
 
 SYSCALL_4(fd_read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_Read(pChannel, pa->buffer, __SSizeByClampingSize(pa->nBytesToRead), pa->nBytesRead);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_Read(hnd, pa->buffer, __SSizeByClampingSize(pa->nBytesToRead), pa->nBytesRead);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -36,11 +35,11 @@ SYSCALL_4(fd_write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, s
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_Write(pChannel, pa->buffer, __SSizeByClampingSize(pa->nBytesToWrite), pa->nBytesWritten);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_Write(hnd, pa->buffer, __SSizeByClampingSize(pa->nBytesToWrite), pa->nBytesWritten);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -49,11 +48,11 @@ SYSCALL_4(fd_seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_Seek(pChannel, pa->offset, pa->pOutNewPos, pa->whence);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_Seek(hnd, pa->offset, pa->pOutNewPos, pa->whence);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -62,11 +61,11 @@ SYSCALL_3(fd_setflags, int fd, int op, int flags)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_SetFlags(pChannel, pa->op, pa->flags);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_SetFlags(hnd, pa->op, pa->flags);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -75,11 +74,11 @@ SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_vIoctl(pChannel, pa->cmd, pa->ap);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_vIoctl(hnd, pa->cmd, pa->ap);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -88,11 +87,11 @@ SYSCALL_2(fd_truncate, int fd, off_t length)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_Truncate(pChannel, pa->length);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_Truncate(hnd, pa->length);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -101,11 +100,11 @@ SYSCALL_2(fd_attr, int fd, fs_attr_t* _Nonnull attr)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_GetAttributes(pChannel, pa->attr);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_GetAttributes(hnd, pa->attr);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -114,11 +113,11 @@ SYSCALL_3(fd_info, int fd, int flavor, fd_info_ref _Nonnull info)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
+    HandlerRef hnd;
 
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_GetInfo(pChannel, pa->flavor, pa->info);
-        IOChannel_EndOperation(pChannel);
+    if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
+        err = Handler_GetInfo(hnd, pa->flavor, pa->info);
+        Handler_EndOperation(hnd);
     }
     return err;
 }
@@ -127,12 +126,12 @@ SYSCALL_3(fd_dup, int fd, int min_fd, int* _Nonnull new_fd)
 {
     ProcessRef pp = vp->proc;
 
-    return IOChannelTable_DupChannel(&pp->ioChannelTable, pa->fd, pa->min_fd, pa->new_fd);
+    return HandlerTable_DupHandler(&pp->HandlerTable, pa->fd, pa->min_fd, pa->new_fd);
 }
 
 SYSCALL_3(fd_dup_to, int fd, int target_fd, int* _Nonnull new_fd)
 {
     ProcessRef pp = vp->proc;
 
-    return IOChannelTable_DupChannelTo(&pp->ioChannelTable, pa->fd, &pp->ioChannelTable, pa->target_fd);
+    return HandlerTable_DupHandlerTo(&pp->HandlerTable, pa->fd, &pp->HandlerTable, pa->target_fd);
 }

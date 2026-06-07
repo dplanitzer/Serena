@@ -63,9 +63,9 @@ extern errno_t IOCatalog_IsPublished(IOCatalogRef _Nonnull self, const char* _No
 extern errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
 
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
-// returns the resulting channel in 'pOutChannel'. This call does not support
+// returns the resulting channel in 'pOutHandler'. This call does not support
 // opening a folder.
-extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 
 // Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as

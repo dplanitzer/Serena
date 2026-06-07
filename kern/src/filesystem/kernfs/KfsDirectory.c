@@ -9,8 +9,8 @@
 #include "KfsDirectory.h"
 #include "KernFSPriv.h"
 #include <string.h>
-#include <filesystem/InodeChannel.h>
 #include <filesystem/FSUtilities.h>
+#include <handler/InodeHandler.h>
 
 
 errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)
@@ -178,16 +178,16 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
     return EOK;
 }
 
-errno_t KfsDirectory_createChannel(KfsDirectoryRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t KfsDirectory_createHandler(KfsDirectoryRef _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return InodeChannel_Create((InodeRef)self, O_RDONLY, pOutChannel);
+    return InodeHandler_Create((InodeRef)self, O_RDONLY, pOutHandler);
 }
 
-errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     dir_entry_t* pOutEntry = (dir_entry_t*)pBuffer;
-    off_t offset = IOChannel_GetOffset(ch);  // in terms of #entries
+    off_t offset = Handler_GetOffset(ch);  // in terms of #entries
     ssize_t nAllDirEntriesRead = 0;
     ssize_t nBytesRead = 0;
 
@@ -215,7 +215,7 @@ errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeChannelRef
     }
 
     if (nBytesRead > 0) {
-        IOChannel_IncrementOffsetBy(ch, nAllDirEntriesRead);
+        Handler_IncrementOffsetBy(ch, nAllDirEntriesRead);
     }
     *nOutBytesRead = nBytesRead;
 
@@ -225,6 +225,6 @@ errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeChannelRef
 
 class_func_defs(KfsDirectory, KfsNode,
 override_func_def(deinit, KfsDirectory, Inode)
-override_func_def(createChannel, KfsDirectory, Inode)
+override_func_def(createHandler, KfsDirectory, Inode)
 override_func_def(read, KfsDirectory, Inode)
 );

@@ -57,7 +57,7 @@ void Process_Init(ProcessRef _Nonnull self, ProcessRef _Locked _Nullable parent,
     self->vcpu_queue = DEQUE_INIT;
     self->next_avail_vcpuid = VCPUID_MAIN;
     
-    IOChannelTable_Init(&self->ioChannelTable);
+    HandlerTable_Init(&self->HandlerTable);
 
     clock_gettime(g_mono_clock, &self->creation_time);
 
@@ -188,7 +188,7 @@ errno_t Process_ApplyActions(ProcessRef _Nonnull self, const proc_spawn_actions_
 
             case _SPAWN_AT_PASSFD:
             case _SPAWN_AT_SHAREFD:
-                err = IOChannelTable_DupChannelTo(&parent->ioChannelTable, act->u.fd_map.fd, &self->ioChannelTable, act->u.fd_map.to_fd);
+                err = HandlerTable_DupHandlerTo(&parent->HandlerTable, act->u.fd_map.fd, &self->HandlerTable, act->u.fd_map.to_fd);
                 break;
 
             default:

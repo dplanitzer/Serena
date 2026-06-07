@@ -10,7 +10,7 @@
 #include <driver/IOCatalog.h>
 #include <driver/PlatformController.h>
 #include <driver/pseudo/VDMDriver.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kpi/smg.h>
 
 
@@ -28,9 +28,9 @@ void auto_discover_boot_rd(void)
 
 
     // Open the VDM
-    IOChannelRef vdmChannel = NULL;
-    try(IOCatalog_Open(gIOCatalog, "/vd-bus/self", O_RDWR, &vdmChannel));
-    VDMDriverRef vdm = IOChannel_GetResourceAs(vdmChannel, VDMDriver);
+    HandlerRef hVdm = NULL;
+    try(IOCatalog_Open(gIOCatalog, "/vd-bus/self", O_RDWR, &hVdm));
+    VDMDriverRef vdm = Handler_GetResourceAs(hVdm, VDMDriver);
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
@@ -48,5 +48,5 @@ void auto_discover_boot_rd(void)
     try(VDMDriver_CreateDisk(vdm, type, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
 
 catch:
-    IOChannel_Release(vdmChannel);
+    Handler_Release(hVdm);
 }

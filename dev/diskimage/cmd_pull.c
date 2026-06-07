@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <ext/errno.h>
 #include <kpi/file.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 
 #define BLOCK_SIZE  4096
 
@@ -20,7 +20,7 @@ errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const 
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
-    IOChannelRef chan = NULL;
+    HandlerRef chan = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
     char* dstPath = NULL;
@@ -37,7 +37,7 @@ errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const 
     while (true) {
         ssize_t nBytesRead;
         
-        err = IOChannel_Read(chan, buf, BLOCK_SIZE, &nBytesRead);
+        err = Handler_Read(chan, buf, BLOCK_SIZE, &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
@@ -57,7 +57,7 @@ catch:
     if (fp) {
         fclose(fp);
     }
-    IOChannel_Release(chan);
+    Handler_Release(chan);
     
     free(dstPath);
     free(buf);

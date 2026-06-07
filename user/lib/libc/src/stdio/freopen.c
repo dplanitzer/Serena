@@ -18,7 +18,7 @@ FILE *freopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _R
         __flock(s);
         __fclose(s);
 
-        r = __fopen_filename_init((__IOChannel_FILE*)s, filename, sm | __kStreamMode_Reinit);
+        r = __fopen_filename_init((__FD_FILE*)s, filename, sm | __kStreamMode_Reinit);
         __funlock(s);
     }
     

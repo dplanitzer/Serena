@@ -8,7 +8,7 @@
 
 #include "ldr_gemdos.h"
 #include <string.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <machine/cpu.h>
 
 
@@ -50,7 +50,7 @@ static void _gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_bas
 errno_t ldr_gemdos_load(proc_img_t* _Nonnull self)
 {
     decl_try_err();
-    IOChannelRef fp = self->file;
+    HandlerRef fp = self->file;
     const gemdos_hdr_t* hdr = (const gemdos_hdr_t*)self->prefix_buf;
     off_t fileOffset;
     ssize_t nBytesRead;
@@ -95,8 +95,8 @@ errno_t ldr_gemdos_load(proc_img_t* _Nonnull self)
 
 
     // Read the executable header, text and data segments into memory
-    IOChannel_Seek(fp, 0ll, NULL, SEEK_SET);
-    try(IOChannel_Read(fp, img_base, nbytes_to_read, &nBytesRead));
+    Handler_Seek(fp, 0ll, NULL, SEEK_SET);
+    try(Handler_Read(fp, img_base, nbytes_to_read, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
@@ -104,8 +104,8 @@ errno_t ldr_gemdos_load(proc_img_t* _Nonnull self)
 
     // Read the relocation information into memory
     uint8_t* reloc_base = img_base + nbytes_to_read;
-    IOChannel_Seek(fp, fileOffset_to_reloc, NULL, SEEK_SET);
-    try(IOChannel_Read(fp, reloc_base, reloc_size, &nBytesRead));
+    Handler_Seek(fp, fileOffset_to_reloc, NULL, SEEK_SET);
+    try(Handler_Read(fp, reloc_base, reloc_size, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }

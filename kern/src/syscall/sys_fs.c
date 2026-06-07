@@ -8,12 +8,11 @@
 
 #include "syscalldecls.h"
 #include <ext/limits.h>
-#include <filesystem/IOChannel.h>
 #include <filemanager/FilesystemManager.h>
+#include <handler/HandlerTable.h>
 #include <kpi/directory.h>
 #include <kpi/disk.h>
 #include <kpi/filesystem.h>
-#include <process/IOChannelTable.h>
 #include <process/ProcessPriv.h>
 
 
@@ -21,7 +20,7 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef chan;
+    HandlerRef chan;
 
     if (pa->wd != FD_CWD) {
         //XXX not yet
@@ -31,12 +30,12 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
     mtx_lock(&pp->mtx);
     err = FileManager_OpenFile(&pp->fm, pa->path, pa->oflags, &chan);
     if (err == EOK) {
-        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
+        err = HandlerTable_AdoptHandler(&pp->HandlerTable, chan, pa->pOutIoc);
     }
     mtx_unlock(&pp->mtx);
 
     if (err != EOK) {
-        IOChannel_Release(chan);
+        Handler_Release(chan);
         *(pa->pOutIoc) = -1;
     }
     return err;
@@ -46,7 +45,7 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef chan;
+    HandlerRef chan;
 
     if (pa->wd != FD_CWD) {
         //XXX not yet
@@ -56,12 +55,12 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
     mtx_lock(&pp->mtx);
     err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->fsperms, &chan);
     if (err == EOK) {
-        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
+        err = HandlerTable_AdoptHandler(&pp->HandlerTable, chan, pa->pOutIoc);
     }
     mtx_unlock(&pp->mtx);
 
     if (err != EOK) {
-        IOChannel_Release(chan);
+        Handler_Release(chan);
         *(pa->pOutIoc) = -1;
     }
     return err;
@@ -71,7 +70,7 @@ SYSCALL_3(fs_open_directory, int wd, const char* _Nonnull path, int* _Nonnull pO
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    IOChannelRef chan;
+    HandlerRef chan;
 
     if (pa->wd != FD_CWD) {
         //XXX not yet
@@ -81,12 +80,12 @@ SYSCALL_3(fs_open_directory, int wd, const char* _Nonnull path, int* _Nonnull pO
     mtx_lock(&pp->mtx);
     err = FileManager_OpenDirectory(&pp->fm, pa->path, &chan);
     if (err == EOK) {
-        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
+        err = HandlerTable_AdoptHandler(&pp->HandlerTable, chan, pa->pOutIoc);
     }
     mtx_unlock(&pp->mtx);
     
     if (err != EOK) {
-        IOChannel_Release(chan);
+        Handler_Release(chan);
         *(pa->pOutIoc) = -1;
     }
     return err;

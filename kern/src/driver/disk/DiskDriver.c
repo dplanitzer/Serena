@@ -354,7 +354,7 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 }
 
 
-errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte)
+errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, char fillByte)
 {
     decl_try_err();
     FormatDiskRequest r;
@@ -365,19 +365,19 @@ errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull
     return DiskDriver_DoIO(self, (IORequest*)&r);
 }
 
-errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte)
+errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, char fillByte)
 {
     decl_try_err();
     FormatTrackRequest r;
 
     IORequest_Init(&r, kDiskRequest_FormatTrack);
-    r.offset = IOChannel_GetOffset(ch);
+    r.offset = Handler_GetOffset(ch);
     r.fillByte = fillByte;
     r.resCount = 0;
 
     err = DiskDriver_DoIO(self, (IORequest*)&r);
     if (err == EOK) {
-        IOChannel_IncrementOffsetBy(ch, r.resCount);
+        Handler_IncrementOffsetBy(ch, r.resCount);
     }
 
     return err;
@@ -406,7 +406,7 @@ errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnul
 
 //
 // MARK: -
-// I/O Channel API
+// I/O Handler API
 //
 
 off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
@@ -428,13 +428,13 @@ off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
     return rng;
 }
 
-static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
+static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, HandlerRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
 {
     decl_try_err();
     StrategyRequest r;
 
     IORequest_Init(&r, type);
-    r.offset = IOChannel_GetOffset(ch);
+    r.offset = Handler_GetOffset(ch);
     r.options = 0;
     r.iovCount = 1;
     r.iov[0].data = buf;
@@ -444,24 +444,24 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannel
     err = DiskDriver_DoIO(self, (IORequest*)&r);
 
     if (r.resCount > 0) {
-        IOChannel_IncrementOffsetBy(ch, r.resCount);
+        Handler_IncrementOffsetBy(ch, r.resCount);
     }
 
     *pOutByteCount = r.resCount;
     return err;
 }
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     return _DiskDriver_rdwr(self, kDiskRequest_Read, ch, buf, nBytesToRead, pOutBytesRead);
 }
 
-errno_t DiskDriver_write(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     return _DiskDriver_rdwr(self, kDiskRequest_Write, ch, buf, nBytesToWrite, pOutBytesWritten);
 }
 
-errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
+errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, HandlerRef _Nonnull hnd, int cmd, va_list ap)
 {
     switch (cmd) {
         case kDiskCommand_GetDriveInfo: {
@@ -479,21 +479,21 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
         case kDiskCommand_FormatDisk: {
             const char fillByte = va_arg(ap, int);
 
-            const errno_t err = DiskDriver_FormatDisk(self, pChannel, fillByte);
+            const errno_t err = DiskDriver_FormatDisk(self, hnd, fillByte);
             return err;
         }
 
         case kDiskCommand_FormatTrack: {
             const char fillByte = va_arg(ap, int);
 
-            return DiskDriver_FormatTrack(self, pChannel, fillByte);
+            return DiskDriver_FormatTrack(self, hnd, fillByte);
         }
 
         case kDiskCommand_SenseDisk:
             return DiskDriver_SenseDisk(self);
 
         default:
-            return super_n(ioctl, Driver, DiskDriver, self, pChannel, cmd, ap);
+            return super_n(ioctl, Driver, DiskDriver, self, hnd, cmd, ap);
     }
 }
 

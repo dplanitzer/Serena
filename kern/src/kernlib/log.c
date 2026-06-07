@@ -9,7 +9,7 @@
 #include <kern/log.h>
 #include <driver/IOCatalog.h>
 #include <ext/__fmt.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kern/cbuf.h>
 #include <kpi/file.h>
 #include <sched/mtx.h>
@@ -23,7 +23,7 @@ enum {
 #define LOG_BUFFER_SIZE 256
 
 static mtx_t        gLock;
-static IOChannelRef gConsoleChannel;
+static HandlerRef   gConsoleHandler;
 static fmt_t        gFormatter;
 static cbuf_t       gRingBuffer;
 static char         gLogBuffer[LOG_BUFFER_SIZE];
@@ -36,7 +36,7 @@ static ssize_t _lwrite(void* _Nullable _Restrict s, const void * _Restrict buffe
 
     switch (gCurrentSink) {
         case kSink_Console:
-            IOChannel_Write(gConsoleChannel, buffer, nbytes, &nBytesWritten);
+            Handler_Write(gConsoleHandler, buffer, nbytes, &nBytesWritten);
             break;
 
         default:
@@ -66,7 +66,7 @@ static errno_t log_open_console(void)
     decl_try_err();
 
     if (gIOCatalog) {
-        err = IOCatalog_Open(gIOCatalog, "/console", O_WRONLY, &gConsoleChannel);
+        err = IOCatalog_Open(gIOCatalog, "/console", O_WRONLY, &gConsoleHandler);
     }
     else {
         err = ENODEV;

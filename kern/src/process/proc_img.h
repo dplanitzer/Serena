@@ -23,7 +23,7 @@ typedef struct proc_img {
     const char* _Nullable * _Nonnull    orig_env;     // original environment
 
     FileManagerRef _Nonnull             fm;
-    IOChannelRef _Nonnull               file;
+    HandlerRef _Nonnull               file;
     fs_attr_t                           file_attr;
     size_t                              prefix_length;  // true length of the file prefix (number of bytes actually read in)
 

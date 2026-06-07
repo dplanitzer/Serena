@@ -16,7 +16,7 @@
 
 static void _proc_deinit(ProcessRef _Nonnull self)
 {
-    IOChannelTable_Deinit(&self->ioChannelTable);
+    HandlerTable_Deinit(&self->HandlerTable);
     FileManager_Deinit(&self->fm);
     _proc_destroy_sigroutes(self);
     wq_deinit(&self->siwa_queue);

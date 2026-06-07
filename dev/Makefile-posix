@@ -112,12 +112,16 @@ FM_OBJS := $(patsubst $(FM_SOURCES_DIR)/%.c, $(FM_OBJS_DIR)/%.o, $(FM_C_SOURCES)
 FS_SOURCES_DIR := $(KERN_SOURCES_DIR)/filesystem
 FS_C_SOURCES += $(FS_SOURCES_DIR)/FSContainer.c
 FS_C_SOURCES += $(FS_SOURCES_DIR)/Filesystem.c
-FS_C_SOURCES += $(FS_SOURCES_DIR)/IOChannel.c
 FS_C_SOURCES += $(FS_SOURCES_DIR)/Inode.c
-FS_C_SOURCES += $(FS_SOURCES_DIR)/InodeChannel.c
 FS_C_SOURCES += $(FS_SOURCES_DIR)/PathComponent.c
 FS_OBJS_DIR := $(OBJS_DIR)/filesystem
 FS_OBJS := $(patsubst $(FS_SOURCES_DIR)/%.c, $(FS_OBJS_DIR)/%.o, $(FS_C_SOURCES))
+
+HND_SOURCES_DIR := $(KERN_SOURCES_DIR)/handler
+HND_C_SOURCES += $(HND_SOURCES_DIR)/Handler.c
+HND_C_SOURCES += $(HND_SOURCES_DIR)/InodeHandler.c
+HND_OBJS_DIR := $(OBJS_DIR)/handler
+HND_OBJS := $(patsubst $(HND_SOURCES_DIR)/%.c, $(HND_OBJS_DIR)/%.o, $(HND_C_SOURCES))
 
 SEC_SOURCES_DIR := $(KERN_SOURCES_DIR)/security
 SEC_C_SOURCES += $(SEC_SOURCES_DIR)/perm_check.c
@@ -156,6 +160,9 @@ $(FM_OBJS_DIR):
 $(FS_OBJS_DIR):
 	$(call mkdir_if_needed,$(FS_OBJS_DIR))
 
+$(HND_OBJS_DIR):
+	$(call mkdir_if_needed,$(HND_OBJS_DIR))
+
 $(SEC_OBJS_DIR):
 	$(call mkdir_if_needed,$(SEC_OBJS_DIR))
 
@@ -172,7 +179,7 @@ $(DISKIMAGE_OBJS_DIR):
 	$(call mkdir_if_needed,$(DISKIMAGE_OBJS_DIR))
 
 
-$(TOOLS_DIR)/diskimage: $(EXT_OBJS) $(FM_OBJS) $(FS_OBJS) $(SEC_OBJS) $(KERNLIB_OBJS) $(KOBJ_OBJS) $(SEFS_OBJS) $(DISKIMAGE_OBJS) $(OBJS_DIR)/libclap.ar
+$(TOOLS_DIR)/diskimage: $(EXT_OBJS) $(FM_OBJS) $(FS_OBJS) $(HND_OBJS) $(SEC_OBJS) $(KERNLIB_OBJS) $(KOBJ_OBJS) $(SEFS_OBJS) $(DISKIMAGE_OBJS) $(OBJS_DIR)/libclap.ar
 	gcc -o $@ $^
 
 $(EXT_OBJS): | $(EXT_OBJS_DIR) $(TOOLS_DIR)
@@ -180,6 +187,8 @@ $(EXT_OBJS): | $(EXT_OBJS_DIR) $(TOOLS_DIR)
 $(FM_OBJS): | $(FM_OBJS_DIR) $(TOOLS_DIR)
 
 $(FS_OBJS): | $(FS_OBJS_DIR) $(TOOLS_DIR)
+
+$(HND_OBJS): | $(HND_OBJS_DIR) $(TOOLS_DIR)
 
 $(SEC_OBJS): | $(SEC_OBJS_DIR) $(TOOLS_DIR)
 
@@ -198,6 +207,9 @@ $(FM_OBJS_DIR)/%.o: $(FM_SOURCES_DIR)/%.c
 	gcc -c $(DISKIMAGE_INCLUDES) $(DISKIMAGE_CC_FLAGS) $(DEBUG_FLAGS) -o $@ $<
 
 $(FS_OBJS_DIR)/%.o: $(FS_SOURCES_DIR)/%.c
+	gcc -c $(DISKIMAGE_INCLUDES) $(DISKIMAGE_CC_FLAGS) $(DEBUG_FLAGS) -o $@ $<
+
+$(HND_OBJS_DIR)/%.o: $(HND_SOURCES_DIR)/%.c
 	gcc -c $(DISKIMAGE_INCLUDES) $(DISKIMAGE_CC_FLAGS) $(DEBUG_FLAGS) -o $@ $<
 
 $(SEC_OBJS_DIR)/%.o: $(SEC_SOURCES_DIR)/%.c

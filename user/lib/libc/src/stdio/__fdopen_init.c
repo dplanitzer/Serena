@@ -9,17 +9,17 @@
 #include "__stdio.h"
 #include <serena/file.h>
 
-ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
+ssize_t __fd_read(__FD_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
 {
     return fd_read(self->fd, buf, nbytes);
 }
 
-static ssize_t __fd_write(__IOChannel_FILE_Vars* _Nonnull self, const void* buf, ssize_t nbytes)
+static ssize_t __fd_write(__FD_FILE_Vars* _Nonnull self, const void* buf, ssize_t nbytes)
 {
     return fd_write(self->fd, buf, nbytes);
 }
 
-static long long __fd_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, int whence)
+static long long __fd_seek(__FD_FILE_Vars* _Nonnull self, long long offset, int whence)
 {
     const off_t r = fd_seek(self->fd, offset, whence);
 
@@ -30,7 +30,7 @@ static long long __fd_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offse
     }
 }
 
-static int __fd_close(__IOChannel_FILE_Vars* _Nonnull self)
+static int __fd_close(__FD_FILE_Vars* _Nonnull self)
 {
     return (fd_close(self->fd) == 0) ? 0 : EOF;
 }
@@ -44,7 +44,7 @@ const FILE_Callbacks __FILE_fd_callbacks = {
 
 
 
-int __fdopen_init(__IOChannel_FILE* _Nonnull self, int fd, __FILE_Mode sm)
+int __fdopen_init(__FD_FILE* _Nonnull self, int fd, __FILE_Mode sm)
 {
     // The descriptor must be valid and open
     fd_basic_info_t info;

@@ -1,13 +1,13 @@
 //
-//  IOChannel.h
+//  Handler.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 10/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef IOChannel_h
-#define IOChannel_h
+#ifndef Handler_h
+#define Handler_h
 
 #include <stdarg.h>
 #include <ext/try.h>
@@ -18,30 +18,30 @@
 #include <sched/mtx.h>
 
 
-// I/O channel ownership and operations tracking:
+// Handler ownership and operations tracking:
 //
-// I/O channels are reference counted objects. An I/O channel is created with one
+// Handlers are reference counted objects. A handler is created with one
 // ownership reference active and a new ownership reference is established for a
-// channel by calling IOChannel_Retain() on it. An ownership reference is released
-// by calling IOChannel_Release(). Once the last ownership reference has been
+// channel by calling Handler_Retain() on it. An ownership reference is released
+// by calling Handler_Release(). Once the last ownership reference has been
 // released and there are no ongoing I/O operations on the channel, and subject
-// to the requirements of the I/O channel close mode (see below) the I/O channel
-// is finalized. Finalizing an I/O channel means that it releases all its resources
+// to the requirements of the handler close mode (see below) the handler
+// is finalized. Finalizing an handler means that it releases all its resources
 // and that it may flush data that is still buffered up.
 //
-// Operations on an I/O channel are tracked with the IOChannel_BeginOperation()
-// and IOChannel_EndOperation() calls. The former should be called before invoking
+// Operations on an handler are tracked with the Handler_BeginOperation()
+// and Handler_EndOperation() calls. The former should be called before invoking
 // one or more channel I/O operations and the latter one should be called at the
 // end of a sequence of I/O operation calls.
 //
-// The IOChannelTable in a process takes care of the ownership of an I/O channel.
-// It also provides the IOChannelTable_AcquireChannel() and
-// IOChannel_EndOperation() calls to take care of the I/O operation tracking.
+// The HandlerTable in a process takes care of the ownership of an handler.
+// It also provides the HandlerTable_AcquireHandler() and
+// Handler_EndOperation() calls to take care of the I/O operation tracking.
 //
 // 
 // Behavior of read, write, seek operations:
 //
-// I/O channels guarantee that these operations are serialized with respect to
+// Handlers guarantee that these operations are serialized with respect to
 // each other. This means that if you issue ie two concurrent write operations
 // and both target the same byte range, that after the completion of each
 // operation respective the byte range exclusively contains data provided by
@@ -53,20 +53,20 @@
 //
 // Behavior of the close() system call:
 //
-// The close() system call releases one ownership reference of an I/O channel
-// and it removes the provided descriptor/ioc from the I/O channel table. The
+// The close() system call releases one ownership reference of an handler
+// and it removes the provided descriptor/ioc from the handler table. The
 // channel is scheduled for finalization once the last ownership reference (also
 // meaning the last user visible descriptor/ioc) has been dropped.
 // Close may flush buffered data to the I/O resource (ie disk). This write may
 // fail with an error and close returns this error. However the close will still
-// run to completion and close the I/O channel. The returned error is purely
-// advisory and will not stop the close operation from closing the I/O channel.
+// run to completion and close the handler. The returned error is purely
+// advisory and will not stop the close operation from closing the handler.
 //
 //
-// The three I/O channel close modes:
+// The three handler close modes:
 //
-// 1) The close() system call removes an I/O channel ownership reference. If it
-//    removes the last outstanding ownership reference then the I/O channel is
+// 1) The close() system call removes an handler ownership reference. If it
+//    removes the last outstanding ownership reference then the handler is
 //    made invisible and the channel is scheduled for finalization. However the
 //    actual finalization invocation is deferred until any still ongoing I/O
 //    operations have completed. Once every ongoing I/O operation has completed
@@ -74,7 +74,7 @@
 //    (close with deferred finalization mode)
 //
 // 2) Similar to (1), however all ongoing I/O operations are canceled by the
-//    last close() invocation and the I/O channel is finalized as soon as all
+//    last close() invocation and the handler is finalized as soon as all
 //    cancel operations have completed.
 //    (canceling close mode)
 //
@@ -82,24 +82,24 @@
 //    all ongoing I/O operations have completed. Then the channel is finalized.
 //    (blocking close mode)
 //
-// Only mode (1) is supported by the I/O channel class at this time. Support for
+// Only mode (1) is supported by the handler class at this time. Support for
 // the other modes is planned for the future.
-open_class(IOChannel, Any,
-    off_t       offset;         // I/O channel lock
+open_class(Handler, Any,
+    off_t       offset;         // handler lock
     intptr_t    resource;       // Constant
     mtx_t       countLock;
     int32_t     ownerCount;     // countLock
     int32_t     useCount;       // countLock
     uint16_t    mode;           // Constant
-    int16_t     channelType;    // Constant
+    int16_t     type;           // Constant
 );
-any_subclass_funcs(IOChannel,
+any_subclass_funcs(Handler,
 
     //
-    // Generic I/O Channel Interface
+    // Generic handler Interface
     //
 
-    // Called once an I/O channel is ready to be deallocated for good. Overrides
+    // Called once an handler is ready to be deallocated for good. Overrides
     // should drain any still buffered data if this makes sense for the semantics
     // of the channel and it should then release all resources used by the channel.
     // This method may block on I/O operations.
@@ -114,7 +114,7 @@ any_subclass_funcs(IOChannel,
 
 
     // Reads up to 'nBytesToRead' bytes of data from the (current position of the)
-    // I/O channel and returns it in 'pBuffer'. An I/O channel may read less data
+    // handler and returns it in 'pBuffer'. An handler may read less data
     // than request. The actual number of bytes read is returned in 'nOutBytesRead'.
     // If 0 is returned then the channel contains no more data. This is also known
     // as the end-of-file condition. If an error is encountered then a suitable
@@ -124,13 +124,13 @@ any_subclass_funcs(IOChannel,
     // and no error code.
     errno_t (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
-    // Writes up to 'nBytesToWrite' bytes to the I/O channel. Works similar to
+    // Writes up to 'nBytesToWrite' bytes to the handler. Works similar to
     // how read() works.
     errno_t (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
-    // Sets the current file position of an I/O channel. Returns ESPIPE by
+    // Sets the current file position of an handler. Returns ESPIPE by
     // default. A channel that supports seeking should override this method and
-    // lock the channel and then invoke IOChannel_DoSeek().
+    // lock the channel and then invoke Handler_DoSeek().
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
@@ -140,12 +140,12 @@ any_subclass_funcs(IOChannel,
     off_t (*getSeekableRange)(void* _Nonnull _Locked self);
 
 
-    // Execute an I/O channel specific command.
+    // Execute an handler specific command.
     errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
 
 
     //
-    // Inode Channel Interface
+    // Inode Handler Interface
     //
 
     // Returns the attributes of the Inode to which the channel is connected if
@@ -162,104 +162,104 @@ any_subclass_funcs(IOChannel,
 );
 
 
-// Returns the I/O channel type.
-#define IOChannel_GetChannelType(/*_Nonnull*/ __self) \
-((int)((IOChannelRef)(__self))->channelType)
+// Returns the handler type.
+#define Handler_GetType(/*_Nonnull*/ __self) \
+((int)((HandlerRef)(__self))->type)
 
-// Returns the I/O channel mode.
-#define IOChannel_GetMode(/*_Nonnull*/ __self) \
-((unsigned int)((IOChannelRef)(__self))->mode)
+// Returns the handler mode.
+#define Handler_GetMode(/*_Nonnull*/ __self) \
+((unsigned int)((HandlerRef)(__self))->mode)
 
-// Returns true if the I/O channel is readable.
-#define IOChannel_IsReadable(__self) \
-((((IOChannelRef)__self)->mode & O_RDONLY) == O_RDONLY)
+// Returns true if the handler is readable.
+#define Handler_IsReadable(__self) \
+((((HandlerRef)__self)->mode & O_RDONLY) == O_RDONLY)
 
-// Returns true if the I/O channel is writable.
-#define IOChannel_IsWritable(__self) \
-((((IOChannelRef)__self)->mode & O_WRONLY) == O_WRONLY)
+// Returns true if the handler is writable.
+#define Handler_IsWritable(__self) \
+((((HandlerRef)__self)->mode & O_WRONLY) == O_WRONLY)
 
 // Returns a copy of the flags
-extern int IOChannel_GetFlags(IOChannelRef _Nonnull self);
+extern int Handler_GetFlags(HandlerRef _Nonnull self);
 
 
-// Returns the resource to which the I/O channel is connected
-#define IOChannel_GetResource(__self) \
-((IOChannelRef)__self)->resource
+// Returns the resource to which the handler is connected
+#define Handler_GetResource(__self) \
+((HandlerRef)__self)->resource
 
-#define IOChannel_GetResourceAs(__self, __class) \
-((__class##Ref) ((IOChannelRef)__self)->resource)
+#define Handler_GetResourceAs(__self, __class) \
+((__class##Ref) ((HandlerRef)__self)->resource)
 
 
 // Returns the current seek position
-#define IOChannel_GetOffset(/*_Nonnull _Locked*/ __self) \
-((IOChannelRef)(__self))->offset
+#define Handler_GetOffset(/*_Nonnull _Locked*/ __self) \
+((HandlerRef)(__self))->offset
 
 // Sets the current seek position
-#define IOChannel_SetOffset(/*_Nonnull _Locked*/ __self, __pos) \
-((IOChannelRef)(__self))->offset = (__pos)
+#define Handler_SetOffset(/*_Nonnull _Locked*/ __self, __pos) \
+((HandlerRef)(__self))->offset = (__pos)
 
 // Increment the current seek position by the give signed value
-#define IOChannel_IncrementOffsetBy(/*_Nonnull _Locked*/ __self, __delta) \
-((IOChannelRef)(__self))->offset += (__delta)
+#define Handler_IncrementOffsetBy(/*_Nonnull _Locked*/ __self, __delta) \
+((HandlerRef)(__self))->offset += (__delta)
 
 
-extern errno_t IOChannel_SetFlags(IOChannelRef _Nonnull self, int op, int flags);
+extern errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags);
 
 
-#define IOChannel_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, IOChannel, __self, __pBuffer, __nBytesToRead, __nOutBytesRead)
+#define Handler_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, Handler, __self, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define IOChannel_Write(__self, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, IOChannel, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+#define Handler_Write(__self, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, Handler, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
-#define IOChannel_Seek(__self, __offset, __pOutNewPos, __whence) \
-invoke_n(seek, IOChannel, __self, __offset, __pOutNewPos, __whence)
+#define Handler_Seek(__self, __offset, __pOutNewPos, __whence) \
+invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
 
-#define IOChannel_vIoctl(__self, __cmd, __ap) \
-invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
+#define Handler_vIoctl(__self, __cmd, __ap) \
+invoke_n(ioctl, Handler, __self, __cmd, __ap)
 
-extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
-extern errno_t IOChannel_GetInfo(IOChannelRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
-
-
-#define IOChannel_GetAttributes(__self, __attr) \
-invoke_n(getAttributes, IOChannel, __self, __attr)
-
-#define IOChannel_Truncate(__self, __length) \
-invoke_n(truncate, IOChannel, __self, __length)
+extern errno_t Handler_Ioctl(HandlerRef _Nonnull self, int cmd, ...);
+extern errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
 
 
-extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
+#define Handler_GetAttributes(__self, __attr) \
+invoke_n(getAttributes, Handler, __self, __attr)
 
-#define IOChannel_RetainAs(__pChannel, __type) \
-    ((__type)IOChannel_Retain((IOChannelRef)__pChannel))
+#define Handler_Truncate(__self, __length) \
+invoke_n(truncate, Handler, __self, __length)
 
-extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
+
+extern HandlerRef Handler_Retain(HandlerRef _Nonnull self);
+
+#define Handler_RetainAs(__hnd, __type) \
+    ((__type)Handler_Retain((HandlerRef)__hnd))
+
+extern errno_t Handler_Release(HandlerRef _Nullable self);
 
 
 //
 // Subclassers
 //
 
-// Creates an instance of an I/O channel. Subclassers should call this method in
+// Creates an instance of an handler. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, intptr_t resource, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, intptr_t resource, HandlerRef _Nullable * _Nonnull pOutHandler);
 
-// Implements the actual seek logic. Invokes IOChannel_GetSeekableRange() if
+// Implements the actual seek logic. Invokes Handler_GetSeekableRange() if
 // needed to get the range over which seeking is supported.
-extern errno_t IOChannel_DoSeek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence);
+extern errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence);
 
 // Returns the size of the seekable range
-#define IOChannel_GetSeekableRange(__self) \
-invoke_0(getSeekableRange, IOChannel, __self)
+#define Handler_GetSeekableRange(__self) \
+invoke_0(getSeekableRange, Handler, __self)
 
 
 //
-// For use by IOChannelTable
+// For use by HandlerTable
 //
 
-extern void IOChannel_BeginOperation(IOChannelRef _Nonnull self);
-extern void IOChannel_EndOperation(IOChannelRef _Nonnull self);
+extern void Handler_BeginOperation(HandlerRef _Nonnull self);
+extern void Handler_EndOperation(HandlerRef _Nonnull self);
 
-#endif /* IOChannel_h */
+#endif /* Handler_h */

@@ -10,17 +10,17 @@
 #include "FSManager.h"
 #include <stdio.h>
 #include <ext/errno.h>
-#include <filesystem/IOChannel.h>
+#include <handler/Handler.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
 
 #define BLOCK_SIZE  4096
 
 
-static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
+static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    HandlerRef chan = NULL;
 
     err = FileManager_OpenFile(fm, path, O_WRONLY | O_TRUNC, &chan);
     if (err == ENOENT) {
@@ -41,7 +41,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
         }
     }
 
-    *pOutChannel = chan;
+    *pOutHandler = chan;
     return err;
 }
 
@@ -50,7 +50,7 @@ errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull 
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
-    IOChannelRef chan = NULL;
+    HandlerRef chan = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
     char* dstPath = NULL;
@@ -74,7 +74,7 @@ errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull 
         }
 
         ssize_t nBytesWritten;
-        err = IOChannel_Write(chan, buf, nBytesRead, &nBytesWritten);
+        err = Handler_Write(chan, buf, nBytesRead, &nBytesWritten);
         if (err != EOK) {
             break;
         }
@@ -84,7 +84,7 @@ catch:
     if (fp) {
         fclose(fp);
     }
-    IOChannel_Release(chan);
+    Handler_Release(chan);
 
     free(dstPath);
     free(buf);
