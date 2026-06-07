@@ -27,24 +27,24 @@ struct matcher {
 typedef struct matcher* matcher_t;
 
 
-typedef struct Catalog {
+typedef struct IOCatalog {
     FilesystemRef _Nonnull      fs;
     FileHierarchyRef _Nonnull   fh;
     InodeRef _Nonnull           rootDirectory;
     mtx_t                       matchersLock;
     queue_t/*<matcher_t*/       matchers;
-} Catalog;
+} IOCatalog;
 
 
-CatalogRef gIOCatalog;
+IOCatalogRef gIOCatalog;
 
 
-errno_t IOCatalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
+errno_t IOCatalog_Create(IOCatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    CatalogRef self;
+    IOCatalogRef self;
 
-    try(kalloc_cleared(sizeof(Catalog), (void**) &self));
+    try(kalloc_cleared(sizeof(IOCatalog), (void**) &self));
     
     try(KernFS_Create(FS_CATALOG_DEV, (KernFSRef*)&self->fs));
     try(FilesystemManager_RegisterFilesystem(gFilesystemManager, self->fs));
@@ -61,12 +61,12 @@ catch:
     return err;
 }
 
-FilesystemRef _Nonnull IOCatalog_GetFilesystem(CatalogRef _Nonnull self)
+FilesystemRef _Nonnull IOCatalog_GetFilesystem(IOCatalogRef _Nonnull self)
 {
     return self->fs;
 }
 
-errno_t IOCatalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
+errno_t IOCatalog_IsPublished(IOCatalogRef _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
     ResolvedPath rp;
@@ -77,12 +77,12 @@ errno_t IOCatalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull pat
     return err;
 }
 
-errno_t IOCatalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
+errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
 {
     return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, rp);
 }
 
-errno_t IOCatalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath rp;
@@ -103,7 +103,7 @@ errno_t IOCatalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsi
     return err;
 }
 
-static errno_t _IOCatalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
+static errno_t _acquire_folder(IOCatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
 {
     if (folderId == kCatalogId_None) {
         return Filesystem_AcquireRootDirectory(self->fs, pOutDir);
@@ -115,7 +115,7 @@ static errno_t _IOCatalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId fold
 
 // Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutFolderId)
+errno_t IOCatalog_PublishFolder(IOCatalogRef _Nonnull self, CatalogId parentFolderId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutFolderId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -127,7 +127,7 @@ errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolder
     pc.name = be->name;
     pc.count = strlen(be->name);
 
-    err = _IOCatalog_AcquireFolder(self, parentFolderId, &pDir);
+    err = _acquire_folder(self, parentFolderId, &pDir);
     if (err == EOK) {
         err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, be->uid, be->gid, FS_FTYPE_DIR, be->perms, &pNode);
         if (err == EOK) {
@@ -142,7 +142,7 @@ errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolder
 }
 
 
-errno_t IOCatalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId)
+errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -153,7 +153,7 @@ errno_t IOCatalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, Catalo
     }
     
     // Get the bus directory or devfs root
-    err = _IOCatalog_AcquireFolder(self, folderId, &pDir);
+    err = _acquire_folder(self, folderId, &pDir);
     if (err == EOK) {
         // Get the parent of the directory or the driver entry
         if (entryId == kCatalogId_None) {
@@ -181,7 +181,7 @@ catch:
 }
 
 
-errno_t IOCatalog_PublishDriver(CatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
+errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -193,7 +193,7 @@ errno_t IOCatalog_PublishDriver(CatalogRef _Nonnull self, DriverRef _Nonnull drv
     pc.name = de->name;
     pc.count = strlen(de->name);
 
-    err = _IOCatalog_AcquireFolder(self, folderId, &pDir);
+    err = _acquire_folder(self, folderId, &pDir);
     if (err == EOK) {
         err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, de->arg, de->uid, de->gid, de->perms, &pNode);
         if (err == EOK) {
@@ -208,7 +208,7 @@ errno_t IOCatalog_PublishDriver(CatalogRef _Nonnull self, DriverRef _Nonnull drv
 }
 
 
-errno_t IOCatalog_CopyDriverForId(CatalogRef _Nonnull self, CatalogId id, DriverRef _Nullable * _Nonnull pOutDriver)
+errno_t IOCatalog_CopyDriverForId(IOCatalogRef _Nonnull self, CatalogId id, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     InodeRef ip = NULL;
@@ -228,12 +228,12 @@ catch:
     return err;
 }
 
-errno_t IOCatalog_CopyMatchingDrivers(CatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers)
+errno_t IOCatalog_CopyMatchingDrivers(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers)
 {
     return KernFS_CopyMatchingDrivers((KernFSRef)self->fs, cats, pOutDrivers);
 }
 
-errno_t IOCatalog_StartMatching(CatalogRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg)
+errno_t IOCatalog_StartMatching(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg)
 {
     decl_try_err();
     DriverRef* drivers = NULL;
@@ -269,7 +269,7 @@ catch:
     return err;
 }
 
-void IOCatalog_StopMatching(CatalogRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg)
+void IOCatalog_StopMatching(IOCatalogRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg)
 {
     matcher_t pprev = NULL;
 
@@ -284,7 +284,7 @@ void IOCatalog_StopMatching(CatalogRef _Nonnull self, drv_match_func_t _Nonnull 
     mtx_unlock(&self->matchersLock);
 }
 
-static void _do_match_callouts(CatalogRef _Nonnull self, DriverRef _Nonnull driver, int notify)
+static void _do_match_callouts(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver, int notify)
 {
     mtx_lock(&self->matchersLock);
     queue_for_each(&self->matchers, struct matcher, it,
@@ -295,12 +295,12 @@ static void _do_match_callouts(CatalogRef _Nonnull self, DriverRef _Nonnull driv
     mtx_unlock(&self->matchersLock);
 }
 
-void IOCatalog_OnDriverStarted(CatalogRef _Nonnull self, DriverRef _Nonnull driver)
+void IOCatalog_OnDriverStarted(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver)
 {
     _do_match_callouts(self, driver, IONOTIFY_STARTED);
 }
 
-void IOCatalog_OnDriverStopping(CatalogRef _Nonnull self, DriverRef _Nonnull driver)
+void IOCatalog_OnDriverStopping(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver)
 {
     _do_match_callouts(self, driver, IONOTIFY_STOPPING);
 }

@@ -19,7 +19,6 @@ class_ref(Any);
 class_ref(Object);
 
 class_ref(AddressSpace);
-class_ref(Catalog);
 class_ref(ConsoleChannel);
 class_ref(Console);
 class_ref(DiskBlock);
@@ -44,6 +43,7 @@ class_ref(HIDManager);
 class_ref(Inode);
 class_ref(InodeChannel);
 class_ref(InputDriver);
+class_ref(IOCatalog);
 class_ref(IOChannel);
 class_ref(JoystickDriver);
 class_ref(KernFS);

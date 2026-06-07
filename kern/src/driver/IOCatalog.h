@@ -48,29 +48,29 @@ typedef uint32_t    CatalogId;
 #define kCatalogId_None   0
 
 
-extern CatalogRef gIOCatalog;
+extern IOCatalogRef gIOCatalog;
 
 
-extern errno_t IOCatalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);
+extern errno_t IOCatalog_Create(IOCatalogRef _Nullable * _Nonnull pOutSelf);
 
-extern FilesystemRef _Nonnull IOCatalog_GetFilesystem(CatalogRef _Nonnull self);
+extern FilesystemRef _Nonnull IOCatalog_GetFilesystem(IOCatalogRef _Nonnull self);
 
 // Returns EOK if an entry  is published at the in-kernel path 'path'. Otherwise
 // ENOENT is returned.
-extern errno_t IOCatalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path);
+extern errno_t IOCatalog_IsPublished(IOCatalogRef _Nonnull self, const char* _Nonnull path);
 
 // Looks up the inode for the given path and returns it.
-extern errno_t IOCatalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
+extern errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
 
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
 // returns the resulting channel in 'pOutChannel'. This call does not support
 // opening a folder.
-extern errno_t IOCatalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 
 // Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-extern errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutFolderId);
+extern errno_t IOCatalog_PublishFolder(IOCatalogRef _Nonnull self, CatalogId parentFolderId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutFolderId);
 
 
 // Either removes a published entry or a published folder from the catalog.
@@ -78,7 +78,7 @@ extern errno_t IOCatalog_PublishFolder(CatalogRef _Nonnull self, CatalogId paren
 // Note that this removes just the entry and not the published folder. Pass a
 // folder ID and kIOCatalog_None as the entry ID to remove a folder. Note that the
 // folder must be empty in order to remove it.
-extern errno_t IOCatalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId);
+extern errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId);
 
 
 // Publish the driver instance 'drv' with the name 'name' as a child of the
@@ -87,18 +87,18 @@ extern errno_t IOCatalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId,
 // Returns a suitable error if another entry with the same name already exists.
 // 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
-extern errno_t IOCatalog_PublishDriver(CatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
+extern errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
 
 
 // Returns a strong reference to the driver with ID 'id'. Returns NULL and a
 // suitable error in the case of a lookup problem.
-extern errno_t IOCatalog_CopyDriverForId(CatalogRef _Nonnull self, CatalogId id, DriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t IOCatalog_CopyDriverForId(IOCatalogRef _Nonnull self, CatalogId id, DriverRef _Nullable * _Nonnull pOutDriver);
 
 // Returns a snapshot of strong references to all drivers that match the provided
 // categories. The caller is responsible for releasing all references and calling
 // kfree() on the returned pointer when done. The array of driver references is
 // terminated by a NULL entry.
-extern errno_t IOCatalog_CopyMatchingDrivers(CatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
+extern errno_t IOCatalog_CopyMatchingDrivers(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
 
 
 // Registers a continuous driver matcher with the driver manager. This matcher
@@ -111,18 +111,18 @@ extern errno_t IOCatalog_CopyMatchingDrivers(CatalogRef _Nonnull self, const ioc
 // Note: the function 'f' is called while the driver manager is locked. Thus this
 // function will trigger a deadlock if it invokes any of the driver manager
 // methods.
-extern errno_t IOCatalog_StartMatching(CatalogRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg);
+extern errno_t IOCatalog_StartMatching(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg);
 
 // Cancels the driver matcher bound to the function 'f' and the argument 'arg'.
-extern void IOCatalog_StopMatching(CatalogRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg);
+extern void IOCatalog_StopMatching(IOCatalogRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg);
 
 
 // Called by a driver when it is has started. This will trigger registered
 // matchers.
-extern void IOCatalog_OnDriverStarted(CatalogRef _Nonnull self, DriverRef _Nonnull driver);
+extern void IOCatalog_OnDriverStarted(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver);
 
 // Called by a driver when it is beginning its stopping process. This will
 // trigger registered matchers.
-extern void IOCatalog_OnDriverStopping(CatalogRef _Nonnull self, DriverRef _Nonnull driver);
+extern void IOCatalog_OnDriverStopping(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver);
 
 #endif /* IOIOCatalog_h */
