@@ -32,7 +32,7 @@
 //
 // Inodes
 //
-// KernFS stores inodes (KfsDevice, KfsDirectory) internally. These nodes are
+// KernFS stores inodes (KfsSpecial, KfsDirectory) internally. These nodes are
 // stored in the 'inOwned' hash table and are accessed by their inode number.
 // An Inode stays alive as long as its useCount and linkCount fields are both
 // > 0. The useCount is managed by the acquire/relinquish APIs per usual and the
