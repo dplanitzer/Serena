@@ -7,52 +7,120 @@
 //
 
 #include "syscalldecls.h"
-#include <process/kio.h>
+#include <filesystem/IOChannel.h>
+#include <process/IOChannelTable.h>
+#include <process/ProcessPriv.h>
 
 
 SYSCALL_1(fd_close, int fd)
 {
-    return _kclose(vp->proc, pa->fd);
+    ProcessRef pp = vp->proc;
+
+    return IOChannelTable_ReleaseChannel(&pp->ioChannelTable, pa->fd);
 }
 
 SYSCALL_4(fd_read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
-    return _kread(vp->proc, pa->fd, pa->buffer, pa->nBytesToRead, pa->nBytesRead);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_Read(pChannel, pa->buffer, __SSizeByClampingSize(pa->nBytesToRead), pa->nBytesRead);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_4(fd_write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
 {
-    return _kwrite(vp->proc, pa->fd, pa->buffer, pa->nBytesToWrite, pa->nBytesWritten);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_Write(pChannel, pa->buffer, __SSizeByClampingSize(pa->nBytesToWrite), pa->nBytesWritten);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_4(fd_seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
-    return _kseek(vp->proc, pa->fd, pa->offset, pa->pOutNewPos, pa->whence);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_Seek(pChannel, pa->offset, pa->pOutNewPos, pa->whence);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_3(fd_setflags, int fd, int op, int flags)
 {
-    return _ksetflags(vp->proc, pa->fd, pa->op, pa->flags);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_SetFlags(pChannel, pa->op, pa->flags);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
 {
-    return _kioctl(vp->proc, pa->fd, pa->cmd, pa->ap);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_vIoctl(pChannel, pa->cmd, pa->ap);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_2(fd_truncate, int fd, off_t length)
 {
-    return _kftruncate(vp->proc, pa->fd, pa->length);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_Truncate(pChannel, pa->length);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_2(fd_attr, int fd, fs_attr_t* _Nonnull attr)
 {
-    return _kfattr(vp->proc, pa->fd, pa->attr);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_GetAttributes(pChannel, pa->attr);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_3(fd_info, int fd, int flavor, fd_info_ref _Nonnull info)
 {
-    return _kfinfo(vp->proc, pa->fd, pa->flavor, pa->info);
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
+        err = IOChannel_GetInfo(pChannel, pa->flavor, pa->info);
+        IOChannel_EndOperation(pChannel);
+    }
+    return err;
 }
 
 SYSCALL_3(fd_dup, int fd, int min_fd, int* _Nonnull new_fd)

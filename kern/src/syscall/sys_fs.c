@@ -7,21 +7,39 @@
 //
 
 #include "syscalldecls.h"
+#include <ext/limits.h>
+#include <filesystem/IOChannel.h>
 #include <filemanager/FilesystemManager.h>
 #include <kpi/directory.h>
 #include <kpi/disk.h>
 #include <kpi/filesystem.h>
-#include <process/kio.h>
+#include <process/IOChannelTable.h>
+#include <process/ProcessPriv.h>
 
 
 SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
 {
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    IOChannelRef chan;
+
     if (pa->wd != FD_CWD) {
         //XXX not yet
         return EINVAL;
     }
 
-    return _kopen(vp->proc, pa->path, pa->oflags, pa->pOutIoc);
+    mtx_lock(&pp->mtx);
+    err = FileManager_OpenFile(&pp->fm, pa->path, pa->oflags, &chan);
+    if (err == EOK) {
+        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
+    }
+    mtx_unlock(&pp->mtx);
+
+    if (err != EOK) {
+        IOChannel_Release(chan);
+        *(pa->pOutIoc) = -1;
+    }
+    return err;
 }
 
 SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
