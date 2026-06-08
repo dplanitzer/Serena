@@ -71,44 +71,37 @@ errno_t Handler_write(HandlerRef _Nonnull self, const void* _Nonnull pBuffer, ss
 }
 
 
-errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t endPos, off_t* _Nullable pOutNewPos, int whence)
+errno_t do_seek(off_t offset, int whence, off_t endPos, off_t* _Nonnull pos)
 {
-    decl_try_err();
-
     if (whence == SEEK_SET) {
         if (offset >= 0ll) {
-            self->offset = offset;
+            *pos = offset;
         }
         else {
-            throw(EINVAL);
+            return EINVAL;
         }
     }
     else if(whence == SEEK_CUR || whence == SEEK_END) {
-        const off_t refPos = (whence == SEEK_END) ? endPos : self->offset;
+        const off_t refPos = (whence == SEEK_END) ? endPos : *pos;
         
         if (offset < 0ll && -offset > refPos) {
-            throw(EINVAL);
+            return EINVAL;
         }
         else {
             const off_t newOffset = refPos + offset;
 
             if (newOffset < 0ll) {
-                throw(EOVERFLOW);
+                return EOVERFLOW;
             }
 
-            self->offset = newOffset;
+            *pos = newOffset;
         }
     }
     else {
-        throw(EINVAL);
+        return EINVAL;
     }
 
-    if (pOutNewPos) {
-        *pOutNewPos = self->offset;
-    }
-
-catch:
-    return err;
+    return EOK;
 }
 
 errno_t Handler_seek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)

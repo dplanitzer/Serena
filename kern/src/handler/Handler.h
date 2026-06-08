@@ -61,7 +61,7 @@ open_class_funcs(Handler, Object,
 
     // Sets the current file position of an handler. Returns ESPIPE by
     // default. A channel that supports seeking should override this method and
-    // lock the channel and then invoke Handler_DoSeek().
+    // lock the channel and then invoke do_seek().
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
 
@@ -145,11 +145,10 @@ invoke_0(close, Handler, __self)
 // properties. 
 extern errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
 
-// Implements the actual seek logic. Invokes Handler_GetSeekableRange() if
-// needed to get the range over which seeking is supported. 'endPos' is the end
-// position of the seekable space. This typically corresponds to the length of
-// teh seekable space. This parameter is only needed if 'whence' == SEEK_END. 
-extern errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t endPos, off_t* _Nullable pOutNewPos, int whence);
+// Implements the actual seek logic. 'endPos' is the end position of the
+// seekable space. This typically corresponds to the length of the seekable
+// space. This parameter is only needed if 'whence' == SEEK_END. 
+extern errno_t do_seek(off_t offset, int whence, off_t endPos, off_t* _Nonnull pos);
 
 
 //

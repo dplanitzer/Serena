@@ -79,7 +79,12 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
         if (whence == SEEK_END) {
             endPos = Driver_GetSeekableRange(self->driver);
         }
-        err = Handler_DoSeek((HandlerRef)self, offset, endPos, pOutNewPos, whence);
+        
+        err = do_seek(offset, whence, endPos, &self->super.offset);
+
+        if (pOutNewPos && err == EOK) {
+            *pOutNewPos = self->super.offset;
+        }
         mtx_unlock(&self->ser_mtx);
     }
     else {

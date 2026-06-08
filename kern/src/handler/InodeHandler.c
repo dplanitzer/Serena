@@ -78,7 +78,12 @@ errno_t InodeHandler_seek(InodeHandlerRef _Nonnull _Locked self, off_t offset, o
     if (whence == SEEK_END) {
         endPos = Inode_GetFileSize(self->ino);
     }
-    err = Handler_DoSeek((HandlerRef)self, offset, endPos, pOutNewPos, whence);
+    
+    err = do_seek(offset, whence, endPos, &self->super.offset);
+
+    if (pOutNewPos && err == EOK) {
+        *pOutNewPos = self->super.offset;
+    }
     Inode_Unlock(self->ino);
 
     return err;
