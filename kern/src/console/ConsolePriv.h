@@ -151,6 +151,21 @@ typedef struct CursorTimer {
 } CursorTimer;
 
 
+// Big enough to hold the result of a key mapping and the longest possible
+// terminal report message.
+#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
+
+// Takes care of mapping a USB key scan code to a character or character sequence.
+// We may leave partial character sequences in the buffer if a Console_Read() didn't
+// read all bytes of a sequence. The next Console_Read() will first receive the
+// remaining buffered bytes before it receives bytes from new events.
+typedef struct CharBuffer {
+    char    buffer[MAX_MESSAGE_LENGTH]; // Holds a full or partial byte sequence produced by a key down event
+    int8_t  count;                      // Number of bytes stored in the buffer
+    int8_t  index;                      // Index of first byte in the buffer where a partial byte sequence begins
+} CharBuffer;
+
+
 // The console object.
 final_class_ivars(Console, PseudoDriver,
     mtx_t                       mtx;
@@ -160,6 +175,7 @@ final_class_ivars(Console, PseudoDriver,
 
     HandlerRef _Nonnull         hidHnd;
     const KeyMap* _Nonnull      keyMap;
+    CharBuffer                  chb;
     cbuf_t                      reportsQueue;
 
     GraphicsDriverRef _Nonnull  fb;
@@ -243,27 +259,6 @@ extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull self);
 extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull self, int nChars);
 extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull self, int nLines);
 extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines);
-
-
-//
-// Console Handler
-//
-
-// Big enough to hold the result of a key mapping and the longest possible
-// terminal report message.
-#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
-
-// The console I/O channel
-//
-// Takes care of mapping a USB key scan code to a character or character sequence.
-// We may leave partial character sequences in the buffer if a Console_Read() didn't
-// read all bytes of a sequence. The next Console_Read() will first receive the
-// remaining buffered bytes before it receives bytes from new events.
-typedef struct ConsoleHandler{
-    char    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
-    int8_t  rdCount;                        // Number of bytes stored in the buffer
-    int8_t  rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
-} ConsoleHandler;
 
 
 //

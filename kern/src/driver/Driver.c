@@ -281,7 +281,7 @@ bool Driver_IsOpen(DriverRef _Nonnull self)
 
 errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverHandler_Create(self, FD_TYPE_DRIVER, mode, 0, pOutHandler);
+    return DriverHandler_Create(self, FD_TYPE_DRIVER, mode, pOutHandler);
 }
 
 errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)

@@ -8,22 +8,18 @@
 
 #include "DriverHandler.h"
 #include <driver/Driver.h>
-#include <kern/kalloc.h>
 
 #define _get_drv() \
 Handler_GetResourceAs(self, Driver)
 
 
-errno_t DriverHandler_Create(DriverRef _Nonnull drv, int channelType, unsigned int mode, size_t nExtraBytes, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t DriverHandler_Create(DriverRef _Nonnull drv, int channelType, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     DriverHandlerRef self;
 
     try(Handler_Create(&kDriverHandlerClass, channelType, mode, (intptr_t)drv, (HandlerRef*)&self));
-    if (nExtraBytes > 0) {
-        try(kalloc_cleared(nExtraBytes, (void**)&self->extras));
-        mtx_init(&self->ser_mtx);
-    }
+    mtx_init(&self->ser_mtx);
     Object_Retain(drv);
 
 catch:
@@ -34,10 +30,6 @@ catch:
 void DriverHandler_deinit(DriverHandlerRef _Nonnull self)
 {
     Object_Release(_get_drv());
-
-    kfree(self->extras);
-    self->extras = NULL;
-    
     mtx_deinit(&self->ser_mtx);
 }
 

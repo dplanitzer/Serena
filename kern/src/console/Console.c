@@ -38,6 +38,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     // Open a channel to the framebuffer
     try(IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &self->fbHnd));
+    self->chb.count = 0;
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
 
@@ -524,12 +525,11 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 
 errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverHandler_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, sizeof(ConsoleHandler), pOutHandler);
+    return DriverHandler_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, pOutHandler);
 }
 
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    ConsoleHandler* chp = DriverHandler_GetExtrasAs(hnd, ConsoleHandler);
     ssize_t nBytesRead = 0;
 
     while (nBytesRead < nBytesToRead) {
@@ -546,22 +546,22 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, Han
                 break;
             }
 
-            chp->rdBuffer[chp->rdCount++] = b;
+            self->chb.buffer[self->chb.count++] = b;
         }
         if (done) {
             break;
         }
 
         int i = 0;
-        while (nBytesRead < nBytesToRead && chp->rdCount > 0) {
-            pBuffer[nBytesRead++] = chp->rdBuffer[i++];
-            chp->rdCount--;
+        while (nBytesRead < nBytesToRead && self->chb.count > 0) {
+            pBuffer[nBytesRead++] = self->chb.buffer[i++];
+            self->chb.count--;
         }
 
-        if (chp->rdCount > 0) {
+        if (self->chb.count > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            chp->rdIndex = i;
+            self->chb.index = i;
             break;
         }
     }
@@ -574,7 +574,6 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _N
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
-    ConsoleHandler* chp = DriverHandler_GetExtrasAs(hnd, ConsoleHandler);
     const bool isNonBlocking = (Handler_GetMode(hnd) & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
 
@@ -600,18 +599,18 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _N
         }
 
 
-        chp->rdCount = KeyMap_Map(self->keyMap, &evt.data.key, chp->rdBuffer, MAX_MESSAGE_LENGTH);
+        self->chb.count = KeyMap_Map(self->keyMap, &evt.data.key, self->chb.buffer, MAX_MESSAGE_LENGTH);
 
         int i = 0;
-        while (nBytesRead < nBytesToRead && chp->rdCount > 0) {
-            pBuffer[nBytesRead++] = chp->rdBuffer[i++];
-            chp->rdCount--;
+        while (nBytesRead < nBytesToRead && self->chb.count > 0) {
+            pBuffer[nBytesRead++] = self->chb.buffer[i++];
+            self->chb.count--;
         }
 
-        if (chp->rdCount > 0) {
+        if (self->chb.count > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            chp->rdIndex = i;
+            self->chb.index = i;
             break;
         }
     }
@@ -627,7 +626,6 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _N
 errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    ConsoleHandler* chp = DriverHandler_GetExtrasAs(hnd, ConsoleHandler);
     char* pChars = pBuffer;
     HIDEvent evt;
     int evtCount;
@@ -638,9 +636,9 @@ errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _N
 
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
-    while (nBytesRead < nBytesToRead && chp->rdCount > 0) {
-        pChars[nBytesRead++] = chp->rdBuffer[chp->rdIndex++];
-        chp->rdCount--;
+    while (nBytesRead < nBytesToRead && self->chb.count > 0) {
+        pChars[nBytesRead++] = self->chb.buffer[self->chb.index++];
+        self->chb.count--;
     }
 
 
