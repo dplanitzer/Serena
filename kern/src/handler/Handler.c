@@ -140,16 +140,6 @@ errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnu
 }
 
 
-errno_t Handler_getAttributes(HandlerRef _Nonnull self, fs_attr_t* _Nonnull attr)
-{
-    return EBADF;
-}
-
-errno_t Handler_truncate(HandlerRef _Nonnull self, off_t length)
-{
-    return EBADF;
-}
-
 errno_t Handler_shutdown(HandlerRef _Nonnull self)
 {
     return EOK;
@@ -161,7 +151,5 @@ func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
 func_def(getSeekableRange, Handler)
-func_def(getAttributes, Handler)
-func_def(truncate, Handler)
 func_def(shutdown, Handler)
 );

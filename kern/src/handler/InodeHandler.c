@@ -122,6 +122,6 @@ override_func_def(read, InodeHandler, Handler)
 override_func_def(write, InodeHandler, Handler)
 override_func_def(seek, InodeHandler, Handler)
 override_func_def(getSeekableRange, InodeHandler, Handler)
-override_func_def(getAttributes, InodeHandler, Handler)
-override_func_def(truncate, InodeHandler, Handler)
+func_def(getAttributes, InodeHandler)
+func_def(truncate, InodeHandler)
 );

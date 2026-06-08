@@ -27,10 +27,6 @@ open_class(Handler, Object,
 );
 open_class_funcs(Handler, Object,
 
-    //
-    // Generic handler Interface
-    //
-
     // Reads up to 'nBytesToRead' bytes of data from the (current position of the)
     // handler and returns it in 'pBuffer'. An handler may read less data
     // than request. The actual number of bytes read is returned in 'nOutBytesRead'.
@@ -59,23 +55,6 @@ open_class_funcs(Handler, Object,
 
 
     errno_t (*shutdown)(void* _Nonnull self);
-
-
-    //
-    // Inode Handler Interface
-    //
-
-    // Returns the attributes of the Inode to which the channel is connected if
-    // the channel is an Inode channel. Returns EBADF otherwise.
-    // Override: Optional
-    // Default Behavior: Returns EBADF
-    errno_t (*getAttributes)(void* _Nonnull self, fs_attr_t* _Nonnull attr);
-
-    // Reduces or increases the size of a regular file if the channel is connected
-    // to an Inode. Returns EBADF otherwise
-    // Override: Optional
-    // Default Behavior: Returns EBADF
-    errno_t (*truncate)(void* _Nonnull self, off_t length);
 );
 
 
@@ -125,13 +104,6 @@ invoke_n(write, Handler, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
 
 extern errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
-
-
-#define Handler_GetAttributes(__self, __attr) \
-invoke_n(getAttributes, Handler, __self, __attr)
-
-#define Handler_Truncate(__self, __length) \
-invoke_n(truncate, Handler, __self, __length)
 
 
 #define Handler_Shutdown(__self) \

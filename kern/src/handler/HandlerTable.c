@@ -33,33 +33,6 @@ void HandlerTable_Deinit(HandlerTable* _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
-void HandlerTable_CloseAll(HandlerTable* _Nonnull self)
-{
-    HandlerRef* table;
-    int max_fd_num;
-
-    mtx_lock(&self->mtx);
-    table = self->table;
-    max_fd_num = self->max_fd_num;
-
-    self->table = NULL;
-    self->table_size = 0;
-    self->max_fd_num = -1;
-    mtx_unlock(&self->mtx);
-
-
-    for (int i = 0; i < max_fd_num; i++) {
-        if (table[i]) {
-            if (Handler_DecrementDescriptorCount(table[i]) == 1) {
-                Handler_Shutdown(table[i]);
-            }
-            Object_Release(table[i]);
-            table[i] = NULL;
-        }
-    }
-    kfree(table);
-}
-
 static errno_t _ensure_fd_slot_exists(HandlerTable* _Nonnull _Locked self, int fd_slot)
 {
     decl_try_err();
@@ -146,37 +119,7 @@ errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef _Consu
     return err;
 }
 
-errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd)
-{
-    decl_try_err();
-    HandlerRef hnd = NULL;
-
-    // Do the actual handler close outside the table lock because the close
-    // may take some time to execute. Ie it's synchronously draining some buffered
-    // data.
-    mtx_lock(&self->mtx);
-
-    if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        hnd = self->table[fd];
-        _clear_fd_slot(self, fd);
-    }
-
-    mtx_unlock(&self->mtx);
-
-    if (hnd) {
-        if (Handler_DecrementDescriptorCount(hnd) == 1) {
-            err = Handler_Shutdown(hnd);
-        }
-        Object_Release(hnd);
-    }
-    else {
-        err = EBADF;
-    }
-
-    return err;
-}
-
-errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, Class* _Nullable pClass, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t HandlerTable_CopyHandler(HandlerTable* _Nonnull self, int fd, Class* _Nullable pClass, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef hnd = NULL;
@@ -272,6 +215,63 @@ catch:
     }
 
     return err;
+}
+
+errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd)
+{
+    decl_try_err();
+    HandlerRef hnd = NULL;
+
+    // Do the actual handler close outside the table lock because the close
+    // may take some time to execute. Ie it's synchronously draining some buffered
+    // data.
+    mtx_lock(&self->mtx);
+
+    if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
+        hnd = self->table[fd];
+        _clear_fd_slot(self, fd);
+    }
+
+    mtx_unlock(&self->mtx);
+
+    if (hnd) {
+        if (Handler_DecrementDescriptorCount(hnd) == 1) {
+            err = Handler_Shutdown(hnd);
+        }
+        Object_Release(hnd);
+    }
+    else {
+        err = EBADF;
+    }
+
+    return err;
+}
+
+void HandlerTable_CloseAll(HandlerTable* _Nonnull self)
+{
+    HandlerRef* table;
+    int max_fd_num;
+
+    mtx_lock(&self->mtx);
+    table = self->table;
+    max_fd_num = self->max_fd_num;
+
+    self->table = NULL;
+    self->table_size = 0;
+    self->max_fd_num = -1;
+    mtx_unlock(&self->mtx);
+
+
+    for (int i = 0; i < max_fd_num; i++) {
+        if (table[i]) {
+            if (Handler_DecrementDescriptorCount(table[i]) == 1) {
+                Handler_Shutdown(table[i]);
+            }
+            Object_Release(table[i]);
+            table[i] = NULL;
+        }
+    }
+    kfree(table);
 }
 
 void HandlerTable_CloseHandlersOnExec(HandlerTable* _Nonnull self)
