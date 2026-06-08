@@ -12,8 +12,8 @@
 #include <handler/Handler.h>
 
 
-// Resource: PipeRef
 open_class(PipeHandler, Handler,
+    PipeRef _Nonnull    pipe;
 );
 open_class_funcs(PipeHandler, Handler,
 );

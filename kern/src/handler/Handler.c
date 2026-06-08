@@ -9,14 +9,13 @@
 #include "Handler.h"
 
 
-errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, intptr_t resource, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef self;
 
     err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
-        self->resource = resource;
         self->mode = mode & (O_ACCMODE | O_FLAGS);
         self->type = type;
 

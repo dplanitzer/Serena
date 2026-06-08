@@ -10,7 +10,7 @@
 #include <driver/IOCatalog.h>
 #include <driver/PlatformController.h>
 #include <driver/pseudo/VDMDriver.h>
-#include <handler/Handler.h>
+#include <handler/DriverHandler.h>
 #include <kpi/smg.h>
 
 
@@ -30,7 +30,7 @@ void auto_discover_boot_rd(void)
     // Open the VDM
     HandlerRef hVdm = NULL;
     try(IOCatalog_Open(gIOCatalog, "/vd-bus/self", O_RDWR, &hVdm));
-    VDMDriverRef vdm = Handler_GetResourceAs(hVdm, VDMDriver);
+    VDMDriverRef vdm = DriverHandler_GetDriverAs(hVdm, VDMDriver);
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now

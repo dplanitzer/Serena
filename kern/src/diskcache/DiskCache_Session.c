@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ext/bit.h>
+#include <handler/DriverHandler.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 
@@ -23,7 +24,7 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, HandlerRef _Nonnull hnd, 
     mtx_lock(&self->interlock);
 
     s->handler = Object_RetainAs(hnd, Handler);
-    s->disk = Handler_GetResourceAs(hnd, DiskDriver);
+    s->disk = DriverHandler_GetDriverAs(hnd, DiskDriver);
     s->sessionId = self->nextAvailSessionId;
     s->sectorSize = info->sectorSize;
     s->rwClusterSize = info->sectorsPerRdwr;

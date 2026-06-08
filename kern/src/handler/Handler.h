@@ -21,7 +21,6 @@
 //XXX add documentation
 open_class(Handler, Object,
     off_t       offset;         // handler lock
-    intptr_t    resource;       // Constant
     atomic_int  descriptorCount;
     uint16_t    mode;           // Constant
     int16_t     type;           // Constant
@@ -104,14 +103,6 @@ open_class_funcs(Handler, Object,
 extern int Handler_GetFlags(HandlerRef _Nonnull self);
 
 
-// Returns the resource to which the handler is connected
-#define Handler_GetResource(__self) \
-((HandlerRef)__self)->resource
-
-#define Handler_GetResourceAs(__self, __class) \
-((__class##Ref) ((HandlerRef)__self)->resource)
-
-
 // Returns the current seek position
 #define Handler_GetOffset(/*_Nonnull _Locked*/ __self) \
 ((HandlerRef)(__self))->offset
@@ -162,7 +153,7 @@ invoke_0(shutdown, Handler, __self)
 // Creates an instance of an handler. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, intptr_t resource, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Implements the actual seek logic. Invokes Handler_GetSeekableRange() if
 // needed to get the range over which seeking is supported.

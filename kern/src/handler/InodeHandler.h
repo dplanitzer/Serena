@@ -12,8 +12,8 @@
 #include <handler/Handler.h>
 
 
-// Resource: InodeRef
 open_class(InodeHandler, Handler,
+    InodeRef _Nonnull   ino;
 );
 open_class_funcs(InodeHandler, Handler,
 );

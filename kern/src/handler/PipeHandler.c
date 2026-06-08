@@ -10,10 +10,6 @@
 #include <ipc/Pipe.h>
 
 
-#define _get_pipe() \
-Handler_GetResourceAs(self, Pipe)
-
-
 // PipeHandler does not need locking because:
 // - it doesn't support seeking. Thus seeking state is constant
 // - the pipe implementation protects read/write with a pipe lock anyway
@@ -27,10 +23,10 @@ errno_t PipeHandler_Create(PipeRef _Nonnull pipe, unsigned int mode, HandlerRef 
         return EACCESS;
     }
 
-    err = Handler_Create(&kPipeHandlerClass, FD_TYPE_INODE, mode, (intptr_t)pipe, (HandlerRef*)&self);
+    err = Handler_Create(&kPipeHandlerClass, FD_TYPE_INODE, mode, (HandlerRef*)&self);
     if (err == EOK) {
-        Object_Retain(pipe);
-        Pipe_Open(pipe, (mode & O_RDONLY) == O_RDONLY ? kPipeEnd_Read : kPipeEnd_Write);
+        self->pipe = Object_Retain(pipe);
+        Pipe_Open(self->pipe, (mode & O_RDONLY) == O_RDONLY ? kPipeEnd_Read : kPipeEnd_Write);
     }
 
     *pOutSelf = (HandlerRef)self;
@@ -39,22 +35,21 @@ errno_t PipeHandler_Create(PipeRef _Nonnull pipe, unsigned int mode, HandlerRef 
 
 void PipeHandler_deinit(PipeHandlerRef _Nonnull self)
 {
-    Object_Release(_get_pipe());
+    Object_Release(self->pipe);
+    self->pipe = NULL;
 }
 
 errno_t PipeHandler_shutdown(PipeHandlerRef _Nonnull self)
 {
-    Pipe_Close(_get_pipe(), (Handler_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
+    Pipe_Close(self->pipe, (Handler_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
     
     return EOK;
 }
 
 errno_t PipeHandler_read(PipeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    PipeRef pp = _get_pipe();
-
     if (Handler_IsReadable(self)) {
-        return Pipe_Read(pp, pBuffer, nBytesToRead, nOutBytesRead);
+        return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
     }
     else {
         *nOutBytesRead = 0;
@@ -64,10 +59,8 @@ errno_t PipeHandler_read(PipeHandlerRef _Nonnull _Locked self, void* _Nonnull pB
 
 errno_t PipeHandler_write(PipeHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    PipeRef pp = _get_pipe();
-
     if (Handler_IsWritable(self)) {
-        return Pipe_Write(pp, pBuffer, nBytesToWrite, nOutBytesWritten);
+        return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
     }
     else {
         *nOutBytesWritten = 0;

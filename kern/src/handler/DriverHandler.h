@@ -13,14 +13,17 @@
 #include <sched/mtx.h>
 
 
-// Resource: DriverRef
 open_class(DriverHandler, Handler,
-    mtx_t   ser_mtx;
+    DriverRef _Nonnull  driver;
+    mtx_t               ser_mtx;
 );
 open_class_funcs(DriverHandler, Handler,
 );
 
 
 extern errno_t DriverHandler_Create(DriverRef _Nonnull drv, int channelType, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
+
+#define DriverHandler_GetDriverAs(__self, __class) \
+((__class##Ref) ((DriverHandlerRef)__self)->driver)
 
 #endif /* DriverHandler_h */

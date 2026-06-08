@@ -11,7 +11,7 @@
 #include <limits.h>
 #include <driver/IOCatalog.h>
 #include <ext/bit.h>
-#include <handler/Handler.h>
+#include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
 #include <kpi/file.h>
 #include <process/kerneld.h>
@@ -599,7 +599,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
 // to the event queue.
 static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
-    did_t did = Driver_GetId(Handler_GetResourceAs(gp->hnd, Driver));
+    did_t did = Driver_GetId(DriverHandler_GetDriverAs(gp->hnd, Driver));
 
     // Generate button up/down events
     const uint32_t oldButtons = gp->buttons;
@@ -711,7 +711,7 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
         // Open a channel to the framebuffer
         err = Driver_Open(driver, O_RDWR, 0, &self->fbHnd);
         if (err == EOK) {
-            self->fb = Handler_GetResourceAs(self->fbHnd, DisplayDriver);
+            self->fb = DriverHandler_GetDriverAs(self->fbHnd, DisplayDriver);
             DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
             _collect_framebuffer_size(self);
         }
@@ -741,7 +741,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
         HandlerRef hnd = self->mouse.ch[i];
-        DriverRef cdp = (hnd) ? Handler_GetResourceAs(hnd, Driver) : NULL;
+        DriverRef cdp = (hnd) ? DriverHandler_GetDriverAs(hnd, Driver) : NULL;
 
         if (cdp == driver) {
             if (self->mouse.lpCount > 0 && Driver_HasCategory(cdp, IOHID_LIGHTPEN)) {
@@ -761,7 +761,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
     for (int i = 0; i < MAX_GAME_PADS; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if (gp->hnd && Handler_GetResourceAs(gp->hnd, Driver) == driver) {
+        if (gp->hnd && DriverHandler_GetDriverAs(gp->hnd, Driver) == driver) {
             Handler_Shutdown(gp->hnd);
             Object_Release(gp->hnd);
             gp->hnd = NULL;
@@ -836,7 +836,7 @@ static bool _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
             int16_t dx, dy;
             uint32_t bt;
 
-            InputDriver_GetReport(Handler_GetResourceAs(ch, InputDriver), &self->report);
+            InputDriver_GetReport(DriverHandler_GetDriverAs(ch, InputDriver), &self->report);
 
             switch (self->report.type) {
                 case kHIDReportType_Mouse:
@@ -914,7 +914,7 @@ static bool _collect_gamepad_reports(HIDManagerRef _Nonnull self)
         gamepad_state_t* gp = &self->gamepad[i];
 
         if (gp->hnd) {
-            InputDriver_GetReport(Handler_GetResourceAs(gp->hnd, InputDriver), &self->report);
+            InputDriver_GetReport(DriverHandler_GetDriverAs(gp->hnd, InputDriver), &self->report);
             _post_gamepad_event(self, gp, &self->report);
             r = true;
         }

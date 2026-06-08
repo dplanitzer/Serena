@@ -11,17 +11,14 @@
 #include <filesystem/Inode.h>
 #include <kpi/fd.h>
 
-#define _get_inode() \
-Handler_GetResourceAs(self, Inode)
-
 
 errno_t InodeHandler_Create(InodeRef _Nonnull pNode, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     InodeHandlerRef self;
     
-    try(Handler_Create(&kInodeHandlerClass, FD_TYPE_INODE, mode, (intptr_t)pNode, (HandlerRef*)&self));
-    Inode_Reacquire(pNode);
+    try(Handler_Create(&kInodeHandlerClass, FD_TYPE_INODE, mode, (HandlerRef*)&self));
+    self->ino = Inode_Reacquire(pNode);
 
 catch:
     *pOutFile = (HandlerRef)self;
@@ -30,7 +27,8 @@ catch:
 
 void InodeHandler_deinit(InodeHandlerRef _Nonnull self)
 {
-    (void)Inode_Relinquish(_get_inode());
+    (void)Inode_Relinquish(self->ino);
+    self->ino = NULL;
 }
 
 //XXX maybe override shutdown and flush all pending disk blocks for the file
@@ -39,12 +37,11 @@ void InodeHandler_deinit(InodeHandlerRef _Nonnull self)
 errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    InodeRef pn = _get_inode();
 
     if (Handler_IsReadable(self)) {
-        Inode_Lock(pn);
-        err = Inode_Read(pn, self, pBuffer, nBytesToRead, nOutBytesRead);
-        Inode_Unlock(pn);
+        Inode_Lock(self->ino);
+        err = Inode_Read(self->ino, self, pBuffer, nBytesToRead, nOutBytesRead);
+        Inode_Unlock(self->ino);
     }
     else {
         *nOutBytesRead = 0;
@@ -57,12 +54,11 @@ errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull 
 errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
-    InodeRef pn = _get_inode();
 
     if (Handler_IsWritable(self)) {
-        Inode_Lock(pn);
-        err = Inode_Write(pn, self, pBuffer, nBytesToWrite, nOutBytesWritten);
-        Inode_Unlock(pn);
+        Inode_Lock(self->ino);
+        err = Inode_Write(self->ino, self, pBuffer, nBytesToWrite, nOutBytesWritten);
+        Inode_Unlock(self->ino);
     }
     else {
         *nOutBytesWritten = 0;
@@ -76,27 +72,24 @@ errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _N
 errno_t InodeHandler_seek(InodeHandlerRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
-    InodeRef pn = _get_inode();
 
-    Inode_Lock(pn);
+    Inode_Lock(self->ino);
     err = Handler_DoSeek((HandlerRef)self, offset, pOutNewPos, whence);
-    Inode_Unlock(pn);
+    Inode_Unlock(self->ino);
 
     return err;
 }
 
 off_t InodeHandler_getSeekableRange(InodeHandlerRef _Nonnull _Locked self)
 {
-    return Inode_GetFileSize(_get_inode());
+    return Inode_GetFileSize(self->ino);
 }
 
 errno_t InodeHandler_getAttributes(InodeHandlerRef _Nonnull self, fs_attr_t* _Nonnull attr)
 {
-    InodeRef pn = _get_inode();
-
-    Inode_Lock(pn);
-    Inode_GetAttributes(pn, attr);
-    Inode_Unlock(pn);
+    Inode_Lock(self->ino);
+    Inode_GetAttributes(self->ino, attr);
+    Inode_Unlock(self->ino);
     
     return EOK;
 }
@@ -104,21 +97,20 @@ errno_t InodeHandler_getAttributes(InodeHandlerRef _Nonnull self, fs_attr_t* _No
 errno_t InodeHandler_truncate(InodeHandlerRef _Nonnull self, off_t length)
 {
     decl_try_err();
-    InodeRef pn = _get_inode();
 
     if (length < 0ll) {
         return EINVAL;
     }
     
     // Does not adjust the file offset
-    Inode_Lock(pn);
-    if (Inode_IsRegularFile(pn)) {
-        err = Inode_Truncate(pn, length);
+    Inode_Lock(self->ino);
+    if (Inode_IsRegularFile(self->ino)) {
+        err = Inode_Truncate(self->ino, length);
     }
     else {
         err = EBADF;
     }
-    Inode_Unlock(pn);
+    Inode_Unlock(self->ino);
     
     return err;
 }

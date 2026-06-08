@@ -9,18 +9,15 @@
 #include "DriverHandler.h"
 #include <driver/Driver.h>
 
-#define _get_drv() \
-Handler_GetResourceAs(self, Driver)
-
 
 errno_t DriverHandler_Create(DriverRef _Nonnull drv, int channelType, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     DriverHandlerRef self;
 
-    try(Handler_Create(&kDriverHandlerClass, channelType, mode, (intptr_t)drv, (HandlerRef*)&self));
+    try(Handler_Create(&kDriverHandlerClass, channelType, mode, (HandlerRef*)&self));
+    self->driver = Object_Retain(drv);
     mtx_init(&self->ser_mtx);
-    Object_Retain(drv);
 
 catch:
     *pOutHandler = (HandlerRef)self;
@@ -29,13 +26,13 @@ catch:
 
 void DriverHandler_deinit(DriverHandlerRef _Nonnull self)
 {
-    Object_Release(_get_drv());
+    Object_Release(self->driver);
     mtx_deinit(&self->ser_mtx);
 }
 
 errno_t DriverHandler_shutdown(DriverHandlerRef _Nonnull self)
 {
-    return Driver_Close(_get_drv(), (HandlerRef)self);
+    return Driver_Close(self->driver, (HandlerRef)self);
 }
 
 errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -44,7 +41,7 @@ errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnul
 
     if (Handler_IsReadable(self)) {
         mtx_lock(&self->ser_mtx);
-        err = Driver_Read(_get_drv(), (HandlerRef)self, pBuffer, nBytesToRead, nOutBytesRead);
+        err = Driver_Read(self->driver, (HandlerRef)self, pBuffer, nBytesToRead, nOutBytesRead);
         mtx_unlock(&self->ser_mtx);
     }
     else {
@@ -61,7 +58,7 @@ errno_t DriverHandler_write(DriverHandlerRef _Nonnull _Locked self, const void* 
 
     if (Handler_IsWritable(self)) {
         mtx_lock(&self->ser_mtx);
-        err = Driver_Write(_get_drv(), (HandlerRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
+        err = Driver_Write(self->driver, (HandlerRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
         mtx_unlock(&self->ser_mtx);
     }
     else {
@@ -76,7 +73,7 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
 {
     decl_try_err();
 
-    if (Driver_IsSeekable(_get_drv())) {
+    if (Driver_IsSeekable(self->driver)) {
         mtx_lock(&self->ser_mtx);
         err = Handler_DoSeek((HandlerRef)self, offset, pOutNewPos, whence);
         mtx_unlock(&self->ser_mtx);
@@ -90,7 +87,7 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
 
 off_t DriverHandler_getSeekableRange(DriverHandlerRef _Nonnull _Locked self)
 {
-    return Driver_GetSeekableRange(_get_drv());
+    return Driver_GetSeekableRange(self->driver);
 }
 
 errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
@@ -98,11 +95,12 @@ errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
     decl_try_err();
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_vIoctl(_get_drv(), (HandlerRef)self, cmd, ap);
+    err = Driver_vIoctl(self->driver, (HandlerRef)self, cmd, ap);
     mtx_unlock(&self->ser_mtx);
 
     return err;
 }
+
 
 class_func_defs(DriverHandler, Handler,
 override_func_def(deinit, DriverHandler, Object)
