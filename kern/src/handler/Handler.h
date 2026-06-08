@@ -58,10 +58,6 @@ open_class_funcs(Handler, Object,
     off_t (*getSeekableRange)(void* _Nonnull _Locked self);
 
 
-    // Execute an handler specific command.
-    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
-
-
     errno_t (*shutdown)(void* _Nonnull self);
 
 
@@ -128,10 +124,6 @@ invoke_n(write, Handler, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 #define Handler_Seek(__self, __offset, __pOutNewPos, __whence) \
 invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
 
-#define Handler_vIoctl(__self, __cmd, __ap) \
-invoke_n(ioctl, Handler, __self, __cmd, __ap)
-
-extern errno_t Handler_Ioctl(HandlerRef _Nonnull self, int cmd, ...);
 extern errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
 
 

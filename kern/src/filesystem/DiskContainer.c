@@ -10,7 +10,7 @@
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
-#include <handler/Handler.h>
+#include <handler/DriverHandler.h>
 #include <kpi/file.h>
 
 final_class_ivars(DiskContainer, FSContainer,
@@ -30,7 +30,7 @@ errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mo
     uint32_t flags = 0;
 
     try(Inode_CreateHandler(diskNode, mode, &hnd));
-    try(Handler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info));
+    try(DriverHandler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
         flags |= FS_FLAG_READ_ONLY;
@@ -114,7 +114,7 @@ errno_t DiskContainer_sync(DiskContainerRef _Nonnull self)
 
 errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
-    return Handler_Ioctl(self->handler, kDiskCommand_GetDiskInfo, info);
+    return DriverHandler_Ioctl(self->handler, kDiskCommand_GetDiskInfo, info);
 }
 
 InodeRef DiskContainer_getDiskNode(DiskContainerRef _Nonnull self)

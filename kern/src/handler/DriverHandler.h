@@ -18,6 +18,9 @@ open_class(DriverHandler, Handler,
     mtx_t               ser_mtx;
 );
 open_class_funcs(DriverHandler, Handler,
+
+    // Execute a driver specific command.
+    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
 );
 
 
@@ -25,5 +28,10 @@ extern errno_t DriverHandler_Create(DriverRef _Nonnull drv, int channelType, uns
 
 #define DriverHandler_GetDriverAs(__self, __class) \
 ((__class##Ref) ((DriverHandlerRef)__self)->driver)
+
+#define DriverHandler_vIoctl(__self, __cmd, __ap) \
+invoke_n(ioctl, DriverHandler, __self, __cmd, __ap)
+
+extern errno_t DriverHandler_Ioctl(HandlerRef _Nonnull self, int cmd, ...);
 
 #endif /* DriverHandler_h */

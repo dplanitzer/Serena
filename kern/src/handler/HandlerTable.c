@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <string.h>
 #include <kern/kalloc.h>
+#include <kpi/fd.h>
 #include <kpi/syslimits.h>
 
 
@@ -175,7 +176,7 @@ errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd)
     return err;
 }
 
-errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, Class* _Nullable pClass, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef hnd = NULL;
@@ -183,13 +184,21 @@ errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, Handler
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        hnd = Object_RetainAs(self->table[fd], Handler);
+        if (pClass == NULL || _instanceof((AnyRef)self->table[fd], pClass)) {
+            hnd = Object_RetainAs(self->table[fd], Handler);
+        }
+        else {
+            err = EINVAL;
+        }
+    }
+    else {
+        err = EBADF;
     }
     
     mtx_unlock(&self->mtx);
     
     *pOutHandler = hnd;
-    return (hnd) ? EOK : EBADF;
+    return err;
 }
 
 errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd, int * _Nonnull pOutNewIoc)

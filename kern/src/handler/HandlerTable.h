@@ -37,11 +37,13 @@ extern errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef
 // will proceed and finish even if an error is encountered while doing so.
 extern errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd);
 
-// Returns the handler that is named by 'fd'. The handler is guaranteed to
-// stay alive until it is relinquished. You should relinquish the handler by
-// calling Handler_EndOperation(). Returns the handler and EOK on success and
-// a suitable error and NULL otherwise.
-extern errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, HandlerRef _Nullable * _Nonnull pOutHandler);
+// Returns the handler that is named by the descriptor 'fd'. The handler is
+// guaranteed to stay alive until it is released. You should release the handler
+// by calling Object_Release() once done. Returns the handler and EOK on success
+// and a suitable error and NULL otherwise. 'pClass' specifies that the handler
+// has to be an instance of a required class. EINVAL is returned if the handler
+// type does not match 'pClass'. Pass NULL to ask for any kind of handler.
+extern errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, Class* _Nullable pClass, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Creates a new named reference of the handler 'fd'. The new descriptor/name
 // value will be at least 'min_fd'.

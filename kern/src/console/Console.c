@@ -585,7 +585,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _N
         mtx_unlock(&self->mtx);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        errno_t e1 = Handler_Ioctl(self->hidHnd, kHIDCommand_GetNextEvent, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
+        errno_t e1 = DriverHandler_Ioctl(self->hidHnd, kHIDCommand_GetNextEvent, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
         mtx_lock(&self->mtx);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

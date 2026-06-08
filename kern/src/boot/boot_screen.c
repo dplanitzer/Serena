@@ -40,8 +40,8 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     if ((err = IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &hnd)) == EOK) {
         // Create the surface and screen
-        Handler_Ioctl(hnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
-        Handler_Ioctl(hnd, kFBCommand_CreateCLUT, 32, &clut);
+        DriverHandler_Ioctl(hnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
+        DriverHandler_Ioctl(hnd, kFBCommand_CreateCLUT, 32, &clut);
 
 
         // Define the screen colors
@@ -49,7 +49,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
-        Handler_Ioctl(hnd, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
+        DriverHandler_Ioctl(hnd, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
 
         bscr->hnd = hnd;
         bscr->clut = clut;
@@ -57,8 +57,8 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         bscr->width = width;
         bscr->height = height;
 
-        Handler_Ioctl(hnd, kFBCommand_ClearPixels, bscr->srf);
-        Handler_Ioctl(hnd, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
+        DriverHandler_Ioctl(hnd, kFBCommand_ClearPixels, bscr->srf);
+        DriverHandler_Ioctl(hnd, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -72,7 +72,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         sc[2] = SCREEN_CONF_CLUT;
         sc[3] = bscr->clut;
         sc[4] = SCREEN_CONF_END;
-        Handler_Ioctl(hnd, kFBCommand_SetScreenConfig, &sc[0]);
+        DriverHandler_Ioctl(hnd, kFBCommand_SetScreenConfig, &sc[0]);
     }
 }
 
@@ -100,11 +100,11 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->hnd) {
-        Handler_Ioctl(bscr->hnd, kFBCommand_UnmapSurface, bscr->srf);
+        DriverHandler_Ioctl(bscr->hnd, kFBCommand_UnmapSurface, bscr->srf);
 
-        Handler_Ioctl(bscr->hnd, kFBCommand_SetScreenConfig, NULL);
-        Handler_Ioctl(bscr->hnd, kFBCommand_DestroyCLUT, bscr->clut);
-        Handler_Ioctl(bscr->hnd, kFBCommand_DestroySurface, bscr->srf);
+        DriverHandler_Ioctl(bscr->hnd, kFBCommand_SetScreenConfig, NULL);
+        DriverHandler_Ioctl(bscr->hnd, kFBCommand_DestroyCLUT, bscr->clut);
+        DriverHandler_Ioctl(bscr->hnd, kFBCommand_DestroySurface, bscr->srf);
 
         Handler_Shutdown(bscr->hnd);
         Object_Release(bscr->hnd);

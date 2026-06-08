@@ -122,23 +122,6 @@ off_t Handler_getSeekableRange(HandlerRef _Nonnull _Locked self)
 }
 
 
-errno_t Handler_ioctl(HandlerRef _Nonnull self, int cmd, va_list ap)
-{
-    return ENOTIOCTLCMD;
-}
-
-errno_t Handler_Ioctl(HandlerRef _Nonnull self, int cmd, ...)
-{
-    decl_try_err();
-
-    va_list ap;
-    va_start(ap, cmd);
-    err = Handler_vIoctl(self, cmd, ap);
-    va_end(ap);
-
-    return err;
-}
-
 errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info)
 {
     switch (flavor) {
@@ -174,7 +157,6 @@ errno_t Handler_shutdown(HandlerRef _Nonnull self)
 
 
 class_func_defs(Handler, Object,
-func_def(ioctl, Handler)
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)

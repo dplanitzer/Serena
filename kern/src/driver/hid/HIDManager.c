@@ -213,7 +213,7 @@ void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->fb) {
         DisplayDriver_ReleaseCursor(self->fb);
-        Handler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
+        DriverHandler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
         self->cursorSurfaceId = 0;
     }
     mtx_unlock(&self->mtx);
@@ -240,17 +240,17 @@ errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable 
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(Handler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_SPRITE_2, &newId));
+        try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
         if (self->cursorSurfaceId) {
-            Handler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
+            DriverHandler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
         }
         self->cursorSurfaceId = newId;
     }
 
-    try(Handler_Ioctl(self->fbHnd, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
+    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
     try(DisplayDriver_BindCursor(self->fb, self->cursorSurfaceId));
     self->hotSpotX = hotSpotX;
     self->hotSpotY = hotSpotY;

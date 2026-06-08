@@ -12,7 +12,7 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/serenafs/SerenaFS.h>
-#include <handler/Handler.h>
+#include <handler/DriverHandler.h>
 #include <kei/kei.h>
 #include <kern/log.h>
 #include <kpi/file.h>
@@ -73,7 +73,7 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
     if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &hnd)) == EOK) {
         disk_info_t info;
 
-        err = Handler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info);
+        err = DriverHandler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info);
         if (err == EOK) {
             *diskId = info.diskId;
         }
@@ -94,9 +94,9 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonn
         for (;;) {
             disk_info_t info;
 
-            err = Handler_Ioctl(hnd, kDiskCommand_SenseDisk);
+            err = DriverHandler_Ioctl(hnd, kDiskCommand_SenseDisk);
             if (err == EOK) {
-                Handler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info);
+                DriverHandler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info);
                 if (info.diskId != *diskId) {
                     *diskId = info.diskId;
                     break;
