@@ -7,10 +7,6 @@
 //
 
 #include "Handler.h"
-#include <kern/kalloc.h>
-
-
-typedef errno_t (*finalize_func_t)(void* _Nonnull self);
 
 
 errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, intptr_t resource, HandlerRef _Nullable * _Nonnull pOutHandler)
@@ -18,116 +14,20 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, intp
     decl_try_err();
     HandlerRef self;
 
-    if ((err = kalloc_cleared(pClass->instanceSize, (void**) &self)) == EOK) {
-        self->super.clazz = pClass;
-        mtx_init(&self->countLock);
+    err = Object_Create(pClass, 0, (void**)&self);
+    if (err == EOK) {
         self->resource = resource;
-        self->ownerCount = 1;
-        self->useCount = 0;
         self->mode = mode & (O_ACCMODE | O_FLAGS);
         self->type = type;
+
+        atomic_init(&self->descriptorCount, 0);
     }
     *pOutHandler = self;
     
     return err;
 }
 
-static errno_t _Handler_Finalize(HandlerRef _Nonnull self)
-{
-    decl_try_err();
-    finalize_func_t pPrevFinalizeImpl = NULL;
-    Class* pCurClass = classof(self);
 
-    for(;;) {
-        finalize_func_t pCurFinalizeImpl = (finalize_func_t)implementationof(finalize, Handler, pCurClass);
-        
-        if (pCurFinalizeImpl != pPrevFinalizeImpl) {
-            const errno_t err0 = pCurFinalizeImpl(self);
-
-            if (err == EOK) { err = err0; }
-            pPrevFinalizeImpl = pCurFinalizeImpl;
-        }
-
-        if (pCurClass == &kHandlerClass) {
-            break;
-        }
-
-        pCurClass = pCurClass->super;
-    }
-
-    mtx_deinit(&self->countLock);
-    kfree(self);
-
-    return err;
-}
-
-HandlerRef Handler_Retain(HandlerRef _Nonnull self)
-{
-    mtx_lock(&self->countLock);
-    self->ownerCount++;
-    mtx_unlock(&self->countLock);
-
-    return self;
-}
-
-errno_t Handler_Release(HandlerRef _Nullable self)
-{
-    if (self) {
-        bool doFinalize = false;
-
-        mtx_lock(&self->countLock);
-        if (self->ownerCount >= 1) {
-            self->ownerCount--;
-            if (self->ownerCount == 0 && self->useCount == 0) {
-                self->ownerCount = -1;  // Acts as a signal that we triggered finalization
-                doFinalize = true;
-            }
-        }
-        mtx_unlock(&self->countLock);
-
-        if (doFinalize) {
-            // Can be triggered at most once. Thus no need to hold the lock while
-            // running finalization
-            return _Handler_Finalize(self);
-        }
-    }
-    return EOK;
-}
-
-void Handler_BeginOperation(HandlerRef _Nonnull self)
-{
-    mtx_lock(&self->countLock);
-    self->useCount++;
-    mtx_unlock(&self->countLock);
-}
-
-void Handler_EndOperation(HandlerRef _Nonnull self)
-{
-    bool doFinalize = false;
-
-    mtx_lock(&self->countLock);
-    if (self->useCount >= 1) {
-        self->useCount--;
-        if (self->useCount == 0 && self->ownerCount == 0) {
-            self->ownerCount = -1;
-            doFinalize = true;
-        }
-    }
-    mtx_unlock(&self->countLock);
-
-    if (doFinalize) {
-        // Can be triggered at most once. Thus no need to hold the lock while
-        // running finalization
-        _Handler_Finalize(self);
-    }
-}
-
-
-
-errno_t Handler_finalize(HandlerRef _Nonnull self)
-{
-    return EOK;
-}
 
 int Handler_GetFlags(HandlerRef _Nonnull self)
 {
@@ -268,9 +168,13 @@ errno_t Handler_truncate(HandlerRef _Nonnull self, off_t length)
     return EBADF;
 }
 
+errno_t Handler_shutdown(HandlerRef _Nonnull self)
+{
+    return EOK;
+}
 
-any_subclass_func_defs(Handler,
-func_def(finalize, Handler)
+
+class_func_defs(Handler, Object,
 func_def(ioctl, Handler)
 func_def(read, Handler)
 func_def(write, Handler)
@@ -278,4 +182,5 @@ func_def(seek, Handler)
 func_def(getSeekableRange, Handler)
 func_def(getAttributes, Handler)
 func_def(truncate, Handler)
+func_def(shutdown, Handler)
 );

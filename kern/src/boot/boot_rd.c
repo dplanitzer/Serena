@@ -48,5 +48,8 @@ void auto_discover_boot_rd(void)
     try(VDMDriver_CreateDisk(vdm, type, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
 
 catch:
-    Handler_Release(hVdm);
+    if (hVdm) {
+        Handler_Shutdown(hVdm);
+        Object_Release(hVdm);
+    }
 }

@@ -15,6 +15,7 @@
 
 final_class_ivars(DiskContainer, FSContainer,
     InodeRef _Nonnull       diskNode;
+    HandlerRef _Nonnull     handler;
     DiskCacheRef _Nonnull   diskCache;
     DiskSession             session;
 );
@@ -23,13 +24,13 @@ final_class_ivars(DiskContainer, FSContainer,
 errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    HandlerRef chan = NULL;
     struct DiskContainer* self = NULL;
+    HandlerRef hnd = NULL;
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(Inode_CreateHandler(diskNode, mode, &chan));
-    try(Handler_Ioctl(chan, kDiskCommand_GetDiskInfo, &info));
+    try(Inode_CreateHandler(diskNode, mode, &hnd));
+    try(Handler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
         flags |= FS_FLAG_READ_ONLY;
@@ -41,16 +42,21 @@ errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mo
     //XXX select the disk cache based on FS needs and driver sector size
     DiskCacheRef diskCache = gDiskCache;
     DiskSession s;
-    DiskCache_OpenSession(diskCache, chan, &info, &s);
+    DiskCache_OpenSession(diskCache, hnd, &info, &s);
 
     try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(diskCache), flags, (FSContainerRef*)&self));
     self->diskNode = Inode_Reacquire(diskNode);
+    self->handler = hnd;
     self->diskCache = diskCache;
     self->session = s;
 
 catch:
-    Handler_Release(chan);
+    if (err != EOK && hnd) {
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
+    }
     *pOutSelf = (FSContainerRef)self;
+    
     return err;
 }
 
@@ -59,7 +65,17 @@ void DiskContainer_deinit(DiskContainerRef _Nonnull self)
     if (self->diskCache) {
         DiskCache_CloseSession(self->diskCache, &self->session);
         self->diskCache = NULL;
+    }
+
+    if (self->handler) {
+        Handler_Shutdown(self->handler);
+        Object_Release(self->handler);
+        self->handler = NULL;
+    }
+
+    if (self->diskNode) {
         Inode_Relinquish(self->diskNode);
+        self->diskNode = NULL;
     }
 }
 
@@ -98,7 +114,7 @@ errno_t DiskContainer_sync(DiskContainerRef _Nonnull self)
 
 errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
-    return Handler_Ioctl(self->session.channel, kDiskCommand_GetDiskInfo, info);
+    return Handler_Ioctl(self->handler, kDiskCommand_GetDiskInfo, info);
 }
 
 InodeRef DiskContainer_getDiskNode(DiskContainerRef _Nonnull self)

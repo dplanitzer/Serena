@@ -28,10 +28,13 @@ catch:
     return err;
 }
 
-errno_t InodeHandler_finalize(InodeHandlerRef _Nonnull self)
+void InodeHandler_deinit(InodeHandlerRef _Nonnull self)
 {
-    return Inode_Relinquish(_get_inode());
+    (void)Inode_Relinquish(_get_inode());
 }
+
+//XXX maybe override shutdown and flush all pending disk blocks for the file
+//XXX at least if this is a directory
 
 errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
@@ -122,7 +125,7 @@ errno_t InodeHandler_truncate(InodeHandlerRef _Nonnull self, off_t length)
 
 
 class_func_defs(InodeHandler, Handler,
-override_func_def(finalize, InodeHandler, Handler)
+override_func_def(deinit, InodeHandler, Object)
 override_func_def(read, InodeHandler, Handler)
 override_func_def(write, InodeHandler, Handler)
 override_func_def(seek, InodeHandler, Handler)

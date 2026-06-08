@@ -53,7 +53,7 @@ typedef struct logical_mouse {
 
 // State of a gamepad/joystick device
 typedef struct gamepad_state {
-    HandlerRef _Nullable  ch;
+    HandlerRef _Nullable    hnd;
     int16_t     x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
     int16_t     y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
     uint32_t    buttons;  // Button #0 -> 0, Button #1 -> 1, ...

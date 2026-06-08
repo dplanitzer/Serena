@@ -18,7 +18,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     GraphicsDriverRef gd = NULL;
-    HandlerRef chan = NULL;
+    HandlerRef hnd = NULL;
     int width, height;
     int srf = -1, clut = -1;
 
@@ -38,10 +38,10 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(bt_screen_t));
 
-    if ((err = IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &chan)) == EOK) {
+    if ((err = IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &hnd)) == EOK) {
         // Create the surface and screen
-        Handler_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
-        Handler_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
+        Handler_Ioctl(hnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
+        Handler_Ioctl(hnd, kFBCommand_CreateCLUT, 32, &clut);
 
 
         // Define the screen colors
@@ -49,16 +49,16 @@ void bt_open(bt_screen_t* _Nonnull bscr)
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
-        Handler_Ioctl(chan, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
+        Handler_Ioctl(hnd, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
 
-        bscr->chan = chan;
+        bscr->hnd = hnd;
         bscr->clut = clut;
         bscr->srf = srf;
         bscr->width = width;
         bscr->height = height;
 
-        Handler_Ioctl(chan, kFBCommand_ClearPixels, bscr->srf);
-        Handler_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
+        Handler_Ioctl(hnd, kFBCommand_ClearPixels, bscr->srf);
+        Handler_Ioctl(hnd, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -72,13 +72,13 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         sc[2] = SCREEN_CONF_CLUT;
         sc[3] = bscr->clut;
         sc[4] = SCREEN_CONF_END;
-        Handler_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
+        Handler_Ioctl(hnd, kFBCommand_SetScreenConfig, &sc[0]);
     }
 }
 
 void bt_drawicon(const bt_screen_t* _Restrict _Nonnull bscr, const bt_icon_t* _Restrict _Nonnull icp)
 {
-    if (bscr->chan == NULL) {
+    if (bscr->hnd == NULL) {
         return;
     }
 
@@ -99,12 +99,14 @@ void bt_drawicon(const bt_screen_t* _Restrict _Nonnull bscr, const bt_icon_t* _R
 void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
-    if (bscr->chan) {
-        Handler_Ioctl(bscr->chan, kFBCommand_UnmapSurface, bscr->srf);
+    if (bscr->hnd) {
+        Handler_Ioctl(bscr->hnd, kFBCommand_UnmapSurface, bscr->srf);
 
-        Handler_Ioctl(bscr->chan, kFBCommand_SetScreenConfig, NULL);
-        Handler_Ioctl(bscr->chan, kFBCommand_DestroyCLUT, bscr->clut);
-        Handler_Ioctl(bscr->chan, kFBCommand_DestroySurface, bscr->srf);
-        Handler_Release(bscr->chan);
+        Handler_Ioctl(bscr->hnd, kFBCommand_SetScreenConfig, NULL);
+        Handler_Ioctl(bscr->hnd, kFBCommand_DestroyCLUT, bscr->clut);
+        Handler_Ioctl(bscr->hnd, kFBCommand_DestroySurface, bscr->srf);
+
+        Handler_Shutdown(bscr->hnd);
+        Object_Release(bscr->hnd);
     }
 }

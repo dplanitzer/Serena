@@ -20,7 +20,7 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    HandlerRef chan;
+    HandlerRef hnd;
 
     if (pa->wd != FD_CWD) {
         //XXX not yet
@@ -28,14 +28,15 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_OpenFile(&pp->fm, pa->path, pa->oflags, &chan);
+    err = FileManager_OpenFile(&pp->fm, pa->path, pa->oflags, &hnd);
     if (err == EOK) {
-        err = HandlerTable_AdoptHandler(&pp->HandlerTable, chan, pa->pOutIoc);
+        err = HandlerTable_AdoptHandler(&pp->HandlerTable, hnd, pa->pOutIoc);
     }
     mtx_unlock(&pp->mtx);
 
     if (err != EOK) {
-        Handler_Release(chan);
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
         *(pa->pOutIoc) = -1;
     }
     return err;
@@ -45,7 +46,7 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    HandlerRef chan;
+    HandlerRef hnd;
 
     if (pa->wd != FD_CWD) {
         //XXX not yet
@@ -53,14 +54,15 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->fsperms, &chan);
+    err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->fsperms, &hnd);
     if (err == EOK) {
-        err = HandlerTable_AdoptHandler(&pp->HandlerTable, chan, pa->pOutIoc);
+        err = HandlerTable_AdoptHandler(&pp->HandlerTable, hnd, pa->pOutIoc);
     }
     mtx_unlock(&pp->mtx);
 
     if (err != EOK) {
-        Handler_Release(chan);
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
         *(pa->pOutIoc) = -1;
     }
     return err;
@@ -70,7 +72,7 @@ SYSCALL_3(fs_open_directory, int wd, const char* _Nonnull path, int* _Nonnull pO
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    HandlerRef chan;
+    HandlerRef hnd;
 
     if (pa->wd != FD_CWD) {
         //XXX not yet
@@ -78,14 +80,15 @@ SYSCALL_3(fs_open_directory, int wd, const char* _Nonnull path, int* _Nonnull pO
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_OpenDirectory(&pp->fm, pa->path, &chan);
+    err = FileManager_OpenDirectory(&pp->fm, pa->path, &hnd);
     if (err == EOK) {
-        err = HandlerTable_AdoptHandler(&pp->HandlerTable, chan, pa->pOutIoc);
+        err = HandlerTable_AdoptHandler(&pp->HandlerTable, hnd, pa->pOutIoc);
     }
     mtx_unlock(&pp->mtx);
     
     if (err != EOK) {
-        Handler_Release(chan);
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
         *(pa->pOutIoc) = -1;
     }
     return err;

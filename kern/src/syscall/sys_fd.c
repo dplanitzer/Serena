@@ -15,7 +15,7 @@ SYSCALL_1(fd_close, int fd)
 {
     ProcessRef pp = vp->proc;
 
-    return HandlerTable_ReleaseHandler(&pp->HandlerTable, pa->fd);
+    return HandlerTable_CloseHandler(&pp->HandlerTable, pa->fd);
 }
 
 SYSCALL_4(fd_read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
@@ -26,7 +26,7 @@ SYSCALL_4(fd_read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* 
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_Read(hnd, pa->buffer, __SSizeByClampingSize(pa->nBytesToRead), pa->nBytesRead);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -39,7 +39,7 @@ SYSCALL_4(fd_write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, s
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_Write(hnd, pa->buffer, __SSizeByClampingSize(pa->nBytesToWrite), pa->nBytesWritten);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -52,7 +52,7 @@ SYSCALL_4(fd_seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_Seek(hnd, pa->offset, pa->pOutNewPos, pa->whence);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -65,7 +65,7 @@ SYSCALL_3(fd_setflags, int fd, int op, int flags)
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_SetFlags(hnd, pa->op, pa->flags);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -78,7 +78,7 @@ SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_vIoctl(hnd, pa->cmd, pa->ap);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -91,7 +91,7 @@ SYSCALL_2(fd_truncate, int fd, off_t length)
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_Truncate(hnd, pa->length);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -104,7 +104,7 @@ SYSCALL_2(fd_attr, int fd, fs_attr_t* _Nonnull attr)
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_GetAttributes(hnd, pa->attr);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }
@@ -117,7 +117,7 @@ SYSCALL_3(fd_info, int fd, int flavor, fd_info_ref _Nonnull info)
 
     if ((err = HandlerTable_AcquireHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
         err = Handler_GetInfo(hnd, pa->flavor, pa->info);
-        Handler_EndOperation(hnd);
+        Object_Release(hnd);
     }
     return err;
 }

@@ -20,7 +20,7 @@ errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const 
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
-    HandlerRef chan = NULL;
+    HandlerRef hnd = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
     char* dstPath = NULL;
@@ -31,13 +31,13 @@ errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const 
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
     try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
 
-    try(FileManager_OpenFile(&m->fm, srcPath, O_RDONLY, &chan));
+    try(FileManager_OpenFile(&m->fm, srcPath, O_RDONLY, &hnd));
     try_null(fp, fopen(dstPath, "wb"), errno);
 
     while (true) {
         ssize_t nBytesRead;
         
-        err = Handler_Read(chan, buf, BLOCK_SIZE, &nBytesRead);
+        err = Handler_Read(hnd, buf, BLOCK_SIZE, &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
@@ -57,7 +57,8 @@ catch:
     if (fp) {
         fclose(fp);
     }
-    Handler_Release(chan);
+    Handler_Shutdown(hnd);
+    Object_Release(hnd);
     
     free(dstPath);
     free(buf);

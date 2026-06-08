@@ -68,33 +68,35 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
 static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
-    HandlerRef chan;
+    HandlerRef hnd;
 
-    if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &chan)) == EOK) {
+    if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &hnd)) == EOK) {
         disk_info_t info;
 
-        err = Handler_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
+        err = Handler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info);
         if (err == EOK) {
             *diskId = info.diskId;
         }
-    } 
-    Handler_Release(chan);
+
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
+    }
     return err;
 }
 
 static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
-    HandlerRef chan;
+    HandlerRef hnd;
     bool isWaitingForDisk = false;
 
-    if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &chan)) == EOK) {
+    if ((err = IOCatalog_Open(gIOCatalog, driverPath, O_RDWR, &hnd)) == EOK) {
         for (;;) {
             disk_info_t info;
 
-            err = Handler_Ioctl(chan, kDiskCommand_SenseDisk);
+            err = Handler_Ioctl(hnd, kDiskCommand_SenseDisk);
             if (err == EOK) {
-                Handler_Ioctl(chan, kDiskCommand_GetDiskInfo, &info);
+                Handler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info);
                 if (info.diskId != *diskId) {
                     *diskId = info.diskId;
                     break;
@@ -108,8 +110,10 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonn
 
             delay_sec(3);
         }
+
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
     } 
-    Handler_Release(chan);
 
     if (isWaitingForDisk) {
         bt_drawicon(bscr, &g_icon_serena);

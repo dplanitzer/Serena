@@ -92,7 +92,7 @@ void _proc_reap_vcpus(ProcessRef _Nonnull self)
 // calling VP is the only one left touching the process. So this is safe.
 static void _proc_zombify(ProcessRef _Nonnull self)
 {
-    HandlerTable_ReleaseAll(&self->HandlerTable);
+    HandlerTable_CloseAll(&self->HandlerTable);
     FileManager_Deinit(&self->fm);
     AddressSpace_UnmapAll(&self->addr_space);
 }

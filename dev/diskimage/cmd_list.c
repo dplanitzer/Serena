@@ -148,13 +148,13 @@ static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull d
     return print_inode(self, self->pathbuf, entryName);
 }
 
-static errno_t iterate_dir(list_ctx_t* _Nonnull self, HandlerRef _Nonnull chan, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static errno_t iterate_dir(list_ctx_t* _Nonnull self, HandlerRef _Nonnull hnd, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     decl_try_err();
     ssize_t nBytesRead;
 
     while (err == EOK) {
-        err = Handler_Read(chan, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        err = Handler_Read(hnd, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
@@ -180,15 +180,16 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, HandlerRef _Nonnull chan, 
 static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
-    HandlerRef chan = NULL;
+    HandlerRef hnd = NULL;
 
-    try(FileManager_OpenDirectory(self->fm, path, &chan));
-    try(iterate_dir(self, chan, path, format_dir_entry));
-    try(Handler_Seek(chan, 0ll, NULL, SEEK_SET));
-    try(iterate_dir(self, chan, path, print_dir_entry));
+    try(FileManager_OpenDirectory(self->fm, path, &hnd));
+    try(iterate_dir(self, hnd, path, format_dir_entry));
+    try(Handler_Seek(hnd, 0ll, NULL, SEEK_SET));
+    try(iterate_dir(self, hnd, path, print_dir_entry));
 
 catch:
-    Handler_Release(chan);
+    Handler_Shutdown(hnd);
+    Object_Release(hnd);
     return err;
 }
 

@@ -98,9 +98,9 @@ enum {
 // initialization work in onStart(). A driver will only enter active state if
 // the onStart() override returns with EOK.
 //
-// Once a driver has been started, driver channels may be created by calling
-// Driver_Open() and a driver channel should be closed by calling
-// Handler_Release() on the channel. Handler_Release() in turn invokes
+// Once a driver has been started, driver handlers may be created by calling
+// Driver_Open() and a driver handler should be closed by calling
+// Handler_Shutdown() on the handler. Handler_Shutdown() in turn invokes
 // Driver_Close().
 //
 // A driver may be voluntarily terminated by calling Driver_Stop() with the.

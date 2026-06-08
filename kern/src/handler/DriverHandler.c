@@ -31,20 +31,19 @@ catch:
     return err;
 }
 
-errno_t DriverHandler_finalize(DriverHandlerRef _Nonnull self)
+void DriverHandler_deinit(DriverHandlerRef _Nonnull self)
 {
-    decl_try_err();
-    DriverRef drv = _get_drv();
-
-    err = Driver_Close(drv, (HandlerRef)self);
-    Object_Release(drv);
+    Object_Release(_get_drv());
 
     kfree(self->extras);
     self->extras = NULL;
     
     mtx_deinit(&self->ser_mtx);
+}
 
-    return err;
+errno_t DriverHandler_shutdown(DriverHandlerRef _Nonnull self)
+{
+    return Driver_Close(_get_drv(), (HandlerRef)self);
 }
 
 errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -114,7 +113,8 @@ errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
 }
 
 class_func_defs(DriverHandler, Handler,
-override_func_def(finalize, DriverHandler, Handler)
+override_func_def(deinit, DriverHandler, Object)
+override_func_def(shutdown, DriverHandler, Handler)
 override_func_def(read, DriverHandler, Handler)
 override_func_def(write, DriverHandler, Handler)
 override_func_def(seek, DriverHandler, Handler)

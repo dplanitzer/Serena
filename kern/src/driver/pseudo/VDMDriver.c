@@ -57,7 +57,7 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
 {
     decl_try_err();
     DriverRef dp = NULL;
-    HandlerRef ch = NULL;
+    HandlerRef hnd = NULL;
     ssize_t nBytesToWrite = 0, nBytesWritten;
 
     if (sectorSize == 0 || sectorCount == 0) {
@@ -82,8 +82,8 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
 
     
     if (nBytesToWrite > 0 && image) {
-        try(Driver_Open(dp, O_WRONLY, 0, &ch));
-        try(Handler_Write(ch, image, sectorSize * sectorCount, &nBytesWritten));
+        try(Driver_Open(dp, O_WRONLY, 0, &hnd));
+        try(Handler_Write(hnd, image, sectorSize * sectorCount, &nBytesWritten));
         if (nBytesWritten != nBytesToWrite) {
             throw(EIO);
         }
@@ -93,7 +93,10 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
     
 
 catch:
-    Handler_Release(ch);
+    if (hnd) {
+        Handler_Shutdown(hnd);
+        Object_Release(hnd);
+    }
     Object_Release(dp);
     return err;
 }

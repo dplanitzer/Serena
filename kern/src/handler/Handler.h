@@ -10,108 +10,27 @@
 #define Handler_h
 
 #include <stdarg.h>
+#include <ext/atomic.h>
 #include <ext/try.h>
-#include <kobj/Any.h>
+#include <kobj/Object.h>
 #include <kern/kernlib.h>
 #include <kpi/attr.h>
 #include <kpi/fd.h>
-#include <sched/mtx.h>
 
 
-// Handler ownership and operations tracking:
-//
-// Handlers are reference counted objects. A handler is created with one
-// ownership reference active and a new ownership reference is established for a
-// channel by calling Handler_Retain() on it. An ownership reference is released
-// by calling Handler_Release(). Once the last ownership reference has been
-// released and there are no ongoing I/O operations on the channel, and subject
-// to the requirements of the handler close mode (see below) the handler
-// is finalized. Finalizing an handler means that it releases all its resources
-// and that it may flush data that is still buffered up.
-//
-// Operations on an handler are tracked with the Handler_BeginOperation()
-// and Handler_EndOperation() calls. The former should be called before invoking
-// one or more channel I/O operations and the latter one should be called at the
-// end of a sequence of I/O operation calls.
-//
-// The HandlerTable in a process takes care of the ownership of an handler.
-// It also provides the HandlerTable_AcquireHandler() and
-// Handler_EndOperation() calls to take care of the I/O operation tracking.
-//
-// 
-// Behavior of read, write, seek operations:
-//
-// Handlers guarantee that these operations are serialized with respect to
-// each other. This means that if you issue ie two concurrent write operations
-// and both target the same byte range, that after the completion of each
-// operation respective the byte range exclusively contains data provided by
-// either operation and never a mix of data from both operations. This guarantee
-// also includes that if you issue two overlapping concurrent operations that
-// the one issued after the first one will start reading/writing at the file
-// offset established by the completion of the previously issued operation.
-//
-//
-// Behavior of the close() system call:
-//
-// The close() system call releases one ownership reference of an handler
-// and it removes the provided descriptor/ioc from the handler table. The
-// channel is scheduled for finalization once the last ownership reference (also
-// meaning the last user visible descriptor/ioc) has been dropped.
-// Close may flush buffered data to the I/O resource (ie disk). This write may
-// fail with an error and close returns this error. However the close will still
-// run to completion and close the handler. The returned error is purely
-// advisory and will not stop the close operation from closing the handler.
-//
-//
-// The three handler close modes:
-//
-// 1) The close() system call removes an handler ownership reference. If it
-//    removes the last outstanding ownership reference then the handler is
-//    made invisible and the channel is scheduled for finalization. However the
-//    actual finalization invocation is deferred until any still ongoing I/O
-//    operations have completed. Once every ongoing I/O operation has completed
-//    the channel is finalized.
-//    (close with deferred finalization mode)
-//
-// 2) Similar to (1), however all ongoing I/O operations are canceled by the
-//    last close() invocation and the handler is finalized as soon as all
-//    cancel operations have completed.
-//    (canceling close mode)
-//
-// 3) Similar to (1) except that the last close() invocation is blocked until
-//    all ongoing I/O operations have completed. Then the channel is finalized.
-//    (blocking close mode)
-//
-// Only mode (1) is supported by the handler class at this time. Support for
-// the other modes is planned for the future.
-open_class(Handler, Any,
+//XXX add documentation
+open_class(Handler, Object,
     off_t       offset;         // handler lock
     intptr_t    resource;       // Constant
-    mtx_t       countLock;
-    int32_t     ownerCount;     // countLock
-    int32_t     useCount;       // countLock
+    atomic_int  descriptorCount;
     uint16_t    mode;           // Constant
     int16_t     type;           // Constant
 );
-any_subclass_funcs(Handler,
+open_class_funcs(Handler, Object,
 
     //
     // Generic handler Interface
     //
-
-    // Called once an handler is ready to be deallocated for good. Overrides
-    // should drain any still buffered data if this makes sense for the semantics
-    // of the channel and it should then release all resources used by the channel.
-    // This method may block on I/O operations.
-    // This method may return an error. Note however that the error is purely for
-    // informational purposes and that it may not stop the channel from completing
-    // the finalization process. A channel is expected to be finalized and the
-    // underlying I/O resource available for reuse once this method returns (with
-    // or without an error).
-    // Subclassers should not invoke the super implementation themselves. This is
-    // taken care of automatically.
-    errno_t (*finalize)(void* _Nonnull self);
-
 
     // Reads up to 'nBytesToRead' bytes of data from the (current position of the)
     // handler and returns it in 'pBuffer'. An handler may read less data
@@ -142,6 +61,9 @@ any_subclass_funcs(Handler,
 
     // Execute an handler specific command.
     errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
+
+
+    errno_t (*shutdown)(void* _Nonnull self);
 
 
     //
@@ -229,12 +151,8 @@ invoke_n(getAttributes, Handler, __self, __attr)
 invoke_n(truncate, Handler, __self, __length)
 
 
-extern HandlerRef Handler_Retain(HandlerRef _Nonnull self);
-
-#define Handler_RetainAs(__hnd, __type) \
-    ((__type)Handler_Retain((HandlerRef)__hnd))
-
-extern errno_t Handler_Release(HandlerRef _Nullable self);
+#define Handler_Shutdown(__self) \
+invoke_0(shutdown, Handler, __self)
 
 
 //
@@ -256,10 +174,13 @@ invoke_0(getSeekableRange, Handler, __self)
 
 
 //
-// For use by HandlerTable
+// HandlerTable
 //
 
-extern void Handler_BeginOperation(HandlerRef _Nonnull self);
-extern void Handler_EndOperation(HandlerRef _Nonnull self);
+#define Handler_IncrementDescriptorCount(__self) \
+atomic_int_fetch_add(&((HandlerRef)__self)->descriptorCount, 1)
+
+#define Handler_DecrementDescriptorCount(__self) \
+atomic_int_fetch_sub(&((HandlerRef)__self)->descriptorCount, 1)
 
 #endif /* Handler_h */

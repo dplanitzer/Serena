@@ -15,18 +15,18 @@
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {
-    HandlerRef _Nullable  chan;
+    HandlerRef _Nullable    hnd;
     int                     clut;
     int                     srf;
     size_t                  width;
     size_t                  height;
-    surface_mapping_t          mp;
+    surface_mapping_t       mp;
 } bt_screen_t;
 
 typedef struct bt_icon {
-    uint16_t * _Nonnull     pixels;
-    int16_t                 width;
-    int16_t                 height;
+    uint16_t * _Nonnull pixels;
+    int16_t             width;
+    int16_t             height;
 } bt_icon_t;
 
 

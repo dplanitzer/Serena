@@ -31,17 +31,27 @@ SYSCALL_1(pipe_create, int* _Nonnull fds)
     try(HandlerTable_AdoptHandler(&pp->HandlerTable, wrHnd, &pa->fds[PIPE_FD_WRITE]));
     wrHnd = NULL;
     mtx_unlock(&pp->mtx);
+
     return EOK;
 
 catch:
     if (wrHnd == NULL) {
-        HandlerTable_ReleaseHandler(&pp->HandlerTable, pa->fds[PIPE_FD_READ]);
+        HandlerTable_CloseHandler(&pp->HandlerTable, pa->fds[PIPE_FD_READ]);
+        rdHnd = NULL;
     }
     if (needsUnlock) {
         mtx_unlock(&pp->mtx);
     }
-    Handler_Release(rdHnd);
-    Handler_Release(wrHnd);
+    if (rdHnd) {
+        Handler_Shutdown(rdHnd);
+        Object_Release(rdHnd);
+    }
+    if (wrHnd) {
+        Handler_Shutdown(wrHnd);
+        Object_Release(wrHnd);
+    }
+
     Object_Release(pPipe);
+    
     return err;
 }

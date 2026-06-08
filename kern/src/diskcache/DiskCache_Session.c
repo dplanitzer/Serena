@@ -18,12 +18,12 @@
 //#define __FORCE_WRITES_SYNC 1
 
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, HandlerRef _Nonnull chan, const disk_info_t* _Nonnull info, DiskSession* _Nonnull s)
+void DiskCache_OpenSession(DiskCacheRef _Nonnull self, HandlerRef _Nonnull hnd, const disk_info_t* _Nonnull info, DiskSession* _Nonnull s)
 {
     mtx_lock(&self->interlock);
 
-    s->channel = Handler_Retain(chan);
-    s->disk = Handler_GetResourceAs(chan, DiskDriver);
+    s->handler = Object_RetainAs(hnd, Handler);
+    s->disk = Handler_GetResourceAs(hnd, DiskDriver);
     s->sessionId = self->nextAvailSessionId;
     s->sectorSize = info->sectorSize;
     s->rwClusterSize = info->sectorsPerRdwr;
@@ -58,8 +58,8 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
             mtx_lock(&self->interlock);
         }
 
-        Handler_Release(s->channel);
-        s->channel = NULL;
+        Object_Release(s->handler);
+        s->handler = NULL;
         s->disk = NULL;
         s->sessionId = 0;
         s->isOpen = false;

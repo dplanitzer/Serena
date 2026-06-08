@@ -28,11 +28,11 @@ void HandlerTable_Init(HandlerTable* _Nonnull self)
 
 void HandlerTable_Deinit(HandlerTable* _Nonnull self)
 {
-    HandlerTable_ReleaseAll(self);
+    HandlerTable_CloseAll(self);
     mtx_deinit(&self->mtx);
 }
 
-void HandlerTable_ReleaseAll(HandlerTable* _Nonnull self)
+void HandlerTable_CloseAll(HandlerTable* _Nonnull self)
 {
     HandlerRef* table;
     int max_fd_num;
@@ -49,7 +49,10 @@ void HandlerTable_ReleaseAll(HandlerTable* _Nonnull self)
 
     for (int i = 0; i < max_fd_num; i++) {
         if (table[i]) {
-            Handler_Release(table[i]);
+            if (Handler_DecrementDescriptorCount(table[i]) == 1) {
+                Handler_Shutdown(table[i]);
+            }
+            Object_Release(table[i]);
             table[i] = NULL;
         }
     }
@@ -133,6 +136,7 @@ errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef _Consu
     err = _alloc_fd_slot(self, 0, &new_fd);
     if (err == EOK) {
         self->table[new_fd] = hnd;
+        Handler_IncrementDescriptorCount(hnd);
     }
 
     mtx_unlock(&self->mtx);
@@ -141,41 +145,51 @@ errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef _Consu
     return err;
 }
 
-errno_t HandlerTable_ReleaseHandler(HandlerTable* _Nonnull self, int fd)
+errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd)
 {
-    HandlerRef ch = NULL;
+    decl_try_err();
+    HandlerRef hnd = NULL;
 
-    // Do the actual channel release outside the table lock because the release
+    // Do the actual handler close outside the table lock because the close
     // may take some time to execute. Ie it's synchronously draining some buffered
     // data.
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        ch = self->table[fd];
+        hnd = self->table[fd];
         _clear_fd_slot(self, fd);
     }
 
     mtx_unlock(&self->mtx);
 
-    return (ch) ? Handler_Release(ch) : EBADF;
+    if (hnd) {
+        if (Handler_DecrementDescriptorCount(hnd) == 1) {
+            err = Handler_Shutdown(hnd);
+        }
+        Object_Release(hnd);
+    }
+    else {
+        err = EBADF;
+    }
+
+    return err;
 }
 
 errno_t HandlerTable_AcquireHandler(HandlerTable* _Nonnull self, int fd, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
-    HandlerRef ch = NULL;
+    HandlerRef hnd = NULL;
 
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        ch = self->table[fd];
-        Handler_BeginOperation(ch);
+        hnd = Object_RetainAs(self->table[fd], Handler);
     }
     
     mtx_unlock(&self->mtx);
     
-    *pOutHandler = ch;
-    return (ch) ? EOK : EBADF;
+    *pOutHandler = hnd;
+    return (hnd) ? EOK : EBADF;
 }
 
 errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd, int * _Nonnull pOutNewIoc)
@@ -188,7 +202,8 @@ errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd,
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
         err = _alloc_fd_slot(self, min_fd, &new_fd);
         if (err == EOK) {
-            self->table[new_fd] = Handler_Retain(self->table[fd]);
+            self->table[new_fd] = Object_RetainAs(self->table[fd], Handler);
+            Handler_IncrementDescriptorCount(self->table[fd]);
         }
     }
 
@@ -201,7 +216,7 @@ errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd,
 errno_t HandlerTable_DupHandlerTo(HandlerTable* _Nonnull self, int fd, HandlerTable* _Nonnull other, int target_fd)
 {
     decl_try_err();
-    HandlerRef ch_to_close = NULL;
+    HandlerRef hnd_to_close = NULL;
 
     mtx_lock(&self->mtx);
     if (self != other) {
@@ -218,15 +233,16 @@ errno_t HandlerTable_DupHandlerTo(HandlerTable* _Nonnull self, int fd, HandlerTa
 
     if (target_fd <= other->max_fd_num) {
         // target-fd slot exists: close the existing fd and replace with the new one
-        ch_to_close = other->table[target_fd];
+        hnd_to_close = other->table[target_fd];
     }
     else {
         // target_fd slot does not exist: allocate it
         try(_ensure_fd_slot_exists(other, target_fd));
     }
 
-    other->table[target_fd] = Handler_Retain(self->table[fd]);
+    other->table[target_fd] = Object_RetainAs(self->table[fd], Handler);
     other->max_fd_num = __max(other->max_fd_num, target_fd);
+    Handler_IncrementDescriptorCount(self->table[fd]);
 
 
 catch:
@@ -235,18 +251,21 @@ catch:
     }
     mtx_unlock(&self->mtx);
 
-    // We release the old channel outside the table lock because the release can
+    // We close the old handler outside the table lock because the close can
     // take a while. Ie buffered data is drained.
-    // Also note that we always treat a close as successful because the channel
+    // Also note that we always treat a close as successful because the handler
     // is in fact always closed even if it encounters a problem while doing so.
-    if (ch_to_close) {
-        Handler_Release(ch_to_close);
+    if (hnd_to_close) {
+        if (Handler_DecrementDescriptorCount(hnd_to_close) == 1) {
+            Handler_Shutdown(hnd_to_close);
+        }
+        Object_Release(hnd_to_close);
     }
 
     return err;
 }
 
-void HandlerTable_ReleaseHandlersOnExec(HandlerTable* _Nonnull self)
+void HandlerTable_CloseHandlersOnExec(HandlerTable* _Nonnull self)
 {
     int fd;
 
@@ -254,10 +273,13 @@ void HandlerTable_ReleaseHandlersOnExec(HandlerTable* _Nonnull self)
     fd = self->max_fd_num;
 
     while (fd >= 0) {
-        HandlerRef fh = self->table[fd];
+        HandlerRef hnd = self->table[fd];
 
-        if (fh && (Handler_GetFlags(fh) & O_PRSVEXEC) == 0) {
-            Handler_Release(fh);
+        if (hnd && (Handler_GetFlags(hnd) & O_PRSVEXEC) == 0) {
+            if (Handler_DecrementDescriptorCount(hnd) == 1) {
+                Handler_Shutdown(hnd);
+            }
+            Object_Release(hnd);
             self->table[fd] = NULL;
         }
         fd--;
