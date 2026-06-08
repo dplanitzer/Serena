@@ -52,7 +52,7 @@ errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mo
 
 catch:
     if (err != EOK && hnd) {
-        Handler_Shutdown(hnd);
+        Handler_Close(hnd);
         Object_Release(hnd);
     }
     *pOutSelf = (FSContainerRef)self;
@@ -68,7 +68,7 @@ void DiskContainer_deinit(DiskContainerRef _Nonnull self)
     }
 
     if (self->handler) {
-        Handler_Shutdown(self->handler);
+        Handler_Close(self->handler);
         Object_Release(self->handler);
         self->handler = NULL;
     }

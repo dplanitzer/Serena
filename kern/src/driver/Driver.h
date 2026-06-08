@@ -100,7 +100,7 @@ enum {
 //
 // Once a driver has been started, driver handlers may be created by calling
 // Driver_Open() and a driver handler should be closed by calling
-// Handler_Shutdown() on the handler. Handler_Shutdown() in turn invokes
+// Handler_Close() on the handler. Handler_Close() in turn invokes
 // Driver_Close().
 //
 // A driver may be voluntarily terminated by calling Driver_Stop() with the.

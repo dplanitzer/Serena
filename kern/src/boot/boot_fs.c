@@ -78,7 +78,7 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
             *diskId = info.diskId;
         }
 
-        Handler_Shutdown(hnd);
+        Handler_Close(hnd);
         Object_Release(hnd);
     }
     return err;
@@ -111,7 +111,7 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, const char* _Nonn
             delay_sec(3);
         }
 
-        Handler_Shutdown(hnd);
+        Handler_Close(hnd);
         Object_Release(hnd);
     } 
 

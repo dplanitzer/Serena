@@ -94,7 +94,7 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
 
 catch:
     if (hnd) {
-        Handler_Shutdown(hnd);
+        Handler_Close(hnd);
         Object_Release(hnd);
     }
     Object_Release(dp);

@@ -254,7 +254,7 @@ catch:
 static void _proc_img_close_file(proc_img_t* _Nonnull pimg)
 {
     if (pimg->file) {
-        Handler_Shutdown(pimg->file);
+        Handler_Close(pimg->file);
         Object_Release(pimg->file);
         pimg->file = NULL;
     }

@@ -43,11 +43,11 @@ catch:
         mtx_unlock(&pp->mtx);
     }
     if (rdHnd) {
-        Handler_Shutdown(rdHnd);
+        Handler_Close(rdHnd);
         Object_Release(rdHnd);
     }
     if (wrHnd) {
-        Handler_Shutdown(wrHnd);
+        Handler_Close(wrHnd);
         Object_Release(wrHnd);
     }
 

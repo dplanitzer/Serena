@@ -30,7 +30,7 @@ void DriverHandler_deinit(DriverHandlerRef _Nonnull self)
     mtx_deinit(&self->ser_mtx);
 }
 
-errno_t DriverHandler_shutdown(DriverHandlerRef _Nonnull self)
+errno_t DriverHandler_close(DriverHandlerRef _Nonnull self)
 {
     return Driver_Close(self->driver, (HandlerRef)self);
 }
@@ -115,7 +115,7 @@ errno_t DriverHandler_Ioctl(HandlerRef _Nonnull self, int cmd, ...)
 
 class_func_defs(DriverHandler, Handler,
 override_func_def(deinit, DriverHandler, Object)
-override_func_def(shutdown, DriverHandler, Handler)
+override_func_def(close, DriverHandler, Handler)
 override_func_def(read, DriverHandler, Handler)
 override_func_def(write, DriverHandler, Handler)
 override_func_def(seek, DriverHandler, Handler)

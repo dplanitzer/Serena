@@ -48,7 +48,7 @@ open_class_funcs(Handler, Object,
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
 
-    errno_t (*shutdown)(void* _Nonnull self);
+    errno_t (*close)(void* _Nonnull self);
 );
 
 
@@ -100,8 +100,8 @@ invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
 extern errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
 
 
-#define Handler_Shutdown(__self) \
-invoke_0(shutdown, Handler, __self)
+#define Handler_Close(__self) \
+invoke_0(close, Handler, __self)
 
 
 //

@@ -135,7 +135,7 @@ errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnu
 }
 
 
-errno_t Handler_shutdown(HandlerRef _Nonnull self)
+errno_t Handler_close(HandlerRef _Nonnull self)
 {
     return EOK;
 }
@@ -145,5 +145,5 @@ class_func_defs(Handler, Object,
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
-func_def(shutdown, Handler)
+func_def(close, Handler)
 );

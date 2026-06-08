@@ -209,7 +209,7 @@ catch:
     // is in fact always closed even if it encounters a problem while doing so.
     if (hnd_to_close) {
         if (Handler_DecrementDescriptorCount(hnd_to_close) == 1) {
-            Handler_Shutdown(hnd_to_close);
+            Handler_Close(hnd_to_close);
         }
         Object_Release(hnd_to_close);
     }
@@ -236,7 +236,7 @@ errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd)
 
     if (hnd) {
         if (Handler_DecrementDescriptorCount(hnd) == 1) {
-            err = Handler_Shutdown(hnd);
+            err = Handler_Close(hnd);
         }
         Object_Release(hnd);
     }
@@ -265,7 +265,7 @@ void HandlerTable_CloseAll(HandlerTable* _Nonnull self)
     for (int i = 0; i < max_fd_num; i++) {
         if (table[i]) {
             if (Handler_DecrementDescriptorCount(table[i]) == 1) {
-                Handler_Shutdown(table[i]);
+                Handler_Close(table[i]);
             }
             Object_Release(table[i]);
             table[i] = NULL;
@@ -286,7 +286,7 @@ void HandlerTable_CloseHandlersOnExec(HandlerTable* _Nonnull self)
 
         if (hnd && (Handler_GetFlags(hnd) & O_PRSVEXEC) == 0) {
             if (Handler_DecrementDescriptorCount(hnd) == 1) {
-                Handler_Shutdown(hnd);
+                Handler_Close(hnd);
             }
             Object_Release(hnd);
             self->table[fd] = NULL;

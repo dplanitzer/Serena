@@ -49,7 +49,7 @@ void auto_discover_boot_rd(void)
 
 catch:
     if (hVdm) {
-        Handler_Shutdown(hVdm);
+        Handler_Close(hVdm);
         Object_Release(hVdm);
     }
 }

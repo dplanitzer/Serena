@@ -39,7 +39,7 @@ void PipeHandler_deinit(PipeHandlerRef _Nonnull self)
     self->pipe = NULL;
 }
 
-errno_t PipeHandler_shutdown(PipeHandlerRef _Nonnull self)
+errno_t PipeHandler_close(PipeHandlerRef _Nonnull self)
 {
     Pipe_Close(self->pipe, (Handler_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
     
@@ -71,7 +71,7 @@ errno_t PipeHandler_write(PipeHandlerRef _Nonnull _Locked self, const void* _Non
 
 class_func_defs(PipeHandler, Handler,
 override_func_def(deinit, PipeHandler, Object)
-override_func_def(shutdown, PipeHandler, Handler)
+override_func_def(close, PipeHandler, Handler)
 override_func_def(read, PipeHandler, Handler)
 override_func_def(write, PipeHandler, Handler)
 );
