@@ -22,11 +22,11 @@
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nDstBytesToRead, ssize_t* _Nonnull pOutDstBytesRead)
+errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nDstBytesToRead, ssize_t* _Nonnull pOutDstBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    off_t offset = Handler_GetOffset(ch);
+    off_t offset = *pOffset;
     dir_entry_t* dp = buf;
     ssize_t nSrcBytesRead = 0;
     ssize_t nDstBytesRead = 0;
@@ -98,7 +98,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, InodeHandlerRef
     if (nSrcBytesRead > 0 && fs->mountFlags.isAccessUpdateOnReadEnabled) {
         Inode_SetModified(self, kInodeFlag_Accessed);
     }
-    Handler_IncrementOffsetBy(ch, nSrcBytesRead);
+    *pOffset += nSrcBytesRead;
 
 catch:
     *pOutDstBytesRead = nDstBytesRead;

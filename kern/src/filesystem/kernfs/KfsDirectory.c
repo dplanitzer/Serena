@@ -183,11 +183,11 @@ errno_t KfsDirectory_createHandler(KfsDirectoryRef _Nonnull _Locked self, unsign
     return InodeHandler_Create((InodeRef)self, O_RDONLY, pOutHandler);
 }
 
-errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, off_t* _Nonnull pOffset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     dir_entry_t* pOutEntry = (dir_entry_t*)pBuffer;
-    off_t offset = Handler_GetOffset(ch);  // in terms of #entries
+    off_t offset = *pOffset;  // in terms of #entries
     ssize_t nAllDirEntriesRead = 0;
     ssize_t nBytesRead = 0;
 
@@ -215,7 +215,7 @@ errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeHandlerRef
     }
 
     if (nBytesRead > 0) {
-        Handler_IncrementOffsetBy(ch, nAllDirEntriesRead);
+        *pOffset += nAllDirEntriesRead;
     }
     *nOutBytesRead = nBytesRead;
 

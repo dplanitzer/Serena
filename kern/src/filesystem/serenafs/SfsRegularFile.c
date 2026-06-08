@@ -15,11 +15,11 @@
 #include <kpi/file.h>
 
 
-errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    const off_t offset = Handler_GetOffset(ch);
+    const off_t offset = *pOffset;
     uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
@@ -81,7 +81,7 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeHandle
         if (fs->mountFlags.isAccessUpdateOnReadEnabled) {
             Inode_SetModified(self, kInodeFlag_Accessed);
         }
-        Handler_IncrementOffsetBy(ch, nBytesRead);
+        *pOffset += nBytesRead;
     }
 
 catch:
@@ -95,22 +95,14 @@ catch:
 #define MAX_FILE_SIZE   kSFSLimit_FileSizeMax
 #endif
 
-errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const uint8_t* sp = buf;
     ssize_t nBytesWritten = 0;
-    off_t offset;
-
-    if ((Handler_GetMode(ch) & O_APPEND) == O_APPEND) {
-        offset = Inode_GetFileSize(self);
-    }
-    else {
-        offset = Handler_GetOffset(ch);
-    }
-
+    off_t offset = *pOffset;
 
     if (nBytesToWrite < 0) {
         throw(EINVAL);
@@ -182,7 +174,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeHandl
         }
         Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
         Inode_Writeback((InodeRef)self);
-        Handler_IncrementOffsetBy(ch, nBytesWritten);
+        *pOffset += nBytesWritten;
     }
 
 

@@ -107,11 +107,11 @@ any_subclass_funcs(Inode,
 
     // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
     // from the file 'pFile'.
-    errno_t (*read)(void* _Nonnull _Locked self, HandlerRef _Nonnull _Locked hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull _Locked self, off_t* _Nonnull pOffset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
     // to the file 'pFile'.
-    errno_t (*write)(void* _Nonnull _Locked self, HandlerRef _Nonnull _Locked hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull _Locked self, off_t* _Nonnull pOffset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
     // to be >= 0. No longer needed blocks are deallocated if the new length is
@@ -297,11 +297,11 @@ invoke_n(setOwner, Inode, __self, __uid, __gid)
 invoke_n(setTimes, Inode, __self, __times)
 
 
-#define Inode_Read(__self, __hnd, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, Inode, __self, (HandlerRef)__hnd, __pBuffer, __nBytesToRead, __nOutBytesRead)
+#define Inode_Read(__self, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, Inode, __self, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define Inode_Write(__self, __hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, Inode, __self, (HandlerRef)__hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+#define Inode_Write(__self, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, Inode, __self, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Inode_Truncate(__self, __length) \
 invoke_n(truncate, Inode, __self, __length)
