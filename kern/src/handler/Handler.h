@@ -18,7 +18,24 @@
 #include <kpi/fd.h>
 
 
-//XXX add documentation
+// A handler object acts as an adaptor that allows the file descriptor API to
+// interact with some kind of in-kernel object. E.g. a file, driver instance,
+// pipe, etc.
+//
+// The handler base class does not implement any operations. It expects that
+// subclasses implement the logic of making the read, write, seek and close
+// operations work. A particular handler subclass may add more operations.
+//
+// The semantic expectations of a handler are:
+// - multiple operations may be started in parallel and run in parallel. However
+//   a handler subclass may impose limits on the kind of operations that can run
+//   in parallel and the number of operations that can run in parallel.
+//
+// - Once Handler_Close() has returned, all operations that were still in-flight
+//   at the time Handler_Close() was called have finished running or have been
+//   cancelled and no new operations can be started anymore. An attempt to start
+//   a new operation will result in a EBADF error.
+//
 open_class(Handler, Object,
     off_t       offset;         // handler lock
     atomic_int  descriptorCount;
@@ -48,6 +65,21 @@ open_class_funcs(Handler, Object,
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
 
+    // Closes the handler. This function guarantees that no more operations are
+    // active on the handler and no new operations can be started on the handler
+    // anymore once it returns to the caller. This function may return an error.
+    // Note that this error is advisory. Meaning the handler is closed no matter
+    // whether EOK or an error code is returned once this function returns to
+    // the caller.
+    // Subclassers must ensure that:
+    // - either the close function blocks until all currently active operations
+    //   have finished successfully or with an error.
+    // - or the close function cancels all currently active operations and blocks
+    //   until the cancel has finished.
+    //
+    // It is imperative that close() only returns after no operations are running
+    // anymore and the handler has been atomically marked as closed to ensure that
+    // no new operations can be started anymore after return from close().
     errno_t (*close)(void* _Nonnull self);
 );
 
