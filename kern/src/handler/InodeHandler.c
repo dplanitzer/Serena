@@ -72,17 +72,16 @@ errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _N
 errno_t InodeHandler_seek(InodeHandlerRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
+    off_t endPos = 0ll;
 
     Inode_Lock(self->ino);
-    err = Handler_DoSeek((HandlerRef)self, offset, pOutNewPos, whence);
+    if (whence == SEEK_END) {
+        endPos = Inode_GetFileSize(self->ino);
+    }
+    err = Handler_DoSeek((HandlerRef)self, offset, endPos, pOutNewPos, whence);
     Inode_Unlock(self->ino);
 
     return err;
-}
-
-off_t InodeHandler_getSeekableRange(InodeHandlerRef _Nonnull _Locked self)
-{
-    return Inode_GetFileSize(self->ino);
 }
 
 errno_t InodeHandler_getAttributes(InodeHandlerRef _Nonnull self, fs_attr_t* _Nonnull attr)
@@ -121,7 +120,6 @@ override_func_def(deinit, InodeHandler, Object)
 override_func_def(read, InodeHandler, Handler)
 override_func_def(write, InodeHandler, Handler)
 override_func_def(seek, InodeHandler, Handler)
-override_func_def(getSeekableRange, InodeHandler, Handler)
 func_def(getAttributes, InodeHandler)
 func_def(truncate, InodeHandler)
 );

@@ -71,7 +71,7 @@ errno_t Handler_write(HandlerRef _Nonnull self, const void* _Nonnull pBuffer, ss
 }
 
 
-errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t endPos, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
 
@@ -84,7 +84,7 @@ errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable 
         }
     }
     else if(whence == SEEK_CUR || whence == SEEK_END) {
-        const off_t refPos = (whence == SEEK_END) ? Handler_GetSeekableRange(self) : self->offset;
+        const off_t refPos = (whence == SEEK_END) ? endPos : self->offset;
         
         if (offset < 0ll && -offset > refPos) {
             throw(EINVAL);
@@ -116,11 +116,6 @@ errno_t Handler_seek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pO
     return ESPIPE;
 }
 
-off_t Handler_getSeekableRange(HandlerRef _Nonnull _Locked self)
-{
-    return 0ll;
-}
-
 
 errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info)
 {
@@ -150,6 +145,5 @@ class_func_defs(Handler, Object,
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
-func_def(getSeekableRange, Handler)
 func_def(shutdown, Handler)
 );

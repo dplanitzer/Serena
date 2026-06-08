@@ -72,10 +72,14 @@ errno_t DriverHandler_write(DriverHandlerRef _Nonnull _Locked self, const void* 
 errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
+    off_t endPos = 0ll;
 
     if (Driver_IsSeekable(self->driver)) {
         mtx_lock(&self->ser_mtx);
-        err = Handler_DoSeek((HandlerRef)self, offset, pOutNewPos, whence);
+        if (whence == SEEK_END) {
+            endPos = Driver_GetSeekableRange(self->driver);
+        }
+        err = Handler_DoSeek((HandlerRef)self, offset, endPos, pOutNewPos, whence);
         mtx_unlock(&self->ser_mtx);
     }
     else {
@@ -83,11 +87,6 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
     }
 
     return err;
-}
-
-off_t DriverHandler_getSeekableRange(DriverHandlerRef _Nonnull _Locked self)
-{
-    return Driver_GetSeekableRange(self->driver);
 }
 
 errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
@@ -120,6 +119,5 @@ override_func_def(shutdown, DriverHandler, Handler)
 override_func_def(read, DriverHandler, Handler)
 override_func_def(write, DriverHandler, Handler)
 override_func_def(seek, DriverHandler, Handler)
-override_func_def(getSeekableRange, DriverHandler, Handler)
 func_def(ioctl, DriverHandler)
 );

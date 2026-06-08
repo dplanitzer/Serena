@@ -47,12 +47,6 @@ open_class_funcs(Handler, Object,
     // lock the channel and then invoke Handler_DoSeek().
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
-    // Invoked by seek() to get the size of the seekable space. The maximum
-    // position to which a client is allowed to seek is this value minus one.
-    // Override: Optional
-    // Default Behavior: Returns 0
-    off_t (*getSeekableRange)(void* _Nonnull _Locked self);
-
 
     errno_t (*shutdown)(void* _Nonnull self);
 );
@@ -120,12 +114,10 @@ invoke_0(shutdown, Handler, __self)
 extern errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Implements the actual seek logic. Invokes Handler_GetSeekableRange() if
-// needed to get the range over which seeking is supported.
-extern errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence);
-
-// Returns the size of the seekable range
-#define Handler_GetSeekableRange(__self) \
-invoke_0(getSeekableRange, Handler, __self)
+// needed to get the range over which seeking is supported. 'endPos' is the end
+// position of the seekable space. This typically corresponds to the length of
+// teh seekable space. This parameter is only needed if 'whence' == SEEK_END. 
+extern errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t offset, off_t endPos, off_t* _Nullable pOutNewPos, int whence);
 
 
 //
