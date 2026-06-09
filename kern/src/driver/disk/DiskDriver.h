@@ -230,8 +230,8 @@ invoke_n(beginIO, DiskDriver, __self, __req)
 invoke_n(doIO, DiskDriver, __self, __req)
 
 
-extern errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, char fillByte);
-extern errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, char fillByte);
+extern errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, char fillByte);
+extern errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, off_t* _Nonnull pOffset, char fillByte);
 
 extern errno_t DiskDriver_GetDriveInfo(DiskDriverRef _Nonnull self, drive_info_t* pOutInfo);
 extern errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* pOutInfo);

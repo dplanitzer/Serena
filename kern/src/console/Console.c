@@ -692,7 +692,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, unsigned int mode, off_t* _Nonnu
     return EOK;
 }
 
-errno_t Console_ioctl(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, int cmd, va_list ap)
+errno_t Console_ioctl(ConsoleRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {
     decl_try_err();
 

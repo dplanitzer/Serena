@@ -67,7 +67,7 @@ errno_t HIDDriver_read(HIDDriverRef _Nonnull self, unsigned int mode, off_t* _No
     return err;
 }
 
-errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, va_list ap)
+errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {
     switch (cmd) {
         case kHIDCommand_GetNextEvent: {
@@ -139,7 +139,7 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, HandlerRef _Nonnull ioc, int
         }
 
         default:
-            return super_n(ioctl, Driver, HIDDriver, self, ioc, cmd, ap);
+            return super_n(ioctl, Driver, HIDDriver, self, mode, pOffset, cmd, ap);
     }
 }
 

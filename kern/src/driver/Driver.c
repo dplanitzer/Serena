@@ -351,7 +351,7 @@ off_t Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
-errno_t Driver_ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, va_list ap)
+errno_t Driver_ioctl(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {
     switch (cmd) {
         case kDriverCommand_GetId: {
@@ -392,11 +392,11 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, 
     }
 }
 
-errno_t Driver_Ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, ...)
+errno_t Driver_Ioctl(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, ...)
 {
     va_list ap;
     va_start(ap, cmd);
-    const errno_t err = Driver_vIoctl(self, ioc, cmd, ap);
+    const errno_t err = Driver_vIoctl(self, mode, pOffset, cmd, ap);
     va_end(ap);
 
     return err;

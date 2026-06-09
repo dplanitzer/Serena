@@ -434,7 +434,7 @@ open_class_funcs(Driver, Object,
     // arguments 'ap'.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, HandlerRef _Nonnull ioc, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap);
 );
 
 
@@ -491,10 +491,10 @@ invoke_n(write, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToWrite, _
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)
 
-#define Driver_vIoctl(__self, __chan, __cmd, __ap) \
-invoke_n(ioctl, Driver, __self, __chan, __cmd, __ap)
+#define Driver_vIoctl(__self, __mode, __pOffset, __cmd, __ap) \
+invoke_n(ioctl, Driver, __self, __mode, __pOffset, __cmd, __ap)
 
-extern errno_t Driver_Ioctl(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, int cmd, ...);
+extern errno_t Driver_Ioctl(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, ...);
 
 
 // Returns true if there are open I/O channels referencing this driver.

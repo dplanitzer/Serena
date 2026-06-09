@@ -99,7 +99,7 @@ errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
     decl_try_err();
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_vIoctl(self->driver, (HandlerRef)self, cmd, ap);
+    err = Driver_vIoctl(self->driver, Handler_GetMode(self), &self->super.offset, cmd, ap);
     mtx_unlock(&self->ser_mtx);
 
     return err;

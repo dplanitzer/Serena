@@ -76,7 +76,7 @@ catch:
     return err;
 }
 
-errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, HandlerRef _Nonnull hnd, int cmd, va_list ap)
+errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {
     switch (cmd) {
         case kZorroCommand_GetCardCount: {
@@ -101,7 +101,7 @@ errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, HandlerRef _Nonn
         }
 
         default:
-            return super_n(ioctl, Driver, ZorroController, self, hnd, cmd, ap);
+            return super_n(ioctl, Driver, ZorroController, self, mode, pOffset, cmd, ap);
     }
 }
 
