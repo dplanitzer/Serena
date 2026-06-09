@@ -313,28 +313,18 @@ catch:
 }
 
 
-void Driver_onClose(DriverRef _Nonnull _Locked self, HandlerRef _Nonnull hnd, int openCount)
+void Driver_onClose(DriverRef _Nonnull _Locked self, int openCount)
 {
 }
 
-errno_t Driver_close(DriverRef _Nonnull self, HandlerRef _Nonnull hnd)
+void Driver_close(DriverRef _Nonnull self)
 {
-    decl_try_err();
-
     mtx_lock(&self->mtx);
+    assert(self->openCount > 0);
 
-    if (self->openCount <= 0) {
-        throw(EBADF);
-    }
-
-
-    Driver_OnClose(self, hnd, self->openCount);
+    Driver_OnClose(self, self->openCount);
     self->openCount--;
-
-catch:
     mtx_unlock(&self->mtx);
-
-    return err;
 }
 
 errno_t Driver_read(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

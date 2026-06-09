@@ -26,7 +26,7 @@ catch:
 
 void DriverHandler_deinit(DriverHandlerRef _Nonnull self)
 {
-    Driver_Close(self->driver, (HandlerRef)self);
+    Driver_Close(self->driver);
     Object_Release(self->driver);
     self->driver = NULL;
 

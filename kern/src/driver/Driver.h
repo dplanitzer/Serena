@@ -24,7 +24,7 @@ struct drv_child;
 // Driver instantiation option. Used by subclassers to request specific default
 // behavior from the Driver class.
 enum {
-    kDriver_Exclusive = 1,  // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
+    kDriver_Exclusive = 1,  // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
     kDriver_IsBus = 2,      // This driver manages a hardware or virtual bus
     kDriver_Seekable = 4,   // Set if the driver supports seeking. Seek() will return ESPIPE if this option is not set
 };
@@ -139,15 +139,15 @@ enum {
 //   Driver_WaitForStopped()
 // Object_Release()
 //
-// Note that an important purpose of I/O channels is to enable the driver system
+// Note that an important purpose of I/O handlers is to enable the driver system
 // to track whether a driver is in active use.
 //
 //
 // -- Drivers, Concurrency and Exclusivity --
 //
-// I/O channel provides important preconditions for what is discussed below:
-// *) All operations on an I/O channel are executed serially
-// *) At most one operation can be active on an I/O channel at any given time
+// I/O handler provides important preconditions for what is discussed below:
+// *) All operations on an I/O handler are executed serially
+// *) At most one operation can be active on an I/O handler at any given time
 // *) It guarantees that no operation is active when it calls Driver_Close()
 // *) It guarantees that as soon as Driver_Close() starts executing and at any
 //    time after it returns, no new I/O operations will be issued to the driver
@@ -159,13 +159,13 @@ enum {
 // completed before close() can begin execution.
 //
 // The fact that all driver I/O operations (read, write, ioctl) require that the
-// caller passes in an I/O channel ensures that none of these operations can be
-// executed before open() has completed and has returned a valid I/O channel.
+// caller passes in an I/O handler ensures that none of these operations can be
+// executed before open() has completed and has returned a valid I/O handler.
 //
-// The fact that I/O channel guarantees that all active I/O operations on the
-// channel have completed before it invokes close() on the driver ensures that
+// The fact that I/O handler guarantees that all active I/O operations on the
+// handler have completed before it invokes close() on the driver ensures that
 // close() can assume that no I/O operations can be active that are related to
-// the channel that is passed to close(). Thus it is not necessary for close()
+// the handler that is passed to close(). Thus it is not necessary for close()
 // to take the same lock that is used to protect the integrity of the I/O
 // operations.
 //
@@ -232,10 +232,10 @@ enum {
 // Driver_SetMaxChildCount() after you've created the bus driver instance and
 // before you publish it to the driver catalog.
 //
-// A child driver may either receive a channel or a direct reference to its
+// A child driver may either receive a handler or a direct reference to its
 // parent driver which it can then use to access the services that the parent
 // driver provides. Both models are supported and the parent driver will stay
-// alive as long as at least one channel is open or one child remains attached
+// alive as long as at least one handler is open or one child remains attached
 // to it.
 //
 // A child driver is guaranteed that the reference to its parent driver will
@@ -260,7 +260,7 @@ enum {
 // -- What it Means for a Driver to be in Use --
 //
 // A driver is considered to be in use if:
-// - at least one channel is open
+// - at least one handler is open
 // - at least one child is attached to it
 // A driver that is in use may be stopped. However the driver isn't destroyed
 // until after the last use of it is gone.
@@ -375,38 +375,37 @@ open_class_funcs(Driver, Object,
     void (*onDetaching)(void* _Nonnull self, DriverRef _Nonnull parent);
 
 
-    // Invoked by the open() function to create the driver channel that should
+    // Invoked by the open() function to create the driver handler that should
     // be returned to the caller. The 'openCount' reflects the number of I/O
-    // channels that are currently open for this driver. Note that this count
-    // does not yet include the channel that should be created. A count of 0
-    // indicates that this is the first channel that should be opened. A driver
+    // handlers that are currently open for this driver. Note that this count
+    // does not yet include the handler that should be created. A count of 0
+    // indicates that this is the first handler that should be opened. A driver
     // subclass can use this information to eg power up the hardware if
     // necessary.
     // Override: Optional
     // Default Behavior: returns a DriverHandler instance
     errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
-    // Invoked by the close() function to close an open I/O channel. The
-    // 'openCount' reflects the number of I/O channels that are currently open
-    // and this number does include the channel that should be closed. A driver
+    // Invoked by the close() function to close an open I/O handler. The
+    // 'openCount' reflects the number of I/O handlers that are currently open
+    // and this number does include the handler that should be closed. A driver
     // subclass can use this information to eg put the hardware to sleep if the
-    // last open channel is closed. The 'openCount' for the last open channel is
-    // 1. Note that this function should not release the I/O channel. This is
-    // taken care off by the kernel.
+    // last open handler is closed. The 'openCount' for the last open handler is
+    // 1.
     // Override: Optional
     // Default Behavior: does nothing
-    void (*onClose)(void* _Nonnull _Locked self, HandlerRef _Nonnull ioc, int openCount);
+    void (*onClose)(void* _Nonnull _Locked self, int openCount);
 
 
-    // Opens an I/O channel to the driver.
+    // Opens an I/O handler to the driver.
     // Override: Optional
     // Default Behavior: returns a DriverHandler instance
     errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
-    // Closes the given I/O channel.
+    // Closes an open I/O handler.
     // Override: Optional
-    // Default Behavior: Does nothing and returns EOK
-    errno_t (*close)(void* _Nonnull self, HandlerRef _Nonnull hnd);
+    // Default Behavior: Does nothing
+    void (*close)(void* _Nonnull self);
 
     // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
     // source and returns them in 'buf'. The actual amount of bytes read is
@@ -464,22 +463,22 @@ extern void Driver_Stop(DriverRef _Nonnull self, int reason);
 
 // Waits until the driver has finished its shutdown sequence. This specifically
 // means that the caller is guaranteed that once this function returns that:
-// *) no more I/O channels are open referencing the driver
+// *) no more I/O handlers are open referencing the driver
 // *) no more asynchronous processes are active and referencing this driver
 // The driver can be safely freed by calling Object_Release() once this function
 // has returned.
 extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 
 
-// Opens an I/O channel to the driver with the mode 'mode'. EOK and the channel
+// Opens an I/O handler to the driver with the mode 'mode'. EOK and the handler
 // is returned in 'pOutHandler' on success and a suitable error code is returned
 // otherwise.
 #define Driver_Open(__self, __mode, __arg, __pOutHandler) \
 invoke_n(open, Driver, __self, __mode, __arg, __pOutHandler)
 
-// Closes the given driver channel.
-#define Driver_Close(__self, __hnd) \
-invoke_n(close, Driver, __self, __hnd)
+// Closes a driver handler.
+#define Driver_Close(__self) \
+invoke_0(close, Driver, __self)
 
 #define Driver_Read(__self, __mode, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 invoke_n(read, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead)
@@ -496,7 +495,7 @@ invoke_n(ioctl, Driver, __self, __mode, __pOffset, __cmd, __ap)
 extern errno_t Driver_Ioctl(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, ...);
 
 
-// Returns true if there are open I/O channels referencing this driver.
+// Returns true if there are open I/O handlers referencing this driver.
 extern bool Driver_IsOpen(DriverRef _Nonnull self);
 
 
@@ -602,14 +601,14 @@ invoke_n(onAttached, Driver, __self, __parent)
 invoke_n(onDetaching, Driver, __self, __parent)
 
 
-// Creates an I/O channel that connects the driver to a user space application
+// Creates an I/O handler that connects the driver to a user space application
 // or a kernel space service
 #define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutHandler) \
 invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutHandler)
 
-// Closes the given I/O channel
-#define Driver_OnClose(__self, __ioc, __openCount) \
-invoke_n(onClose, Driver, __self, __ioc, __openCount)
+// Closes the given I/O handler
+#define Driver_OnClose(__self, __openCount) \
+invoke_n(onClose, Driver, __self, __openCount)
 
 
 // Specifies the number of children that a driver is able to manage. This number
