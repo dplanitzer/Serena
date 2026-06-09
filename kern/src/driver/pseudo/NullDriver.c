@@ -32,16 +32,17 @@ errno_t NullDriver_onStart(NullDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t NullDriver_read(NullDriverRef _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t NullDriver_read(NullDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     // Always return EOF
     *nOutBytesRead = 0;
     return EOK;
 }
 
-errno_t NullDriver_write(NullDriverRef _Nonnull self, HandlerRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t NullDriver_write(NullDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     // Ignore output
+    *nOutBytesWritten = nBytesToWrite;
     return EOK;
 }
 

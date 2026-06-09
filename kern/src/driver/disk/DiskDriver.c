@@ -428,13 +428,13 @@ off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
     return rng;
 }
 
-static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, HandlerRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
+static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
 {
     decl_try_err();
     StrategyRequest r;
 
     IORequest_Init(&r, type);
-    r.offset = Handler_GetOffset(ch);
+    r.offset = *pOffset;
     r.options = 0;
     r.iovCount = 1;
     r.iov[0].data = buf;
@@ -444,21 +444,21 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, HandlerRe
     err = DiskDriver_DoIO(self, (IORequest*)&r);
 
     if (r.resCount > 0) {
-        Handler_IncrementOffsetBy(ch, r.resCount);
+        *pOffset += r.resCount;
     }
 
     *pOutByteCount = r.resCount;
     return err;
 }
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
-    return _DiskDriver_rdwr(self, kDiskRequest_Read, ch, buf, nBytesToRead, pOutBytesRead);
+    return _DiskDriver_rdwr(self, kDiskRequest_Read, mode, pOffset, buf, nBytesToRead, pOutBytesRead);
 }
 
-errno_t DiskDriver_write(DiskDriverRef _Nonnull self, HandlerRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
-    return _DiskDriver_rdwr(self, kDiskRequest_Write, ch, buf, nBytesToWrite, pOutBytesWritten);
+    return _DiskDriver_rdwr(self, kDiskRequest_Write, mode, pOffset, buf, nBytesToWrite, pOutBytesWritten);
 }
 
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, HandlerRef _Nonnull hnd, int cmd, va_list ap)

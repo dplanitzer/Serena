@@ -416,12 +416,12 @@ open_class_funcs(Driver, Object,
     // will read no bytes and return some error.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*read)(void* _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*write)(void* _Nonnull self, HandlerRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is the value returned by
@@ -482,11 +482,11 @@ invoke_n(open, Driver, __self, __mode, __arg, __pOutHandler)
 #define Driver_Close(__self, __hnd) \
 invoke_n(close, Driver, __self, __hnd)
 
-#define Driver_Read(__self, __hnd, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, Driver, __self, __hnd, __pBuffer, __nBytesToRead, __nOutBytesRead)
+#define Driver_Read(__self, __mode, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define Driver_Write(__self, __hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, Driver, __self, __hnd, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+#define Driver_Write(__self, __mode, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)

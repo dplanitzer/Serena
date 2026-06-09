@@ -39,15 +39,15 @@ errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnul
 {
     decl_try_err();
 
-    if (Handler_IsReadable(self)) {
-        mtx_lock(&self->ser_mtx);
-        err = Driver_Read(self->driver, (HandlerRef)self, pBuffer, nBytesToRead, nOutBytesRead);
-        mtx_unlock(&self->ser_mtx);
-    }
-    else {
+    if (!Handler_IsReadable(self)) {
         *nOutBytesRead = 0;
-        err = EBADF;
+        return EBADF;
     }
+
+
+    mtx_lock(&self->ser_mtx);
+    err = Driver_Read(self->driver, Handler_GetMode(self), &self->super.offset, pBuffer, nBytesToRead, nOutBytesRead);
+    mtx_unlock(&self->ser_mtx);
 
     return err;
 }
@@ -56,15 +56,15 @@ errno_t DriverHandler_write(DriverHandlerRef _Nonnull _Locked self, const void* 
 {
     decl_try_err();
 
-    if (Handler_IsWritable(self)) {
-        mtx_lock(&self->ser_mtx);
-        err = Driver_Write(self->driver, (HandlerRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
-        mtx_unlock(&self->ser_mtx);
-    }
-    else {
+    if (!Handler_IsWritable(self)) {
         *nOutBytesWritten = 0;
-        err = EBADF;
+        return EBADF;
     }
+
+
+    mtx_lock(&self->ser_mtx);
+    err = Driver_Write(self->driver, Handler_GetMode(self), &self->super.offset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    mtx_unlock(&self->ser_mtx);
 
     return err;
 }
@@ -74,22 +74,22 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
     decl_try_err();
     off_t endPos = 0ll;
 
-    if (Driver_IsSeekable(self->driver)) {
-        mtx_lock(&self->ser_mtx);
-        if (whence == SEEK_END) {
-            endPos = Driver_GetSeekableRange(self->driver);
-        }
-        
-        err = do_seek(offset, whence, endPos, &self->super.offset);
+    if (!Driver_IsSeekable(self->driver)) {
+        return ESPIPE;
+    }
 
-        if (pOutNewPos && err == EOK) {
-            *pOutNewPos = self->super.offset;
-        }
-        mtx_unlock(&self->ser_mtx);
+
+    mtx_lock(&self->ser_mtx);
+    if (whence == SEEK_END) {
+        endPos = Driver_GetSeekableRange(self->driver);
     }
-    else {
-        err = ESPIPE;
+
+    err = do_seek(offset, whence, endPos, &self->super.offset);
+
+    if (pOutNewPos && err == EOK) {
+        *pOutNewPos = self->super.offset;
     }
+    mtx_unlock(&self->ser_mtx);
 
     return err;
 }

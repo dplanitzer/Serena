@@ -528,7 +528,7 @@ errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, 
     return DriverHandler_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, pOutHandler);
 }
 
-static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     ssize_t nBytesRead = 0;
 
@@ -569,12 +569,12 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, Han
     *nOutBytesRead = nBytesRead;
 }
 
-static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, unsigned int mode, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
-    const bool isNonBlocking = (Handler_GetMode(hnd) & O_NONBLOCK) == O_NONBLOCK;
+    const bool isNonBlocking = (mode & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
 
     while (nBytesRead < nBytesToRead) {
@@ -623,7 +623,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, HandlerRef _N
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_read(ConsoleRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     char* pChars = pBuffer;
@@ -645,7 +645,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _N
     if (!cbuf_empty(&self->reportsQueue)) {
         // Now check whether there are terminal reports pending. Those take
         // priority over input device events.
-        Console_ReadReports_NonBlocking_Locked(self, hnd, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        Console_ReadReports_NonBlocking_Locked(self, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         nBytesRead += nTmpBytesRead;
     }
 
@@ -653,7 +653,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _N
     if (nBytesRead == 0 && err == EOK) {
         // We haven't read any data so far. Read input events and block if none
         // are available either.
-        const errno_t e1 = Console_ReadEvents_Locked(self, hnd, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        const errno_t e1 = Console_ReadEvents_Locked(self, mode, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         if (e1 == EOK) {
             nBytesRead += nTmpBytesRead;
         } else {
@@ -672,7 +672,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, void* _N
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_write(ConsoleRef _Nonnull self, HandlerRef _Nonnull hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Console_write(ConsoleRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;

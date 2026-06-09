@@ -33,13 +33,13 @@ errno_t LogDriver_onStart(LogDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t LogDriver_read(LogDriverRef _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t LogDriver_read(LogDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     *nOutBytesRead = log_read(buf, nBytesToRead);
     return EOK;
 }
 
-errno_t LogDriver_write(LogDriverRef _Nonnull self, HandlerRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t LogDriver_write(LogDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     log_write(buf, nBytesToWrite);
     *nOutBytesWritten = nBytesToWrite;

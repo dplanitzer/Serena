@@ -336,12 +336,12 @@ catch:
     return err;
 }
 
-errno_t Driver_read(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Driver_read(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EBADF;
 }
 
-errno_t Driver_write(DriverRef _Nonnull self, HandlerRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Driver_write(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EBADF;
 }

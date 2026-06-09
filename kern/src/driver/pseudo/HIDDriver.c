@@ -39,10 +39,10 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t HIDDriver_read(HIDDriverRef _Nonnull self, HandlerRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t HIDDriver_read(HIDDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    const bool isNonBlocking = (Handler_GetMode(ioc) & O_NONBLOCK) == O_NONBLOCK;
+    const bool isNonBlocking = (mode & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
     HIDEvent* pe = buf;
     ssize_t nBytesRead = 0;
