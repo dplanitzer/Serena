@@ -9,6 +9,7 @@
 #include "RamDisk.h"
 #include <string.h>
 #include <ext/bit.h>
+#include <ext/math.h>
 #include <kern/kalloc.h>
 
 

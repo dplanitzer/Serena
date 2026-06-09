@@ -8,6 +8,8 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
+#include <kern/kernlib.h>
+
 
 errno_t Process_GetMatchingState(ProcessRef _Nonnull self, int mstate, proc_waitres_t* _Nonnull res)
 {

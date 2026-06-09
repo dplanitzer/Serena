@@ -9,6 +9,7 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
+#include <ext/math.h>
 #include <ext/nanotime.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 

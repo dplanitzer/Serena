@@ -20,8 +20,8 @@
 #include <ext/limits.h>
 #include <ext/math.h>
 #include <ext/try.h>
-#include <../../kern/h/kpi/_access.h>
-#include <../../kern/h/kpi/_seek.h>
+#include <kpi/_access.h>
+#include <kpi/_seek.h>
 
 
 //

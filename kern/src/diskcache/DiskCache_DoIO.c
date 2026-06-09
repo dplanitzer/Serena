@@ -9,6 +9,8 @@
 #include "DiskCachePriv.h"
 #include <assert.h>
 #include <ext/nanotime.h>
+#include <kern/kernlib.h>
+
 
 static void _on_disk_request_done(StrategyRequest* _Nonnull req);
 

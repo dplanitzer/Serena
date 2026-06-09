@@ -11,7 +11,9 @@
 #include "kerneld.h"
 #include <assert.h>
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 #include <kern/sigset.h>
+
 
 errno_t Process_SendSignal(ProcessRef _Nonnull self, int target, pid_t id, vcpuid_t vid, int signo)
 {

@@ -7,6 +7,7 @@
 //
 
 #include "ConsolePriv.h"
+#include <kern/kernlib.h>
 
 
 static bool has_private_use_char(ConsoleRef _Nonnull self, char ch)

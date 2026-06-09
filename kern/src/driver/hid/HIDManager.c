@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <driver/IOCatalog.h>
 #include <ext/bit.h>
+#include <ext/math.h>
 #include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
 #include <kpi/file.h>

@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 #include <kpi/file.h>
 
 typedef struct drv_child {

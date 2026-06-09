@@ -7,6 +7,7 @@
 //
 
 #include "Handler.h"
+#include <kpi/_seek.h>
 
 
 errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)

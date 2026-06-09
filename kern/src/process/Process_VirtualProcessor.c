@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include <assert.h>
 #include <string.h>
+#include <ext/math.h>
 #include <kern/kalloc.h>
 #include <kpi/syscall.h>
 #include <sched/vcpu_pool.h>

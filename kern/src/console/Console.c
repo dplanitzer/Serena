@@ -11,6 +11,7 @@
 #include <string.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
+#include <kern/kernlib.h>
 #include <kpi/console.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>

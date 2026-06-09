@@ -10,6 +10,7 @@
 #define InodeHandler_h
 
 #include <handler/Handler.h>
+#include <kpi/attr.h>
 
 
 open_class(InodeHandler, Handler,

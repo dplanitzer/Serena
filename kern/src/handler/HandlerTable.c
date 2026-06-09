@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
+#include <ext/math.h>
 #include <kern/kalloc.h>
 #include <kpi/fd.h>
 #include <kpi/syslimits.h>

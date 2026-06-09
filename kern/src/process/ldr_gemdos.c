@@ -8,6 +8,7 @@
 
 #include "ldr_gemdos.h"
 #include <string.h>
+#include <ext/math.h>
 #include <handler/Handler.h>
 #include <machine/cpu.h>
 

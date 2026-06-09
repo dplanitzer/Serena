@@ -9,6 +9,8 @@
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
 #include <assert.h>
+#include <kern/kernlib.h>
+
 
 // Operations that are mutual exclusive in the context of terminating a process:
 // - exit

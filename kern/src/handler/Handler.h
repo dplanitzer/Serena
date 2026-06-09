@@ -9,13 +9,12 @@
 #ifndef Handler_h
 #define Handler_h
 
-#include <stdarg.h>
 #include <ext/atomic.h>
 #include <ext/try.h>
 #include <kobj/Object.h>
-#include <kern/kernlib.h>
-#include <kpi/attr.h>
 #include <kpi/fd.h>
+#include <kpi/types.h>
+#include <kpi/_seek.h>
 
 
 // A handler object acts as an adaptor that allows the file descriptor API to
@@ -31,15 +30,22 @@
 //   a handler subclass may impose limits on the kind of operations that can run
 //   in parallel and the number of operations that can run in parallel.
 //
-// - Once Handler_Close() has returned, all operations that were still in-flight
-//   at the time Handler_Close() was called have finished running or have been
-//   cancelled and no new operations can be started anymore. An attempt to start
-//   a new operation will result in a EBADF error.
-//
 // - the implementation of each operation (read, write, etc) has to call
 //   Handler_GetMode() *once at the beginning* and then act on the mode snapshot
 //   that it has received. The mode shall be kept static throughout the execution
-//   of the operation. 
+//   of the operation.
+//
+// - Code which wants to issue an operation on a handler has to hold a strong
+//   reference to the handler and has to maintain it until the operation has
+//   returned.
+//
+// - Note that it is up to a specific handler implementation to decide whether
+//   Handler_Close() cancels all or some of the currently executing operations.
+//   Further note that an operation that was started before Handler_Close() is
+//   called by some other vcpu may continue to run after Handler_Close() returns.
+//   The handler will only be freed once the last strong reference has been
+//   released and any code that is calling a handler function must maintain a
+//   strong reference until after the handler function has returned.
 //
 open_class(Handler, Object,
     atomic_int  descriptorCount;
@@ -69,21 +75,13 @@ open_class_funcs(Handler, Object,
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
 
-    // Closes the handler. This function guarantees that no more operations are
-    // active on the handler and no new operations can be started on the handler
-    // anymore once it returns to the caller. This function may return an error.
-    // Note that this error is advisory. Meaning the handler is closed no matter
-    // whether EOK or an error code is returned once this function returns to
-    // the caller.
-    // Subclassers must ensure that:
-    // - either the close function blocks until all currently active operations
-    //   have finished successfully or with an error.
-    // - or the close function cancels all currently active operations and blocks
-    //   until the cancel has finished.
-    //
-    // It is imperative that close() only returns after no operations are running
-    // anymore and the handler has been atomically marked as closed to ensure that
-    // no new operations can be started anymore after return from close().
+    // Closes the handler. A close function may mark the handler as closed such
+    // that no new operations can be started after close() has returned. However
+    // this is not required. Note that the way handlers and file descriptors
+    // work together, it is guaranteed that user space code can not issue any
+    // new operations on a descriptor once Handler_Close() has been called on
+    // the handler associated with the descriptor (the descriptor and thus
+    // handler is removed from the table before Handler_Close() is called).
     errno_t (*close)(void* _Nonnull self);
 );
 

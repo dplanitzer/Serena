@@ -9,6 +9,7 @@
 #ifndef DriverHandler_h
 #define DriverHandler_h
 
+#include <stdarg.h>
 #include <handler/Handler.h>
 #include <sched/mtx.h>
 

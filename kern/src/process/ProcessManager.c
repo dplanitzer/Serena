@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <ext/hash.h>
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 #include <sched/mtx.h>
 
 

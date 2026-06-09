@@ -9,6 +9,7 @@
 #include "FloppyDriverPriv.h"
 #include <assert.h>
 #include <string.h>
+#include <ext/math.h>
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <kern/kalloc.h>

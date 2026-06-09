@@ -9,6 +9,7 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
+#include <ext/math.h>
 #include <kern/kalloc.h>
 
 

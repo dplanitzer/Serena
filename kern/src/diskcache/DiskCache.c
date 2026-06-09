@@ -13,6 +13,7 @@
 #include <ext/bit.h>
 #include <ext/nanotime.h>
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 #include <kern/log.h>
 #include <sched/vcpu.h>
 
