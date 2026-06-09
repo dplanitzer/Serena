@@ -46,7 +46,7 @@ errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnul
 
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_Read(self->driver, Handler_GetMode(self), &self->super.offset, pBuffer, nBytesToRead, nOutBytesRead);
+    err = Driver_Read(self->driver, Handler_GetMode(self), &self->offset, pBuffer, nBytesToRead, nOutBytesRead);
     mtx_unlock(&self->ser_mtx);
 
     return err;
@@ -63,7 +63,7 @@ errno_t DriverHandler_write(DriverHandlerRef _Nonnull _Locked self, const void* 
 
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_Write(self->driver, Handler_GetMode(self), &self->super.offset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    err = Driver_Write(self->driver, Handler_GetMode(self), &self->offset, pBuffer, nBytesToWrite, nOutBytesWritten);
     mtx_unlock(&self->ser_mtx);
 
     return err;
@@ -84,10 +84,10 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
         endPos = Driver_GetSeekableRange(self->driver);
     }
 
-    err = do_seek(offset, whence, endPos, &self->super.offset);
+    err = do_seek(offset, whence, endPos, &self->offset);
 
     if (pOutNewPos && err == EOK) {
-        *pOutNewPos = self->super.offset;
+        *pOutNewPos = self->offset;
     }
     mtx_unlock(&self->ser_mtx);
 
@@ -99,7 +99,7 @@ errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
     decl_try_err();
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_vIoctl(self->driver, Handler_GetMode(self), &self->super.offset, cmd, ap);
+    err = Driver_vIoctl(self->driver, Handler_GetMode(self), &self->offset, cmd, ap);
     mtx_unlock(&self->ser_mtx);
 
     return err;

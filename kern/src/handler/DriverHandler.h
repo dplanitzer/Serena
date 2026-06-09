@@ -14,6 +14,7 @@
 
 
 open_class(DriverHandler, Handler,
+    off_t               offset;
     DriverRef _Nonnull  driver;
     mtx_t               ser_mtx;
 );

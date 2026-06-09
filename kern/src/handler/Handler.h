@@ -37,7 +37,6 @@
 //   a new operation will result in a EBADF error.
 //
 open_class(Handler, Object,
-    off_t       offset;         // handler lock
     atomic_int  descriptorCount;
     uint16_t    mode;           // Constant
     int16_t     type;           // Constant
@@ -102,21 +101,6 @@ open_class_funcs(Handler, Object,
 
 // Returns a copy of the flags
 extern int Handler_GetFlags(HandlerRef _Nonnull self);
-
-
-// Returns the current seek position
-#define Handler_GetOffset(/*_Nonnull _Locked*/ __self) \
-((HandlerRef)(__self))->offset
-
-// Sets the current seek position
-#define Handler_SetOffset(/*_Nonnull _Locked*/ __self, __pos) \
-((HandlerRef)(__self))->offset = (__pos)
-
-// Increment the current seek position by the give signed value
-#define Handler_IncrementOffsetBy(/*_Nonnull _Locked*/ __self, __delta) \
-((HandlerRef)(__self))->offset += (__delta)
-
-
 extern errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags);
 
 

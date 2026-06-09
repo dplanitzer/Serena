@@ -13,6 +13,7 @@
 
 
 open_class(InodeHandler, Handler,
+    off_t               offset;
     InodeRef _Nonnull   ino;
 );
 open_class_funcs(InodeHandler, Handler,

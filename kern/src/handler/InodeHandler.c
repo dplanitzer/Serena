@@ -42,7 +42,7 @@ errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull 
 
 
     Inode_Lock(self->ino);
-    err = Inode_Read(self->ino, &self->super.offset, pBuffer, nBytesToRead, nOutBytesRead);
+    err = Inode_Read(self->ino, &self->offset, pBuffer, nBytesToRead, nOutBytesRead);
     Inode_Unlock(self->ino);
 
     return err;
@@ -65,13 +65,13 @@ errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _N
         offset = Inode_GetFileSize(self);
     }
     else {
-        offset = self->super.offset;
+        offset = self->offset;
     }
 
     err = Inode_Write(self->ino, &offset, pBuffer, nBytesToWrite, nOutBytesWritten);
 
     if (err == EOK) {
-        self->super.offset = offset;
+        self->offset = offset;
     }
 
     Inode_Unlock(self->ino);
@@ -90,10 +90,10 @@ errno_t InodeHandler_seek(InodeHandlerRef _Nonnull _Locked self, off_t offset, o
         endPos = Inode_GetFileSize(self->ino);
     }
 
-    err = do_seek(offset, whence, endPos, &self->super.offset);
+    err = do_seek(offset, whence, endPos, &self->offset);
 
     if (pOutNewPos && err == EOK) {
-        *pOutNewPos = self->super.offset;
+        *pOutNewPos = self->offset;
     }
     Inode_Unlock(self->ino);
 
