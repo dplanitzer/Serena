@@ -36,10 +36,15 @@
 //   cancelled and no new operations can be started anymore. An attempt to start
 //   a new operation will result in a EBADF error.
 //
+// - the implementation of each operation (read, write, etc) has to call
+//   Handler_GetMode() *once at the beginning* and then act on the mode snapshot
+//   that it has received. The mode shall be kept static throughout the execution
+//   of the operation. 
+//
 open_class(Handler, Object,
     atomic_int  descriptorCount;
-    uint16_t    mode;           // Constant
-    int16_t     type;           // Constant
+    atomic_int  mode;
+    int         type;           // Constant
 );
 open_class_funcs(Handler, Object,
 
@@ -85,22 +90,16 @@ open_class_funcs(Handler, Object,
 
 // Returns the handler type.
 #define Handler_GetType(/*_Nonnull*/ __self) \
-((int)((HandlerRef)(__self))->type)
+(((HandlerRef)(__self))->type)
 
 // Returns the handler mode.
 #define Handler_GetMode(/*_Nonnull*/ __self) \
-((unsigned int)((HandlerRef)(__self))->mode)
+((unsigned int)atomic_int_load(&((HandlerRef)(__self))->mode))
 
-// Returns true if the handler is readable.
-#define Handler_IsReadable(__self) \
-((((HandlerRef)__self)->mode & O_RDONLY) == O_RDONLY)
+// Returns a copy of the flags. The flags are the modifiable subset of mode bits.
+#define Handler_GetFlags(/*_Nonnull*/ __self) \
+(Handler_GetMode(__self) & O_FLAGS)
 
-// Returns true if the handler is writable.
-#define Handler_IsWritable(__self) \
-((((HandlerRef)__self)->mode & O_WRONLY) == O_WRONLY)
-
-// Returns a copy of the flags
-extern int Handler_GetFlags(HandlerRef _Nonnull self);
 extern errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags);
 
 

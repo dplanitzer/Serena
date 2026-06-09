@@ -34,8 +34,9 @@ void InodeHandler_deinit(InodeHandlerRef _Nonnull self)
 errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
+    const unsigned int mode = Handler_GetMode(self);
 
-    if (!Handler_IsReadable(self)) {
+    if ((mode & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
         return EBADF;
     }
@@ -51,9 +52,10 @@ errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull 
 errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
+    const unsigned int mode = Handler_GetMode(self);
     off_t offset;
 
-    if (!Handler_IsWritable(self)) {
+    if ((mode & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
         return EBADF;
     }
@@ -61,7 +63,7 @@ errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _N
 
     Inode_Lock(self->ino);
 
-    if ((Handler_GetMode(self) & O_APPEND) == O_APPEND) {
+    if ((mode & O_APPEND) == O_APPEND) {
         offset = Inode_GetFileSize(self);
     }
     else {
@@ -112,12 +114,13 @@ errno_t InodeHandler_getAttributes(InodeHandlerRef _Nonnull self, fs_attr_t* _No
 errno_t InodeHandler_truncate(InodeHandlerRef _Nonnull self, off_t length)
 {
     decl_try_err();
+    const unsigned int mode = Handler_GetMode(self);
 
     if (length < 0ll) {
         return EINVAL;
     }
     
-    if (!Handler_IsWritable(self)) {
+    if ((mode & O_WRONLY) == 0) {
         return EBADF;
     }
 

@@ -161,7 +161,7 @@ _atomic_int_fetch_and:
     inline
     cargs aifan_ptr.l, aifan_op.l
         move.l  aifan_ptr(sp), a0
-        move.l  aifan_op(sp), d0
+        move.l  aifan_op(sp), d1
 
 __atomic_int_fetch_and_reg:
         DISABLE_INTERRUPTS_SP

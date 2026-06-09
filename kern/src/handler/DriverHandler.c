@@ -38,15 +38,16 @@ errno_t DriverHandler_close(DriverHandlerRef _Nonnull self)
 errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
+    const unsigned int mode = Handler_GetMode(self);
 
-    if (!Handler_IsReadable(self)) {
+    if ((mode & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
         return EBADF;
     }
 
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_Read(self->driver, Handler_GetMode(self), &self->offset, pBuffer, nBytesToRead, nOutBytesRead);
+    err = Driver_Read(self->driver, mode, &self->offset, pBuffer, nBytesToRead, nOutBytesRead);
     mtx_unlock(&self->ser_mtx);
 
     return err;
@@ -55,15 +56,16 @@ errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnul
 errno_t DriverHandler_write(DriverHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
+    const unsigned int mode = Handler_GetMode(self);
 
-    if (!Handler_IsWritable(self)) {
+    if ((mode & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
         return EBADF;
     }
 
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_Write(self->driver, Handler_GetMode(self), &self->offset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    err = Driver_Write(self->driver, mode, &self->offset, pBuffer, nBytesToWrite, nOutBytesWritten);
     mtx_unlock(&self->ser_mtx);
 
     return err;
@@ -97,9 +99,10 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
 errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
 {
     decl_try_err();
+    const unsigned int mode = Handler_GetMode(self);
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_vIoctl(self->driver, Handler_GetMode(self), &self->offset, cmd, ap);
+    err = Driver_vIoctl(self->driver, mode, &self->offset, cmd, ap);
     mtx_unlock(&self->ser_mtx);
 
     return err;

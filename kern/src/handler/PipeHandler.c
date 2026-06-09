@@ -41,31 +41,38 @@ void PipeHandler_deinit(PipeHandlerRef _Nonnull self)
 
 errno_t PipeHandler_close(PipeHandlerRef _Nonnull self)
 {
-    Pipe_Close(self->pipe, (Handler_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
-    
+    const unsigned int mode = Handler_GetMode(self);
+    const int pe = ((mode & O_RDONLY) == O_RDONLY) ? kPipeEnd_Read : kPipeEnd_Write;
+
+    Pipe_Close(self->pipe, pe);
+
     return EOK;
 }
 
 errno_t PipeHandler_read(PipeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    if (Handler_IsReadable(self)) {
-        return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
-    }
-    else {
+    const unsigned int mode = Handler_GetMode(self);
+
+    if ((mode & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
         return EBADF;
     }
+
+
+    return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 errno_t PipeHandler_write(PipeHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    if (Handler_IsWritable(self)) {
-        return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
-    }
-    else {
+    const unsigned int mode = Handler_GetMode(self);
+    
+    if ((mode & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
         return EBADF;
     }
+
+
+    return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
 

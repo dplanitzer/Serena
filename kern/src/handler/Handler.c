@@ -16,7 +16,7 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, Hand
 
     err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
-        self->mode = mode & (O_ACCMODE | O_FLAGS);
+        atomic_int_store(&self->mode, mode & (O_ACCMODE | O_FLAGS));
         self->type = type;
 
         atomic_init(&self->descriptorCount, 0);
@@ -28,11 +28,6 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, Hand
 
 
 
-int Handler_GetFlags(HandlerRef _Nonnull self)
-{
-    return self->mode & O_FLAGS; //XXX use atomic_get_int() here
-}
-
 errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 {
     if ((flags & ~O_FLAGS) != 0) {
@@ -41,15 +36,15 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 
     switch (op) {
         case FD_FOP_ADD:
-            self->mode |= flags;    //XXX should be atomic_int()
+            atomic_int_fetch_or(&self->mode, flags);
             break;
 
         case FD_FOP_REMOVE:
-            self->mode &= ~flags;   //XXX should be atomic_int()
+            atomic_int_fetch_and(&self->mode, ~flags);
             break;
 
         case FD_FOP_REPLACE:
-            self->mode = flags;     //XXX should be atomic_int()
+            atomic_int_store(&self->mode, flags);
             break;
 
         default:
@@ -115,10 +110,11 @@ errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnu
     switch (flavor) {
         case FD_INFO_BASIC: {
             fd_basic_info_t* ip = info;
+            const unsigned int mode = Handler_GetMode(self);
 
             ip->type = self->type;
-            ip->flags = self->mode & O_FLAGS;
-            ip->access_mode = self->mode & O_ACCMODE;
+            ip->flags = mode & O_FLAGS;
+            ip->access_mode = mode & O_ACCMODE;
             return EOK;
         }
             
