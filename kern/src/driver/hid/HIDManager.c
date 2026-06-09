@@ -723,7 +723,6 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
 static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
 {
     if ((DriverRef)self->kb == driver) {
-        Handler_Close(self->kbHnd);
         Object_Release(self->kbHnd);
         self->kbHnd = NULL;
         self->kb = NULL;
@@ -732,7 +731,6 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
     
     if ((DriverRef)self->fb == driver) {
         DisplayDriver_SetScreenConfigObserver(self->fb, NULL, 0);
-        Handler_Close(self->fbHnd);
         Object_Release(self->fbHnd);
         self->fbHnd = NULL;
         self->fb = NULL;
@@ -751,7 +749,6 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
                     DisplayDriver_SetLightPenEnabled(self->fb, false);
                 }
             }
-            Handler_Close(hnd);
             Object_Release(hnd);
             self->mouse.ch[i] = NULL;
             self->mouse.chCount--;
@@ -763,7 +760,6 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         gamepad_state_t* gp = &self->gamepad[i];
 
         if (gp->hnd && DriverHandler_GetDriverAs(gp->hnd, Driver) == driver) {
-            Handler_Close(gp->hnd);
             Object_Release(gp->hnd);
             gp->hnd = NULL;
             self->gamepadCount--;

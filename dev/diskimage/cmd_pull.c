@@ -57,7 +57,6 @@ catch:
     if (fp) {
         fclose(fp);
     }
-    Handler_Close(hnd);
     Object_Release(hnd);
     
     free(dstPath);

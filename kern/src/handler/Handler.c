@@ -19,8 +19,6 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, Hand
     if (err == EOK) {
         atomic_int_store(&self->mode, mode & (O_ACCMODE | O_FLAGS));
         self->type = type;
-
-        atomic_init(&self->descriptorCount, 0);
     }
     *pOutHandler = self;
     
@@ -125,15 +123,8 @@ errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnu
 }
 
 
-errno_t Handler_close(HandlerRef _Nonnull self)
-{
-    return EOK;
-}
-
-
 class_func_defs(Handler, Object,
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
-func_def(close, Handler)
 );

@@ -106,7 +106,6 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
         DriverHandler_Ioctl(bscr->hnd, kFBCommand_DestroyCLUT, bscr->clut);
         DriverHandler_Ioctl(bscr->hnd, kFBCommand_DestroySurface, bscr->srf);
 
-        Handler_Close(bscr->hnd);
         Object_Release(bscr->hnd);
     }
 }

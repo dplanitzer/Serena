@@ -42,15 +42,8 @@ catch:
     if (needsUnlock) {
         mtx_unlock(&pp->mtx);
     }
-    if (rdHnd) {
-        Handler_Close(rdHnd);
-        Object_Release(rdHnd);
-    }
-    if (wrHnd) {
-        Handler_Close(wrHnd);
-        Object_Release(wrHnd);
-    }
-
+    Object_Release(rdHnd);
+    Object_Release(wrHnd);
     Object_Release(pPipe);
     
     return err;

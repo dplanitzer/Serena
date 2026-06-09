@@ -188,7 +188,6 @@ static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
     try(iterate_dir(self, hnd, path, print_dir_entry));
 
 catch:
-    Handler_Close(hnd);
     Object_Release(hnd);
     return err;
 }

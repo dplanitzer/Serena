@@ -35,18 +35,12 @@ errno_t PipeHandler_Create(PipeRef _Nonnull pipe, unsigned int mode, HandlerRef 
 
 void PipeHandler_deinit(PipeHandlerRef _Nonnull self)
 {
-    Object_Release(self->pipe);
-    self->pipe = NULL;
-}
-
-errno_t PipeHandler_close(PipeHandlerRef _Nonnull self)
-{
     const unsigned int mode = Handler_GetMode(self);
     const int pe = ((mode & O_RDONLY) == O_RDONLY) ? kPipeEnd_Read : kPipeEnd_Write;
 
     Pipe_Close(self->pipe, pe);
-
-    return EOK;
+    Object_Release(self->pipe);
+    self->pipe = NULL;
 }
 
 errno_t PipeHandler_read(PipeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -78,7 +72,6 @@ errno_t PipeHandler_write(PipeHandlerRef _Nonnull _Locked self, const void* _Non
 
 class_func_defs(PipeHandler, Handler,
 override_func_def(deinit, PipeHandler, Object)
-override_func_def(close, PipeHandler, Handler)
 override_func_def(read, PipeHandler, Handler)
 override_func_def(write, PipeHandler, Handler)
 );

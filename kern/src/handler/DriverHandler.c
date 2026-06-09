@@ -26,13 +26,11 @@ catch:
 
 void DriverHandler_deinit(DriverHandlerRef _Nonnull self)
 {
+    Driver_Close(self->driver, (HandlerRef)self);
     Object_Release(self->driver);
-    mtx_deinit(&self->ser_mtx);
-}
+    self->driver = NULL;
 
-errno_t DriverHandler_close(DriverHandlerRef _Nonnull self)
-{
-    return Driver_Close(self->driver, (HandlerRef)self);
+    mtx_deinit(&self->ser_mtx);
 }
 
 errno_t DriverHandler_read(DriverHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -123,7 +121,6 @@ errno_t DriverHandler_Ioctl(HandlerRef _Nonnull self, int cmd, ...)
 
 class_func_defs(DriverHandler, Handler,
 override_func_def(deinit, DriverHandler, Object)
-override_func_def(close, DriverHandler, Handler)
 override_func_def(read, DriverHandler, Handler)
 override_func_def(write, DriverHandler, Handler)
 override_func_def(seek, DriverHandler, Handler)

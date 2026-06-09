@@ -87,17 +87,11 @@ void Console_deinit(ConsoleRef _Nonnull self)
         
     mtx_deinit(&self->mtx);
 
-    if (self->fbHnd) {
-        Handler_Close(self->fbHnd);
-        Object_Release(self->fbHnd);
-        self->fbHnd = NULL;
-    }
+    Object_Release(self->fbHnd);
+    self->fbHnd = NULL;
 
-    if (self->hidHnd) {
-        Handler_Close(self->hidHnd);
-        Object_Release(self->hidHnd);
-        self->hidHnd = NULL;
-    }
+    Object_Release(self->hidHnd);
+    self->hidHnd = NULL;
 }
 
 errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)

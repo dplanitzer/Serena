@@ -111,7 +111,6 @@ errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef _Consu
     err = _alloc_fd_slot(self, 0, &new_fd);
     if (err == EOK) {
         self->table[new_fd] = hnd;
-        Handler_IncrementDescriptorCount(hnd);
     }
 
     mtx_unlock(&self->mtx);
@@ -156,7 +155,6 @@ errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd,
         err = _alloc_fd_slot(self, min_fd, &new_fd);
         if (err == EOK) {
             self->table[new_fd] = Object_RetainAs(self->table[fd], Handler);
-            Handler_IncrementDescriptorCount(self->table[fd]);
         }
     }
 
@@ -195,7 +193,6 @@ errno_t HandlerTable_DupHandlerTo(HandlerTable* _Nonnull self, int fd, HandlerTa
 
     other->table[target_fd] = Object_RetainAs(self->table[fd], Handler);
     other->max_fd_num = __max(other->max_fd_num, target_fd);
-    Handler_IncrementDescriptorCount(self->table[fd]);
 
 
 catch:
@@ -209,9 +206,6 @@ catch:
     // Also note that we always treat a close as successful because the handler
     // is in fact always closed even if it encounters a problem while doing so.
     if (hnd_to_close) {
-        if (Handler_DecrementDescriptorCount(hnd_to_close) == 1) {
-            Handler_Close(hnd_to_close);
-        }
         Object_Release(hnd_to_close);
     }
 
@@ -236,9 +230,6 @@ errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd)
     mtx_unlock(&self->mtx);
 
     if (hnd) {
-        if (Handler_DecrementDescriptorCount(hnd) == 1) {
-            err = Handler_Close(hnd);
-        }
         Object_Release(hnd);
     }
     else {
@@ -265,9 +256,6 @@ void HandlerTable_CloseAll(HandlerTable* _Nonnull self)
 
     for (int i = 0; i < max_fd_num; i++) {
         if (table[i]) {
-            if (Handler_DecrementDescriptorCount(table[i]) == 1) {
-                Handler_Close(table[i]);
-            }
             Object_Release(table[i]);
             table[i] = NULL;
         }
@@ -286,9 +274,6 @@ void HandlerTable_CloseHandlersOnExec(HandlerTable* _Nonnull self)
         HandlerRef hnd = self->table[fd];
 
         if (hnd && (Handler_GetFlags(hnd) & O_PRSVEXEC) == 0) {
-            if (Handler_DecrementDescriptorCount(hnd) == 1) {
-                Handler_Close(hnd);
-            }
             Object_Release(hnd);
             self->table[fd] = NULL;
         }

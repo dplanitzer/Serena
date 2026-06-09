@@ -35,7 +35,6 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
     mtx_unlock(&pp->mtx);
 
     if (err != EOK) {
-        Handler_Close(hnd);
         Object_Release(hnd);
         *(pa->pOutIoc) = -1;
     }
@@ -61,7 +60,6 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
     mtx_unlock(&pp->mtx);
 
     if (err != EOK) {
-        Handler_Close(hnd);
         Object_Release(hnd);
         *(pa->pOutIoc) = -1;
     }
@@ -87,7 +85,6 @@ SYSCALL_3(fs_open_directory, int wd, const char* _Nonnull path, int* _Nonnull pO
     mtx_unlock(&pp->mtx);
     
     if (err != EOK) {
-        Handler_Close(hnd);
         Object_Release(hnd);
         *(pa->pOutIoc) = -1;
     }
