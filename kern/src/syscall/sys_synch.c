@@ -138,23 +138,7 @@ SYSCALL_4(woa_wait, volatile atomic_int* _Nonnull addr, int expected, int flags,
     
 
     const ticks_t deadline = (pa->wtp) ? wq_calc_deadline(g_mono_clock, pa->flags, pa->wtp) : TICKS_MAX;
-    const int sps = preempt_disable();
-    for (;;) {
-        if (vcpu_testabort_np() == EABORTED) {
-            err = EABORTED;
-            break;
-        }
-        if (atomic_int_load(pa->addr) != pa->expected) {
-            break;
-        }
-
-        err = wq_wait_np(&wp->wq, deadline);
-        if (err != EOK) {
-            break;
-        }
-    }
-    preempt_restore(sps);
-    
+    err = wq_wait_addr(&wp->wq, pa->addr, pa->expected, 0, deadline);
 
     _relinquish_woa(wp);
 
@@ -163,16 +147,13 @@ SYSCALL_4(woa_wait, volatile atomic_int* _Nonnull addr, int expected, int flags,
 
 SYSCALL_2(woa_wakeup, volatile atomic_int* _Nonnull addr, int flags)
 {
-    if ((pa->flags & ~_WAKEUP_UMASK) != 0) {
+    if ((pa->flags & ~_WAKEUP_USERMASK) != 0) {
         return EINVAL;
     }
 
     woa_hdr_t wp = _acquire_woa_for_addr(pa->addr, false);
     if (wp) {
-        const int sps = preempt_disable();
-        wq_wakeup_np(&wp->wq, pa->flags, 0);
-        preempt_restore(sps);
-
+        wq_wakeup(&wp->wq, pa->flags, 0);
         _relinquish_woa(wp);
     }
 

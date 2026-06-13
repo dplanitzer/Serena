@@ -140,6 +140,33 @@ errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t deadline)
     return (vp->wakeup_reason == WRES_TIMEOUT) ? ETIMEDOUT : EOK;
 }
 
+errno_t wq_wait_addr(waitqueue_t _Nonnull self, volatile atomic_int* _Nonnull addr, int expected, int flags, const ticks_t deadline)
+{
+    decl_try_err();
+    const bool doAbort = (flags & SIGWAIT_NOABORT) == 0;
+    const int sps = preempt_disable();
+
+    for (;;) {
+        if (doAbort && vcpu_testabort_np() == EABORTED) {
+            err = EABORTED;
+            break;
+        }
+        if (atomic_int_load(addr) != expected) {
+            break;
+        }
+
+        err = wq_wait_np(self, deadline);
+        if (err != EOK) {
+            break;
+        }
+    }
+    preempt_restore(sps);
+
+    return err;
+}
+
+
+
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
 void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, int pri_boost)
@@ -225,4 +252,12 @@ void wq_wakeup_np(waitqueue_t _Nonnull self, int flags, int pri_boost)
         // Wake the first waiter
         wq_wakeup_vcpu_np(self, (vcpu_t)cp, flags & ~WAKEUP_ONE, pri_boost);
     }
+}
+
+void wq_wakeup(waitqueue_t _Nonnull self, int flags, int pri_boost)
+{
+    const int sps = preempt_disable();
+    
+    wq_wakeup_np(self, flags, pri_boost);
+    preempt_restore(sps);
 }

@@ -230,9 +230,6 @@ extern errno_t vcpu_send_signal_boost(vcpu_t _Nonnull self, int signo, int pri_b
 vcpu_send_signal_boost(__self, __signo, 0)
 
 
-//#define TIMER_ABSTIME     2      declared in _time.h
-#define SIGWAIT_NOABORT     4   /* informs vcpu_sigwait() that it should ignore system call aborts */
-
 // Blocks the caller until either one of the signals in 'set' arrives, a timeout
 // happens or an abort signal arrives. Returns EABORTED and leaves the signal
 // pending if an abort signal has arrived and SIGWAIT_NOABORT isn't specified.

@@ -11,6 +11,7 @@
 
 #include <limits.h>
 #include <stdbool.h>
+#include <ext/atomic.h>
 #include <ext/queue.h>
 #include <ext/nanotime.h>
 #include <ext/try.h>
@@ -21,6 +22,11 @@
 
 
 struct vcpu;
+
+
+// wq_wait_addr() options
+//#define TIMER_ABSTIME     2      declared in _time.h
+#define SIGWAIT_NOABORT     4   /* informs wq_wait_addr(), vcpu_sigwait() that it should ignore system call aborts */
 
 
 // wakeup() options (see kpi/synch.h for user visible options)
@@ -71,6 +77,13 @@ extern ticks_t wq_calc_deadline(clock_ref_t _Nonnull clock, int flags, const nan
 // @Entry Condition: preemption disabled
 extern errno_t wq_wait_np(waitqueue_t _Nonnull self, const ticks_t deadline);
 
+// Waits as long as the memory location 'addr' contains the value 'expected'.
+// Returns once this is no longer the case or SIG_FORCE_QUIT is pending and
+// 'flags' does not contain SIGWAIT_NOABORT. Takes care of locking/unlocking the
+// queue. Otherwise works like wq_wait_np().
+extern errno_t wq_wait_addr(waitqueue_t _Nonnull self, volatile atomic_int* _Nonnull addr, int expected, int flags, const ticks_t deadline);
+
+
 // Specifically wakes up the vcpu 'vp' if it is currently in wait state. Does
 // nothing otherwise.
 // @Entry Condition: preemption disabled
@@ -79,5 +92,8 @@ extern void wq_wakeup_vcpu_np(waitqueue_t _Nonnull self, struct vcpu* _Nonnull v
 // Wakes one or all vcpus on the wait queue up.
 // @Entry Condition: preemption disabled
 extern void wq_wakeup_np(waitqueue_t _Nonnull self, int flags, int pri_boost);
+
+// Like wq_wakeup_np() but takes care of locking /unlocking the queue.
+extern void wq_wakeup(waitqueue_t _Nonnull self, int flags, int pri_boost);
 
 #endif /* _WAITQUEUE_H */

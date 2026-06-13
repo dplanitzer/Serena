@@ -15,7 +15,7 @@
 #define WAKEUP_ONE  1   /* Requests that wakeup() wakes up at most one vcpu instead of all. */
 
 #if defined(__KERNEL__)
-#define _WAKEUP_UMASK   (WAKEUP_ALL | WAKEUP_ONE)
+#define _WAKEUP_USERMASK    (WAKEUP_ALL | WAKEUP_ONE)
 #endif
 
 #endif /* _KPI_SYNCH_H */
