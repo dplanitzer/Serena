@@ -36,7 +36,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     if ((oflags & O_WRONLY) == O_WRONLY || (oflags & O_TRUNC) == O_TRUNC) {
         accessMode |= W_OK;
     }
-    if ((oflags & _O_EXONLY) == _O_EXONLY) {
+    if ((oflags & O_EXONLY) == O_EXONLY) {
         accessMode |= X_OK;
     }
 

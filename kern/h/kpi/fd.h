@@ -25,11 +25,17 @@
 #define O_APPEND    0x0010
 #define O_NONBLOCK  0x0020
 #define O_PRSVEXEC  0x0040
-#define _O_EXONLY   0x0080
+#if defined(__KERNEL__)
+#define O_EXONLY    0x10000
+#define O_USERSPACE 0x20000
+#endif
 
-// File access mode and flag masks
+// File access mode and flags masks
 #define O_ACCMODE   (O_RDONLY | O_WRONLY | O_RDWR)
 #define O_FLAGS     (O_APPEND | O_NONBLOCK | O_PRSVEXEC)
+#if defined(__KERNEL__)
+#define O_USERMASK  (O_ACCMODE | O_FLAGS | O_EXCL | O_TRUNC)
+#endif
 
 
 // fd_setflags() operation modes

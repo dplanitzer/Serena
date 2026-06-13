@@ -225,7 +225,7 @@ errno_t proc_img_open_file(proc_img_t* _Nonnull pimg, const char* _Nonnull path)
     pimg->orig_path = path;
 
 
-    try(FileManager_OpenFile(pimg->fm, pimg->orig_path, O_RDONLY | _O_EXONLY, &pimg->file));
+    try(FileManager_OpenFile(pimg->fm, pimg->orig_path, O_RDONLY | O_EXONLY, &pimg->file));
     try(InodeHandler_GetAttributes(pimg->file, &pimg->file_attr));
 
     // Do some basic file validation

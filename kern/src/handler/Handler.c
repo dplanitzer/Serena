@@ -17,7 +17,7 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, Hand
 
     err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
-        atomic_int_store(&self->mode, mode & (O_ACCMODE | O_FLAGS));
+        atomic_int_store(&self->mode, mode);
         self->type = type;
     }
     *pOutHandler = self;

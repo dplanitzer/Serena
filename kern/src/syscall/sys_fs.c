@@ -12,6 +12,7 @@
 #include <handler/HandlerTable.h>
 #include <kpi/directory.h>
 #include <kpi/disk.h>
+#include <kpi/fd.h>
 #include <kpi/filesystem.h>
 #include <process/ProcessPriv.h>
 
@@ -28,7 +29,7 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_OpenFile(&pp->fm, pa->path, pa->oflags, &hnd);
+    err = FileManager_OpenFile(&pp->fm, pa->path, (pa->oflags & O_USERMASK) | O_USERSPACE, &hnd);
     if (err == EOK) {
         err = HandlerTable_AdoptHandler(&pp->HandlerTable, hnd, pa->pOutIoc);
     }
@@ -53,7 +54,7 @@ SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perm
     }
 
     mtx_lock(&pp->mtx);
-    err = FileManager_CreateFile(&pp->fm, pa->path, pa->oflags, pa->fsperms, &hnd);
+    err = FileManager_CreateFile(&pp->fm, pa->path, (pa->oflags & O_USERMASK) | O_USERSPACE, pa->fsperms, &hnd);
     if (err == EOK) {
         err = HandlerTable_AdoptHandler(&pp->HandlerTable, hnd, pa->pOutIoc);
     }
