@@ -108,8 +108,8 @@ errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self)
 {
     SenseDiskRequest r;
 
-    IORequest_Init(&r, kDiskRequest_SenseDisk);
-    return DiskDriver_DoIO(self, (IORequest*)&r);
+    IODiskCommand_Init(&r, kDiskRequest_SenseDisk);
+    return DiskDriver_DoIO(self, (IODiskCommand*)&r);
 }
 
 void DiskDriver_NoteDiskChanged(DiskDriverRef _Nonnull self)
@@ -285,7 +285,7 @@ static void _get_disk_info_async(DiskDriverRef _Nonnull self, DiskGeometryReques
 }
 
 
-void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
+void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
 {
     if (!Driver_IsActive(self)) {
         req->status = ENODEV;
@@ -327,12 +327,12 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
 }
 
 
-static void _req_trampoline(IORequest* _Nonnull req)
+static void _req_trampoline(IODiskCommand* _Nonnull req)
 {
     DiskDriver_HandleRequest(req->driver, req);
 }
 
-errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
+errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
 {
     req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
     req->driver = self;
@@ -340,7 +340,7 @@ errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
     return kdispatch_item_async(self->dq, 0, (kdispatch_item_t)req);
 }
 
-errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
+errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
 {
     req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
     req->driver = self;
@@ -359,10 +359,10 @@ errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, char fillByte)
     decl_try_err();
     FormatDiskRequest r;
 
-    IORequest_Init(&r, kDiskRequest_FormatDisk);
+    IODiskCommand_Init(&r, kDiskRequest_FormatDisk);
     r.fillByte = fillByte;
 
-    return DiskDriver_DoIO(self, (IORequest*)&r);
+    return DiskDriver_DoIO(self, (IODiskCommand*)&r);
 }
 
 errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, off_t* _Nonnull pOffset, char fillByte)
@@ -370,12 +370,12 @@ errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, off_t* _Nonnull pOff
     decl_try_err();
     FormatTrackRequest r;
 
-    IORequest_Init(&r, kDiskRequest_FormatTrack);
+    IODiskCommand_Init(&r, kDiskRequest_FormatTrack);
     r.offset = *pOffset;
     r.fillByte = fillByte;
     r.resCount = 0;
 
-    err = DiskDriver_DoIO(self, (IORequest*)&r);
+    err = DiskDriver_DoIO(self, (IODiskCommand*)&r);
     if (err == EOK) {
         *pOffset = r.resCount;
     }
@@ -387,20 +387,20 @@ errno_t DiskDriver_GetDriveInfo(DiskDriverRef _Nonnull self, drive_info_t* _Nonn
 {
     GetDriveInfoRequest r;
 
-    IORequest_Init(&r, kDiskRequest_GetDriveInfo);
+    IODiskCommand_Init(&r, kDiskRequest_GetDriveInfo);
     r.ip = info;
 
-    return DiskDriver_DoIO(self, (IORequest*)&r);
+    return DiskDriver_DoIO(self, (IODiskCommand*)&r);
 }
 
 errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnull info)
 {
     DiskGeometryRequest r;
 
-    IORequest_Init(&r, kDiskRequest_GetDiskInfo);
+    IODiskCommand_Init(&r, kDiskRequest_GetDiskInfo);
     r.gp = info;
 
-    return DiskDriver_DoIO(self, (IORequest*)&r);
+    return DiskDriver_DoIO(self, (IODiskCommand*)&r);
 }
 
 
@@ -433,7 +433,7 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned 
     decl_try_err();
     StrategyRequest r;
 
-    IORequest_Init(&r, type);
+    IODiskCommand_Init(&r, type);
     r.offset = *pOffset;
     r.options = 0;
     r.iovCount = 1;
@@ -441,7 +441,7 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned 
     r.iov[0].iov_len = byteCount;
     r.resCount = 0;
 
-    err = DiskDriver_DoIO(self, (IORequest*)&r);
+    err = DiskDriver_DoIO(self, (IODiskCommand*)&r);
 
     if (r.resCount > 0) {
         *pOffset += r.resCount;

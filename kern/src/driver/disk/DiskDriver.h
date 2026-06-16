@@ -12,7 +12,7 @@
 #include <diskcache/DiskCache.h>
 #include <kdispatch/kdispatch.h>
 #include <driver/Driver.h>
-#include <driver/IORequest.h>
+#include <driver/disk/IODiskCommand.h>
 #include <kpi/disk.h>
 
 
@@ -43,7 +43,7 @@ enum {
 
 
 typedef struct StrategyRequest {
-    IORequest       s;
+    IODiskCommand       s;
     off_t           offset;         // <- logical sector address in terms of bytes
     unsigned int    options;        // <- read/write options
     ssize_t         resCount;       // -> number of bytes read/written
@@ -54,13 +54,13 @@ typedef struct StrategyRequest {
 
 
 typedef struct FormatDiskRequest {
-    IORequest   s;
+    IODiskCommand   s;
     char        fillByte;   // <- data for all sectors in the cluster to format
 } FormatDiskRequest;
 
 
 typedef struct FormatTrackRequest {
-    IORequest   s;
+    IODiskCommand   s;
     off_t       offset;     // <- logical sector address in terms of bytes
     char        fillByte;   // <- data for all sectors in the cluster to format
     ssize_t     resCount;   // -> number of bytes formatted
@@ -68,19 +68,19 @@ typedef struct FormatTrackRequest {
 
 
 typedef struct GetDriveInfoRequest {
-    IORequest               s;
+    IODiskCommand               s;
     drive_info_t* _Nonnull  ip;
 } GetDriveInfoRequest;
 
 
 typedef struct DiskGeometryRequest {
-    IORequest               s;
+    IODiskCommand               s;
     disk_info_t* _Nonnull   gp;
 } DiskGeometryRequest;
 
 
 typedef struct SenseDiskRequest {
-    IORequest   s;
+    IODiskCommand   s;
 } SenseDiskRequest;
 
     
@@ -165,13 +165,13 @@ open_class_funcs(DiskDriver, Driver,
     // Starts an asynchronous I/O operation.
     // Override: Optional
     // Default Behavior: Dispatches an async call to the dispatch queue
-    errno_t (*beginIO)(void* _Nonnull self, IORequest* _Nonnull req);
+    errno_t (*beginIO)(void* _Nonnull self, IODiskCommand* _Nonnull req);
 
 
     // Starts a asynchronous I/O operation and waits for its completion.
     // Override: Optional
     // Default Behavior: Dispatches a sync call to the dispatch queue
-    errno_t (*doIO)(void* _Nonnull self, IORequest* _Nonnull req);
+    errno_t (*doIO)(void* _Nonnull self, IODiskCommand* _Nonnull req);
 
 
     //
@@ -180,7 +180,7 @@ open_class_funcs(DiskDriver, Driver,
 
     // Executes a disk request.
     // Default Behavior: XXX
-    void (*handleRequest)(void* _Nonnull self, IORequest* _Nonnull req);
+    void (*handleRequest)(void* _Nonnull self, IODiskCommand* _Nonnull req);
 
 
     // Reads the contents of the sector at the disk address 'chs' into the

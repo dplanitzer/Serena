@@ -1,12 +1,12 @@
 //
-//  IORequest.c
+//  IODiskCommand.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 3/28/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "IORequest.h"
+#include "IODiskCommand.h"
 #include <assert.h>
 #include <ext/math.h>
 #include <ext/queue.h>
@@ -22,18 +22,18 @@ static queue_t  g_cache;
 static size_t   g_cache_count;
 
 
-// Allocates IORequests as a multiple of 16 bytes
-errno_t IORequest_Get(size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq)
+// Allocates IODiskCommands as a multiple of 16 bytes
+errno_t IODiskCommand_Get(size_t reqSize, IODiskCommand* _Nullable * _Nonnull pOutReq)
 {
     decl_try_err();
-    IORequest* iop = NULL;
+    IODiskCommand* iop = NULL;
     
     mtx_lock(&g_mtx);
 
     if (!queue_empty(&g_cache)) {
-        IORequest* prev_iop = NULL;
+        IODiskCommand* prev_iop = NULL;
 
-        queue_for_each(&g_cache, IORequest, it,
+        queue_for_each(&g_cache, IODiskCommand, it,
             if (it->size >= reqSize) {
                 queue_remove(&g_cache, (queue_node_t*)prev_iop, &it->u.qe);
                 g_cache_count--;
@@ -62,7 +62,7 @@ errno_t IORequest_Get(size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq)
     return err;
 }
 
-void IORequest_Put(IORequest* _Nullable iop)
+void IODiskCommand_Put(IODiskCommand* _Nullable iop)
 {
     if (iop) {
         bool didCache = false;

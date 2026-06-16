@@ -48,12 +48,12 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
     const size_t reqSize = sizeof(StrategyRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
     size_t idx = 0;
 
-    err = IORequest_Get(reqSize, (IORequest**)&req);
+    err = IODiskCommand_Get(reqSize, (IODiskCommand**)&req);
     if (err != EOK) {
         return err;
     }
     
-    IORequest_Init(req, kDiskRequest_Read);
+    IODiskCommand_Init(req, kDiskRequest_Read);
     for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
         const blkno_t lba = lbaClusterStart + i;
         DiskBlockRef pOther;
@@ -110,12 +110,12 @@ static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self,
     decl_try_err();
     StrategyRequest* req = NULL;
 
-    err = IORequest_Get(sizeof(StrategyRequest), (IORequest**)&req);
+    err = IODiskCommand_Get(sizeof(StrategyRequest), (IODiskCommand**)&req);
     if (err != EOK) {
         return err;
     }
     
-    IORequest_Init(req, kDiskRequest_Write);
+    IODiskCommand_Init(req, kDiskRequest_Write);
     req->s.u.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
     req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
     req->options = 0;
@@ -179,7 +179,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     }
 
     if (err == EOK) {
-       err = DiskDriver_BeginIO(s->disk, (IORequest*)req);
+       err = DiskDriver_BeginIO(s->disk, (IODiskCommand*)req);
         if (err == EOK && isSync) {
             err = _DiskCache_WaitIO(self, pBlock, op);
             // The lock is now held in exclusive mode again, if succeeded
@@ -277,5 +277,5 @@ static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequ
 static void _on_disk_request_done(StrategyRequest* _Nonnull req)
 {
     DiskCache_OnDiskRequestDone(gDiskCache, req);
-    IORequest_Put((IORequest*)req);
+    IODiskCommand_Put((IODiskCommand*)req);
 }

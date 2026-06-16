@@ -1,20 +1,18 @@
 //
-//  IORequest.h
+//  IODiskCommand.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 3/28/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef IORequest_h
-#define IORequest_h
+#ifndef IODiskCommand_h
+#define IODiskCommand_h
 
 #include <stdint.h>
 #include <stddef.h>
 #include <ext/try.h>
 #include <kdispatch/kdispatch.h>
-
-struct IORequest;
 
 
 typedef struct IOVector {
@@ -24,7 +22,7 @@ typedef struct IOVector {
 } IOVector;
 
 
-typedef struct IORequest {
+typedef struct IODiskCommand {
     union {
         struct kdispatch_item   item;
         queue_node_t            qe;
@@ -33,17 +31,17 @@ typedef struct IORequest {
     void* _Nonnull          driver;
     int                     type;           // <- request type
     errno_t                 status;         // -> request execution status
-} IORequest;
+} IODiskCommand;
 
 
-// Returns an IORequest suitable for an async I/O call
-extern errno_t IORequest_Get(size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq);
-extern void IORequest_Put(IORequest* _Nullable req);
+// Returns an IODiskCommand suitable for an async I/O call
+extern errno_t IODiskCommand_Get(size_t iopSize, IODiskCommand* _Nullable * _Nonnull pOutIop);
+extern void IODiskCommand_Put(IODiskCommand* _Nullable iop);
 
-// Initializes an IORequest suitable for a sync I/O call
-#define IORequest_Init(__req, __type) \
-((IORequest*)__req)->u.item = KDISPATCH_ITEM_INIT(NULL, NULL); \
-((IORequest*)__req)->type = (__type); \
-((IORequest*)__req)->status = EOK;
+// Initializes an IODiskCommand
+#define IODiskCommand_Init(__iop, __type) \
+((IODiskCommand*)(__iop))->u.item = KDISPATCH_ITEM_INIT(NULL, NULL); \
+((IODiskCommand*)(__iop))->type = (__type); \
+((IODiskCommand*)(__iop))->status = EOK;
 
-#endif /* IORequest_h */
+#endif /* IODiskCommand_h */
