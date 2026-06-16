@@ -162,8 +162,8 @@ static void _read_write_async(DiskDriverRef _Nonnull self, StrategyRequest* _Non
 
     for (size_t i = 0; (i < req->iovCount) && (err == EOK); i++) {
         IOVector* iov = &req->iov[i];
-        ssize_t size = iov->size;
-        uint8_t* data = iov->data;
+        ssize_t size = iov->iov_len;
+        uint8_t* data = iov->iov_base;
 
         if (size < 0) {
             err = EINVAL;
@@ -334,7 +334,7 @@ static void _req_trampoline(IORequest* _Nonnull req)
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    req->item.func = (kdispatch_item_func_t)_req_trampoline;
+    req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
     req->driver = self;
 
     return kdispatch_item_async(self->dq, 0, (kdispatch_item_t)req);
@@ -342,7 +342,7 @@ errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 
 errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    req->item.func = (kdispatch_item_func_t)_req_trampoline;
+    req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
     req->driver = self;
 
     errno_t err = kdispatch_item_sync(self->dq, (kdispatch_item_t)req);
@@ -437,8 +437,8 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned 
     r.offset = *pOffset;
     r.options = 0;
     r.iovCount = 1;
-    r.iov[0].data = buf;
-    r.iov[0].size = byteCount;
+    r.iov[0].iov_base = buf;
+    r.iov[0].iov_len = byteCount;
     r.resCount = 0;
 
     err = DiskDriver_DoIO(self, (IORequest*)&r);

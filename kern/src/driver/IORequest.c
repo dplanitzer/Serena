@@ -16,98 +16,70 @@
 
 #define MAX_CACHED_REQUESTS 8
 
-typedef struct CachedIORequest {
-    deque_node_t    node;
-    size_t          size;       // Size of the cached request
-} CachedIORequest;
-
-
 // All 0 by default by virtue of being in the BSS
-static mtx_t    gLock;
-static deque_t     gCache;
-static int      gCacheCount;
+static mtx_t    g_mtx;      // BSS which gives us effectively MTX_INIT
+static queue_t  g_cache;
+static size_t   g_cache_count;
 
 
 // Allocates IORequests as a multiple of 16 bytes
-errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq)
+errno_t IORequest_Get(size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq)
 {
     decl_try_err();
-    const size_t targetSize = __Ceil_PowerOf2(reqSize, 16);
-    size_t actSize = targetSize;
-    IORequest* req = NULL;
+    IORequest* iop = NULL;
     
-    assert(targetSize <= UINT16_MAX);
+    mtx_lock(&g_mtx);
 
-    mtx_lock(&gLock);
+    if (!queue_empty(&g_cache)) {
+        IORequest* prev_iop = NULL;
 
-    if (gCacheCount > 0) {
-        CachedIORequest* cr = NULL;
-
-        deque_for_each(&gCache, CachedIORequest, it,
-            if (it->size >= targetSize) {
-                cr = it;
+        queue_for_each(&g_cache, IORequest, it,
+            if (it->size >= reqSize) {
+                queue_remove(&g_cache, (queue_node_t*)prev_iop, &it->u.qe);
+                g_cache_count--;
+                iop = it;
                 break;
             }
-        )
 
-        if (cr) {
-            deque_remove(&gCache, &cr->node);
-            gCacheCount--;
+            prev_iop = it;
+        );
+    }
 
-            actSize = cr->size;
-            req = (IORequest*)cr;
+    mtx_unlock(&g_mtx);
+
+
+    if (iop == NULL) {
+        const size_t bucketSize = __Ceil_PowerOf2(reqSize, 16);
+
+        err = kalloc(bucketSize, (void**)&iop);
+        if (err == EOK) {
+            iop->size = bucketSize;
         }
     }
 
-    mtx_unlock(&gLock);
 
-    if (req == NULL) {
-        err = kalloc(targetSize, (void**)&req);
-    }
-
-    if (req) {
-        uint32_t* p = (uint32_t*)req;
-        size_t nw = targetSize >> 4;
-
-        while (nw-- > 0) {
-            *p++ = 0;
-            *p++ = 0;
-            *p++ = 0;
-            *p++ = 0;
-        }
-
-        req->type = type;
-        req->size = actSize;
-    }
-
-    *pOutReq = req;
+    *pOutReq = iop;
     return err;
 }
 
-void IORequest_Put(IORequest* _Nullable req)
+void IORequest_Put(IORequest* _Nullable iop)
 {
-    if (req) {
+    if (iop) {
         bool didCache = false;
 
-        mtx_lock(&gLock);
+        mtx_lock(&g_mtx);
 
-        if (gCacheCount < MAX_CACHED_REQUESTS) {
-            const size_t actSize = req->size;
-            CachedIORequest* cr = (CachedIORequest*)req;
-
-            cr->node.next = NULL;
-            cr->node.prev = NULL;
-            cr->size = actSize;
-
-            deque_add_first(&gCache, &cr->node);
-            gCacheCount++;
+        if (g_cache_count < MAX_CACHED_REQUESTS) {
+            _queue_add_first(&g_cache, &iop->u.qe);
+            g_cache_count++;
             didCache = true;
         }
 
-        mtx_unlock(&gLock);
+        mtx_unlock(&g_mtx);
+
 
         if (!didCache) {
-            kfree(req);
+            kfree(iop);
         }
     }
 }

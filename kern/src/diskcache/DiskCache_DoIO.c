@@ -48,11 +48,12 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
     const size_t reqSize = sizeof(StrategyRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
     size_t idx = 0;
 
-    err = IORequest_Get(kDiskRequest_Read, reqSize, (IORequest**)&req);
+    err = IORequest_Get(reqSize, (IORequest**)&req);
     if (err != EOK) {
         return err;
     }
     
+    IORequest_Init(req, kDiskRequest_Read);
     for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
         const blkno_t lba = lbaClusterStart + i;
         DiskBlockRef pOther;
@@ -62,9 +63,9 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
             pBlock->flags.async = (isSync) ? 0 : 1;
             pBlock->flags.readError = EOK;
         
-            req->iov[idx].data = pBlock->data;
-            req->iov[idx].token = (intptr_t)pBlock;
-            req->iov[idx].size = self->blockSize - s->trailPadSize;
+            req->iov[idx].iov_base = pBlock->data;
+            req->iov[idx].iov_token = (intptr_t)pBlock;
+            req->iov[idx].iov_len = self->blockSize - s->trailPadSize;
             idx++;
         }
         else {
@@ -83,9 +84,9 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
                     pOther->flags.async = 1;
                     pOther->flags.readError = EOK;
 
-                    req->iov[idx].data = pOther->data;
-                    req->iov[idx].token = (intptr_t)pOther;
-                    req->iov[idx].size = self->blockSize - s->trailPadSize;
+                    req->iov[idx].iov_base = pOther->data;
+                    req->iov[idx].iov_token = (intptr_t)pOther;
+                    req->iov[idx].iov_len = self->blockSize - s->trailPadSize;
                     idx++;
                 }
             }
@@ -95,7 +96,7 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
         }
     }
 
-    req->s.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
+    req->s.u.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
     req->options = 0;
     req->iovCount = nBlocksToCluster;
@@ -109,18 +110,19 @@ static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self,
     decl_try_err();
     StrategyRequest* req = NULL;
 
-    err = IORequest_Get(kDiskRequest_Write, sizeof(StrategyRequest), (IORequest**)&req);
+    err = IORequest_Get(sizeof(StrategyRequest), (IORequest**)&req);
     if (err != EOK) {
         return err;
     }
     
-    req->s.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
+    IORequest_Init(req, kDiskRequest_Write);
+    req->s.u.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
     req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
     req->options = 0;
     req->iovCount = 1;
-    req->iov[0].data = pBlock->data;
-    req->iov[0].token = (intptr_t)pBlock;
-    req->iov[0].size = self->blockSize - s->trailPadSize;
+    req->iov[0].iov_base = pBlock->data;
+    req->iov[0].iov_token = (intptr_t)pBlock;
+    req->iov[0].iov_len = self->blockSize - s->trailPadSize;
 
     pBlock->flags.op = kDiskBlockOp_Write;
     pBlock->flags.async = (isSync) ? 0 : 1;
@@ -254,7 +256,7 @@ static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequ
 
     mtx_lock(&self->interlock);
     for (size_t i = 0; i < req->iovCount; i++) {
-        DiskBlockRef pBlock = (DiskBlockRef)req->iov[i].token;
+        DiskBlockRef pBlock = (DiskBlockRef)req->iov[i].iov_token;
 
         if (resCount >= self->blockSize) {
             resCount -= self->blockSize;
