@@ -101,7 +101,7 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
     }
 }
 
-void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, SenseDiskRequest* _Nonnull req)
+void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, IOSenseDiskCommand* _Nonnull req)
 {
     _FloppyDriver_doSenseDisk(self);
 }

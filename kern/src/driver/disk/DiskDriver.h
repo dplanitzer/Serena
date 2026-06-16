@@ -13,7 +13,6 @@
 #include <kdispatch/kdispatch.h>
 #include <driver/Driver.h>
 #include <driver/disk/IODiskCommand.h>
-#include <kpi/disk.h>
 
 
 // Describes the physical properties of the disk that is currently loaded into
@@ -30,58 +29,6 @@ typedef struct SensedDisk {
     uint32_t    flags;              // disk flags
 } SensedDisk;
 
-
-enum {
-    kDiskRequest_Read = 1,
-    kDiskRequest_Write,
-    kDiskRequest_FormatDisk,
-    kDiskRequest_FormatTrack,
-    kDiskRequest_GetDriveInfo,
-    kDiskRequest_GetDiskInfo,
-    kDiskRequest_SenseDisk,
-};
-
-
-typedef struct StrategyRequest {
-    IODiskCommand       s;
-    off_t           offset;         // <- logical sector address in terms of bytes
-    unsigned int    options;        // <- read/write options
-    ssize_t         resCount;       // -> number of bytes read/written
-    size_t          iovCount;       // <- number of I/O vectors in this request
-
-    IOVector        iov[1];
-} StrategyRequest;
-
-
-typedef struct FormatDiskRequest {
-    IODiskCommand   s;
-    char        fillByte;   // <- data for all sectors in the cluster to format
-} FormatDiskRequest;
-
-
-typedef struct FormatTrackRequest {
-    IODiskCommand   s;
-    off_t       offset;     // <- logical sector address in terms of bytes
-    char        fillByte;   // <- data for all sectors in the cluster to format
-    ssize_t     resCount;   // -> number of bytes formatted
-} FormatTrackRequest;
-
-
-typedef struct GetDriveInfoRequest {
-    IODiskCommand               s;
-    drive_info_t* _Nonnull  ip;
-} GetDriveInfoRequest;
-
-
-typedef struct DiskGeometryRequest {
-    IODiskCommand               s;
-    disk_info_t* _Nonnull   gp;
-} DiskGeometryRequest;
-
-
-typedef struct SenseDiskRequest {
-    IODiskCommand   s;
-} SenseDiskRequest;
 
     
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -180,7 +127,7 @@ open_class_funcs(DiskDriver, Driver,
 
     // Executes a disk request.
     // Default Behavior: XXX
-    void (*handleRequest)(void* _Nonnull self, IODiskCommand* _Nonnull req);
+    void (*doCommand)(void* _Nonnull self, IODiskCommand* _Nonnull req);
 
 
     // Reads the contents of the sector at the disk address 'chs' into the
@@ -204,10 +151,10 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*putSector)(void* _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize);
 
 
-    // Called from handleRequest(). Does the actual formatting of a disk. 
+    // Called from doCommand(). Does the actual formatting of a disk. 
     errno_t (*doFormatDisk)(void* _Nonnull self, char fillByte);
 
-    // Called from handleRequest(). Does the actual formatting of a track. 
+    // Called from doCommand(). Does the actual formatting of a track. 
     errno_t (*doFormatTrack)(void* _Nonnull self, const chs_t* chs, char fillByte, size_t secSize);
 
 
@@ -215,7 +162,7 @@ open_class_funcs(DiskDriver, Driver,
     // DiskDriver_NoteSensedDisk() with information about the sensed disk if
     // one is in the drive or with NULL if no disk is in the drive. This will
     // clear the disk change state of the disk driver.
-    void (*doSenseDisk)(void* _Nonnull self, SenseDiskRequest* _Nonnull req);
+    void (*doSenseDisk)(void* _Nonnull self, IOSenseDiskCommand* _Nonnull req);
 );
 
 
@@ -282,8 +229,8 @@ extern void DiskDriver_NoteDiskChanged(DiskDriverRef _Nonnull self);
 ((((DiskDriverRef)__self)->flags.isDiskChangeActive) ? true : false)
 
 
-#define DiskDriver_HandleRequest(__self, __req) \
-invoke_n(handleRequest, DiskDriver, __self, __req)
+#define DiskDriver_DoCommand(__self, __req) \
+invoke_n(doCommand, DiskDriver, __self, __req)
 
 
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \

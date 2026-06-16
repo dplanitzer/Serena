@@ -12,7 +12,7 @@
 #include <kern/kernlib.h>
 
 
-static void _on_disk_request_done(StrategyRequest* _Nonnull req);
+static void _on_disk_request_done(IORWCommand* _Nonnull req);
 
 
 // Define to force all writes to be synchronous
@@ -35,17 +35,17 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     return EOK;
 }
 
-static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, StrategyRequest* _Nullable * _Nonnull pOutReq)
+static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, IORWCommand* _Nullable * _Nonnull pOutReq)
 {
     decl_try_err();
-    StrategyRequest* req = NULL;
+    IORWCommand* req = NULL;
 
     // This is experimental: read all sectors in a single R/W cluster in one
     // go. This allows us to cache everything from a track right away. This makes
     // sense for track orientated disk drives like the Amiga disk drive. 
     const blkcnt_t nBlocksToCluster = s->rwClusterSize;
     const blkno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
-    const size_t reqSize = sizeof(StrategyRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
+    const size_t reqSize = sizeof(IORWCommand) + sizeof(IOVector) * (nBlocksToCluster - 1);
     size_t idx = 0;
 
     err = IODiskCommand_Get(reqSize, (IODiskCommand**)&req);
@@ -53,7 +53,7 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
         return err;
     }
     
-    IODiskCommand_Init(req, kDiskRequest_Read);
+    IODiskCommand_Init(req, kIODiskCommand_Read);
     for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
         const blkno_t lba = lbaClusterStart + i;
         DiskBlockRef pOther;
@@ -105,17 +105,17 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
     return err;
 }
 
-static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, StrategyRequest* _Nullable * _Nonnull pOutReq)
+static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, IORWCommand* _Nullable * _Nonnull pOutReq)
 {
     decl_try_err();
-    StrategyRequest* req = NULL;
+    IORWCommand* req = NULL;
 
-    err = IODiskCommand_Get(sizeof(StrategyRequest), (IODiskCommand**)&req);
+    err = IODiskCommand_Get(sizeof(IORWCommand), (IODiskCommand**)&req);
     if (err != EOK) {
         return err;
     }
     
-    IODiskCommand_Init(req, kDiskRequest_Write);
+    IODiskCommand_Init(req, kIODiskCommand_Write);
     req->s.u.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
     req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
     req->options = 0;
@@ -144,7 +144,7 @@ static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self,
 errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
-    StrategyRequest* req = NULL;
+    IORWCommand* req = NULL;
 
     // Assert that if there is a I/O operation currently ongoing, that it is of
     // the same kind as 'op'. See the requirements at the top of this file.
@@ -203,7 +203,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (type) {
-        case kDiskRequest_Read:
+        case kIODiskCommand_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
             if (status == EOK) {
@@ -211,7 +211,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
             }
             break;
 
-        case kDiskRequest_Write:
+        case kIODiskCommand_Write:
             ASSERT_LOCKED_SHARED(pBlock);
             if (status == EOK && pBlock->flags.isDirty) {
                 pBlock->flags.isDirty = 0;
@@ -224,7 +224,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
             break;
     }
 
-    if (type == kDiskRequest_Read) {
+    if (type == kIODiskCommand_Read) {
         // We only note read related errors since there's noone who could ever
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
@@ -248,7 +248,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
     }
 }
 
-static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _Nonnull req)
+static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, IORWCommand* _Nonnull req)
 {
     ssize_t resCount = req->resCount;
     errno_t status = req->s.status;
@@ -274,7 +274,7 @@ static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequ
     mtx_unlock(&self->interlock);
 }
 
-static void _on_disk_request_done(StrategyRequest* _Nonnull req)
+static void _on_disk_request_done(IORWCommand* _Nonnull req)
 {
     DiskCache_OnDiskRequestDone(gDiskCache, req);
     IODiskCommand_Put((IODiskCommand*)req);

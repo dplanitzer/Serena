@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <ext/try.h>
 #include <kdispatch/kdispatch.h>
+#include <kpi/disk.h>
 
 
 typedef struct IOVector {
@@ -20,6 +21,17 @@ typedef struct IOVector {
     intptr_t            iov_token;      // <- token identifying this disk block range
     ssize_t             iov_len;        // <- request size in terms of bytes
 } IOVector;
+
+
+enum {
+    kIODiskCommand_Read = 1,
+    kIODiskCommand_Write,
+    kIODiskCommand_FormatDisk,
+    kIODiskCommand_FormatTrack,
+    kIODiskCommand_GetDriveInfo,
+    kIODiskCommand_GetDiskInfo,
+    kIODiskCommand_SenseDisk,
+};
 
 
 typedef struct IODiskCommand {
@@ -32,6 +44,48 @@ typedef struct IODiskCommand {
     int                     type;           // <- request type
     errno_t                 status;         // -> request execution status
 } IODiskCommand;
+
+
+typedef struct IORWCommand {
+    IODiskCommand       s;
+    off_t               offset;         // <- logical sector address in terms of bytes
+    unsigned int        options;        // <- read/write options
+    ssize_t             resCount;       // -> number of bytes read/written
+    size_t              iovCount;       // <- number of I/O vectors in this request
+
+    IOVector            iov[1];
+} IORWCommand;
+
+
+typedef struct IOFormatDiskCommand {
+    IODiskCommand   s;
+    char            fillByte;   // <- data for all sectors in the cluster to format
+} IOFormatDiskCommand;
+
+
+typedef struct IOFormatTrackCommand {
+    IODiskCommand   s;
+    off_t           offset;     // <- logical sector address in terms of bytes
+    char            fillByte;   // <- data for all sectors in the cluster to format
+    ssize_t         rlen;       // -> number of bytes formatted
+} IOFormatTrackCommand;
+
+
+typedef struct IOGetDriveInfoCommand {
+    IODiskCommand           s;
+    drive_info_t* _Nonnull  ip;
+} IOGetDriveInfoCommand;
+
+
+typedef struct IOGetDiskInfoCommand {
+    IODiskCommand           s;
+    disk_info_t* _Nonnull   gp;
+} IOGetDiskInfoCommand;
+
+
+typedef struct IOSenseDiskCommand {
+    IODiskCommand   s;
+} IOSenseDiskCommand;
 
 
 // Returns an IODiskCommand suitable for an async I/O call
