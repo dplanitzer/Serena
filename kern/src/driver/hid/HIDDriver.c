@@ -9,12 +9,15 @@
 #include "HIDDriverPriv.h"
 #include <assert.h>
 #include <limits.h>
+#include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
+#include <driver/hw/m68k-amiga/hid/KeyboardDriver.h>
+#include <driver/hw/m68k-amiga/hid/MouseDriver.h>
 #include <driver/IOCatalog.h>
 #include <ext/bit.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
-#include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
+#include <kpi/fd.h>
 #include <kpi/file.h>
 #include <kpi/hid.h>
 #include <process/kerneld.h>
@@ -222,7 +225,7 @@ void HIDDriver_ReleaseCursor(HIDDriverRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->fb) {
         DisplayDriver_ReleaseCursor(self->fb);
-        DriverHandler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
+        GraphicsDriver_DestroySurface(self->fb, self->cursorSurfaceId);
         self->cursorSurfaceId = 0;
     }
     mtx_unlock(&self->mtx);
@@ -249,17 +252,17 @@ errno_t HIDDriver_SetCursor(HIDDriverRef _Nonnull self, const void* _Nullable pl
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_SPRITE_2, &newId));
+        try(GraphicsDriver_CreateSurface2d(self->fb, width, height, PIXFMT_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
         if (self->cursorSurfaceId) {
-            DriverHandler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->cursorSurfaceId);
+            GraphicsDriver_DestroySurface(self->fb, self->cursorSurfaceId);
         }
         self->cursorSurfaceId = newId;
     }
 
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
+    try(GraphicsDriver_WritePixels(self->fb, self->cursorSurfaceId, planes, bytesPerRow, format));
     try(DisplayDriver_BindCursor(self->fb, self->cursorSurfaceId));
     self->hotSpotX = hotSpotX;
     self->hotSpotY = hotSpotY;
@@ -608,7 +611,7 @@ static void _post_mouse_event(HIDDriverRef _Nonnull _Locked self, bool hasPositi
 // to the event queue.
 static void _post_gamepad_event(HIDDriverRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
-    did_t did = Driver_GetId(DriverHandler_GetDriverAs(gp->hnd, Driver));
+    did_t did = Driver_GetId(gp->drv);
 
     // Generate button up/down events
     const uint32_t oldButtons = gp->buttons;
@@ -677,16 +680,16 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
 {
     decl_try_err();
 
-    if (self->kbHnd == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
-        err = Driver_Open(driver, O_RDWR, 0, &self->kbHnd);
+    if (self->kb == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
+        err = Driver_Open(driver, O_RDWR, 0, NULL);
         if (err == EOK) {
-            self->kb = (InputDriverRef)driver;
+            self->kb = Object_RetainAs(driver, KeyboardDriver);
         }
     }
-    else if (self->mouse.chCount < MAX_POINTING_DEVICES && Driver_HasSomeCategories(driver, g_pointing_device_cats)) {
+    else if (self->mouse.drvCount < MAX_POINTING_DEVICES && Driver_HasSomeCategories(driver, g_pointing_device_cats)) {
         for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
-            if (self->mouse.ch[i] == NULL) {
-                err = Driver_Open(driver, O_RDWR, 0, &self->mouse.ch[i]);
+            if (self->mouse.drv[i] == NULL) {
+                err = Driver_Open(driver, O_RDWR, 0, NULL);
                 if (err == EOK) {
                     if (Driver_HasCategory(driver, IOHID_LIGHTPEN) && self->fb) {
                         self->mouse.lpCount++;
@@ -694,7 +697,9 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
                             DisplayDriver_SetLightPenEnabled(self->fb, true);
                         }
                     }
-                    self->mouse.chCount++;
+
+                    self->mouse.drv[i] = Object_RetainAs(driver, Driver);
+                    self->mouse.drvCount++;
                 }
                 break;
             }
@@ -704,9 +709,10 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
         for (int i = 0; i < MAX_GAME_PADS; i++) {
             gamepad_state_t* gp = &self->gamepad[i];
 
-            if (gp->hnd == NULL) {
-                err = Driver_Open(driver, O_RDWR, 0, &gp->hnd);
+            if (gp->drv == NULL) {
+                err = Driver_Open(driver, O_RDWR, 0, NULL);
                 if (err == EOK) {
+                    gp->drv = Object_RetainAs(driver, Driver);
                     gp->x = 0;
                     gp->y = 0;
                     gp->buttons = 0;
@@ -716,11 +722,11 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
             }
         }
     }
-    else if (self->fbHnd == NULL && Driver_HasCategory(driver, IOVID_FB)) {
+    else if (self->fb == NULL && Driver_HasCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
-        err = Driver_Open(driver, O_RDWR, 0, &self->fbHnd);
+        err = Driver_Open(driver, O_RDWR, 0, NULL);
         if (err == EOK) {
-            self->fb = DriverHandler_GetDriverAs(self->fbHnd, DisplayDriver);
+            self->fb = Object_RetainAs(driver, GraphicsDriver);
             DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
             _collect_framebuffer_size(self);
         }
@@ -731,24 +737,24 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
 static void _disconnect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnull driver)
 {
     if ((DriverRef)self->kb == driver) {
-        Object_Release(self->kbHnd);
-        self->kbHnd = NULL;
+        Driver_Close(self->kb);
+        Object_Release(self->kb);
         self->kb = NULL;
         return;
     }
     
     if ((DriverRef)self->fb == driver) {
         DisplayDriver_SetScreenConfigObserver(self->fb, NULL, 0);
-        Object_Release(self->fbHnd);
-        self->fbHnd = NULL;
+
+        Driver_Close(self->fb);
+        Object_Release(self->fb);
         self->fb = NULL;
         hid_rect_set_empty(&self->screenBounds);
         return;
     }
 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
-        HandlerRef hnd = self->mouse.ch[i];
-        DriverRef cdp = (hnd) ? DriverHandler_GetDriverAs(hnd, Driver) : NULL;
+        DriverRef cdp = self->mouse.drv[i];
 
         if (cdp == driver) {
             if (self->mouse.lpCount > 0 && Driver_HasCategory(cdp, IOHID_LIGHTPEN)) {
@@ -757,9 +763,11 @@ static void _disconnect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _No
                     DisplayDriver_SetLightPenEnabled(self->fb, false);
                 }
             }
-            Object_Release(hnd);
-            self->mouse.ch[i] = NULL;
-            self->mouse.chCount--;
+
+            Driver_Close(cdp);
+            Object_Release(cdp);
+            self->mouse.drv[i] = NULL;
+            self->mouse.drvCount--;
             break;
         }
     }
@@ -767,9 +775,10 @@ static void _disconnect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _No
     for (int i = 0; i < MAX_GAME_PADS; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if (gp->hnd && DriverHandler_GetDriverAs(gp->hnd, Driver) == driver) {
-            Object_Release(gp->hnd);
-            gp->hnd = NULL;
+        if (gp->drv == driver) {
+            Driver_Close(gp->drv);
+            Object_Release(gp->drv);
+            gp->drv = NULL;
             self->gamepadCount--;
             break;
         }
@@ -823,7 +832,7 @@ static bool _collect_keyboard_reports(HIDDriverRef _Nonnull self)
 
 static bool _collect_pointing_device_reports(HIDDriverRef _Nonnull self)
 {
-    if (self->mouse.chCount == 0) {
+    if (self->mouse.drvCount == 0) {
         return false;
     }
 
@@ -834,14 +843,14 @@ static bool _collect_pointing_device_reports(HIDDriverRef _Nonnull self)
 
     // Collect reports from all devices that control the logical mouse and compute
     // the new logical mouse state
-    for (int i = 0; i < self->mouse.chCount; i++) {
-        HandlerRef ch = self->mouse.ch[i];
+    for (int i = 0; i < self->mouse.drvCount; i++) {
+        DriverRef d = self->mouse.drv[i];
 
-        if (ch) {
+        if (d) {
             int16_t dx, dy;
             uint32_t bt;
 
-            InputDriver_GetReport(DriverHandler_GetDriverAs(ch, InputDriver), &self->report);
+            InputDriver_GetReport(d, &self->report);
 
             switch (self->report.type) {
                 case kHIDReportType_Mouse:
@@ -918,8 +927,8 @@ static bool _collect_gamepad_reports(HIDDriverRef _Nonnull self)
     for (int i = 0; i < self->gamepadCount; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if (gp->hnd) {
-            InputDriver_GetReport(DriverHandler_GetDriverAs(gp->hnd, InputDriver), &self->report);
+        if (gp->drv) {
+            InputDriver_GetReport(gp->drv, &self->report);
             _post_gamepad_event(self, gp, &self->report);
             r = true;
         }

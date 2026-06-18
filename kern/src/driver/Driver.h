@@ -375,16 +375,19 @@ open_class_funcs(Driver, Object,
     void (*onDetaching)(void* _Nonnull self, DriverRef _Nonnull parent);
 
 
-    // Invoked by the open() function to create the driver handler that should
-    // be returned to the caller. The 'openCount' reflects the number of I/O
-    // handlers that are currently open for this driver. Note that this count
-    // does not yet include the handler that should be created. A count of 0
-    // indicates that this is the first handler that should be opened. A driver
-    // subclass can use this information to eg power up the hardware if
-    // necessary.
+    // Invoked by the open() function to inform the driver of another open. The
+    // 'openCount' reflects the number of times the driver has been opened so
+    // far. A count of 0 indicates that this is the first open. A driver
+    // subclass can use this information to eg power up the hardware if necessary.
+    // Override: Optional
+    // Default Behavior: returns EOK
+    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode);
+
+    // Creates a new handler for the driver. The handler will be used to allow
+    // a user space application access to the driver.
     // Override: Optional
     // Default Behavior: returns a DriverHandler instance
-    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
+    errno_t (*createHandler)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
     // Invoked by the close() function to close an open I/O handler. The
     // 'openCount' reflects the number of I/O handlers that are currently open
@@ -397,10 +400,13 @@ open_class_funcs(Driver, Object,
     void (*onClose)(void* _Nonnull _Locked self, int openCount);
 
 
-    // Opens an I/O handler to the driver.
+    // Opens an I/O handler to the driver and optionally returns a new handler
+    // for the driver instance. Note that a handler is only necessary if a
+    // user space application wants to interact with the driver. Kernel code
+    // does not need a handler and can interact with the driver instance directly.
     // Override: Optional
-    // Default Behavior: returns a DriverHandler instance
-    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
+    // Default Behavior: returns a handler instance
+    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler);
 
     // Closes an open I/O handler.
     // Override: Optional
@@ -601,12 +607,12 @@ invoke_n(onAttached, Driver, __self, __parent)
 invoke_n(onDetaching, Driver, __self, __parent)
 
 
-// Creates an I/O handler that connects the driver to a user space application
-// or a kernel space service
-#define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutHandler) \
-invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutHandler)
+#define Driver_OnOpen(__self, __openCount, __mode) \
+invoke_n(onOpen, Driver, __self, __openCount, __mode)
 
-// Closes the given I/O handler
+#define Driver_CreateHandler(__self, __mode, __arg, __pOutHandler) \
+invoke_n(createHandler, Driver, __self, __mode, __arg, __pOutHandler)
+
 #define Driver_OnClose(__self, __openCount) \
 invoke_n(onClose, Driver, __self, __openCount)
 

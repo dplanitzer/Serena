@@ -42,21 +42,21 @@ typedef struct hid_rect {
 
 // State of the logical pointing device (mouse)
 typedef struct logical_mouse {
-    HandlerRef _Nullable  ch[MAX_POINTING_DEVICES];
-    int16_t                 chCount;
-    int16_t                 lpCount;
-    int16_t                 x;
-    int16_t                 y;
-    uint32_t                buttons;
+    DriverRef _Nullable drv[MAX_POINTING_DEVICES];
+    int16_t             drvCount;
+    int16_t             lpCount;
+    int16_t             x;
+    int16_t             y;
+    uint32_t            buttons;
 } logical_mouse_t;
 
 
 // State of a gamepad/joystick device
 typedef struct gamepad_state {
-    HandlerRef _Nullable    hnd;
-    int16_t     x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
-    int16_t     y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
-    uint32_t    buttons;  // Button #0 -> 0, Button #1 -> 1, ...
+    DriverRef _Nullable drv;
+    int16_t             x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
+    int16_t             y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
+    uint32_t            buttons;  // Button #0 -> 0, Button #1 -> 1, ...
 } gamepad_state_t;
 
 
@@ -74,13 +74,11 @@ final_class_ivars(HIDDriver, PseudoDriver,
 
 
     // Input Drivers
-    HandlerRef _Nullable        kbHnd;
-    InputDriverRef _Nullable    kb;
+    KeyboardDriverRef _Nullable kb;
 
 
     // Framebuffer interface
-    HandlerRef _Nullable        fbHnd;
-    DisplayDriverRef _Nullable  fb;
+    GraphicsDriverRef _Nullable fb;
 
 
     // HID reports collector

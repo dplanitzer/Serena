@@ -280,12 +280,12 @@ bool Driver_IsOpen(DriverRef _Nonnull self)
     return r;
 }
 
-errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode)
 {
-    return DriverHandler_Create(self, FD_TYPE_DRIVER, mode, pOutHandler);
+    return EOK;
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler)
 {
     decl_try_err();
 
@@ -299,17 +299,26 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, Ha
     }
 
 
-    try(Driver_OnOpen(self, self->openCount, mode, arg, pOutHandler));
+    try(Driver_OnOpen(self, self->openCount, mode));
     self->openCount++;
+
+    if (pOutHandler) {
+        err = Driver_CreateHandler(self, mode, arg, pOutHandler);
+        if (err != EOK) {
+            Driver_OnClose(self, self->openCount);
+            self->openCount--;
+        }
+    }
 
 catch:
     mtx_unlock(&self->mtx);
 
-    if (err != EOK) {
-        *pOutHandler = NULL;
-    }
-
     return err;
+}
+
+errno_t Driver_createHandler(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return DriverHandler_Create(self, FD_TYPE_DRIVER, mode, pOutHandler);
 }
 
 
@@ -638,6 +647,7 @@ func_def(onAttached, Driver)
 func_def(onDetaching, Driver)
 func_def(open, Driver)
 func_def(onOpen, Driver)
+func_def(createHandler, Driver)
 func_def(close, Driver)
 func_def(onClose, Driver)
 func_def(read, Driver)

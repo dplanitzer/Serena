@@ -518,7 +518,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Console_createHandler(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     return DriverHandler_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, pOutHandler);
 }
@@ -722,7 +722,7 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, unsigned int mode, off_t* _Nonnu
 class_func_defs(Console, PseudoDriver,
 override_func_def(deinit, Console, Object)
 override_func_def(onStart, Console, Driver)
-override_func_def(open, Console, Driver)
+override_func_def(createHandler, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)
 override_func_def(ioctl, Console, Driver)

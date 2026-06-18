@@ -9,7 +9,6 @@
 #include "VDMDriver.h"
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <handler/Handler.h>
 
 
 final_class_ivars(VDMDriver, PseudoDriver,
@@ -57,7 +56,6 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
 {
     decl_try_err();
     DriverRef dp = NULL;
-    HandlerRef hnd = NULL;
     ssize_t nBytesToWrite = 0, nBytesWritten;
 
     if (sectorSize == 0 || sectorCount == 0) {
@@ -82,18 +80,24 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
 
     
     if (nBytesToWrite > 0 && image) {
-        try(Driver_Open(dp, O_WRONLY, 0, &hnd));
-        try(Handler_Write(hnd, image, sectorSize * sectorCount, &nBytesWritten));
-        if (nBytesWritten != nBytesToWrite) {
-            throw(EIO);
+        unsigned int mode = O_WRONLY;
+
+        err = Driver_Open(dp, mode, 0, NULL);
+        if (err == EOK) {
+            err = Driver_Write(dp, mode, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
+            if (err == EOK && nBytesWritten != nBytesToWrite) {
+                err = EIO;
+            }
+
+            Driver_Close(dp);
         }
+        throw_iferr(err);
     }
 
     try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
     
 
 catch:
-    Object_Release(hnd);
     Object_Release(dp);
     return err;
 }
