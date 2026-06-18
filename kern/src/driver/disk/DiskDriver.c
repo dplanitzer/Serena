@@ -51,6 +51,32 @@ errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, kdispatch_t 
     return kdispatch_create(&attr, pOutQueue);
 }
 
+static void _req_trampoline(IODiskCommand* _Nonnull req)
+{
+    DiskDriver_DoCommand(req->driver, req);
+}
+
+static errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
+{
+    req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
+    req->driver = self;
+
+    return kdispatch_item_async(self->dq, 0, (kdispatch_item_t)req);
+}
+
+static errno_t DiskDriver_DoIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
+{
+    req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
+    req->driver = self;
+
+    errno_t err = kdispatch_item_sync(self->dq, (kdispatch_item_t)req);
+    if (err == EOK) {
+        err = req->status;
+    }
+
+    return err;
+}
+
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 {
     if (self->dq) {
@@ -337,33 +363,6 @@ void DiskDriver_doCommand(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull r
 }
 
 
-static void _req_trampoline(IODiskCommand* _Nonnull req)
-{
-    DiskDriver_DoCommand(req->driver, req);
-}
-
-errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
-{
-    req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
-    req->driver = self;
-
-    return kdispatch_item_async(self->dq, 0, (kdispatch_item_t)req);
-}
-
-errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
-{
-    req->u.item.func = (kdispatch_item_func_t)_req_trampoline;
-    req->driver = self;
-
-    errno_t err = kdispatch_item_sync(self->dq, (kdispatch_item_t)req);
-    if (err == EOK) {
-        err = req->status;
-    }
-
-    return err;
-}
-
-
 errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, char fillByte)
 {
     IOFormatDiskCommand cmd;
@@ -554,8 +553,6 @@ class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
-func_def(beginIO, DiskDriver)
-func_def(doIO, DiskDriver)
 func_def(doCommand, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)

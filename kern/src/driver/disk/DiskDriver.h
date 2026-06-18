@@ -106,22 +106,6 @@ open_class_funcs(DiskDriver, Driver,
 
 
     //
-    // The following methods dispatch to the dispatch queue
-    //
-
-    // Starts an asynchronous I/O operation.
-    // Override: Optional
-    // Default Behavior: Dispatches an async call to the dispatch queue
-    errno_t (*beginIO)(void* _Nonnull self, IODiskCommand* _Nonnull req);
-
-
-    // Starts a asynchronous I/O operation and waits for its completion.
-    // Override: Optional
-    // Default Behavior: Dispatches a sync call to the dispatch queue
-    errno_t (*doIO)(void* _Nonnull self, IODiskCommand* _Nonnull req);
-
-
-    //
     // The following methods are executed on the dispatch queue.
     //
 
@@ -169,13 +153,6 @@ open_class_funcs(DiskDriver, Driver,
 //
 // Methods for use by disk driver users.
 //
-
-#define DiskDriver_BeginIO(__self, __req) \
-invoke_n(beginIO, DiskDriver, __self, __req)
-
-#define DiskDriver_DoIO(__self, __req) \
-invoke_n(doIO, DiskDriver, __self, __req)
-
 
 // It's the callers responsibility to keep 'iov' and 'completion' alive until the async operation is done
 extern errno_t DiskDriver_ReadAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnull iov, int iovcnt, off_t offset, const IOCompletion* _Nonnull completion);
