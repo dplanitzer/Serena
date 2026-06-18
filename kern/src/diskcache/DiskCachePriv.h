@@ -184,8 +184,22 @@ extern errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const Dis
 extern void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 extern void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
 
-extern errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef pBlock);
+extern errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef pBlock);
 
-extern errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync);
+extern errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync);
+
+
+typedef struct DiskOp {
+    queue_node_t            qe;
+    IOCompletion            completion;
+    DiskSession* _Nonnull   session;
+    int                     type;
+    int                     cnt;
+    iovec_t* _Nonnull       iov;
+    DiskBlockRef _Nonnull   blk[1];
+} DiskOp;
+
+extern errno_t DiskOp_Create(blkcnt_t clusterSize, DiskCacheRef _Nonnull cache, DiskOp* _Nullable * _Nonnull pOutOp);
+extern void DiskOp_Destroy(DiskOp* _Nullable op);
 
 #endif /* DiskCachePriv_h */

@@ -16,6 +16,22 @@
 #include <kpi/disk.h>
 
 
+typedef void (*IOCompletionFunc)(void* _Nullable ctx, void* _Nullable arg, errno_t err, ssize_t rlen);
+
+typedef struct IOCompletion {
+    IOCompletionFunc _Nonnull   f;
+    void* _Nullable             ctx;
+    void* _Nullable             arg;
+} IOCompletion;
+
+#define IOV_MAX 128
+
+typedef struct iovec {
+    void* _Nonnull  iov_base;       // <- byte buffer to read or write 
+    ssize_t         iov_len;        // <- request size in terms of bytes
+} iovec_t;
+
+
 typedef struct IOVector {
     uint8_t* _Nonnull   iov_base;       // <- byte buffer to read or write 
     intptr_t            iov_token;      // <- token identifying this disk block range
@@ -26,6 +42,8 @@ typedef struct IOVector {
 enum {
     kIODiskCommand_Read = 1,
     kIODiskCommand_Write,
+    kIODiskCommand_ReadAsync,
+    kIODiskCommand_WriteAsync,
     kIODiskCommand_FormatDisk,
     kIODiskCommand_FormatTrack,
     kIODiskCommand_GetDriveInfo,
@@ -47,14 +65,23 @@ typedef struct IODiskCommand {
 
 
 typedef struct IORWCommand {
-    IODiskCommand       s;
-    off_t               offset;         // <- logical sector address in terms of bytes
-    unsigned int        options;        // <- read/write options
-    ssize_t             resCount;       // -> number of bytes read/written
-    size_t              iovCount;       // <- number of I/O vectors in this request
+    IODiskCommand   s;
+    off_t           offset;     // <- logical sector address in terms of bytes
+    ssize_t         rlen;       // -> number of bytes read/written
+    size_t          iovcnt;     // <- number of I/O vectors in this request
+    IOVector*       iov;
 
-    IOVector            iov[1];
+    IOVector        iov_old[1];
 } IORWCommand;
+
+
+typedef struct IORWCommand2 {
+    IODiskCommand                   s;
+    int                             iovcnt;     // <- number of I/O vectors in this request
+    const iovec_t* _Nonnull         iov;        // <- iovec array
+    off_t                           offset;     // <- logical sector address in terms of bytes
+    const IOCompletion* _Nonnull    completion; // <- completion function
+} IORWCommand2;
 
 
 typedef struct IOFormatDiskCommand {

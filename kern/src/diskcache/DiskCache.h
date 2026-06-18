@@ -25,7 +25,10 @@ typedef struct DiskSession {
     size_t                  trailPadSize;
     scnt_t                  rwClusterSize;
     int                     activeMappingsCount;
+    queue_t/*<DiskOp>*/     dopsCache;
+    queue_t/*<DiskOp>*/     dopsInUse;
     bool                    isOpen;
+    bool                    wantsDop;
 } DiskSession;
 
 

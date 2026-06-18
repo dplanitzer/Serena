@@ -153,6 +153,7 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
+//XXX
 static void _read_write_async(DiskDriverRef _Nonnull self, IORWCommand* _Nonnull req)
 {
     decl_try_err();
@@ -160,7 +161,7 @@ static void _read_write_async(DiskDriverRef _Nonnull self, IORWCommand* _Nonnull
     ssize_t resCount = 0;
     sno_t lsa = req->offset / (off_t)self->sectorSize;
 
-    for (size_t i = 0; (i < req->iovCount) && (err == EOK); i++) {
+    for (size_t i = 0; (i < req->iovcnt) && (err == EOK); i++) {
         IOVector* iov = &req->iov[i];
         ssize_t size = iov->iov_len;
         uint8_t* data = iov->iov_base;
@@ -210,8 +211,68 @@ static void _read_write_async(DiskDriverRef _Nonnull self, IORWCommand* _Nonnull
         }
     }
 
-    req->resCount = resCount;
+    req->rlen = resCount;
     req->s.status = (resCount > 0) ? EOK : err;
+}
+
+static void _read_write_async2(DiskDriverRef _Nonnull self, IORWCommand2* _Nonnull iop)
+{
+    decl_try_err();
+    chs_t chs;
+    ssize_t rlen = 0;
+    sno_t lsa = iop->offset / (off_t)self->sectorSize;
+
+    for (size_t i = 0; (i < iop->iovcnt) && (err == EOK); i++) {
+        const iovec_t* iov = &iop->iov[i];
+        ssize_t size = iov->iov_len;
+        uint8_t* data = iov->iov_base;
+
+        if (size < 0) {
+            err = EINVAL;
+            break;
+        }
+        else if (size > 0 && iop->offset < 0ll) {
+            err = EOVERFLOW;
+            break;
+        }
+        else if (self->flags.isDiskChangeActive) {
+            err = EDISKCHANGE;
+            break;
+        }
+        else if (!self->flags.hasDisk) {
+            err = ENOMEDIUM;
+            break;
+        }
+        
+        while (size >= self->sectorSize) {
+            DiskDriver_LsaToChs(self, lsa, &chs);
+
+            if (lsa >= self->sectorCount) {
+                err = ENXIO;
+            }
+            else if (iop->s.type == kIODiskCommand_ReadAsync) {
+                err = DiskDriver_GetSector(self, &chs, data, self->sectorSize);
+            }
+            else if (iop->s.type == kIODiskCommand_WriteAsync) {
+                err = DiskDriver_PutSector(self, &chs, data, self->sectorSize);
+            }
+            else {
+                err = EIO;
+            }
+
+            if (err != EOK) {
+                break;
+            }
+    
+
+            data += self->sectorSize;
+            size -= self->sectorSize;
+            rlen += self->sectorSize;
+            lsa++;
+        }
+    }
+
+    iop->completion->f(iop->completion->ctx, iop->completion->arg, (rlen > 0) ? EOK : err, rlen);
 }
 
 
@@ -294,9 +355,15 @@ void DiskDriver_doCommand(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull r
 
     if (req->status == EOK) {
         switch (req->type) {
+            //XXX
             case kIODiskCommand_Read:
             case kIODiskCommand_Write:
                 _read_write_async(self, (IORWCommand*)req);
+                break;
+
+            case kIODiskCommand_ReadAsync:
+            case kIODiskCommand_WriteAsync:
+                _read_write_async2(self, (IORWCommand2*)req);
                 break;
 
             case kIODiskCommand_FormatDisk:
@@ -431,22 +498,23 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned 
 {
     decl_try_err();
     IORWCommand r;
+    IOVector iov;
+
+    iov.iov_base = buf;
+    iov.iov_len = byteCount;
 
     IODiskCommand_Init(&r, type);
     r.offset = *pOffset;
-    r.options = 0;
-    r.iovCount = 1;
-    r.iov[0].iov_base = buf;
-    r.iov[0].iov_len = byteCount;
-    r.resCount = 0;
+    r.iovcnt = 1;
+    r.iov = &iov;
 
     err = DiskDriver_DoIO(self, (IODiskCommand*)&r);
 
-    if (r.resCount > 0) {
-        *pOffset += r.resCount;
+    if (r.rlen > 0) {
+        *pOffset += r.rlen;
     }
 
-    *pOutByteCount = r.resCount;
+    *pOutByteCount = r.rlen;
     return err;
 }
 
@@ -459,6 +527,48 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, unsigned int mode, off_t* 
 {
     return _DiskDriver_rdwr(self, kIODiskCommand_Write, mode, pOffset, buf, nBytesToWrite, pOutBytesWritten);
 }
+
+
+errno_t DiskDriver_ReadAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnull iov, int iovcnt, off_t offset, const IOCompletion* _Nonnull completion)
+{
+    decl_try_err();
+    IORWCommand2* p;
+
+    err = IODiskCommand_Get(sizeof(IORWCommand2), (IODiskCommand**)&p);
+    if (err != EOK) {
+        return err;
+    }
+
+    IODiskCommand_Init(p, kIODiskCommand_ReadAsync);
+    p->s.u.item.retireFunc = (kdispatch_retire_func_t)IODiskCommand_Put;
+    p->iovcnt = iovcnt;
+    p->iov = iov;
+    p->offset = offset;
+    p->completion = completion;
+
+    return DiskDriver_BeginIO(self, (IODiskCommand*)p);
+}
+
+errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnull iov, int iovcnt, off_t offset, const IOCompletion* _Nonnull completion)
+{
+    decl_try_err();
+    IORWCommand2* p;
+
+    err = IODiskCommand_Get(sizeof(IORWCommand2), (IODiskCommand**)&p);
+    if (err != EOK) {
+        return err;
+    }
+
+    IODiskCommand_Init(p, kIODiskCommand_WriteAsync);
+    p->s.u.item.retireFunc = (kdispatch_retire_func_t)IODiskCommand_Put;
+    p->iovcnt = iovcnt;
+    p->iov = iov;
+    p->offset = offset;
+    p->completion = completion;
+
+    return DiskDriver_BeginIO(self, (IODiskCommand*)p);
+}
+
 
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {

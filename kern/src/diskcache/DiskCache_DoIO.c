@@ -9,14 +9,43 @@
 #include "DiskCachePriv.h"
 #include <assert.h>
 #include <ext/nanotime.h>
+#include <kern/kalloc.h>
 #include <kern/kernlib.h>
 
 
-static void _on_disk_request_done(IORWCommand* _Nonnull req);
+static void _on_disk_op_done(DiskCacheRef _Nullable self, DiskOp* _Nullable op, errno_t err, ssize_t rlen);
 
 
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1
+
+
+errno_t DiskOp_Create(blkcnt_t clusterSize, DiskCacheRef _Nonnull cache, DiskOp* _Nullable * _Nonnull pOutOp)
+{
+    decl_try_err();
+    const size_t iov_size = sizeof(struct iovec) * clusterSize;
+    const size_t blk_size = sizeof(DiskBlockRef) * (clusterSize - 1);
+    const size_t op_size = sizeof(struct DiskOp) + blk_size + iov_size;
+    DiskOp* p = NULL;
+
+    err = kalloc(op_size, (void*)&p);
+    if (err == EOK) {
+        p->qe = QUEUE_NODE_INIT;
+        p->completion.f = (IOCompletionFunc)_on_disk_op_done;
+        p->completion.ctx = cache;
+        p->completion.arg = p;
+        p->cnt = 0;
+        p->iov = (iovec_t*)(((char*)p) + sizeof(DiskOp) + blk_size);
+    }
+
+    *pOutOp = p;
+    return err;
+}
+
+void DiskOp_Destroy(DiskOp* _Nullable op)
+{
+    kfree(op);
+}
 
 
 // Blocks the caller until the given block has finished the given I/O operation
@@ -35,25 +64,49 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     return EOK;
 }
 
-static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, IORWCommand* _Nullable * _Nonnull pOutReq)
+static DiskOp* _Nonnull _DiskCache_AcquireDiskOp(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s)
+{
+    while (queue_empty(&s->dopsCache)) {
+        s->wantsDop = true;
+        assert(cnd_wait(&self->condition, &self->interlock) == EOK);
+    }
+    s->wantsDop = false;
+
+    DiskOp* dop = (DiskOp*)queue_remove_first(&s->dopsCache);
+    dop->session = s;
+    queue_add_first(&s->dopsInUse, &dop->qe);
+    
+    return dop;
+}
+
+static void _DiskCache_RelinquishDiskOp(DiskCacheRef _Nonnull _Locked self, DiskOp* _Nonnull dop)
+{
+    DiskSession* s = dop->session;
+
+    queue_remove_first(&s->dopsInUse);
+    queue_add_first(&s->dopsCache, &dop->qe);
+
+    if (s->wantsDop) {
+        cnd_broadcast(&self->condition);
+    }
+}
+
+static errno_t _DiskCache_StartReadOp(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync)
 {
     decl_try_err();
-    IORWCommand* req = NULL;
+    DiskOp* p = _DiskCache_AcquireDiskOp(self, s);
 
     // This is experimental: read all sectors in a single R/W cluster in one
     // go. This allows us to cache everything from a track right away. This makes
     // sense for track orientated disk drives like the Amiga disk drive. 
     const blkcnt_t nBlocksToCluster = s->rwClusterSize;
     const blkno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
-    const size_t reqSize = sizeof(IORWCommand) + sizeof(IOVector) * (nBlocksToCluster - 1);
+    const off_t offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
     size_t idx = 0;
 
-    err = IODiskCommand_Get(reqSize, (IODiskCommand**)&req);
-    if (err != EOK) {
-        return err;
-    }
-    
-    IODiskCommand_Init(req, kIODiskCommand_Read);
+    p->type = kIODiskCommand_Read;
+    p->cnt = nBlocksToCluster;
+
     for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
         const blkno_t lba = lbaClusterStart + i;
         DiskBlockRef pOther;
@@ -63,9 +116,9 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
             pBlock->flags.async = (isSync) ? 0 : 1;
             pBlock->flags.readError = EOK;
         
-            req->iov[idx].iov_base = pBlock->data;
-            req->iov[idx].iov_token = (intptr_t)pBlock;
-            req->iov[idx].iov_len = self->blockSize - s->trailPadSize;
+            p->iov[idx].iov_base = pBlock->data;
+            p->iov[idx].iov_len = self->blockSize - s->trailPadSize;
+            p->blk[idx] = pBlock;
             idx++;
         }
         else {
@@ -84,9 +137,9 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
                     pOther->flags.async = 1;
                     pOther->flags.readError = EOK;
 
-                    req->iov[idx].iov_base = pOther->data;
-                    req->iov[idx].iov_token = (intptr_t)pOther;
-                    req->iov[idx].iov_len = self->blockSize - s->trailPadSize;
+                    p->iov[idx].iov_base = pOther->data;
+                    p->iov[idx].iov_len = self->blockSize - s->trailPadSize;
+                    p->blk[idx] = pOther;
                     idx++;
                 }
             }
@@ -96,40 +149,25 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
         }
     }
 
-    req->s.u.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
-    req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
-    req->options = 0;
-    req->iovCount = nBlocksToCluster;
-
-    *pOutReq = req;
-    return err;
+    return DiskDriver_ReadAsync(s->disk, &p->iov[0], p->cnt, offset, &p->completion);
 }
 
-static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, IORWCommand* _Nullable * _Nonnull pOutReq)
+static errno_t _DiskCache_StartWriteOp(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync)
 {
-    decl_try_err();
-    IORWCommand* req = NULL;
+    DiskOp* p = _DiskCache_AcquireDiskOp(self, s);
+    const off_t offset = pBlock->lba * s->s2bFactor * s->sectorSize;
 
-    err = IODiskCommand_Get(sizeof(IORWCommand), (IODiskCommand**)&req);
-    if (err != EOK) {
-        return err;
-    }
-    
-    IODiskCommand_Init(req, kIODiskCommand_Write);
-    req->s.u.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
-    req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
-    req->options = 0;
-    req->iovCount = 1;
-    req->iov[0].iov_base = pBlock->data;
-    req->iov[0].iov_token = (intptr_t)pBlock;
-    req->iov[0].iov_len = self->blockSize - s->trailPadSize;
+    p->type = kIODiskCommand_Write;
+    p->cnt = 1;
+    p->iov[0].iov_base = pBlock->data;
+    p->iov[0].iov_len = self->blockSize - s->trailPadSize;
+    p->blk[0] = pBlock;
 
     pBlock->flags.op = kDiskBlockOp_Write;
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->flags.readError = EOK;
 
-    *pOutReq = req;
-    return err;
+    return DiskDriver_WriteAsync(s->disk, p->iov, p->cnt, offset, &p->completion);
 }
 
 // Starts an operation to read the contents of the provided block from disk or
@@ -141,7 +179,7 @@ static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self,
 //
 // NOTE: this function assumes that the data of a block that should be read from
 // disk is zeroed out.
-errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
+errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
     IORWCommand* req = NULL;
@@ -167,23 +205,20 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     // Start a new disk request
     switch (op) {
         case kDiskBlockOp_Read:
-            err = _DiskCache_CreateReadRequest(self, s, pBlock, isSync, &req);
+            err = _DiskCache_StartReadOp(self, s, pBlock, isSync);
             break;
 
         case kDiskBlockOp_Write:
-            err = _DiskCache_CreateWriteRequest(self, s, pBlock, isSync, &req);
+            err = _DiskCache_StartWriteOp(self, s, pBlock, isSync);
             break;
 
         default:
             abort();
     }
 
-    if (err == EOK) {
-       err = DiskDriver_BeginIO(s->disk, (IODiskCommand*)req);
-        if (err == EOK && isSync) {
-            err = _DiskCache_WaitIO(self, pBlock, op);
-            // The lock is now held in exclusive mode again, if succeeded
-        }
+    if (err == EOK && isSync) {
+        err = _DiskCache_WaitIO(self, pBlock, op);
+        // The lock is now held in exclusive mode again, if succeeded
     }
 
     return err;
@@ -248,34 +283,26 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
     }
 }
 
-static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, IORWCommand* _Nonnull req)
+static void _on_disk_op_done(DiskCacheRef _Nullable self, DiskOp* _Nullable dop, errno_t err, ssize_t rlen)
 {
-    ssize_t resCount = req->resCount;
-    errno_t status = req->s.status;
-    const int type = req->s.type;
-
     mtx_lock(&self->interlock);
-    for (size_t i = 0; i < req->iovCount; i++) {
-        DiskBlockRef pBlock = (DiskBlockRef)req->iov[i].iov_token;
+    for (int i = 0; i < dop->cnt; i++) {
+        DiskBlockRef pBlock = dop->blk[i];
 
-        if (resCount >= self->blockSize) {
-            resCount -= self->blockSize;
+        if (rlen >= self->blockSize) {
+            rlen -= self->blockSize;
         }
-        else if (status == EOK) {
+        else if (err == EOK) {
             // We got a short read/write (bytes processed < block size) -> treat
             // this as an I/O error for now. XXX should probably retry the blocks
             // that got read/written short to get the real error from the disk
             // driver.
-            status = EIO;
+            err = EIO;
         }
 
-        _DiskCache_OnBlockRequestDone(self, pBlock, type, status);
+        _DiskCache_OnBlockRequestDone(self, pBlock, dop->type, err);
     }
-    mtx_unlock(&self->interlock);
-}
 
-static void _on_disk_request_done(IORWCommand* _Nonnull req)
-{
-    DiskCache_OnDiskRequestDone(gDiskCache, req);
-    IODiskCommand_Put((IODiskCommand*)req);
+    _DiskCache_RelinquishDiskOp(self, dop);
+    mtx_unlock(&self->interlock);
 }

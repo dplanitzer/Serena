@@ -177,6 +177,11 @@ invoke_n(beginIO, DiskDriver, __self, __req)
 invoke_n(doIO, DiskDriver, __self, __req)
 
 
+// It's the callers responsibility to keep 'iov' and 'completion' alive until the async operation is done
+extern errno_t DiskDriver_ReadAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnull iov, int iovcnt, off_t offset, const IOCompletion* _Nonnull completion);
+extern errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnull iov, int iovcnt, off_t offset, const IOCompletion* _Nonnull completion);
+
+
 extern errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, char fillByte);
 extern errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, off_t* _Nonnull pOffset, char fillByte);
 

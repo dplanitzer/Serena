@@ -30,7 +30,10 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, HandlerRef _Nonnull hnd, 
     s->sectorSize = info->sectorSize;
     s->rwClusterSize = info->sectorsPerRdwr;
     s->activeMappingsCount = 0;
+    s->dopsCache = QUEUE_INIT;
+    s->dopsInUse = QUEUE_INIT;
     s->isOpen = true;
+    s->wantsDop = false;
 
     if (info->sectorSize > 0 && ispow2_ui(info->sectorSize)) {
         s->s2bFactor = self->blockSize / info->sectorSize;
@@ -43,6 +46,12 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, HandlerRef _Nonnull hnd, 
 
     self->nextAvailSessionId++;
     assert(self->nextAvailSessionId >= 0);  // no wrap around
+
+
+    //XXX make this function failable
+    DiskOp* dop;
+    assert(DiskOp_Create(s->rwClusterSize, self, &dop) == EOK);
+    queue_add_last(&s->dopsCache, &dop->qe);
 
     mtx_unlock(&self->interlock);
 }
@@ -66,13 +75,15 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
         s->sessionId = 0;
         s->isOpen = false;
     }
+
+    //XXX wait for still ongoing dops to be done and then drop them.
     mtx_unlock(&self->interlock);
 }
 
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (sessionId, lba)
-static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, blkno_t lba)
+static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, blkno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -119,7 +130,7 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnul
 
 // Check whether the given block has dirty data and write it synchronously to
 // disk, if so.
-errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef pBlock)
+errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef pBlock)
 {
     decl_try_err();
 
