@@ -36,7 +36,7 @@ class_ref(FloppyDriver);
 class_ref(FSContainer);
 class_ref(GamePortController);
 class_ref(GraphicsDriver);
-class_ref(HIDManager);
+class_ref(HIDDriver);
 class_ref(Inode);
 class_ref(InodeHandler);
 class_ref(InputDriver);

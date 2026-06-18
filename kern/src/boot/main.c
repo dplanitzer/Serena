@@ -10,7 +10,6 @@
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
 #include <driver/IOCatalog.h>
-#include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/kernfs/KernFS.h>
@@ -145,8 +144,7 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     try(DiskCache_Create(512, sys_desc_getramsize(pSysDesc) >> 5, &gDiskCache));
 
 
-    // Create the HID manager and the I/O catalog
-    try(HIDManager_Create(&gHIDManager));
+    // Create the I/O catalog
     try(IOCatalog_Create(&gIOCatalog));
     
 
@@ -156,10 +154,6 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
     // Detect hardware and initialize boot-time drivers
     try(drivers_init());
-
-
-    // Start the HID services
-    try(HIDManager_Start(gHIDManager));
 
 
     // Open the boot screen and show the boot logo

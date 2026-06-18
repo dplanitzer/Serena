@@ -1,38 +1,37 @@
 //
-//  HIDManager.c
+//  HIDDriver.c
 //  kernel
 //
-//  Created by Dietmar Planitzer on 1/14/25.
+//  Created by Dietmar Planitzer on 8/3/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "HIDManagerPriv.h"
+#include "HIDDriverPriv.h"
 #include <assert.h>
 #include <limits.h>
 #include <driver/IOCatalog.h>
 #include <ext/bit.h>
 #include <ext/math.h>
+#include <ext/nanotime.h>
 #include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
 #include <kpi/file.h>
+#include <kpi/hid.h>
 #include <process/kerneld.h>
 
 
 extern const uint8_t gUSBHIDKeyFlags[256];
-void _vbl_handler(HIDManagerRef _Nonnull self);
-static void _collect_framebuffer_size(HIDManagerRef _Nonnull self);
-static void _reports_collector_loop(HIDManagerRef _Nonnull self);
+void _vbl_handler(HIDDriverRef _Nonnull self);
+static void _collect_framebuffer_size(HIDDriverRef _Nonnull self);
+static void _reports_collector_loop(HIDDriverRef _Nonnull self);
 
 
-HIDManagerRef _Nonnull gHIDManager;
-
-
-errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
+errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    HIDManagerRef self = NULL;
-    
-    try(kalloc_cleared(sizeof(HIDManager), (void**)&self));
+    HIDDriverRef self = NULL;
+
+    try(PseudoDriver_Create(class(HIDDriver), 0, (DriverRef*)&self));
 
     mtx_init(&self->mtx);
     wq_init(&self->reportsWaitQueue);
@@ -71,13 +70,14 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
 
 catch:
-    *pOutSelf = self;
+    *pOutSelf = (DriverRef)self;
     return err;
 }
 
-errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
+errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
+    DriverEntry de;
 
     // Create the event vcpu
     vcpu_attr_t attr;
@@ -94,6 +94,14 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     // Enable VBL interrupts
     irq_add_handler(&self->vblHandler);
 
+    de.name = "hid";
+    de.uid = UID_ROOT;
+    de.gid = GID_ROOT;
+    de.perms = fs_perms_from_octal(0666);
+    de.arg = 0;
+
+    try(Driver_Publish((DriverRef)self, &de));
+
 catch:
     return err;
 }
@@ -104,7 +112,7 @@ catch:
 // MARK: Kernel API
 ////////////////////////////////////////////////////////////////////////////////
 
-void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, nanotime_t* _Nullable pInitialDelay, nanotime_t* _Nullable pRepeatDelay)
+void HIDDriver_GetKeyRepeatDelays(HIDDriverRef _Nonnull self, nanotime_t* _Nullable pInitialDelay, nanotime_t* _Nullable pRepeatDelay)
 {
     mtx_lock(&self->mtx);
     if (pInitialDelay) {
@@ -116,7 +124,7 @@ void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, nanotime_t* _Nul
     mtx_unlock(&self->mtx);
 }
 
-void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const nanotime_t* _Nonnull initialDelay, const nanotime_t* _Nonnull repeatDelay)
+void HIDDriver_SetKeyRepeatDelays(HIDDriverRef _Nonnull self, const nanotime_t* _Nonnull initialDelay, const nanotime_t* _Nonnull repeatDelay)
 {
     mtx_lock(&self->mtx);
     self->evqSynth.initialKeyRepeatDelay = *initialDelay;
@@ -140,7 +148,7 @@ static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t k
 // potentially (slightly) different from the state you get from inspecting the
 // events in the event stream because the event stream lags the hardware state
 // slightly.
-void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
+void HIDDriver_GetDeviceKeysDown(HIDDriverRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
 {
     int oi = 0;
 
@@ -183,7 +191,7 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     *nKeysDown = oi;
 }
 
-errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self)
+errno_t HIDDriver_ObtainCursor(HIDDriverRef _Nonnull self)
 {
     decl_try_err();
 
@@ -209,7 +217,7 @@ errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self)
     return err;
 }
 
-void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
+void HIDDriver_ReleaseCursor(HIDDriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (self->fb) {
@@ -220,7 +228,7 @@ void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, pixfmt_t format, int hotSpotX, int hotSpotY)
+errno_t HIDDriver_SetCursor(HIDDriverRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, pixfmt_t format, int hotSpotX, int hotSpotY)
 {
     decl_try_err();
 
@@ -266,7 +274,7 @@ catch:
 }
 
 
-static bool _show_cursor(HIDManagerRef _Nonnull _Locked self)
+static bool _show_cursor(HIDDriverRef _Nonnull _Locked self)
 {
     if (self->hiddenCount > 0) {
         self->hiddenCount--;
@@ -282,7 +290,7 @@ static bool _show_cursor(HIDManagerRef _Nonnull _Locked self)
     }
 }
 
-void HIDManager_ShowCursor(HIDManagerRef _Nonnull self)
+void HIDDriver_ShowCursor(HIDDriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (_show_cursor(self)) {
@@ -292,7 +300,7 @@ void HIDManager_ShowCursor(HIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-static void _hide_cursor(HIDManagerRef _Nonnull _Locked self)
+static void _hide_cursor(HIDDriverRef _Nonnull _Locked self)
 {
     if (self->hiddenCount == 0) {
         DisplayDriver_SetCursorVisible(self->fb, false);
@@ -302,14 +310,14 @@ static void _hide_cursor(HIDManagerRef _Nonnull _Locked self)
     }
 }
 
-void HIDManager_HideCursor(HIDManagerRef _Nonnull self)
+void HIDDriver_HideCursor(HIDDriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     _hide_cursor(self);
     mtx_unlock(&self->mtx);
 }
 
-void HIDManager_ObscureCursor(HIDManagerRef _Nonnull self)
+void HIDDriver_ObscureCursor(HIDDriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (self->hiddenCount == 0) {
@@ -319,7 +327,7 @@ void HIDManager_ObscureCursor(HIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-static bool _shield_intersects_cursor(HIDManagerRef _Nonnull self)
+static bool _shield_intersects_cursor(HIDDriverRef _Nonnull self)
 {
     int r;
 
@@ -340,7 +348,7 @@ _hide_cursor(__self); \
 _show_cursor(__self); \
 (__self)->isMouseShielded = false
 
-errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height)
+errno_t HIDDriver_ShieldMouseCursor(HIDDriverRef _Nonnull self, int x, int y, int width, int height)
 {
     if (width < 0 || height < 0) {
         return EINVAL;
@@ -372,7 +380,7 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
 }
 
 // Returns the current mouse location in screen space.
-void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY)
+void HIDDriver_GetMouseDevicePosition(HIDDriverRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY)
 {
     mtx_lock(&self->mtx);
     *pOutX = self->mouse.x;
@@ -381,7 +389,7 @@ void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnul
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.
-uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
+uint32_t HIDDriver_GetMouseDeviceButtonsDown(HIDDriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     const uint32_t buttons = self->mouse.buttons;
@@ -397,7 +405,7 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Removes all events from the queue.
-void HIDManager_FlushEvents(HIDManagerRef _Nonnull self)
+void HIDDriver_FlushEvents(HIDDriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     self->evqReadIdx = 0;
@@ -410,7 +418,7 @@ void HIDManager_FlushEvents(HIDManagerRef _Nonnull self)
 // the queue is full. This function must be called from the interrupt context.
 // NOTE: this function does not do a cnd_broadcast() the caller must do this
 // before dropping the lock.
-static void _queue_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+static void _queue_event(HIDDriverRef _Nonnull _Locked self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
 {
     if (EVQ_WRITABLE_COUNT() > 0) {
         HIDEvent* pe = &self->evqQueue[self->evqWriteIdx++ & self->evqCapacityMask];
@@ -425,7 +433,7 @@ static void _queue_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type,
     }
 }
 
-void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+void HIDDriver_PostEvent(HIDDriverRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
 {
     mtx_lock(&self->mtx);
     clock_gettime(g_mono_clock, &self->now);
@@ -437,7 +445,7 @@ void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t 
 // Dequeues and returns the next available event or ETIMEDOUT if no event is
 // available and a timeout > 0 was specified. Returns EAGAIN if no event is
 // available and the timeout is 0.
-errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt)
+errno_t HIDDriver_GetNextEvent(HIDDriverRef _Nonnull self, const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt)
 {
     decl_try_err();
     nanotime_t deadline;
@@ -506,7 +514,7 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const nanotime_t* _
 // Reports a key down or up from a keyboard device. This function updates the
 // state of the logical keyboard and it posts a suitable keyboard event to the
 // event queue.
-static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
+static void _post_key_event(HIDDriverRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
 {
     // Update the key map
     const uint16_t keyCode = report->data.key.keyCode;
@@ -559,7 +567,7 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
 }
 
 // Posts suitable mouse events to the event queue.
-static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPositionChange, bool hasButtonsChange, uint32_t oldButtonsDown)
+static void _post_mouse_event(HIDDriverRef _Nonnull _Locked self, bool hasPositionChange, bool hasButtonsChange, uint32_t oldButtonsDown)
 {
     if (hasButtonsChange) {
         HIDEventType evtType;
@@ -598,7 +606,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
 
 // Reports a change in the state of a gamepad style device. Posts suitable events
 // to the event queue.
-static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
+static void _post_gamepad_event(HIDDriverRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
     did_t did = Driver_GetId(DriverHandler_GetDriverAs(gp->hnd, Driver));
 
@@ -665,7 +673,7 @@ IOCATS_DEF(g_pointing_device_cats, IOHID_MOUSE, IOHID_TRACKBALL, IOHID_LIGHTPEN,
 
 // Connects the given HID input driver or framebuffer to the HID manager by
 // opening a channel to it.
-static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
+static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnull driver)
 {
     decl_try_err();
 
@@ -720,7 +728,7 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
 }
 
 // Disconnects the given HID driver or framebuffer.
-static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
+static void _disconnect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnull driver)
 {
     if ((DriverRef)self->kb == driver) {
         Object_Release(self->kbHnd);
@@ -768,7 +776,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
     }
 }
 
-static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull driver, int action)
+static void _matching_driver(HIDDriverRef _Nonnull self, DriverRef _Nonnull driver, int action)
 {
     mtx_lock(&self->mtx);
 
@@ -789,13 +797,13 @@ static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull dri
 }
 
 
-void _vbl_handler(HIDManagerRef _Nonnull self)
+void _vbl_handler(HIDDriverRef _Nonnull self)
 {
     vcpu_send_signal(self->reportsCollector, SIGVBL);
 }
 
 
-static bool _collect_keyboard_reports(HIDManagerRef _Nonnull self)
+static bool _collect_keyboard_reports(HIDDriverRef _Nonnull self)
 {
     bool r = false;
 
@@ -813,7 +821,7 @@ static bool _collect_keyboard_reports(HIDManagerRef _Nonnull self)
     return r;
 }
 
-static bool _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
+static bool _collect_pointing_device_reports(HIDDriverRef _Nonnull self)
 {
     if (self->mouse.chCount == 0) {
         return false;
@@ -903,7 +911,7 @@ static bool _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
     return true;
 }
 
-static bool _collect_gamepad_reports(HIDManagerRef _Nonnull self)
+static bool _collect_gamepad_reports(HIDDriverRef _Nonnull self)
 {
     bool r = false;
 
@@ -920,7 +928,7 @@ static bool _collect_gamepad_reports(HIDManagerRef _Nonnull self)
     return r;
 }
 
-static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
+static void _collect_framebuffer_size(HIDDriverRef _Nonnull self)
 {
     bool hasChanged = false;
     int w, h;
@@ -946,7 +954,7 @@ static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
 }
 
 
-static void _reports_collector_loop(HIDManagerRef _Nonnull self)
+static void _reports_collector_loop(HIDDriverRef _Nonnull self)
 {
     int signo = 0;
 
@@ -986,3 +994,123 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 
     mtx_unlock(&self->mtx);
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Driver Interface
+////////////////////////////////////////////////////////////////////////////////
+
+
+// Returns events in the order oldest to newest. As many events are returned as
+// fit in the provided buffer. Only blocks the caller if no events are queued.
+errno_t HIDDriver_read(HIDDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    decl_try_err();
+    const bool isNonBlocking = (mode & O_NONBLOCK) == O_NONBLOCK;
+    const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
+    HIDEvent* pe = buf;
+    ssize_t nBytesRead = 0;
+
+    while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
+        // Only block waiting for the first event. For all other events we do not
+        // wait.
+        const errno_t e1 = HIDDriver_GetNextEvent(self, (pe == buf) ? timp : &NANOTIME_ZERO, pe);
+
+        if (e1 != EOK) {
+            // Return with an error if we were not able to read any event data at
+            // all and return with the data we were able to read otherwise.
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+        
+        nBytesRead += sizeof(HIDEvent);
+        pe++;
+    }
+
+    *nOutBytesRead = nBytesRead;
+    return err;
+}
+
+errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kHIDCommand_GetNextEvent: {
+            const nanotime_t* timeoutp = va_arg(ap, nanotime_t*);
+            HIDEvent* evt = va_arg(ap, HIDEvent*);
+
+            return HIDDriver_GetNextEvent(self, timeoutp, evt);
+        }
+
+        case kHIDCommand_FlushEvents:
+            HIDDriver_FlushEvents(self);
+            return EOK;
+            
+        case kHIDCommand_GetKeyRepeatDelays: {
+            nanotime_t* initialp = va_arg(ap, nanotime_t*);
+            nanotime_t* repeatp = va_arg(ap, nanotime_t*);
+
+            HIDDriver_GetKeyRepeatDelays(self, initialp, repeatp);
+            return EOK;
+        }
+
+        case kHIDCommand_SetKeyRepeatDelays: {
+            const nanotime_t* initialp = va_arg(ap, nanotime_t*);
+            const nanotime_t* repeatp = va_arg(ap, nanotime_t*);
+
+            HIDDriver_SetKeyRepeatDelays(self, initialp, repeatp);
+            return EOK;
+        }
+
+        case kHIDCommand_ObtainCursor: {
+            return HIDDriver_ObtainCursor(self);
+        }
+
+        case kHIDCommand_ReleaseCursor:
+            HIDDriver_ReleaseCursor(self);
+            return EOK;
+
+        case kHIDCommand_SetCursor: {
+            const void** planes = va_arg(ap, const void**);
+            const size_t bytesPerRow = va_arg(ap, size_t);
+            const int width = va_arg(ap, int);
+            const int height = va_arg(ap, int);
+            const pixfmt_t format = va_arg(ap, pixfmt_t);
+            const int hotSpotX = va_arg(ap, int);
+            const int hotSpotY = va_arg(ap, int);
+
+            return HIDDriver_SetCursor(self, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
+        }
+
+        case kHIDCommand_ShowCursor:
+            HIDDriver_ShowCursor(self);
+            return EOK;
+
+        case kHIDCommand_HideCursor:
+            HIDDriver_HideCursor(self);
+            return EOK;
+
+        case kHIDCommand_ObscureCursor:
+            HIDDriver_ObscureCursor(self);
+            return EOK;
+
+        case kHIDCommand_ShieldCursor: {
+            const int x = va_arg(ap, int);
+            const int y = va_arg(ap, int);
+            const int w = va_arg(ap, int);
+            const int h = va_arg(ap, int);
+
+            return HIDDriver_ShieldMouseCursor(self, x, y, w, h);
+        }
+
+        default:
+            return super_n(ioctl, Driver, HIDDriver, self, mode, pOffset, cmd, ap);
+    }
+}
+
+
+class_func_defs(HIDDriver, PseudoDriver,
+override_func_def(onStart, HIDDriver, Driver)
+override_func_def(read, HIDDriver, Driver)
+override_func_def(ioctl, HIDDriver, Driver)
+);
