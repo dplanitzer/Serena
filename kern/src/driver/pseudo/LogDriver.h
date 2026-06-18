@@ -9,10 +9,10 @@
 #ifndef LogDriver_h
 #define LogDriver_h
 
-#include <driver/pseudo/PseudoDriver.h>
+#include <driver/Driver.h>
 
 
-final_class(LogDriver, PseudoDriver);
+final_class(LogDriver, Driver);
 class_ref(LogDriver);
 
 extern errno_t LogDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);

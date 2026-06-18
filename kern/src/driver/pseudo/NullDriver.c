@@ -8,14 +8,16 @@
 
 #include "NullDriver.h"
 
+IOCATS_DEF(g_cats, IOSRV_NULL);
 
-final_class_ivars(NullDriver, PseudoDriver,
+
+final_class_ivars(NullDriver, Driver,
 );
 
 
 errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return PseudoDriver_Create(class(NullDriver), 0, pOutSelf);
+    return Driver_CreateRoot(class(NullDriver), 0, g_cats, pOutSelf);
 }
 
 errno_t NullDriver_onStart(NullDriverRef _Nonnull _Locked self)
@@ -47,7 +49,7 @@ errno_t NullDriver_write(NullDriverRef _Nonnull self, unsigned int mode, off_t* 
 }
 
 
-class_func_defs(NullDriver, PseudoDriver,
+class_func_defs(NullDriver, Driver,
 override_func_def(onStart, NullDriver, Driver)
 override_func_def(read, NullDriver, Driver)
 override_func_def(write, NullDriver, Driver)

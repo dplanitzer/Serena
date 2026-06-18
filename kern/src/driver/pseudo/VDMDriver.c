@@ -10,8 +10,10 @@
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
 
+IOCATS_DEF(g_cats, IOSRV_VDM);
 
-final_class_ivars(VDMDriver, PseudoDriver,
+
+final_class_ivars(VDMDriver, Driver,
 );
 
 
@@ -20,7 +22,7 @@ errno_t VDMDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     VDMDriverRef self;
 
-    err = PseudoDriver_Create(class(VDMDriver), kDriver_IsBus, (DriverRef*)&self);
+    err = Driver_CreateRoot(class(VDMDriver), kDriver_IsBus, g_cats, (DriverRef*)&self);
     if (err == EOK) {
         Driver_SetMaxChildCount((DriverRef)self, 8);
     }
@@ -103,6 +105,6 @@ catch:
 }
 
 
-class_func_defs(VDMDriver, PseudoDriver,
+class_func_defs(VDMDriver, Driver,
 override_func_def(onStart, VDMDriver, Driver)
 );

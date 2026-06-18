@@ -9,10 +9,10 @@
 #ifndef NullDriver_h
 #define NullDriver_h
 
-#include <driver/pseudo/PseudoDriver.h>
+#include <driver/Driver.h>
 
 
-final_class(NullDriver, PseudoDriver);
+final_class(NullDriver, Driver);
 class_ref(NullDriver);
 
 extern errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);

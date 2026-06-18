@@ -9,7 +9,7 @@
 #ifndef HIDDriver_h
 #define HIDDriver_h
 
-#include <driver/pseudo/PseudoDriver.h>
+#include <driver/Driver.h>
 #include <ext/try.h>
 #include <kobj/Object.h>
 #include <kpi/framebuffer.h>
@@ -17,7 +17,7 @@
 #include <kpi/hid_event.h>
 
 
-final_class(HIDDriver, PseudoDriver);
+final_class(HIDDriver, Driver);
 
 
 extern errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);

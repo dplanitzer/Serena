@@ -23,6 +23,8 @@
 #include <process/kerneld.h>
 
 
+IOCATS_DEF(g_cats, IOHID_MANAGER);
+
 extern const uint8_t gUSBHIDKeyFlags[256];
 void _vbl_handler(HIDDriverRef _Nonnull self);
 static void _collect_framebuffer_size(HIDDriverRef _Nonnull self);
@@ -34,7 +36,7 @@ errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     HIDDriverRef self = NULL;
 
-    try(PseudoDriver_Create(class(HIDDriver), 0, (DriverRef*)&self));
+    try(Driver_CreateRoot(class(HIDDriver), 0, g_cats, (DriverRef*)&self));
 
     mtx_init(&self->mtx);
     wq_init(&self->reportsWaitQueue);
@@ -1118,7 +1120,7 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, unsigned int mode, off_t* _N
 }
 
 
-class_func_defs(HIDDriver, PseudoDriver,
+class_func_defs(HIDDriver, Driver,
 override_func_def(onStart, HIDDriver, Driver)
 override_func_def(read, HIDDriver, Driver)
 override_func_def(ioctl, HIDDriver, Driver)

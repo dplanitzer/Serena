@@ -9,14 +9,16 @@
 #include "LogDriver.h"
 #include <kern/log.h>
 
+IOCATS_DEF(g_cats, IOSRV_KLOG);
 
-final_class_ivars(LogDriver, PseudoDriver,
+
+final_class_ivars(LogDriver, Driver,
 );
 
 
 errno_t LogDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return PseudoDriver_Create(class(LogDriver), 0, pOutSelf);
+    return Driver_CreateRoot(class(LogDriver), 0, g_cats, pOutSelf);
 }
 
 errno_t LogDriver_onStart(LogDriverRef _Nonnull _Locked self)
@@ -47,7 +49,7 @@ errno_t LogDriver_write(LogDriverRef _Nonnull self, unsigned int mode, off_t* _N
 }
 
 
-class_func_defs(LogDriver, PseudoDriver,
+class_func_defs(LogDriver, Driver,
 override_func_def(onStart, LogDriver, Driver)
 override_func_def(read, LogDriver, Driver)
 override_func_def(write, LogDriver, Driver)

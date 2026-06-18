@@ -9,13 +9,13 @@
 #ifndef VDMDriver_h
 #define VDMDriver_h
 
-#include <driver/pseudo/PseudoDriver.h>
+#include <driver/Driver.h>
 
 #define VDM_TYPE_RAM        0   /* R/W RAM disk */
 #define VDM_TYPE_REF_ROM    1   /* ROM disk which references static & constant data */
 
 
-final_class(VDMDriver, PseudoDriver);
+final_class(VDMDriver, Driver);
 class_ref(VDMDriver);
 
 

@@ -167,7 +167,7 @@ typedef struct CharBuffer {
 
 
 // The console object.
-final_class_ivars(Console, PseudoDriver,
+final_class_ivars(Console, Driver,
     mtx_t                       mtx;
     kdispatch_t _Nonnull        dq;
 

@@ -17,6 +17,7 @@
 #include <kpi/fs_perms.h>
 #include <kpi/hid.h>
 
+IOCATS_DEF(g_cats, IOCAT_TERMINAL);
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
@@ -28,7 +29,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL, "con");
     ConsoleRef self;
 
-    try(PseudoDriver_Create(class(Console), 0, (DriverRef*)&self));
+    try(Driver_CreateRoot(class(Console), 0, g_cats, (DriverRef*)&self));
     
     mtx_init(&self->mtx);
 
@@ -719,7 +720,7 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, unsigned int mode, off_t* _Nonnu
 }
 
 
-class_func_defs(Console, PseudoDriver,
+class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
 override_func_def(onStart, Console, Driver)
 override_func_def(createHandler, Console, Driver)
