@@ -29,4 +29,7 @@ extern errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnul
 // terminated by a NULL entry.
 extern errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
 
+// Same as above but limited to the first matching driver.
+extern errno_t KernFS_CopyFirstMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutDriver);
+
 #endif /* KernFS_h */

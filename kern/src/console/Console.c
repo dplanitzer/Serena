@@ -19,6 +19,9 @@
 
 IOCATS_DEF(g_cats, IOCAT_TERMINAL);
 
+IOCATS_DEF(g_hid_manager_cats, IOHID_MANAGER);
+IOCATS_DEF(g_fb_cats, IOVID_FB);
+
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
 // \param pGDevice the graphics device
@@ -35,11 +38,15 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(kdispatch_create(&attr, &self->dq));
 
-    try(IOCatalog_Open(gIOCatalog, "/hid", O_RDONLY, &self->hidHnd));
+    // Open the HID driver
+    DriverRef drv;
+    try(IOCatalog_CopyFirstMatchingDriver(gIOCatalog, g_hid_manager_cats, &drv));
+    try(Driver_Open(drv, O_RDONLY, 0, &self->hidHnd));
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
-    // Open a channel to the framebuffer
-    try(IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &self->fbHnd));
+    // Open the framebuffer
+    try(IOCatalog_CopyFirstMatchingDriver(gIOCatalog, g_fb_cats, &drv));
+    try(Driver_Open(drv, O_RDWR, 0, &self->fbHnd));
     self->chb.count = 0;
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;

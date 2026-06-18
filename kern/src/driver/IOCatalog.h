@@ -100,6 +100,8 @@ extern errno_t IOCatalog_CopyDriverForId(IOCatalogRef _Nonnull self, CatalogId i
 // terminated by a NULL entry.
 extern errno_t IOCatalog_CopyMatchingDrivers(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
 
+// Same as above but return the first matching driver only.
+extern errno_t IOCatalog_CopyFirstMatchingDriver(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutDriver);
 
 // Registers a continuous driver matcher with the driver manager. This matcher
 // will invoke 'f' with the argument 'arg' and the matching driver everytime a

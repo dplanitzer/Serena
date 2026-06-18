@@ -233,6 +233,11 @@ errno_t IOCatalog_CopyMatchingDrivers(IOCatalogRef _Nonnull self, const iocat_t*
     return KernFS_CopyMatchingDrivers((KernFSRef)self->fs, cats, pOutDrivers);
 }
 
+errno_t IOCatalog_CopyFirstMatchingDriver(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutDriver)
+{
+    return KernFS_CopyFirstMatchingDriver((KernFSRef)self->fs, cats, pOutDriver);
+}
+
 errno_t IOCatalog_StartMatching(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg)
 {
     decl_try_err();
