@@ -142,10 +142,6 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
     // Create the disk cache
     try(DiskCache_Create(512, sys_desc_getramsize(pSysDesc) >> 5, &gDiskCache));
-
-
-    // Create the I/O catalog
-    try(IOCatalog_Create(&gIOCatalog));
     
 
     // Create the kerneld process and publish it
@@ -156,6 +152,10 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     try(drivers_init());
 
 
+    // Mount /dev for kerneld
+    try(kerneld_mount_devfs());
+
+    
     // Open the boot screen and show the boot logo
     bt_open(&gBootScreen);
 

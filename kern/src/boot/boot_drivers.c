@@ -31,6 +31,10 @@ errno_t drivers_init(void)
     decl_try_err();
     DriverRef dp;
 
+    // Create the I/O catalog
+    try(IOCatalog_Create(&gIOCatalog));
+
+
     // Platform controller
     try(PlatformController_Create(_get_platform_controller_class(), &dp));
     try(Driver_Start(dp));

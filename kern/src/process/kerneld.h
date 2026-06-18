@@ -18,6 +18,9 @@ extern ProcessRef _Nonnull  gKernelProcess;
 // vcpu.
 extern errno_t kerneld_init(void);
 
+// Mounts /dev in the private kerneld file hierarchy
+extern errno_t kerneld_mount_devfs(void);
+
 // Spawns systemd from the kernel process context.
 extern errno_t kerneld_spawn_systemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh);
 

@@ -58,15 +58,22 @@ errno_t kerneld_init(void)
     gKernelProcess = &g_kernel_proc_storage;
 
 
-    // Mount the driver catalog at /dev
-    try(FileManager_CreateDirectory(&gKernelProcess->fm, "/dev", 0550));
-    try(FileManager_Mount(&gKernelProcess->fm, FS_MOUNT_CATALOG, FS_CATALOG_DEV, "/dev", ""));
-
-
     // Finally publish kerneld
     (void)ProcessManager_Register(gProcessManager, gKernelProcess);
 
 catch:
+    return err;
+}
+
+errno_t kerneld_mount_devfs(void)
+{
+    decl_try_err();
+
+    err = FileManager_CreateDirectory(&gKernelProcess->fm, "/dev", 0550);
+    if (err == EOK) {
+        err = FileManager_Mount(&gKernelProcess->fm, FS_MOUNT_CATALOG, FS_CATALOG_DEV, "/dev", "");
+    }
+
     return err;
 }
 
