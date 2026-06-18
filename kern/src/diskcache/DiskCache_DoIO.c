@@ -182,7 +182,6 @@ static errno_t _DiskCache_StartWriteOp(DiskCacheRef _Nonnull _Locked self, DiskS
 errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
-    IORWCommand* req = NULL;
 
     // Assert that if there is a I/O operation currently ongoing, that it is of
     // the same kind as 'op'. See the requirements at the top of this file.
