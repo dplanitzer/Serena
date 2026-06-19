@@ -10,8 +10,10 @@
 #include <driver/IOCatalog.h>
 #include <driver/PlatformController.h>
 #include <driver/pseudo/VDMDriver.h>
-#include <handler/DriverHandler.h>
+#include <kpi/fd.h>
 #include <kpi/smg.h>
+
+IOCATS_DEF(g_vdm_cats, IOSRV_VDM);
 
 
 // Checks whether the platform controller is able to provide a boot-able disk image
@@ -28,9 +30,8 @@ void auto_discover_boot_rd(void)
 
 
     // Open the VDM
-    HandlerRef hVdm = NULL;
-    try(IOCatalog_Open(gIOCatalog, "/vd-bus/self", O_RDWR, &hVdm));
-    VDMDriverRef vdm = DriverHandler_GetDriverAs(hVdm, VDMDriver);
+    VDMDriverRef vdm;
+    try(IOCatalog_OpenFirstMatch(gIOCatalog, g_vdm_cats, O_RDWR, (DriverRef*)&vdm));
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
@@ -48,5 +49,8 @@ void auto_discover_boot_rd(void)
     try(VDMDriver_CreateDisk(vdm, type, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
 
 catch:
-    Object_Release(hVdm);
+    if (vdm) {
+        Driver_Close(vdm);
+        Object_Release(vdm);
+    }
 }

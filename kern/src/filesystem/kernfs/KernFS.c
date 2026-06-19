@@ -246,20 +246,17 @@ catch:
     return err;
 }
 
-errno_t KernFS_CopyFirstMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutDriver)
+DriverRef _Nullable KernFS_CopyFirstMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
-    decl_try_err();
-    size_t idx = 0;
-    bool found = false;
+    DriverRef drv = NULL;
 
     mtx_lock(&self->inOwnedLock);
-    for (size_t i = 0; !found && (i < IN_HASH_CHAINS_COUNT); i++) {
+    for (size_t i = 0; (drv == NULL) && (i < IN_HASH_CHAINS_COUNT); i++) {
         deque_for_each(&self->inOwned[i], struct KfsNode, it,
             KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
             if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)((KfsSpecialRef)curNode)->instance, cats)) {
-                *pOutDriver = Object_RetainAs(((KfsSpecialRef)curNode)->instance, Driver);
-                found = true;
+                drv = Object_RetainAs(((KfsSpecialRef)curNode)->instance, Driver);
                 break;
             }
         )
@@ -267,7 +264,7 @@ errno_t KernFS_CopyFirstMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _
 
 catch:
     mtx_unlock(&self->inOwnedLock);
-    return err;
+    return drv;
 }
 
 

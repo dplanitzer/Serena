@@ -103,6 +103,26 @@ errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, un
     return err;
 }
 
+errno_t IOCatalog_OpenFirstMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, unsigned int mode, DriverRef _Nullable * _Nonnull pOutDriver)
+{
+    decl_try_err();
+    DriverRef drv = IOCatalog_CopyFirstMatchingDriver(self, cats);
+
+    if (drv == NULL) {
+        return ENODEV;
+    }
+
+    err = Driver_Open(drv, mode, 0, NULL);
+    if (err == EOK) {
+        *pOutDriver = drv;
+        return EOK;
+    }
+    else {
+        Object_Release(drv);
+        return err;
+    }
+}
+
 static errno_t _acquire_folder(IOCatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
 {
     if (folderId == kCatalogId_None) {
@@ -233,9 +253,9 @@ errno_t IOCatalog_CopyMatchingDrivers(IOCatalogRef _Nonnull self, const iocat_t*
     return KernFS_CopyMatchingDrivers((KernFSRef)self->fs, cats, pOutDrivers);
 }
 
-errno_t IOCatalog_CopyFirstMatchingDriver(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutDriver)
+DriverRef _Nullable IOCatalog_CopyFirstMatchingDriver(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
-    return KernFS_CopyFirstMatchingDriver((KernFSRef)self->fs, cats, pOutDriver);
+    return KernFS_CopyFirstMatchingDriver((KernFSRef)self->fs, cats);
 }
 
 errno_t IOCatalog_StartMatching(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg)
