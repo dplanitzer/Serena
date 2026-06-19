@@ -12,10 +12,14 @@
 
 any_class_def(Any);
 
-bool _instanceof(AnyRef _Nonnull self, const Class* _Nonnull targetType)
+bool _instanceof(AnyRef _Nullable self, const Class* _Nonnull targetType)
 {
-    Class* myCurType = classof(self);
+    if (self == NULL) {
+        return false;
+    }
 
+
+    Class* myCurType = classof(self);
     while (myCurType) {
         if (myCurType == targetType) {
             return true;

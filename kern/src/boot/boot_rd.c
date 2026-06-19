@@ -31,7 +31,7 @@ void auto_discover_boot_rd(void)
 
     // Open the VDM
     VDMDriverRef vdm;
-    try(IOCatalog_OpenFirstMatch(gIOCatalog, g_vdm_cats, O_RDWR, (DriverRef*)&vdm));
+    try(IOCatalog_OpenBestMatch(gIOCatalog, g_vdm_cats, O_RDWR, (DriverRef*)&vdm));
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now

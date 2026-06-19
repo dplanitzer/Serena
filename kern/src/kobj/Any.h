@@ -47,7 +47,7 @@ any_class(Any);
 
 
 // Returns true if the given object is an instance of the given class or one of
-// the super classes.
+// the super classes. Returns false if 'self' is NULL.
 #define instanceof(__self, __className) \
     _instanceof((AnyRef)__self, class(__className))
 

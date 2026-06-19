@@ -9,15 +9,15 @@
 #ifndef DiskCache_h
 #define DiskCache_h
 
+#include <stdbool.h>
 #include <ext/try.h>
+#include <ext/queue.h>
 #include <kobj/AnyRefs.h>
 #include <filesystem/FSBlock.h>
-#include <handler/DriverHandler.h>
 #include <kpi/disk.h>
 
 
 typedef struct DiskSession {
-    HandlerRef _Nullable    handler;
     DiskDriverRef _Nullable disk;
     int                     sessionId;
     size_t                  sectorSize;
@@ -48,7 +48,7 @@ extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 // size (eg CD-ROM sector size: 2,352 bytes) then a single sector will be mapped
 // to a single logical block. The remaining bytes will be ignored on write and
 // filled with zeros on read.  
-extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, HandlerRef _Nonnull hnd, const disk_info_t* _Nonnull info, DiskSession* _Nonnull s);
+extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, const disk_info_t* _Nonnull info, DiskSession* _Nonnull s);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, blkno_t lba);

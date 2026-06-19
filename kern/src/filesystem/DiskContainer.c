@@ -7,6 +7,7 @@
 //
 
 #include "DiskContainer.h"
+#include <assert.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
@@ -15,7 +16,7 @@
 
 final_class_ivars(DiskContainer, FSContainer,
     InodeRef _Nonnull       diskNode;
-    HandlerRef _Nonnull     handler;
+    DiskDriverRef _Nonnull  driver;
     DiskCacheRef _Nonnull   diskCache;
     DiskSession             session;
 );
@@ -24,13 +25,14 @@ final_class_ivars(DiskContainer, FSContainer,
 errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    DiskDriverRef disk = (DiskDriverRef)Inode_CopyResource(diskNode);
     struct DiskContainer* self = NULL;
-    HandlerRef hnd = NULL;
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(Inode_CreateHandler(diskNode, mode, &hnd));
-    try(DriverHandler_Ioctl(hnd, kDiskCommand_GetDiskInfo, &info));
+    assert(instanceof(disk, DiskDriver));
+    try(Driver_Open(disk, mode, 0, NULL));
+    try(DiskDriver_GetDiskInfo(disk, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
         flags |= FS_FLAG_READ_ONLY;
@@ -39,20 +41,19 @@ errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mo
         flags |= FS_FLAG_REMOVABLE;
     }
 
-    //XXX select the disk cache based on FS needs and driver sector size
-    DiskCacheRef diskCache = gDiskCache;
     DiskSession s;
-    DiskCache_OpenSession(diskCache, hnd, &info, &s);
+    DiskCache_OpenSession(gDiskCache, disk, &info, &s);
 
-    try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(diskCache), flags, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(gDiskCache), flags, (FSContainerRef*)&self));
     self->diskNode = Inode_Reacquire(diskNode);
-    self->handler = hnd;
-    self->diskCache = diskCache;
+    self->driver = disk;
+    self->diskCache = gDiskCache;
     self->session = s;
 
 catch:
-    if (err != EOK) {
-        Object_Release(hnd);
+    if (err != EOK && disk) {
+        Driver_Close(disk);
+        Object_Release(disk);
     }
     *pOutSelf = (FSContainerRef)self;
     
@@ -66,9 +67,10 @@ void DiskContainer_deinit(DiskContainerRef _Nonnull self)
         self->diskCache = NULL;
     }
 
-    if (self->handler) {
-        Object_Release(self->handler);
-        self->handler = NULL;
+    if (self->driver) {
+        Driver_Close(self->driver);
+        Object_Release(self->driver);
+        self->driver = NULL;
     }
 
     if (self->diskNode) {
@@ -112,7 +114,7 @@ errno_t DiskContainer_sync(DiskContainerRef _Nonnull self)
 
 errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
-    return DriverHandler_Ioctl(self->handler, kDiskCommand_GetDiskInfo, info);
+    return DiskDriver_GetDiskInfo(self->driver, info);
 }
 
 InodeRef DiskContainer_getDiskNode(DiskContainerRef _Nonnull self)

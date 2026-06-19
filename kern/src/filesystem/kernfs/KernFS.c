@@ -246,7 +246,7 @@ catch:
     return err;
 }
 
-DriverRef _Nullable KernFS_CopyFirstMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats)
+DriverRef _Nullable KernFS_CopyBestMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
     DriverRef drv = NULL;
 

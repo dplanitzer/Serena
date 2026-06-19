@@ -9,6 +9,7 @@
 #include "VDMDriver.h"
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
+#include <kpi/fd.h>
 
 IOCATS_DEF(g_cats, IOSRV_VDM);
 

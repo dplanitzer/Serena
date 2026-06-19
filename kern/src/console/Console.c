@@ -43,11 +43,11 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(kdispatch_create(&attr, &self->dq));
 
     // Open the HID driver
-    try(IOCatalog_OpenFirstMatch(gIOCatalog, g_hid_manager_cats, O_RDONLY, (DriverRef*)&self->hid));
+    try(IOCatalog_OpenBestMatch(gIOCatalog, g_hid_manager_cats, O_RDONLY, (DriverRef*)&self->hid));
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open the framebuffer
-    try(IOCatalog_OpenFirstMatch(gIOCatalog, g_fb_cats, O_RDWR, (DriverRef*)&self->fb));
+    try(IOCatalog_OpenBestMatch(gIOCatalog, g_fb_cats, O_RDWR, (DriverRef*)&self->fb));
     self->chb.count = 0;
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;

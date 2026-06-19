@@ -67,8 +67,8 @@ extern errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const ch
 // opening a folder.
 extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
 
-// Opens the first driver that matches 'cats'.
-extern errno_t IOCatalog_OpenFirstMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, unsigned int mode, DriverRef _Nullable * _Nonnull pOutDriver);
+// Opens the best driver that matches 'cats'.
+extern errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, unsigned int mode, DriverRef _Nullable * _Nonnull pOutDriver);
 
 
 // Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
@@ -103,9 +103,9 @@ extern errno_t IOCatalog_CopyDriverForId(IOCatalogRef _Nonnull self, CatalogId i
 // terminated by a NULL entry.
 extern errno_t IOCatalog_CopyMatchingDrivers(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
 
-// Same as above but return the first matching driver only. Returns ENODEV if
+// Same as above but return the best matching driver only. Returns ENODEV if
 // no matching driver could be found.
-extern DriverRef _Nullable IOCatalog_CopyFirstMatchingDriver(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats);
+extern DriverRef _Nullable IOCatalog_CopyBestMatchingDriver(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 // Registers a continuous driver matcher with the driver manager. This matcher
 // will invoke 'f' with the argument 'arg' and the matching driver everytime a

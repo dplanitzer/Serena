@@ -61,6 +61,11 @@ errno_t KfsSpecial_createHandler(KfsSpecialRef _Nonnull _Locked self, unsigned i
     }
 }
 
+ObjectRef _Nullable KfsSpecial_copyResource(KfsSpecialRef _Nonnull _Locked self)
+{
+    return Object_Retain(self->instance);
+}
+
 errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EPERM;
@@ -80,6 +85,7 @@ errno_t KfsSpecial_truncate(KfsSpecialRef _Nonnull _Locked self, off_t length)
 class_func_defs(KfsSpecial, KfsNode,
 override_func_def(deinit, KfsSpecial, Inode)
 override_func_def(createHandler, KfsSpecial, Inode)
+override_func_def(copyResource, KfsSpecial, Inode)
 override_func_def(read, KfsSpecial, Inode)
 override_func_def(write, KfsSpecial, Inode)
 override_func_def(truncate, KfsSpecial, Inode)

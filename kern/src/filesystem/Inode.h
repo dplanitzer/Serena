@@ -68,14 +68,6 @@ any_subclass_funcs(Inode,
 
 
     //
-    // Handlers
-    //
-
-    // Creates and returns a handler that is suitable for reading/writing data.
-    errno_t (*createHandler)(void* _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
-
-
-    //
     // Get/Set Inode Attributes
     //
 
@@ -105,21 +97,39 @@ any_subclass_funcs(Inode,
     // File Specific Operations
     //
 
-    // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
-    // from the file 'pFile'.
+    // Reads up to 'nBytesToRead' bytes starting at the file offset 'pOffset'
+    // from the file 'self'.
     errno_t (*read)(void* _Nonnull _Locked self, off_t* _Nonnull pOffset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
-    // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
-    // to the file 'pFile'.
+    // Writes up to 'nBytesToWrite' bytes starting at file offset 'pOffset'
+    // to the file 'self'.
     errno_t (*write)(void* _Nonnull _Locked self, off_t* _Nonnull pOffset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
-    // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
+    // Change the size of the file 'self' to 'length'. 'length' is guaranteed
     // to be >= 0. No longer needed blocks are deallocated if the new length is
     // less than the old length and zero-fille blocks are allocated and assigned
     // to the file if the new length is longer than the old length. Note that a
     // filesystem implementation is free to defer the actual allocation of the
     // new blocks until an attempt is made to read or write them.
     errno_t (*truncate)(void* _Nonnull _Locked self, off_t length);
+
+
+    //
+    // Handlers
+    //
+
+    // Creates and returns a handler that is suitable for reading/writing data.
+    errno_t (*createHandler)(void* _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
+
+
+    //
+    // Handlers
+    //
+
+    // Returns a strong reference to the resource, if this inode represents a
+    // resource. E.g. a driver or a pipe. Returns NULL if the inode does not
+    // represent a resource. E.g. it is a file or directory.
+    ObjectRef _Nullable (*copyResource)(void* _Nonnull _Locked self);
 );
 
 
@@ -282,6 +292,9 @@ extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 #define Inode_CreateHandler(__self, __mode, __pOutHandler) \
 invoke_n(createHandler, Inode, __self, __mode, __pOutHandler)
+
+#define Inode_CopyResource(__self) \
+invoke_0(copyResource, Inode, __self)
 
 
 #define Inode_GetAttributes(__self, __attr) \
