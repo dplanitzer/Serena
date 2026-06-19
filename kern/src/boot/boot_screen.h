@@ -15,12 +15,12 @@
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {
-    HandlerRef _Nullable    hnd;
-    int                     clut;
-    int                     srf;
-    size_t                  width;
-    size_t                  height;
-    surface_mapping_t       mp;
+    GraphicsDriverRef _Nullable fb;
+    int                         clut;
+    int                         srf;
+    size_t                      width;
+    size_t                      height;
+    surface_mapping_t           mp;
 } bt_screen_t;
 
 typedef struct bt_icon {

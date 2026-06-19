@@ -7,18 +7,20 @@
 //
 
 #include "boot_screen.h"
-#include <string.h>
+#include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
 #include <driver/IOCatalog.h>
-#include <handler/DriverHandler.h>
-#include <kpi/file.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <kpi/fd.h>
+#include <kpi/file.h>
+#include <string.h>
+
+IOCATS_DEF(g_fb_cats, IOVID_FB);
 
 
 void bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
-    GraphicsDriverRef gd = NULL;
-    HandlerRef hnd = NULL;
+    GraphicsDriverRef fb = NULL;
     int width, height;
     int srf = -1, clut = -1;
 
@@ -38,10 +40,10 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(bt_screen_t));
 
-    if ((err = IOCatalog_Open(gIOCatalog, "/hw/fb", O_RDWR, &hnd)) == EOK) {
+    if ((err = IOCatalog_OpenBestMatch(gIOCatalog, g_fb_cats, O_RDWR, (DriverRef*)&fb)) == EOK) {
         // Create the surface and screen
-        DriverHandler_Ioctl(hnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_1, &srf);
-        DriverHandler_Ioctl(hnd, kFBCommand_CreateCLUT, 32, &clut);
+        GraphicsDriver_CreateSurface2d(fb, width, height, PIXFMT_RGB_IND_1, &srf);
+        GraphicsDriver_CreateCLUT(fb, 32, &clut);
 
 
         // Define the screen colors
@@ -49,16 +51,16 @@ void bt_open(bt_screen_t* _Nonnull bscr)
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
-        DriverHandler_Ioctl(hnd, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
+        GraphicsDriver_SetCLUTEntries(fb, clut, 0, 2, clrs);
 
-        bscr->hnd = hnd;
+        bscr->fb = fb;
         bscr->clut = clut;
         bscr->srf = srf;
         bscr->width = width;
         bscr->height = height;
 
-        DriverHandler_Ioctl(hnd, kFBCommand_ClearPixels, bscr->srf);
-        DriverHandler_Ioctl(hnd, kFBCommand_MapSurface, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
+        GraphicsDriver_ClearPixels(fb, bscr->srf);
+        GraphicsDriver_MapSurface(fb, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -72,13 +74,13 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         sc[2] = SCREEN_CONF_CLUT;
         sc[3] = bscr->clut;
         sc[4] = SCREEN_CONF_END;
-        DriverHandler_Ioctl(hnd, kFBCommand_SetScreenConfig, &sc[0]);
+        GraphicsDriver_SetScreenConfig(fb, &sc[0]);
     }
 }
 
 void bt_drawicon(const bt_screen_t* _Restrict _Nonnull bscr, const bt_icon_t* _Restrict _Nonnull icp)
 {
-    if (bscr->hnd == NULL) {
+    if (bscr->fb == NULL) {
         return;
     }
 
@@ -99,13 +101,14 @@ void bt_drawicon(const bt_screen_t* _Restrict _Nonnull bscr, const bt_icon_t* _R
 void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
-    if (bscr->hnd) {
-        DriverHandler_Ioctl(bscr->hnd, kFBCommand_UnmapSurface, bscr->srf);
+    if (bscr->fb) {
+        GraphicsDriver_UnmapSurface(bscr->fb, bscr->srf);
 
-        DriverHandler_Ioctl(bscr->hnd, kFBCommand_SetScreenConfig, NULL);
-        DriverHandler_Ioctl(bscr->hnd, kFBCommand_DestroyCLUT, bscr->clut);
-        DriverHandler_Ioctl(bscr->hnd, kFBCommand_DestroySurface, bscr->srf);
+        GraphicsDriver_SetScreenConfig(bscr->fb, NULL);
+        GraphicsDriver_DestroyCLUT(bscr->fb, bscr->clut);
+        GraphicsDriver_DestroySurface(bscr->fb, bscr->srf);
 
-        Object_Release(bscr->hnd);
+        Driver_Close(bscr->fb);
+        Object_Release(bscr->fb);
     }
 }
