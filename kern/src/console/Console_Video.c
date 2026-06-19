@@ -9,6 +9,7 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
+#include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
 #include <hal/hw/m68k-amiga/chipset.h>
@@ -49,17 +50,17 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
         //height = 512;
     }
 
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_CreateCLUT, 32, &self->clutId));
+    try(GraphicsDriver_CreateSurface2d(self->fb, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
+    try(GraphicsDriver_CreateCLUT(self->fb, 32, &self->clutId));
 
 
     // Install an ANSI color table
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetCLUTEntries, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
+    GraphicsDriver_SetCLUTEntries(self->fb, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
 
 
     // Clear & map the framebuffer before we activate the new screen config
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_ClearPixels, self->surfaceId));
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_MapSurface, self->surfaceId, SURFACE_MAP_RW, &self->pixels));
+    try(GraphicsDriver_ClearPixels(self->fb, self->surfaceId));
+    try(GraphicsDriver_MapSurface(self->fb, self->surfaceId, SURFACE_MAP_RW, &self->pixels));
 
 
     // Make our screen the current screen
@@ -69,7 +70,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     sc[2] = SCREEN_CONF_CLUT;
     sc[3] = self->clutId;
     sc[4] = SCREEN_CONF_END;
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetScreenConfig, &sc[0]));
+    try(GraphicsDriver_SetScreenConfig(self->fb, &sc[0]));
 
 
     // Get the framebuffer size
@@ -86,10 +87,10 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_CreateSurface2d, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_WritePixels, self->textCursorSurface, textCursorPlanes, 2, PIXFMT_RGB_IND_2));
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
-    try(DriverHandler_Ioctl(self->fbHnd, kFBCommand_BindSurface, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
+    try(GraphicsDriver_CreateSurface2d(self->fb, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
+    try(GraphicsDriver_WritePixels(self->fb, self->textCursorSurface, (void**)textCursorPlanes, 2, PIXFMT_RGB_IND_2));
+    try(GraphicsDriver_SetSpriteVisible(self->fb, self->textCursorSprite, 0));
+    try(GraphicsDriver_BindSurface(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
 
     // Initialize the text cursor timer
     self->textCursorTimer.item = KDISPATCH_ITEM_INIT((kdispatch_item_func_t)Console_OnTextCursorBlink, NULL);
@@ -105,13 +106,13 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_UnmapSurface, self->surfaceId);
+    GraphicsDriver_UnmapSurface(self->fb, self->surfaceId);
 
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetScreenConfig, NULL);
+    GraphicsDriver_SetScreenConfig(self->fb, NULL);
 
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_BindSurface, TARGET_SPRITE_0 + self->textCursorSprite, 0);
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_DestroyCLUT, self->clutId);
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_DestroySurface, self->surfaceId);    
+    GraphicsDriver_BindSurface(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, 0);
+    GraphicsDriver_DestroyCLUT(self->fb, self->clutId);
+    GraphicsDriver_DestroySurface(self->fb, self->surfaceId);    
 }
 
 
@@ -132,7 +133,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[5] = gANSIColors[color.u.index];
     clr[6] = clr[5];
     clr[7] = clr[5];
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetCLUTEntries, self->clutId, 16, 8, clr);
+    GraphicsDriver_SetCLUTEntries(self->fb, self->clutId, 16, 8, clr);
 }
 
 // Sets the console's background color to the given color
@@ -149,7 +150,7 @@ static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
 
     mtx_lock(&self->mtx);
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
-    DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, self->flags.isTextCursorOn);
+    GraphicsDriver_SetSpriteVisible(self->fb, self->textCursorSprite, self->flags.isTextCursorOn);
     mtx_unlock(&self->mtx);
 }
 
@@ -166,11 +167,11 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
 
     if (self->flags.isTextCursorVisible) {
-        DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetSpritePosition, self->textCursorSprite, self->x * self->characterWidth, self->y * self->lineHeight);
+        GraphicsDriver_SetSpritePosition(self->fb, self->textCursorSprite, self->x * self->characterWidth, self->y * self->lineHeight);
 
         if (!self->flags.isTextCursorOn) {
             self->flags.isTextCursorOn = true;
-            DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, true);
+            GraphicsDriver_SetSpriteVisible(self->fb, self->textCursorSprite, true);
         }
 
 
@@ -181,7 +182,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
     else if (self->flags.isTextCursorOn) {
         self->flags.isTextCursorOn = false;
-        DriverHandler_Ioctl(self->fbHnd, kFBCommand_SetSpriteVisible, self->textCursorSprite, false);
+        GraphicsDriver_SetSpriteVisible(self->fb, self->textCursorSprite, false);
     }
 }
 

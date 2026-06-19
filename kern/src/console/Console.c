@@ -9,10 +9,13 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
+#include <driver/hid/HIDDriver.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
+#include <handler/DriverHandler.h>
 #include <kern/kernlib.h>
 #include <kpi/console.h>
+#include <kpi/fd.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
 #include <kpi/hid.h>
@@ -21,6 +24,7 @@ IOCATS_DEF(g_cats, IOCAT_TERMINAL);
 
 IOCATS_DEF(g_hid_manager_cats, IOHID_MANAGER);
 IOCATS_DEF(g_fb_cats, IOVID_FB);
+
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
@@ -39,14 +43,13 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(kdispatch_create(&attr, &self->dq));
 
     // Open the HID driver
-    DriverRef drv;
-    try(IOCatalog_CopyFirstMatchingDriver(gIOCatalog, g_hid_manager_cats, &drv));
-    try(Driver_Open(drv, O_RDONLY, 0, &self->hidHnd));
+    try(IOCatalog_CopyFirstMatchingDriver(gIOCatalog, g_hid_manager_cats, (DriverRef*)&self->hid));
+    try(Driver_Open(self->hid, O_RDONLY, 0, NULL));
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open the framebuffer
-    try(IOCatalog_CopyFirstMatchingDriver(gIOCatalog, g_fb_cats, &drv));
-    try(Driver_Open(drv, O_RDWR, 0, &self->fbHnd));
+    try(IOCatalog_CopyFirstMatchingDriver(gIOCatalog, g_fb_cats, (DriverRef*)&self->fb));
+    try(Driver_Open(self->fb, O_RDWR, 0, NULL));
     self->chb.count = 0;
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
@@ -95,11 +98,17 @@ void Console_deinit(ConsoleRef _Nonnull self)
         
     mtx_deinit(&self->mtx);
 
-    Object_Release(self->fbHnd);
-    self->fbHnd = NULL;
+    if (self->fb) {
+        Driver_Close(self->fb);
+        Object_Release(self->fb);
+        self->fb = NULL;
+    }
 
-    Object_Release(self->hidHnd);
-    self->hidHnd = NULL;
+    if (self->hid) {
+        Driver_Close(self->hid);
+        Object_Release(self->hid);
+        self->hid = NULL;
+    }
 }
 
 errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
@@ -588,7 +597,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, unsigned int 
         mtx_unlock(&self->mtx);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        errno_t e1 = DriverHandler_Ioctl(self->hidHnd, kHIDCommand_GetNextEvent, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
+        errno_t e1 = HIDDriver_GetNextEvent(self->hid, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
         mtx_lock(&self->mtx);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

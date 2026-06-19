@@ -10,7 +10,6 @@
 #define ConsolePriv_h
 
 #include "Console.h"
-#include <handler/DriverHandler.h>
 #include <kdispatch/kdispatch.h>
 #include <kern/cbuf.h>
 #include <sched/mtx.h>
@@ -173,13 +172,12 @@ final_class_ivars(Console, Driver,
 
     vtparser_t                  vtparser;
 
-    HandlerRef _Nonnull         hidHnd;
+    HIDDriverRef _Nonnull       hid;
     const KeyMap* _Nonnull      keyMap;
     CharBuffer                  chb;
     cbuf_t                      reportsQueue;
 
     GraphicsDriverRef _Nonnull  fb;
-    HandlerRef _Nonnull         fbHnd;
     int                         clutId;
     int                         surfaceId;
     surface_mapping_t           pixels;
