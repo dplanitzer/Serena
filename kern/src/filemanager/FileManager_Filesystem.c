@@ -21,25 +21,30 @@
 #include <process/ProcessManager.h>
 
 
-static errno_t create_disk_fs(FileManagerRef _Nonnull self, InodeRef _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t create_disk_fs(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
-    DiskDriverRef disk = NULL;
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
 
+    // We call open() here to ensure that the node is valid and that the user
+    // has the necessary permissions to access it
     try(_FileManager_OpenFile(self, driverNode, mode));
-    disk = dynamiccast(Inode_CopyResource(driverNode), DiskDriver);
+
+
+    // Get the disk driver that is associated with the inode
+    DiskDriverRef disk = dynamiccast(Inode_GetResource(driverNode), DiskDriver);
     if (disk == NULL) {
         throw(ENODEV);
     }
 
+
+    // Create a disk container and the filesystem
     try(DiskContainer_Create(disk, mode, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
 catch:
     Object_Release(fsContainer);
-    Object_Release(disk);
 
     *pOutFs = fs;
     return err;

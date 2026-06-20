@@ -126,10 +126,13 @@ any_subclass_funcs(Inode,
     // Handlers
     //
 
-    // Returns a strong reference to the resource, if this inode represents a
+    // Returns a weak reference to the resource, if this inode represents a
     // resource. E.g. a driver or a pipe. Returns NULL if the inode does not
     // represent a resource. E.g. it is a file or directory.
-    ObjectRef _Nullable (*copyResource)(void* _Nonnull _Locked self);
+    // Note that the inode must be locked before calling this method and that
+    // if you want to keep the resource alive, that you must retain it before
+    // unlocking the inode.
+    ObjectRef _Nullable (*getResource)(void* _Nonnull _Locked self);
 );
 
 
@@ -293,8 +296,8 @@ extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 #define Inode_CreateHandler(__self, __mode, __pOutHandler) \
 invoke_n(createHandler, Inode, __self, __mode, __pOutHandler)
 
-#define Inode_CopyResource(__self) \
-invoke_0(copyResource, Inode, __self)
+#define Inode_GetResource(__self) \
+invoke_0(getResource, Inode, __self)
 
 
 #define Inode_GetAttributes(__self, __attr) \

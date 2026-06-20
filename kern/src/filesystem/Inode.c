@@ -152,7 +152,7 @@ errno_t Inode_createHandler(InodeRef _Nonnull _Locked self, unsigned int mode, H
     }
 }
 
-ObjectRef _Nullable Inode_copyResource(InodeRef _Nonnull _Locked self)
+ObjectRef _Nullable Inode_getResource(InodeRef _Nonnull _Locked self)
 {
     return NULL;
 }
@@ -253,7 +253,7 @@ errno_t Inode_truncate(InodeRef _Nonnull _Locked self, off_t length)
 any_subclass_func_defs(Inode,
 func_def(deinit, Inode)
 func_def(createHandler, Inode)
-func_def(copyResource, Inode)
+func_def(getResource, Inode)
 func_def(getAttributes, Inode)
 func_def(setPermissions, Inode)
 func_def(setOwner, Inode)
