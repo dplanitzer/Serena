@@ -51,6 +51,11 @@ errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, kdispatch_t 
     return kdispatch_create(&attr, pOutQueue);
 }
 
+int DiskDriver_getBootPriority(DiskDriverRef _Nonnull self)
+{
+    return -1;
+}
+
 static void _req_trampoline(IODiskCommand* _Nonnull req)
 {
     DiskDriver_DoCommand(req->driver, req);
@@ -552,6 +557,7 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, unsigned int mode, off_t* 
 class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
+func_def(getBootPriority, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(doCommand, DiskDriver)
 func_def(getSector, DiskDriver)

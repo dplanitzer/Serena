@@ -105,6 +105,11 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*createDispatchQueue)(void* _Nonnull self, kdispatch_t _Nullable * _Nonnull pOutQueue);
 
 
+    // Returns the boot priority of the drive. A value < 0 means that booting is
+    // not supported. Higher values correspond to a higher boot priority.
+    int (*getBootPriority)(void* _Nonnull self);
+    
+
     //
     // The following methods are executed on the dispatch queue.
     //
@@ -153,6 +158,10 @@ open_class_funcs(DiskDriver, Driver,
 //
 // Methods for use by disk driver users.
 //
+
+#define DiskDriver_GetBootPriority(__self) \
+invoke_0(getBootPriority, DiskDriver, __self)
+
 
 // It's the callers responsibility to keep 'iov' and 'completion' alive until the async operation is done
 extern errno_t DiskDriver_ReadAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnull iov, int iovcnt, off_t offset, const IOCompletion* _Nonnull completion);

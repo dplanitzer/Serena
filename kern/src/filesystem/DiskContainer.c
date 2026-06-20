@@ -10,22 +10,18 @@
 #include <assert.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/Filesystem.h>
-#include <filesystem/Inode.h>
-#include <handler/DriverHandler.h>
 #include <kpi/file.h>
 
 final_class_ivars(DiskContainer, FSContainer,
-    InodeRef _Nonnull       diskNode;
     DiskDriverRef _Nonnull  driver;
     DiskCacheRef _Nonnull   diskCache;
     DiskSession             session;
 );
 
 
-errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskDriverRef disk = (DiskDriverRef)Inode_CopyResource(diskNode);
     struct DiskContainer* self = NULL;
     disk_info_t info;
     uint32_t flags = 0;
@@ -45,15 +41,13 @@ errno_t DiskContainer_Create(InodeRef _Locked _Nonnull diskNode, unsigned int mo
     DiskCache_OpenSession(gDiskCache, disk, &info, &s);
 
     try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(gDiskCache), flags, (FSContainerRef*)&self));
-    self->diskNode = Inode_Reacquire(diskNode);
-    self->driver = disk;
+    self->driver = Object_RetainAs(disk, DiskDriver);
     self->diskCache = gDiskCache;
     self->session = s;
 
 catch:
     if (err != EOK && disk) {
         Driver_Close(disk);
-        Object_Release(disk);
     }
     *pOutSelf = (FSContainerRef)self;
     
@@ -71,11 +65,6 @@ void DiskContainer_deinit(DiskContainerRef _Nonnull self)
         Driver_Close(self->driver);
         Object_Release(self->driver);
         self->driver = NULL;
-    }
-
-    if (self->diskNode) {
-        Inode_Relinquish(self->diskNode);
-        self->diskNode = NULL;
     }
 }
 
@@ -119,7 +108,9 @@ errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _
 
 InodeRef DiskContainer_getDiskNode(DiskContainerRef _Nonnull self)
 {
-    return self->diskNode;
+    //XXX
+    //return self->diskNode;
+    return NULL;
 }
 
 

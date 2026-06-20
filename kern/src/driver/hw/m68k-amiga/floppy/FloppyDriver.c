@@ -63,6 +63,11 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
     self->trackBuffer = NULL;
 }
 
+int FloppyDriver_getBootPriority(FloppyDriverRef _Nonnull self)
+{
+    return 1000 - self->drive;
+}
+
 static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
 {
     bool hasPhysDiskChange = false;
@@ -828,6 +833,7 @@ errno_t FloppyDriver_doFormatTrack(FloppyDriverRef _Nonnull self, const chs_t* c
 
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
+override_func_def(getBootPriority, FloppyDriver, DiskDriver)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
