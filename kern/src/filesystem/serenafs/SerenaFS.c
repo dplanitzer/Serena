@@ -160,7 +160,7 @@ errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, int flavor, fs_info_ref _Non
     return err;
 }
 
-errno_t SerenaFS_getLabel(SerenaFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+static errno_t copyout_label(SerenaFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -187,6 +187,23 @@ errno_t SerenaFS_getLabel(SerenaFSRef _Nonnull self, char* _Nonnull buf, size_t 
     }
     else {
         *buf = '\0';
+    }
+
+    return err;
+}
+
+errno_t SerenaFS_getProperty(SerenaFSRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+
+    switch (flavor) {
+        case FS_PROP_LABEL:
+            err = copyout_label(self, buf, bufSize);
+            break;
+
+        default:
+            err = FSContainer_GetProperty(Filesystem_GetContainer(self), flavor, buf, bufSize);
+            break;
     }
 
     return err;
@@ -334,7 +351,7 @@ override_func_def(onWritebackNode, SerenaFS, Filesystem)
 override_func_def(onStart, SerenaFS, Filesystem)
 override_func_def(onStop, SerenaFS, Filesystem)
 override_func_def(getInfo, SerenaFS, Filesystem)
-override_func_def(getLabel, SerenaFS, Filesystem)
+override_func_def(getProperty, SerenaFS, Filesystem)
 override_func_def(setLabel, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)

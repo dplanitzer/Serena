@@ -10,6 +10,7 @@
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/Filesystem.h>
 #include <kpi/file.h>
+#include <process/Process.h>
 
 final_class_ivars(DiskContainer, FSContainer,
     DiskDriverRef _Nonnull  driver;
@@ -104,11 +105,20 @@ errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _
     return DiskDriver_GetDiskInfo(self->driver, info);
 }
 
-InodeRef DiskContainer_getDiskNode(DiskContainerRef _Nonnull self)
+errno_t DiskContainer_getProperty(DiskContainerRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)
 {
-    //XXX
-    //return self->diskNode;
-    return NULL;
+    decl_try_err();
+
+    switch (flavor) {
+        case FS_PROP_DISKPATH:
+            err = Process_GetPathForDriver(Process_GetCurrent(), (DriverRef)self->driver, buf, bufSize);
+            break;
+
+        default:
+            err = EINVAL;
+    }
+
+    return err;
 }
 
 
@@ -121,5 +131,5 @@ override_func_def(prefetchBlock, DiskContainer, FSContainer)
 override_func_def(syncBlock, DiskContainer, FSContainer)
 override_func_def(sync, DiskContainer, FSContainer)
 override_func_def(getDiskInfo, DiskContainer, FSContainer)
-override_func_def(getDiskNode, DiskContainer, FSContainer)
+override_func_def(getProperty, DiskContainer, FSContainer)
 );

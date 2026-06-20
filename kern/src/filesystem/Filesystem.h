@@ -237,35 +237,18 @@ open_class_funcs(Filesystem, Object,
 
     // Returns general information about the filesystem.
     // Override: Optional
-    // Default Behavior: Returns ENOTSUP
+    // Default Behavior: Returns EINVAL
     errno_t (*getInfo)(void* _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo);
 
-    // Returns the filesystem's label. A label is a string that is assigned to a
-    // filesystem when it is formatted. However, it may be changed at a later
-    // time by calling setLabel().
+    // Returns a copy of the property 'flavor' in 'buf'.
     // Override: Optional
-    // Default Behavior: Returns an empty string
-    errno_t (*getLabel)(void* _Nonnull self, char* _Nonnull buf, size_t bufSize);
+    // Default Behavior: Returns EINVAL
+    errno_t (*getProperty)(void* _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize);
 
     // Sets the filesystem's label.
     // Override: Optional
     // Default Behavior: Returns ENOTSUP
     errno_t (*setLabel)(void* _Nonnull self, const char* _Nonnull buf);
-
-    // Returns a copy of the disk name. 'buf' must be big enough to hold the
-    // full name including the trailing '\0' character.
-    // Override: Optional
-    // Default Behavior: Forwards the call to the FS container; returns an empty
-    //                   string if the FS has no container
-    errno_t (*getDiskName)(void* _Nonnull self, char* _Nonnull buf, size_t bufSize);
-
-    // If the container is based o a disk driver, then a weak reference to the
-    // inode of this driver is returned; otherwise NULL is returned and you
-    // should use getDiskName() instead.
-    // Override: Optional
-    // Default Behavior: Forwards the call to the FS container; returns NULL if
-    //                   the FS has no container
-    InodeRef _Nullable (*getDiskNode)(void* _Nonnull self);
 
 
     //
@@ -444,17 +427,11 @@ invoke_n(getNodeBlockSize, Filesystem, __self, __node)
 #define Filesystem_GetInfo(__self, __flavor, __pOutInfo) \
 invoke_n(getInfo, Filesystem, __self, __flavor, __pOutInfo)
 
-#define Filesystem_GetLabel(__self, __buf, __bufSize) \
-invoke_n(getLabel, Filesystem, __self, __buf, __bufSize)
+#define Filesystem_GetProperty(__self, __flavor, __buf, __bufSize) \
+invoke_n(getProperty, Filesystem, __self, __flavor, __buf, __bufSize)
 
 #define Filesystem_SetLabel(__self, __buf) \
 invoke_n(setLabel, Filesystem, __self, __buf)
-
-#define Filesystem_GetDiskName(__self, __buf, __bufSize) \
-invoke_n(getDiskName, Filesystem, __self, __buf, __bufSize)
-
-#define Filesystem_GetDiskNode(__self) \
-invoke_0(getDiskNode, Filesystem, __self)
 
 
 extern errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);

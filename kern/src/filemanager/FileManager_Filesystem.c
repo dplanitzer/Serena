@@ -169,27 +169,18 @@ catch:
 return err;
 }
 
-errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+errno_t FileManager_GetPathForDriver(FileManagerRef _Nonnull self, DriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
-    FilesystemRef fs = FilesystemManager_CopyFilesystemForId(gFilesystemManager, fsid);
+    InodeRef ip = NULL;
 
-    if (fs) {
-        InodeRef ip = Filesystem_GetDiskNode(fs);
+    try(IOCatalog_AcquireNodeForDriver(gIOCatalog, driver, &ip));
+    
+    //XXX getting insufficient permissions when using the user credentials 
+    try(FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize));
 
-        if (ip) {
-            //XXX getting insufficient permissions if using the user credentials 
-            err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize);
-        }
-        else {
-            err = Filesystem_GetDiskName(fs, buf, bufSize);
-        }
-
-        Object_Release(fs);
-    }
-    else {
-        err = ENOFS;
-    }
+catch:
+    Inode_Relinquish(ip);
 
     return err;
 }

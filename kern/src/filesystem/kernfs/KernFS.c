@@ -214,9 +214,25 @@ errno_t KernFS_rename(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNod
     return EPERM;
 }
 
-errno_t KernFS_getDiskName(KernFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+errno_t KernFS_getProperty(KernFSRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)
 {
-    return strtobuf(buf, bufSize, self->name);
+    decl_try_err();
+
+    switch (flavor) {
+        case FS_PROP_CATALOG:
+            err = strtobuf(buf, bufSize, self->name);
+            break;
+
+        case FS_PROP_LABEL:
+            err = strtobuf(buf, bufSize, "");
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    return err;
 }
 
 errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers)
@@ -272,6 +288,7 @@ class_func_defs(KernFS, Filesystem,
 override_func_def(deinit, KernFS, Object)
 override_func_def(onStart, KernFS, Filesystem)
 override_func_def(getInfo, KernFS, Filesystem)
+override_func_def(getProperty, KernFS, Filesystem)
 override_func_def(onAcquireNode, KernFS, Filesystem)
 override_func_def(onWritebackNode, KernFS, Filesystem)
 override_func_def(onRelinquishNode, KernFS, Filesystem)
@@ -281,5 +298,4 @@ override_func_def(createNode, KernFS, Filesystem)
 override_func_def(unlink, KernFS, Filesystem)
 override_func_def(move, KernFS, Filesystem)
 override_func_def(rename, KernFS, Filesystem)
-override_func_def(getDiskName, KernFS, Filesystem)
 );

@@ -55,12 +55,13 @@ extern errno_t IOCatalog_Create(IOCatalogRef _Nullable * _Nonnull pOutSelf);
 
 extern FilesystemRef _Nonnull IOCatalog_GetFilesystem(IOCatalogRef _Nonnull self);
 
-// Returns EOK if an entry  is published at the in-kernel path 'path'. Otherwise
-// ENOENT is returned.
-extern errno_t IOCatalog_IsPublished(IOCatalogRef _Nonnull self, const char* _Nonnull path);
-
 // Looks up the inode for the given path and returns it.
 extern errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
+
+// Returns the inode that represents the given driver. A suitable error is
+// returned if the driver has no inode associated with it, etc. You must call
+// Inode_Relinquish() when you no longer need the inode.
+extern errno_t IOCatalog_AcquireNodeForDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
 // returns the resulting channel in 'pOutHandler'. This call does not support

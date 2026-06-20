@@ -109,4 +109,8 @@ extern errno_t Process_GetInfo(ProcessRef _Nonnull self, int flavor, proc_info_r
 // Returns an array of vcpuid_t's corresponding to the currently acquired vcpus.
 extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t* _Nonnull buf, size_t bufSize, int* _Nonnull out_hasMore);
 
+// Returns the path to the driver entry in the /dev directory as seen by this
+// process.
+extern errno_t Process_GetPathForDriver(ProcessRef _Nonnull self, DriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize);
+
 #endif /* Process_h */

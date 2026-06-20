@@ -64,6 +64,17 @@ uid_t Process_GetUserId(ProcessRef _Nonnull self)
     return FileManager_GetRealUserId(&self->fm);
 }
 
+errno_t Process_GetPathForDriver(ProcessRef _Nonnull self, DriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    err = FileManager_GetPathForDriver(&self->fm, driver, buf, bufSize);
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
 errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
     if (handler->func == NULL) {

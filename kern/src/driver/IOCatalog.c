@@ -66,20 +66,14 @@ FilesystemRef _Nonnull IOCatalog_GetFilesystem(IOCatalogRef _Nonnull self)
     return self->fs;
 }
 
-errno_t IOCatalog_IsPublished(IOCatalogRef _Nonnull self, const char* _Nonnull path)
-{
-    decl_try_err();
-    ResolvedPath rp;
-
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, &rp);
-    ResolvedPath_Deinit(&rp);
-
-    return err;
-}
-
 errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
 {
     return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, rp);
+}
+
+errno_t IOCatalog_AcquireNodeForDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return Filesystem_AcquireNodeWithId(self->fs, (ino_t)Driver_GetId(driver), pOutNode);
 }
 
 errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)

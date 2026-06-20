@@ -242,11 +242,11 @@ SYSCALL_3(fs_settimes, int wd, const char* _Nonnull path, const nanotime_t times
 SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)
 {
     decl_try_err();
-    FilesystemRef fsp = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pa->fsid);
+    FilesystemRef fs = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pa->fsid);
 
-    if (fsp) {
-        err = Filesystem_GetInfo(fsp, pa->flavor, pa->info);
-        Object_Release(fsp);
+    if (fs) {
+        err = Filesystem_GetInfo(fs, pa->flavor, pa->info);
+        Object_Release(fs);
     }
     else {
         err = ENOFS;
@@ -258,32 +258,16 @@ SYSCALL_3(fs_info, fsid_t fsid, int flavor, fs_info_ref _Nonnull info)
 SYSCALL_4(fs_property, fsid_t fsid, int flavor, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
-    ProcessRef pp = vp->proc;
+    FilesystemRef fs = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pa->fsid);
 
-    mtx_lock(&pp->mtx);
-
-    switch (pa->flavor) {
-        case FS_PROP_LABEL: {
-            FilesystemRef fsp = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pa->fsid);
-
-            if (fsp) {
-                err = Filesystem_GetLabel(fsp, pa->buf, pa->bufSize);
-                Object_Release(fsp);
-            }
-            else {
-                err = ENOFS;
-            }
-            break;
-        }
-
-        case FS_PROP_DISKPATH:
-            err = FileManager_GetFilesystemDiskPath(&pp->fm, pa->fsid, pa->buf, pa->bufSize);
-            break;
-
-        default:
-            err = EINVAL;
+    if (fs) {
+        err = Filesystem_GetProperty(fs, pa->flavor, pa->buf, pa->bufSize);
+        Object_Release(fs);
     }
-    mtx_unlock(&pp->mtx);
+    else {
+        err = ENOFS;
+    }
+
     return err;
 }
 

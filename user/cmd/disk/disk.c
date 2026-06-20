@@ -216,14 +216,14 @@ static void print_reg_info(const fs_basic_info_t* _Nonnull info)
 
 static void print_cat_info(const fs_basic_info_t* _Nonnull info)
 {
-    char diskName[32];
+    char catName[32];
 
-    if (fs_property(info->fsid, FS_PROP_DISKPATH, diskName, sizeof(diskName)) == -1) {
+    if (fs_property(info->fsid, FS_PROP_CATALOG, catName, sizeof(catName)) == -1) {
         return;
     }
 
     puts("Catalog ID");
-    printf("%s       %u\n", diskName, info->fsid);
+    printf("%s       %u\n", catName, info->fsid);
 }
 
 static void cmd_info(const char* _Nonnull path)

@@ -45,6 +45,7 @@ typedef struct fs_basic_info {
 
 // Filesystem properties
 #define FS_PROP_LABEL       1
-#define FS_PROP_DISKPATH    2
+#define FS_PROP_DISKPATH    2   /* Returns the path to the disk driver if the filesystem is mounted on a disk */
+#define FS_PROP_CATALOG     3   /* Returns the name of the catalog if the filesystem represents a kernel object catalog */
 
 #endif /* _KERN_FILESYSTEM_H */
