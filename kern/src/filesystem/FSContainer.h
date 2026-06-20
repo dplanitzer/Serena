@@ -65,12 +65,16 @@ open_class_funcs(FSContainer, Object,
     errno_t (*sync)(void* _Nonnull self);
 
 
-    // Returns the information about the disk underlying the container. ENOMEDIUM
-    // is returned if no disk is in the drive. ENOTSUP is returned if retrieving
-    // the disk information is not supported.
-    errno_t (*getDiskInfo)(void* _Nonnull self, disk_info_t* _Nonnull info);
+    // Returns information about the filesystem container and specified by
+    // 'flavor', which is one of the FS_INFO_XXX constants.
+    // Override: Optional
+    // Default Behavior: Returns EINVAL
+    errno_t (*getInfo)(void* _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo);
 
-    // Returns a copy of a container property.
+    // Returns a copy of a container property specified by 'flavor', which is
+    // one of the FS_PROP_XXX constants.
+    // Override: Optional
+    // Default Behavior: Returns EINVAL
     errno_t (*getProperty)(void* _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize);
 );
 
@@ -113,8 +117,8 @@ invoke_n(syncBlock, FSContainer, __self, __lba)
 invoke_0(sync, FSContainer, __self)
 
 
-#define FSContainer_GetDiskInfo(__self, __info) \
-invoke_n(getDiskInfo, FSContainer, __self, __info)
+#define FSContainer_GetInfo(__self, __flavor, __info) \
+invoke_n(getInfo, FSContainer, __self, __flavor, __info)
 
 #define FSContainer_GetProperty(__self, __flavor, __buf, __bufSize) \
 invoke_n(getProperty, FSContainer, __self, __flavor, __buf, __bufSize)

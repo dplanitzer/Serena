@@ -145,15 +145,8 @@ errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, int flavor, fs_info_ref _Non
             break;
         }
 
-        case FS_INFO_DISK: {
-            disk_info_t* ip = pOutInfo;
-
-            err = FSContainer_GetDiskInfo(fsContainer, ip);
-            break;
-        }
-
         default:
-            err = EINVAL;
+            err = FSContainer_GetInfo(fsContainer, flavor, pOutInfo);
             break;
     }
 

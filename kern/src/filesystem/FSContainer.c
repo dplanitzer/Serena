@@ -66,9 +66,9 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
 }
 
 
-errno_t FSContainer_getDiskInfo(FSContainerRef _Nonnull self, disk_info_t* _Nonnull info)
+errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
-    return ENOTSUP;
+    return EINVAL;
 }
 
 errno_t FSContainer_getProperty(FSContainerRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)
@@ -84,6 +84,6 @@ func_def(unmapBlock, FSContainer)
 func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
 func_def(sync, FSContainer)
-func_def(getDiskInfo, FSContainer)
+func_def(getInfo, FSContainer)
 func_def(getProperty, FSContainer)
 );

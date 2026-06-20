@@ -458,27 +458,12 @@ size_t Filesystem_getNodeBlockSize(FilesystemRef _Nonnull self, InodeRef _Locked
 
 errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
-    decl_try_err();
-
-    switch (flavor) {
-        case FS_INFO_DISK: {
-            disk_info_t* ip = pOutInfo;
-
-            if (self->container) {
-                err = FSContainer_GetDiskInfo(self->container, ip);
-            }
-            else {
-                err = EINVAL;
-            }
-            break;
-        }
-
-        default:
-            err = EINVAL;
-            break;
+    if (self->container) {
+        return FSContainer_GetInfo(self->container, flavor, pOutInfo);
     }
-
-    return err;
+    else {
+        return EINVAL;
+    }
 }
 
 errno_t Filesystem_getProperty(FilesystemRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)

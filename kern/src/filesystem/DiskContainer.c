@@ -100,25 +100,27 @@ errno_t DiskContainer_sync(DiskContainerRef _Nonnull self)
 }
 
 
-errno_t DiskContainer_getDiskInfo(DiskContainerRef _Nonnull self, disk_info_t* _Nonnull info)
+errno_t DiskContainer_getInfo(DiskContainerRef _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo)
 {
-    return DiskDriver_GetDiskInfo(self->driver, info);
+    switch (flavor) {
+        case FS_INFO_DISK:
+            return DiskDriver_GetDiskInfo(self->driver, pOutInfo);
+
+        default:
+            return EINVAL;
+    }
 }
 
 errno_t DiskContainer_getProperty(DiskContainerRef _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize)
 {
-    decl_try_err();
-
     switch (flavor) {
         case FS_PROP_DISKPATH:
-            err = Process_GetPathForDriver(Process_GetCurrent(), (DriverRef)self->driver, buf, bufSize);
+            return Process_GetPathForDriver(Process_GetCurrent(), (DriverRef)self->driver, buf, bufSize);
             break;
 
         default:
-            err = EINVAL;
+            return EINVAL;
     }
-
-    return err;
 }
 
 
@@ -130,6 +132,6 @@ override_func_def(unmapBlock, DiskContainer, FSContainer)
 override_func_def(prefetchBlock, DiskContainer, FSContainer)
 override_func_def(syncBlock, DiskContainer, FSContainer)
 override_func_def(sync, DiskContainer, FSContainer)
-override_func_def(getDiskInfo, DiskContainer, FSContainer)
+override_func_def(getInfo, DiskContainer, FSContainer)
 override_func_def(getProperty, DiskContainer, FSContainer)
 );
