@@ -24,22 +24,22 @@
 static errno_t create_disk_fs(FileManagerRef _Nonnull self, InodeRef _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
-    DriverRef drv = NULL;
+    DiskDriverRef disk = NULL;
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
 
     try(_FileManager_OpenFile(self, driverNode, mode));
-    drv = (DriverRef) Inode_CopyResource(driverNode);
-    if (!instanceof(drv, DiskDriver)) {
+    disk = dynamiccast(Inode_CopyResource(driverNode), DiskDriver);
+    if (disk == NULL) {
         throw(ENODEV);
     }
 
-    try(DiskContainer_Create((DiskDriverRef) drv, mode, &fsContainer));
+    try(DiskContainer_Create(disk, mode, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
 catch:
     Object_Release(fsContainer);
-    Object_Release(drv);
+    Object_Release(disk);
 
     *pOutFs = fs;
     return err;

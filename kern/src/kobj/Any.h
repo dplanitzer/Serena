@@ -46,10 +46,16 @@ any_class(Any);
     classof(__self)->super
 
 
+// Returns 'self' if it is non-NULL and it conforms to 'className'. Returns NULL
+// otherwise.
+#define dynamiccast(__self, __className) \
+    ((struct __className*)_dynamiccast((AnyRef)(__self), class(__className)))
+
+
 // Returns true if the given object is an instance of the given class or one of
 // the super classes. Returns false if 'self' is NULL.
 #define instanceof(__self, __className) \
-    _instanceof((AnyRef)__self, class(__className))
+    ((_dynamiccast((AnyRef)(__self), class(__className)) != NULL) ? true : false)
 
 
 // Returns the implementation pointer of a method. You must cast this pointer to
@@ -89,7 +95,7 @@ any_class(Any);
 
 
 // Do not call these functions directly. Use the macros defined above instead.
-extern bool _instanceof(AnyRef _Nonnull self, const Class* _Nonnull targetType);
+extern AnyRef _Nullable _dynamiccast(AnyRef _Nonnull self, const Class* _Nonnull targetType);
 extern Class* _Nonnull _superimplementationof(Class* _Nonnull staticType, size_t methodOffset);
 
 #endif /* Any_h */

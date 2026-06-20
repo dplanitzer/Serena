@@ -7,7 +7,6 @@
 //
 
 #include "DiskContainer.h"
-#include <assert.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/Filesystem.h>
 #include <kpi/file.h>
@@ -26,7 +25,6 @@ errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, unsigned int mode, FSC
     disk_info_t info;
     uint32_t flags = 0;
 
-    assert(instanceof(disk, DiskDriver));
     try(Driver_Open(disk, mode, 0, NULL));
     try(DiskDriver_GetDiskInfo(disk, &info));
 

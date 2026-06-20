@@ -127,7 +127,7 @@ errno_t HandlerTable_CopyHandler(HandlerTable* _Nonnull self, int fd, Class* _Nu
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        if (pClass == NULL || _instanceof((AnyRef)self->table[fd], pClass)) {
+        if (pClass == NULL || _dynamiccast((AnyRef)self->table[fd], pClass) != NULL) {
             hnd = Object_RetainAs(self->table[fd], Handler);
         }
         else {

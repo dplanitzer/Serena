@@ -12,23 +12,23 @@
 
 any_class_def(Any);
 
-bool _instanceof(AnyRef _Nullable self, const Class* _Nonnull targetType)
+AnyRef _Nullable _dynamiccast(AnyRef _Nullable self, const Class* _Nonnull targetType)
 {
     if (self == NULL) {
-        return false;
+        return NULL;
     }
 
 
     Class* myCurType = classof(self);
     while (myCurType) {
         if (myCurType == targetType) {
-            return true;
+            return self;
         }
 
         myCurType = myCurType->super;
     }
 
-    return false;
+    return NULL;
 }
 
 // Returns the class that defines the super implementation of the method identified
