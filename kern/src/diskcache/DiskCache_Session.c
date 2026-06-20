@@ -24,7 +24,7 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
 {
     mtx_lock(&self->interlock);
 
-    s->disk = Object_RetainAs(disk, DiskDriver);
+    s->disk = Object_Retain(disk);
     s->sessionId = self->nextAvailSessionId;
     s->sectorSize = info->sectorSize;
     s->rwClusterSize = info->sectorsPerRdwr;

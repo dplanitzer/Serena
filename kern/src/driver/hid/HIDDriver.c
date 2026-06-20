@@ -685,7 +685,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
     if (self->kb == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
         err = Driver_Open(driver, O_RDWR, 0, NULL);
         if (err == EOK) {
-            self->kb = Object_RetainAs(driver, KeyboardDriver);
+            self->kb = Object_Retain(driver);
         }
     }
     else if (self->mouse.drvCount < MAX_POINTING_DEVICES && Driver_HasSomeCategories(driver, g_pointing_device_cats)) {
@@ -700,7 +700,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
                         }
                     }
 
-                    self->mouse.drv[i] = Object_RetainAs(driver, Driver);
+                    self->mouse.drv[i] = Object_Retain(driver);
                     self->mouse.drvCount++;
                 }
                 break;
@@ -714,7 +714,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
             if (gp->drv == NULL) {
                 err = Driver_Open(driver, O_RDWR, 0, NULL);
                 if (err == EOK) {
-                    gp->drv = Object_RetainAs(driver, Driver);
+                    gp->drv = Object_Retain(driver);
                     gp->x = 0;
                     gp->y = 0;
                     gp->buttons = 0;
@@ -728,7 +728,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
         // Open a channel to the framebuffer
         err = Driver_Open(driver, O_RDWR, 0, NULL);
         if (err == EOK) {
-            self->fb = Object_RetainAs(driver, GraphicsDriver);
+            self->fb = Object_Retain(driver);
             DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
             _collect_framebuffer_size(self);
         }

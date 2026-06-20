@@ -233,7 +233,7 @@ errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonn
             KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
             if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)((KfsSpecialRef)curNode)->instance, cats)) {
-                drivers[idx++] = Object_RetainAs(((KfsSpecialRef)curNode)->instance, Driver);
+                drivers[idx++] = Object_Retain(((KfsSpecialRef)curNode)->instance);
             }
         )
     }
@@ -256,7 +256,7 @@ DriverRef _Nullable KernFS_CopyBestMatchingDriver(KernFSRef _Nonnull self, const
             KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
             if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)((KfsSpecialRef)curNode)->instance, cats)) {
-                drv = Object_RetainAs(((KfsSpecialRef)curNode)->instance, Driver);
+                drv = Object_Retain(((KfsSpecialRef)curNode)->instance);
                 break;
             }
         )

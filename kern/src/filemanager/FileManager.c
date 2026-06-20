@@ -13,7 +13,7 @@
 
 void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, fs_perms_t umask)
 {
-    self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
+    self->fileHierarchy = Object_Retain(pFileHierarchy);
     self->rootDirectory = Inode_Reacquire(pRootDir);
     self->workingDirectory = Inode_Reacquire(pWorkingDir);
     self->umask = umask;

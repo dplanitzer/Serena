@@ -101,7 +101,7 @@ static errno_t create_fsnode(FilesystemRef _Nonnull fs, FsNode* _Nullable * _Non
     FsNode* self = NULL;
 
     if ((err = FSAllocateCleared(sizeof(FsNode), (void**)&self)) == EOK) {
-        self->filesystem = Object_RetainAs(fs, Filesystem);
+        self->filesystem = Object_Retain(fs);
     }
     *pOutSelf = self;
     return err;
@@ -238,7 +238,7 @@ static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self)
 // Returns a strong reference to the root filesystem of the given file hierarchy.
 FilesystemRef FileHierarchy_CopyRootFilesystem(FileHierarchyRef _Nonnull self)
 {
-    return Object_RetainAs(self->root->filesystem, Filesystem);
+    return Object_Retain(self->root->filesystem);
 }
 
 // Returns the root directory of the given file hierarchy.

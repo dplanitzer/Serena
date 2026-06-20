@@ -61,7 +61,7 @@ errno_t Filesystem_Create(Class* pClass, FSContainerRef _Nullable fsContainer, F
     try(FSAllocateCleared(sizeof(deque_t) * IN_READING_HASH_CHAINS_COUNT, (void**)&self->inReading));
     
     if (fsContainer) {
-        self->container = Object_RetainAs(fsContainer, FSContainer);
+        self->container = Object_Retain(fsContainer);
     }
     self->fsid = Filesystem_GetNextAvailableId();
     cnd_init(&self->inCondVar);

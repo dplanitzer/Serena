@@ -105,7 +105,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
         return ENOFS;
     }
 
-    *pOutFs = Object_RetainAs(fs, Filesystem);
+    *pOutFs = Object_Retain(fs);
     return EOK;
 }
 

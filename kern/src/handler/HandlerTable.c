@@ -128,7 +128,7 @@ errno_t HandlerTable_CopyHandler(HandlerTable* _Nonnull self, int fd, Class* _Nu
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
         if (pClass == NULL || _dynamiccast((AnyRef)self->table[fd], pClass) != NULL) {
-            hnd = Object_RetainAs(self->table[fd], Handler);
+            hnd = Object_Retain(self->table[fd]);
         }
         else {
             err = EINVAL;
@@ -154,7 +154,7 @@ errno_t HandlerTable_DupHandler(HandlerTable* _Nonnull self, int fd, int min_fd,
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
         err = _alloc_fd_slot(self, min_fd, &new_fd);
         if (err == EOK) {
-            self->table[new_fd] = Object_RetainAs(self->table[fd], Handler);
+            self->table[new_fd] = Object_Retain(self->table[fd]);
         }
     }
 
@@ -191,7 +191,7 @@ errno_t HandlerTable_DupHandlerTo(HandlerTable* _Nonnull self, int fd, HandlerTa
         try(_ensure_fd_slot_exists(other, target_fd));
     }
 
-    other->table[target_fd] = Object_RetainAs(self->table[fd], Handler);
+    other->table[target_fd] = Object_Retain(self->table[fd]);
     other->max_fd_num = __max(other->max_fd_num, target_fd);
 
 

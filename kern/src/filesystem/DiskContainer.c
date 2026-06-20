@@ -39,7 +39,7 @@ errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, unsigned int mode, FSC
     DiskCache_OpenSession(gDiskCache, disk, &info, &s);
 
     try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(gDiskCache), flags, (FSContainerRef*)&self));
-    self->driver = Object_RetainAs(disk, DiskDriver);
+    self->driver = Object_Retain(disk);
     self->diskCache = gDiskCache;
     self->session = s;
 

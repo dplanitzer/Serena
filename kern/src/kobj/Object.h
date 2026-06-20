@@ -47,9 +47,6 @@ extern errno_t Object_Create(Class* _Nonnull pClass, size_t extraByteCount, void
 // object. Retaining an object keeps it alive.
 extern void* _Nonnull Object_Retain(void* _Nonnull self);
 
-#define Object_RetainAs(__self, __class) \
-    ((__class##Ref)Object_Retain(__self))
-
 
 // Releases a strong reference on the given object. Deallocates the object when
 // the reference count transitions from 1 to 0. Invokes the deinit method on

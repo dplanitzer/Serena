@@ -523,7 +523,7 @@ DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId)
 {
     mtx_lock(&self->childMtx);
-    DriverRef dp = (slotId < self->maxChildCount && self->child[slotId].driver) ? Object_RetainAs(self->child[slotId].driver, Driver) : NULL;
+    DriverRef dp = (slotId < self->maxChildCount && self->child[slotId].driver) ? Object_Retain(self->child[slotId].driver) : NULL;
     mtx_unlock(&self->childMtx);
 
     return dp;
@@ -565,7 +565,7 @@ errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, si
         err = EBUSY;
     }
     else {
-        self->child[slotId].driver = Object_RetainAs(child, Driver);
+        self->child[slotId].driver = Object_Retain(child);
     }
     mtx_unlock(&self->childMtx);
 

@@ -86,7 +86,7 @@ static DiskDriverRef _Nullable get_boot_floppy_driver(void)
 
         if (curPri <= g_pri_cutoff) {
             g_pri_cutoff = curPri - 1;
-            drv = Object_RetainAs(drivers[i], DiskDriver);
+            drv = Object_Retain(drivers[i]);
             break;
         }
     }
