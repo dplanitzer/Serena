@@ -58,7 +58,7 @@ SYSCALL_REF(fd_flags);
 SYSCALL_REF(fd_setflags);
 SYSCALL_REF(fd_dup);
 SYSCALL_REF(fd_dup_to);
-SYSCALL_REF(ioctl);
+SYSCALL_REF(fd_cntl);
 
 SYSCALL_REF(pipe_create);
 
@@ -131,7 +131,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fd_attr, SC_ERRNO),
     SYSCALL_ENTRY(fs_unlink, SC_ERRNO),
     SYSCALL_ENTRY(fs_rename, SC_ERRNO),
-    SYSCALL_ENTRY(ioctl, SC_ERRNO),
+    SYSCALL_ENTRY(fd_cntl, SC_ERRNO),
     SYSCALL_ENTRY(fs_truncate, SC_ERRNO),
     SYSCALL_ENTRY(fd_truncate, SC_ERRNO),
     SYSCALL_ENTRY(fs_create_file, SC_ERRNO),

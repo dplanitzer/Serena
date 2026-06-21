@@ -16,7 +16,6 @@
 #include <ext/math.h>
 #include <serena/console.h>
 #include <serena/fd.h>
-#include <serena/ioctl.h>
 
 enum {
     kChar_CursorUp = 0x01000000,
@@ -654,8 +653,8 @@ static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
     con_screen_t scr;
     con_cursor_t crs;
 
-    ioctl(self->fd_out, kConsoleCommand_GetScreen, &scr);
-    ioctl(self->fd_out, kConsoleCommand_GetCursor, &crs);
+    fd_cntl(self->fd_out, kConsoleCommand_GetScreen, &scr);
+    fd_cntl(self->fd_out, kConsoleCommand_GetCursor, &crs);
 
     self->lrY = crs.y - 1;
     self->promptX = self->lrX;

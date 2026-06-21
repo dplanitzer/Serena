@@ -9,6 +9,7 @@
 #ifndef Handler_h
 #define Handler_h
 
+#include <stdarg.h>
 #include <ext/atomic.h>
 #include <ext/try.h>
 #include <kobj/Object.h>
@@ -68,6 +69,10 @@ open_class_funcs(Handler, Object,
     // default. A channel that supports seeking should override this method and
     // lock the channel and then invoke do_seek().
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
+
+
+    // Execute a resource specific command.
+    errno_t (*control)(void* _Nonnull self, int cmd, va_list ap);
 );
 
 
@@ -92,6 +97,9 @@ invoke_n(write, Handler, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Handler_Seek(__self, __offset, __pOutNewPos, __whence) \
 invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
+
+#define Handler_Control(__self, __cmd, __ap) \
+invoke_n(control, Handler, __self, __cmd, __ap)
 
 
 //

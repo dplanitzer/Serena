@@ -99,14 +99,14 @@ SYSCALL_3(fd_setflags, int fd, int op, fd_flags_t flags)
     return err;
 }
 
-SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
+SYSCALL_3(fd_cntl, int fd, int cmd, va_list _Nullable ap)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
     HandlerRef hnd;
 
-    if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, class(DriverHandler), &hnd)) == EOK) {
-        err = DriverHandler_vIoctl(hnd, pa->cmd, pa->ap);
+    if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, NULL, &hnd)) == EOK) {
+        err = Handler_Control(hnd, pa->cmd, pa->ap);
         Object_Release(hnd);
     }
     return err;

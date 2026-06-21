@@ -39,7 +39,7 @@ enum {
     SC_fd_attr,             // errno_t fd_attr(int fd, fs_attr_t* _Nonnull attr)
     SC_fs_unlink,           // errno_t __fs_unlink(int wd, const char* path, int mode)
     SC_fs_rename,           // errno_t fs_rename(int owd, const char* _Nonnull oldpath, int nwd, const char* _Nonnull newpath)
-    SC_ioctl,               // errno_t ioctl(int fd, int cmd, ...)
+    SC_fd_cntl,             // errno_t fd_cntl(int fd, int cmd, ...)
     SC_fs_truncate,         // errno_t fs_truncate(int wd, const char* _Nonnull path, off_t length)
     SC_fd_truncate,         // errno_t fd_truncate(int fd, off_t length)
     SC_fs_create_file,      // errno_t fs_create_file(int wd, const char* _Nonnull path, fd_flags_t oflags, fs_perms_t fsperms, int* _Nonnull fd)

@@ -12,11 +12,11 @@
 #include <string.h>
 #include <ext/nanotime.h>
 #include <serena/framebuffer.h>
+#include <serena/fd.h>
 #include <serena/file.h>
 #include <serena/hid.h>
 #include <serena/hid_event.h>
 #include <serena/hid_keys.h>
-#include <serena/ioctl.h>
 #include "asserts.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
@@ -91,11 +91,11 @@ void hid_test(int argc, char *argv[])
     printf("Press '2' to hide mouse cursor until move.\n");
     printf("Press 'q' to quit.\n");
 
-    assert_int_ge(0, ioctl(fd, kHIDCommand_ObtainCursor));
-    assert_int_ge(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
+    assert_int_ge(0, fd_cntl(fd, kHIDCommand_ObtainCursor));
+    assert_int_ge(0, fd_cntl(fd, kHIDCommand_SetCursor, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
 
     while (!done) {
-        assert_int_ge(0, ioctl(fd, kHIDCommand_GetNextEvent, &NANOTIME_INF, &evt));
+        assert_int_ge(0, fd_cntl(fd, kHIDCommand_GetNextEvent, &NANOTIME_INF, &evt));
 
         switch (evt.type) {
             case kHIDEventType_KeyDown:
@@ -113,17 +113,17 @@ void hid_test(int argc, char *argv[])
 
                         case KEY_1:
                             if (mc_vis) {
-                                assert_int_ge(0, ioctl(fd, kHIDCommand_HideCursor));
+                                assert_int_ge(0, fd_cntl(fd, kHIDCommand_HideCursor));
                                 mc_vis = false;
                             }
                             else {
-                                assert_int_ge(0, ioctl(fd, kHIDCommand_ShowCursor));
+                                assert_int_ge(0, fd_cntl(fd, kHIDCommand_ShowCursor));
                                 mc_vis = true;
                             }
                             break;
 
                         case KEY_2:
-                            assert_int_ge(0, ioctl(fd, kHIDCommand_ObscureCursor));
+                            assert_int_ge(0, fd_cntl(fd, kHIDCommand_ObscureCursor));
                             break;
 
                         default:
@@ -173,7 +173,7 @@ void hid_test(int argc, char *argv[])
         }
     }
 
-    assert_int_ge(0, ioctl(fd, kHIDCommand_FlushEvents));
-    assert_int_ge(0, ioctl(fd, kHIDCommand_ReleaseCursor));
+    assert_int_ge(0, fd_cntl(fd, kHIDCommand_FlushEvents));
+    assert_int_ge(0, fd_cntl(fd, kHIDCommand_ReleaseCursor));
     fd_close(fd);
 }

@@ -94,7 +94,7 @@ errno_t DriverHandler_seek(DriverHandlerRef _Nonnull _Locked self, off_t offset,
     return err;
 }
 
-errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
+errno_t DriverHandler_control(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
 {
     decl_try_err();
     const fd_flags_t flags = Handler_GetFlags(self);
@@ -106,23 +106,11 @@ errno_t DriverHandler_ioctl(DriverHandlerRef _Nonnull self, int cmd, va_list ap)
     return err;
 }
 
-errno_t DriverHandler_Ioctl(HandlerRef _Nonnull self, int cmd, ...)
-{
-    decl_try_err();
-
-    va_list ap;
-    va_start(ap, cmd);
-    err = DriverHandler_vIoctl(self, cmd, ap);
-    va_end(ap);
-
-    return err;
-}
-
 
 class_func_defs(DriverHandler, Handler,
 override_func_def(deinit, DriverHandler, Object)
 override_func_def(read, DriverHandler, Handler)
 override_func_def(write, DriverHandler, Handler)
 override_func_def(seek, DriverHandler, Handler)
-func_def(ioctl, DriverHandler)
+override_func_def(control, DriverHandler, Handler)
 );

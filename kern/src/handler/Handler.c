@@ -103,9 +103,15 @@ errno_t Handler_seek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pO
     return ESPIPE;
 }
 
+errno_t Handler_control(HandlerRef _Nonnull self, int cmd, va_list ap)
+{
+    return ENOTIOCTLCMD;
+}
+
 
 class_func_defs(Handler, Object,
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
+func_def(control, Handler)
 );

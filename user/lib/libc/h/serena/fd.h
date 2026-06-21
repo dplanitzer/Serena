@@ -80,7 +80,6 @@ extern int fd_type(int fd);
 // @Concurrency: Safe
 extern fd_flags_t fd_flags(int fd);
 
-
 // Updates the descriptor flags by combining the current descriptor flags with
 // the new flags 'flags' based o the combination operation 'op'. Note that only
 // the O_MODMASK subset of the descriptor flags can be changed.
@@ -99,6 +98,13 @@ extern int fd_dup(int fd, int min_fd);
 // unused is selected if 'target_fd' is < 0.
 // Returns -1 and sets errno appropriately on an error.
 extern int fd_dup_to(int fd, int target_fd);
+
+
+// Invokes a descriptor resource specific function. A descriptor is a handle to
+// an in-kernel resource and this function allows you to call a function on that
+// resource.
+// @Concurrency: Safe
+extern int fd_cntl(int fd, int cmd, ...);
 
 __CPP_END
 
