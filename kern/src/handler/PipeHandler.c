@@ -35,8 +35,8 @@ errno_t PipeHandler_Create(PipeRef _Nonnull pipe, unsigned int mode, HandlerRef 
 
 void PipeHandler_deinit(PipeHandlerRef _Nonnull self)
 {
-    const unsigned int mode = Handler_GetMode(self);
-    const int pe = ((mode & O_RDONLY) == O_RDONLY) ? kPipeEnd_Read : kPipeEnd_Write;
+    const fd_flags_t flags = Handler_GetFlags(self);
+    const int pe = ((flags & O_RDONLY) == O_RDONLY) ? kPipeEnd_Read : kPipeEnd_Write;
 
     Pipe_Close(self->pipe, pe);
     Object_Release(self->pipe);
@@ -45,9 +45,9 @@ void PipeHandler_deinit(PipeHandlerRef _Nonnull self)
 
 errno_t PipeHandler_read(PipeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    const unsigned int mode = Handler_GetMode(self);
+    const fd_flags_t flags = Handler_GetFlags(self);
 
-    if ((mode & O_RDONLY) == 0) {
+    if ((flags & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
         return EBADF;
     }
@@ -58,9 +58,9 @@ errno_t PipeHandler_read(PipeHandlerRef _Nonnull _Locked self, void* _Nonnull pB
 
 errno_t PipeHandler_write(PipeHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    const unsigned int mode = Handler_GetMode(self);
+    const fd_flags_t flags = Handler_GetFlags(self);
     
-    if ((mode & O_WRONLY) == 0) {
+    if ((flags & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
         return EBADF;
     }

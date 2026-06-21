@@ -34,7 +34,7 @@ open_class_funcs(InodeHandler, Handler,
 
 
 // Creates a file object.
-extern errno_t InodeHandler_Create(InodeRef _Nonnull pNode, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutFile);
+extern errno_t InodeHandler_Create(InodeRef _Nonnull pNode, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutFile);
 
 #define InodeHandler_GetAttributes(__self, __attr) \
 invoke_n(getAttributes, InodeHandler, __self, __attr)

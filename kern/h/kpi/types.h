@@ -55,6 +55,7 @@ typedef size_t          ino_t;
 
 typedef unsigned int    fs_ftype_t;
 typedef unsigned int    fs_perms_t;
+typedef int             fd_flags_t;
 typedef int             nlink_t;
 
 

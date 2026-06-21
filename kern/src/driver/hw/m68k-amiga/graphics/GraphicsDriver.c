@@ -86,7 +86,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     return err;
 }
 
-errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
+errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {
     switch (cmd) {
         case kFBCommand_CreateSurface2d: {
@@ -223,7 +223,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, unsigned int mode,
         }
 
         default:
-            return super_n(ioctl, Driver, GraphicsDriver, self, mode, pOffset, cmd, ap);
+            return super_n(ioctl, Driver, GraphicsDriver, self, flags, pOffset, cmd, ap);
     }
 }
 

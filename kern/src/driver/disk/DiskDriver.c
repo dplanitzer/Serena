@@ -441,7 +441,7 @@ off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
     return rng;
 }
 
-static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
+static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
 {
     decl_try_err();
     IORWCommand p;
@@ -465,14 +465,14 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, unsigned 
     return err;
 }
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
-    return _DiskDriver_rdwr(self, kIODiskCommand_Read, mode, pOffset, buf, nBytesToRead, pOutBytesRead);
+    return _DiskDriver_rdwr(self, kIODiskCommand_Read, flags, pOffset, buf, nBytesToRead, pOutBytesRead);
 }
 
-errno_t DiskDriver_write(DiskDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
-    return _DiskDriver_rdwr(self, kIODiskCommand_Write, mode, pOffset, buf, nBytesToWrite, pOutBytesWritten);
+    return _DiskDriver_rdwr(self, kIODiskCommand_Write, flags, pOffset, buf, nBytesToWrite, pOutBytesWritten);
 }
 
 
@@ -517,7 +517,7 @@ errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnu
 }
 
 
-errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap)
+errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
 {
     switch (cmd) {
         case kDiskCommand_GetDriveInfo: {
@@ -549,7 +549,7 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, unsigned int mode, off_t* 
             return DiskDriver_SenseDisk(self);
 
         default:
-            return super_n(ioctl, Driver, DiskDriver, self, mode, pOffset, cmd, ap);
+            return super_n(ioctl, Driver, DiskDriver, self, flags, pOffset, cmd, ap);
     }
 }
 

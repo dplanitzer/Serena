@@ -13,7 +13,7 @@
 #include <kpi/file.h>
 
 
-errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, int oflags)
+errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, fd_flags_t oflags)
 {
     decl_try_err();
     FilesystemRef fs = Inode_GetFilesystem(pFile);
@@ -60,7 +60,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 }
 
 // Creates a file in the given filesystem location.
-errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, fs_perms_t fsperms, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, fd_flags_t oflags, fs_perms_t fsperms, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath r;
@@ -145,7 +145,7 @@ catch:
 
 // Opens the given file or named resource. Opening directories is handled by the
 // FileManager_OpenDirectory() function.
-errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull path, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath r;

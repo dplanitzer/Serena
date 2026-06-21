@@ -73,11 +73,11 @@ extern void FileManager_SetUMask(FileManagerRef _Nonnull self, fs_perms_t mask);
 (__self)->umask
 
 // Creates a file in the given filesystem location.
-extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, fs_perms_t fsperms, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fd_flags_t oflags, fs_perms_t fsperms, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Opens the given file or named resource. Opening directories is handled by the
 // FileManager_OpenDirectory() function.
-extern errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.

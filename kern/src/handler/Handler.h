@@ -17,9 +17,11 @@
 #include <kpi/_seek.h>
 
 
-// A handler object acts as an adaptor that allows the file descriptor API to
-// interact with some kind of in-kernel object. E.g. a file, driver instance,
-// pipe, etc.
+// A handler object acts as a bridge between a user space descriptor and the
+// corresponding in-kernel object. E.g. a file, driver instance, pipe, etc.
+// Thus a handler can assume that its I/O functions will always be invoked on
+// behalf of a user space process and that the kernel will never create a
+// handler for use inside the kernel.
 //
 // The handler base class does not implement any operations. It expects that
 // subclasses implement the logic of making the read, write, seek, etc
@@ -31,9 +33,9 @@
 //   in parallel and the number of operations that can run in parallel.
 //
 // - the implementation of each operation (read, write, etc) has to call
-//   Handler_GetMode() *once at the beginning* and then act on the mode snapshot
-//   that it has received. The mode shall be kept static throughout the execution
-//   of the operation.
+//   Handler_GetFlags() *once at the beginning* and then act on the flags snapshot
+//   that it has received. The flags shall be kept unmodified throughout the
+//   execution of the operation.
 //
 // - Code which wants to issue an operation on a handler has to hold a strong
 //   reference to the handler and has to maintain it until the operation has
@@ -42,7 +44,7 @@
 // - a handler is "closed" when the last strong reference to it is dropped.
 //
 open_class(Handler, Object,
-    atomic_int  mode;
+    atomic_int  flags;
     int         type;           // Constant
 );
 open_class_funcs(Handler, Object,
@@ -73,14 +75,12 @@ open_class_funcs(Handler, Object,
 #define Handler_GetType(/*_Nonnull*/ __self) \
 (((HandlerRef)(__self))->type)
 
-// Returns the handler mode.
-#define Handler_GetMode(/*_Nonnull*/ __self) \
-((unsigned int)atomic_int_load(&((HandlerRef)(__self))->mode))
 
-// Returns a copy of the flags. The flags are the modifiable subset of mode bits.
+// Returns the handler flags that were passed to it at open() time.
 #define Handler_GetFlags(/*_Nonnull*/ __self) \
-(Handler_GetMode(__self) & O_FLAGS)
+((unsigned int)atomic_int_load(&((HandlerRef)(__self))->flags))
 
+// Updates the handler flags. Note that only a subset of the flags are modifiable.
 extern errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags);
 
 
@@ -103,7 +103,7 @@ extern errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref
 // Creates an instance of an handler. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t Handler_Create(Class* _Nonnull pClass, int type, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Implements the actual seek logic. 'endPos' is the end position of the
 // seekable space. This typically corresponds to the length of the seekable

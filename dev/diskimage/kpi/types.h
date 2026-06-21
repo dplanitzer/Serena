@@ -57,6 +57,7 @@ typedef long long       off_t;
 
 typedef unsigned short  fs_ftype_t;
 typedef unsigned short  fs_perms_t;
+typedef int             fd_flags_t;
 
 
 // Disk sector address based in cylinder, head, sector notation 

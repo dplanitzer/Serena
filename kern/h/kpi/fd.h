@@ -16,7 +16,7 @@
 #define FD_STDERR   2
 
 
-// File access modes and flag bits
+// File (descriptor) flags (fd_flags_t)
 #define O_RDONLY    0x0001
 #define O_WRONLY    0x0002
 #define O_RDWR      (O_RDONLY | O_WRONLY)
@@ -30,7 +30,7 @@
 #define O_USERSPACE 0x20000
 #endif
 
-// File access mode and flags masks
+// File flags masks
 #define O_ACCMODE   (O_RDONLY | O_WRONLY | O_RDWR)
 #define O_FLAGS     (O_APPEND | O_NONBLOCK | O_PRSVEXEC)
 #if defined(__KERNEL__)

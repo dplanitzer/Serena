@@ -83,11 +83,11 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
 
     
     if (nBytesToWrite > 0 && image) {
-        unsigned int mode = O_WRONLY;
+        const fd_flags_t oflags = O_WRONLY;
 
-        err = Driver_Open(dp, mode, 0, NULL);
+        err = Driver_Open(dp, oflags, 0, NULL);
         if (err == EOK) {
-            err = Driver_Write(dp, mode, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
+            err = Driver_Write(dp, oflags, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
             if (err == EOK && nBytesWritten != nBytesToWrite) {
                 err = EIO;
             }

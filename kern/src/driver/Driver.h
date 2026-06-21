@@ -420,12 +420,12 @@ open_class_funcs(Driver, Object,
     // will read no bytes and return some error.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*read)(void* _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
     // Override: Optional
     // Default Behavior: Returns EBADF
-    errno_t (*write)(void* _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is the value returned by
@@ -438,7 +438,7 @@ open_class_funcs(Driver, Object,
     // arguments 'ap'.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap);
 );
 
 
@@ -495,10 +495,10 @@ invoke_n(write, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToWrite, _
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)
 
-#define Driver_vIoctl(__self, __mode, __pOffset, __cmd, __ap) \
-invoke_n(ioctl, Driver, __self, __mode, __pOffset, __cmd, __ap)
+#define Driver_vIoctl(__self, __flags, __pOffset, __cmd, __ap) \
+invoke_n(ioctl, Driver, __self, __flags, __pOffset, __cmd, __ap)
 
-extern errno_t Driver_Ioctl(DriverRef _Nonnull self, unsigned int mode, off_t* _Nonnull pOffset, int cmd, ...);
+extern errno_t Driver_Ioctl(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, ...);
 
 
 // Returns true if there are open I/O handlers referencing this driver.

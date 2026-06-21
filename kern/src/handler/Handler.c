@@ -10,14 +10,14 @@
 #include <kpi/_seek.h>
 
 
-errno_t Handler_Create(Class* _Nonnull pClass, int type, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Handler_Create(Class* _Nonnull pClass, int type, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef self;
 
     err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
-        atomic_int_store(&self->mode, mode);
+        atomic_int_store(&self->flags, oflags);
         self->type = type;
     }
     *pOutHandler = self;
@@ -35,15 +35,15 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 
     switch (op) {
         case FD_FOP_ADD:
-            atomic_int_fetch_or(&self->mode, flags);
+            atomic_int_fetch_or(&self->flags, flags);
             break;
 
         case FD_FOP_REMOVE:
-            atomic_int_fetch_and(&self->mode, ~flags);
+            atomic_int_fetch_and(&self->flags, ~flags);
             break;
 
         case FD_FOP_REPLACE:
-            atomic_int_store(&self->mode, flags);
+            atomic_int_store(&self->flags, flags);
             break;
 
         default:
@@ -109,11 +109,11 @@ errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnu
     switch (flavor) {
         case FD_INFO_BASIC: {
             fd_basic_info_t* ip = info;
-            const unsigned int mode = Handler_GetMode(self);
+            const fd_flags_t flags = Handler_GetFlags(self);
 
             ip->type = self->type;
-            ip->flags = mode & O_FLAGS;
-            ip->access_mode = mode & O_ACCMODE;
+            ip->flags = flags & O_FLAGS;
+            ip->access_mode = flags & O_ACCMODE;
             return EOK;
         }
             

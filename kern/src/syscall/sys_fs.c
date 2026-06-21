@@ -17,7 +17,7 @@
 #include <process/ProcessPriv.h>
 
 
-SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
+SYSCALL_4(fs_open, int wd, const char* _Nonnull path, fd_flags_t oflags, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -42,7 +42,7 @@ SYSCALL_4(fs_open, int wd, const char* _Nonnull path, int oflags, int* _Nonnull 
     return err;
 }
 
-SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, int oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
+SYSCALL_5(fs_create_file, int wd, const char* _Nonnull path, fd_flags_t oflags, fs_perms_t fsperms, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

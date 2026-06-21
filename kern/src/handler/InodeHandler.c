@@ -12,12 +12,12 @@
 #include <kpi/fd.h>
 
 
-errno_t InodeHandler_Create(InodeRef _Nonnull pNode, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutFile)
+errno_t InodeHandler_Create(InodeRef _Nonnull pNode, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     InodeHandlerRef self;
     
-    try(Handler_Create(&kInodeHandlerClass, FD_TYPE_INODE, mode, (HandlerRef*)&self));
+    try(Handler_Create(&kInodeHandlerClass, FD_TYPE_INODE, oflags, (HandlerRef*)&self));
     self->ino = Inode_Reacquire(pNode);
 
 catch:
@@ -34,9 +34,9 @@ void InodeHandler_deinit(InodeHandlerRef _Nonnull self)
 errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    const unsigned int mode = Handler_GetMode(self);
+    const fd_flags_t flags = Handler_GetFlags(self);
 
-    if ((mode & O_RDONLY) == 0) {
+    if ((flags & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
         return EBADF;
     }
@@ -52,10 +52,10 @@ errno_t InodeHandler_read(InodeHandlerRef _Nonnull _Locked self, void* _Nonnull 
 errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
-    const unsigned int mode = Handler_GetMode(self);
+    const fd_flags_t flags = Handler_GetFlags(self);
     off_t offset;
 
-    if ((mode & O_WRONLY) == 0) {
+    if ((flags & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
         return EBADF;
     }
@@ -63,7 +63,7 @@ errno_t InodeHandler_write(InodeHandlerRef _Nonnull _Locked self, const void* _N
 
     Inode_Lock(self->ino);
 
-    if ((mode & O_APPEND) == O_APPEND) {
+    if ((flags & O_APPEND) == O_APPEND) {
         offset = Inode_GetFileSize(self);
     }
     else {
@@ -114,13 +114,13 @@ errno_t InodeHandler_getAttributes(InodeHandlerRef _Nonnull self, fs_attr_t* _No
 errno_t InodeHandler_truncate(InodeHandlerRef _Nonnull self, off_t length)
 {
     decl_try_err();
-    const unsigned int mode = Handler_GetMode(self);
+    const fd_flags_t flags = Handler_GetFlags(self);
 
     if (length < 0ll) {
         return EINVAL;
     }
     
-    if ((mode & O_WRONLY) == 0) {
+    if ((flags & O_WRONLY) == 0) {
         return EBADF;
     }
 
