@@ -11,6 +11,7 @@
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
 #include "PaddleDriver.h"
+#include <handler/IOGPBusHandler.h>
 
 IOCATS_DEF(g_cats, IOBUS_GP);
 
@@ -63,12 +64,18 @@ catch:
     return err;
 }
 
+errno_t GamePortController_createHandler(GamePortControllerRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return IOGPBusHandler_Create(self, flags, pOutHandler);
+}
+
+
 
 //
 // API
 //
 
-static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
+errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
 {
     if (port < 0 || port >= GP_PORT_COUNT) {
         return EINVAL;
@@ -88,7 +95,7 @@ static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull s
     return EOK;
 }
 
-static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, int type)
+errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, int type)
 {
     mtx_lock(&self->io_mtx);
     const errno_t err = GamePortController_SetPortDevice_Locked(self, port, type);
@@ -97,7 +104,7 @@ static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull s
     return err;
 }
 
-static errno_t GamePortController_GetPortForDriver(GamePortControllerRef _Nonnull self, did_t id, int* _Nonnull pOutPort)
+errno_t GamePortController_GetPortForDriver(GamePortControllerRef _Nonnull self, did_t id, int* _Nonnull pOutPort)
 {
     int port = -1;
 
@@ -115,36 +122,6 @@ static errno_t GamePortController_GetPortForDriver(GamePortControllerRef _Nonnul
     mtx_unlock(&self->io_mtx);
     
     return EOK;
-}
-
-errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kGamePortCommand_GetPortDevice: {
-            const int port = va_arg(ap, int);
-            int* ptype = va_arg(ap, int*);
-            did_t* pdid = va_arg(ap, did_t*);
-
-            return GamePortController_GetPortDevice(self, port, ptype, pdid);
-        }
-
-        case kGamePortCommand_SetPortDevice: {
-            const int port = va_arg(ap, int);
-            const int itype = va_arg(ap, int);
-
-            return GamePortController_SetPortDevice(self, port, itype);
-        }
-
-        case kGamePortCommand_GetPortForDriver: {
-            const did_t did = va_arg(ap, did_t);
-            int* pport = va_arg(ap, int*);
-
-            return GamePortController_GetPortForDriver(self, did, pport);
-        }
-
-        default:
-            return super_n(ioctl, Driver, GamePortController, self, flags, pOffset, cmd, ap);
-    }
 }
 
 
@@ -216,6 +193,6 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
-override_func_def(ioctl, GamePortController, Driver)
+override_func_def(createHandler, GamePortController, Driver)
 func_def(createInputDriver, GamePortController)
 );

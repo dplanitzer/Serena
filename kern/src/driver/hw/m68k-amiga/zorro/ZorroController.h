@@ -34,4 +34,7 @@ final_class(ZorroController, Driver);
 
 extern errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf);
 
+extern size_t ZorroController_GetCardCount(ZorroControllerRef _Nonnull self);
+extern errno_t ZorroController_GetCardConfig(ZorroControllerRef _Nonnull self, size_t idx, zorro_conf_t* _Nonnull pcfg);
+
 #endif /* ZorroController_h */

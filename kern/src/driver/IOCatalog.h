@@ -66,10 +66,10 @@ extern errno_t IOCatalog_AcquireNodeForDriver(IOCatalogRef _Nonnull self, Driver
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
 // returns the resulting channel in 'pOutHandler'. This call does not support
 // opening a folder.
-extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 // Opens the best driver that matches 'cats'.
-extern errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, unsigned int mode, DriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, DriverRef _Nullable * _Nonnull pOutDriver);
 
 
 // Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as

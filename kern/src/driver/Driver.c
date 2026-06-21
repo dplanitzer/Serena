@@ -280,12 +280,12 @@ bool Driver_IsOpen(DriverRef _Nonnull self)
     return r;
 }
 
-errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode)
+errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, fd_flags_t flags)
 {
     return EOK;
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler)
+errno_t Driver_open(DriverRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler)
 {
     decl_try_err();
 
@@ -299,11 +299,11 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, Ha
     }
 
 
-    try(Driver_OnOpen(self, self->openCount, mode));
+    try(Driver_OnOpen(self, self->openCount, flags));
     self->openCount++;
 
     if (pOutHandler) {
-        err = Driver_CreateHandler(self, mode, arg, pOutHandler);
+        err = Driver_CreateHandler(self, flags, arg, pOutHandler);
         if (err != EOK) {
             Driver_OnClose(self, self->openCount);
             self->openCount--;
@@ -316,9 +316,9 @@ catch:
     return err;
 }
 
-errno_t Driver_createHandler(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Driver_createHandler(DriverRef _Nonnull _Locked self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverHandler_Create(self, FD_TYPE_DRIVER, mode, pOutHandler);
+    return DriverHandler_Create(self, FD_TYPE_DRIVER, flags, pOutHandler);
 }
 
 

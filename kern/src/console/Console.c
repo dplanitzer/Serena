@@ -12,9 +12,8 @@
 #include <driver/hid/HIDDriver.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
-#include <handler/DriverHandler.h>
+#include <handler/IOConsoleHandler.h>
 #include <kern/kernlib.h>
-#include <kpi/console.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
@@ -533,9 +532,9 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_createHandler(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Console_createHandler(ConsoleRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverHandler_Create((DriverRef)self, FD_TYPE_TERMINAL, mode, pOutHandler);
+    return IOConsoleHandler_Create(self, flags, pOutHandler);
 }
 
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -702,35 +701,20 @@ errno_t Console_write(ConsoleRef _Nonnull self, fd_flags_t flags, off_t* _Nonnul
     return EOK;
 }
 
-errno_t Console_ioctl(ConsoleRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
+void Console_GetScreenSize(ConsoleRef _Nonnull self, con_screen_t* _Nonnull scr)
 {
-    decl_try_err();
-
     mtx_lock(&self->mtx);
-    switch (cmd) {
-        case kConsoleCommand_GetScreen: {
-            con_screen_t* info = va_arg(ap, con_screen_t*);
-            
-            info->columns = self->bounds.right;
-            info->rows = self->bounds.bottom;
-            break;
-        }
-
-        case kConsoleCommand_GetCursor: {
-            con_cursor_t* info = va_arg(ap, con_cursor_t*);
-            
-            info->x = self->x + 1;
-            info->y = self->y + 1;
-            break;
-        }
-
-        default:
-            err = ENOTIOCTLCMD;
-            break;
-    }
+    scr->columns = self->bounds.right;
+    scr->rows = self->bounds.bottom;
     mtx_unlock(&self->mtx);
+}
 
-    return err;
+void Console_GetCursorPosition(ConsoleRef _Nonnull self, con_cursor_t* _Nonnull crsr)
+{
+    mtx_lock(&self->mtx);
+    crsr->x = self->x + 1;
+    crsr->y = self->y + 1;
+    mtx_unlock(&self->mtx);
 }
 
 
@@ -740,5 +724,4 @@ override_func_def(onStart, Console, Driver)
 override_func_def(createHandler, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)
-override_func_def(ioctl, Console, Driver)
 );

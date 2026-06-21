@@ -381,13 +381,13 @@ open_class_funcs(Driver, Object,
     // subclass can use this information to eg power up the hardware if necessary.
     // Override: Optional
     // Default Behavior: returns EOK
-    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode);
+    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, fd_flags_t flags);
 
     // Creates a new handler for the driver. The handler will be used to allow
     // a user space application access to the driver.
     // Override: Optional
     // Default Behavior: returns a DriverHandler instance
-    errno_t (*createHandler)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
+    errno_t (*createHandler)(void* _Nonnull _Locked self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
     // Invoked by the close() function to close an open I/O handler. The
     // 'openCount' reflects the number of I/O handlers that are currently open
@@ -406,7 +406,7 @@ open_class_funcs(Driver, Object,
     // does not need a handler and can interact with the driver instance directly.
     // Override: Optional
     // Default Behavior: returns a handler instance
-    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler);
+    errno_t (*open)(void* _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler);
 
     // Closes an open I/O handler.
     // Override: Optional
@@ -513,7 +513,7 @@ extern bool Driver_IsOpen(DriverRef _Nonnull self);
 // Returns a reference to a read-only array of all the I/O categories the
 // driver supports. This array is terminated by a IOCAT_END declaration.
 #define Driver_GetCategories(__self) \
-((DriverRef)(__self)->cats) 
+((const iocat_t*)((DriverRef)(__self)->cats)) 
 
 // Returns true if the driver supports the given I/O category and false otherwise.
 extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);

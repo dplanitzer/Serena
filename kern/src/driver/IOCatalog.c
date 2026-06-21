@@ -76,7 +76,7 @@ errno_t IOCatalog_AcquireNodeForDriver(IOCatalogRef _Nonnull self, DriverRef _No
     return Filesystem_AcquireNodeWithId(self->fs, (ino_t)Driver_GetId(driver), pOutNode);
 }
 
-errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     ResolvedPath rp;
@@ -85,7 +85,7 @@ errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, un
     if (err == EOK) {
         Inode_Lock(rp.inode);
         if (!Inode_IsDirectory(rp.inode)) {
-            err = Inode_CreateHandler(rp.inode, mode, pOutHandler);
+            err = Inode_CreateHandler(rp.inode, oflags, pOutHandler);
         }
         else {
             err = EISDIR;
@@ -97,7 +97,7 @@ errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, un
     return err;
 }
 
-errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, unsigned int mode, DriverRef _Nullable * _Nonnull pOutDriver)
+errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     DriverRef drv = IOCatalog_CopyBestMatchingDriver(self, cats);
@@ -106,7 +106,7 @@ errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonn
         return ENODEV;
     }
 
-    err = Driver_Open(drv, mode, 0, NULL);
+    err = Driver_Open(drv, oflags, 0, NULL);
     if (err == EOK) {
         *pOutDriver = drv;
         return EOK;

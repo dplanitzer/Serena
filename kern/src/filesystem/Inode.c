@@ -137,14 +137,14 @@ errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
     return err;
 }
 
-errno_t Inode_createHandler(InodeRef _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Inode_createHandler(InodeRef _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     switch (Inode_GetFileType(self)) {
         case FS_FTYPE_DIR:
             return InodeHandler_Create(self, O_RDONLY, pOutHandler);
 
         case FS_FTYPE_REG:
-            return InodeHandler_Create(self, mode, pOutHandler);
+            return InodeHandler_Create(self, flags, pOutHandler);
 
         default:
             *pOutHandler = NULL;

@@ -50,11 +50,11 @@ void KfsSpecial_deinit(KfsSpecialRef _Nullable self)
     self->instance = NULL;
 }
 
-errno_t KfsSpecial_createHandler(KfsSpecialRef _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t KfsSpecial_createHandler(KfsSpecialRef _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     switch (Inode_GetFileType(self)) {
         case FS_FTYPE_DEV:
-            return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutHandler);
+            return Driver_Open((DriverRef)self->instance, flags, self->arg, pOutHandler);
 
         default:
             return EBADF;

@@ -101,6 +101,9 @@ invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
 #define Handler_Control(__self, __cmd, __ap) \
 invoke_n(control, Handler, __self, __cmd, __ap)
 
+#define Handler_Super_Control(__selfClass, __cmd, __ap) \
+super_n(control, Handler, __selfClass, self, __cmd, __ap)
+
 
 //
 // Subclassers

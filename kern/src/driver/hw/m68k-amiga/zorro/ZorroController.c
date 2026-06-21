@@ -9,6 +9,7 @@
 #include "ZorroController.h"
 #include "ZorroDriver.h"
 #include "zorro_bus.h"
+#include <handler/IOZorroBusHandler.h>
 
 
 final_class_ivars(ZorroController, Driver,
@@ -76,37 +77,31 @@ catch:
     return err;
 }
 
-errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
+errno_t ZorroController_createHandler(ZorroControllerRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    switch (cmd) {
-        case kZorroCommand_GetCardCount: {
-            size_t* pCount = va_arg(ap, size_t*);
-            
-            *pCount = Driver_GetChildCount((DriverRef)self);
-            return EOK;
-        }
+    return IOZorroBusHandler_Create(self, flags, pOutHandler);
+}
 
-        case kZorroCommand_GetCardConfig: {
-            size_t idx = va_arg(ap, size_t);
-            zorro_conf_t* pcfg = va_arg(ap, zorro_conf_t*);
-            ZorroDriverRef zdp = (ZorroDriverRef)Driver_GetChildAt((DriverRef)self, idx);
+size_t ZorroController_GetCardCount(ZorroControllerRef _Nonnull self)
+{
+    return Driver_GetChildCount((DriverRef)self);
+}
+
+errno_t ZorroController_GetCardConfig(ZorroControllerRef _Nonnull self, size_t idx, zorro_conf_t* _Nonnull pcfg)
+{
+    ZorroDriverRef zdp = (ZorroDriverRef)Driver_GetChildAt((DriverRef)self, idx);
         
-            if (zdp) {
-                *pcfg = *ZorroDriver_GetConfiguration(zdp);
-                return EOK;
-            }
-            else {
-                return EINVAL;
-            }
-        }
-
-        default:
-            return super_n(ioctl, Driver, ZorroController, self, flags, pOffset, cmd, ap);
+    if (zdp) {
+        *pcfg = *ZorroDriver_GetConfiguration(zdp);
+        return EOK;
+    }
+    else {
+        return EINVAL;
     }
 }
 
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)
-override_func_def(ioctl, ZorroController, Driver)
+override_func_def(createHandler, ZorroController, Driver)
 );

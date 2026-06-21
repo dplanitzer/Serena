@@ -9,6 +9,7 @@
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
 #include <hal/irq.h>
+#include <handler/IOGraphicsHandler.h>
 #include <kern/kalloc.h>
 #include <kpi/file.h>
 #include <kpi/hid.h>
@@ -86,145 +87,9 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     return err;
 }
 
-errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
+errno_t GraphicsDriver_createHandler(GraphicsDriverRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    switch (cmd) {
-        case kFBCommand_CreateSurface2d: {
-            const int width = va_arg(ap, int);
-            const int height = va_arg(ap, int);
-            const pixfmt_t fmt = va_arg(ap, pixfmt_t);
-            int* hnd = va_arg(ap, int*);
-
-            return GraphicsDriver_CreateSurface2d(self, width, height, fmt, hnd);
-        }
-
-        case kFBCommand_DestroySurface: {
-            int hnd = va_arg(ap, int);
-
-            return GraphicsDriver_DestroySurface(self, hnd);
-        }
-
-        case kFBCommand_GetSurfaceInfo: {
-            int hnd = va_arg(ap, int);
-            surface_info_t* si = va_arg(ap, surface_info_t*);
-
-            return GraphicsDriver_GetSurfaceInfo(self, hnd, si);
-        }
-
-        case kFBCommand_MapSurface: {
-            int hnd = va_arg(ap, int);
-            int mode = va_arg(ap, int);
-            surface_mapping_t* sm = va_arg(ap, surface_mapping_t*);
-
-            return GraphicsDriver_MapSurface(self, hnd, mode, sm);
-        }
-
-        case kFBCommand_UnmapSurface: {
-            const int hnd = va_arg(ap, int);
-
-            return GraphicsDriver_UnmapSurface(self, hnd);
-        }
-
-        case kFBCommand_WritePixels: {
-            int hnd = va_arg(ap, int);
-            const void* planes = va_arg(ap, const void*);
-            size_t bytesPerRow = va_arg(ap, size_t);
-            pixfmt_t format = va_arg(ap, pixfmt_t);
-
-            return GraphicsDriver_WritePixels(self, hnd, planes, bytesPerRow, format);
-        }
-
-        case kFBCommand_ClearPixels: {
-            const int hnd = va_arg(ap, int);
-
-            return GraphicsDriver_ClearPixels(self, hnd);
-        }
-
-        case kFBCommand_BindSurface: {
-            const int target = va_arg(ap, int);
-            const int id = va_arg(ap, int);
-
-            return GraphicsDriver_BindSurface(self, target, id);
-        }
-
-
-        case kFBCommand_CreateCLUT: {
-            const size_t entryCount = va_arg(ap, size_t);
-            int* hnd = va_arg(ap, int*);
-
-            return GraphicsDriver_CreateCLUT(self, entryCount, hnd);
-        }
-
-        case kFBCommand_DestroyCLUT: {
-            int hnd = va_arg(ap, int);
-
-            return GraphicsDriver_DestroyCLUT(self, hnd);
-        }
-
-        case kFBCommand_GetCLUTInfo: {
-            int hnd = va_arg(ap, int);
-            clut_info_t* ci = va_arg(ap, clut_info_t*);
-
-            return GraphicsDriver_GetCLUTInfo(self, hnd, ci);
-        }
-
-        case kFBCommand_SetCLUTEntries: {
-            const int hnd = va_arg(ap, int);
-            const size_t idx = va_arg(ap, size_t);
-            const size_t count = va_arg(ap, size_t);
-            const color_rgb32_t* colors = va_arg(ap, const color_rgb32_t*);
-
-            return GraphicsDriver_SetCLUTEntries(self, hnd, idx, count, colors);
-        }
-
-
-        case kFBCommand_GetSpriteCaps: {
-            sprite_caps_t* cp = va_arg(ap, sprite_caps_t*);
-
-            GraphicsDriver_GetSpriteCaps(self, cp);
-            return EOK;
-        }
-
-        case kFBCommand_SetSpritePosition: {
-            const int hnd = va_arg(ap, int);
-            const int x = va_arg(ap, int);
-            const int y = va_arg(ap, int);
-
-            return GraphicsDriver_SetSpritePosition(self, hnd, x, y);
-        }
-
-        case kFBCommand_SetSpriteVisible: {
-            const int hnd = va_arg(ap, int);
-            const bool flag = va_arg(ap, int);
-
-            return GraphicsDriver_SetSpriteVisible(self, hnd, flag);
-        }
-
-
-        case kFBCommand_SetScreenConfig: {
-            const intptr_t* cp = va_arg(ap, const intptr_t*);
-
-            return GraphicsDriver_SetScreenConfig(self, cp);
-        }
-
-        case kFBCommand_GetScreenConfig: {
-            intptr_t* cp = va_arg(ap, intptr_t*);
-            size_t bufsiz = va_arg(ap, size_t);
-
-            return GraphicsDriver_GetScreenConfig(self, cp, bufsiz);
-        }
-
-        case kFBCommand_SetScreenCLUTEntries: {
-            const size_t idx = va_arg(ap, size_t);
-            const size_t count = va_arg(ap, size_t);
-            const color_rgb32_t* colors = va_arg(ap, const color_rgb32_t*);
-
-            return GraphicsDriver_SetScreenCLUTEntries(self, idx, count, colors);
-        }
-
-        default:
-            return super_n(ioctl, Driver, GraphicsDriver, self, flags, pOffset, cmd, ap);
-    }
+    return IOGraphicsHandler_Create(self, flags, pOutHandler);
 }
 
 
@@ -266,7 +131,7 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 
 class_func_defs(GraphicsDriver, DisplayDriver,
 override_func_def(onStart, GraphicsDriver, Driver)
-override_func_def(ioctl, GraphicsDriver, Driver)
+override_func_def(createHandler, GraphicsDriver, Driver)
 override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
 override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
 override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)

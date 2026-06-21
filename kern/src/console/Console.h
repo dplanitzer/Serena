@@ -10,6 +10,7 @@
 #define Console_h
 
 #include <driver/Driver.h>
+#include <kpi/console.h>
 
 //
 // The console implements support for the following standards:
@@ -23,5 +24,8 @@ final_class(Console, Driver);
 extern errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf);
 
 extern void Console_Start(ConsoleRef _Nonnull self);
+
+extern void Console_GetScreenSize(ConsoleRef _Nonnull self, con_screen_t* _Nonnull scr);
+extern void Console_GetCursorPosition(ConsoleRef _Nonnull self, con_cursor_t* _Nonnull crsr);
 
 #endif /* Console_h */

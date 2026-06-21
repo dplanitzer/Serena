@@ -119,7 +119,7 @@ any_subclass_funcs(Inode,
     //
 
     // Creates and returns a handler that is suitable for reading/writing data.
-    errno_t (*createHandler)(void* _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler);
+    errno_t (*createHandler)(void* _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 
     //

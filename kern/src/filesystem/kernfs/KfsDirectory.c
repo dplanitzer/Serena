@@ -178,7 +178,7 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
     return EOK;
 }
 
-errno_t KfsDirectory_createHandler(KfsDirectoryRef _Nonnull _Locked self, unsigned int mode, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t KfsDirectory_createHandler(KfsDirectoryRef _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     return InodeHandler_Create((InodeRef)self, O_RDONLY, pOutHandler);
 }

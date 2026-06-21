@@ -16,6 +16,7 @@
 #include <ext/bit.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
+#include <handler/IOHIDHandler.h>
 #include <kern/kalloc.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
@@ -109,6 +110,11 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
 
 catch:
     return err;
+}
+
+errno_t HIDDriver_createHandler(HIDDriverRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return IOHIDHandler_Create(self, flags, pOutHandler);
 }
 
 
@@ -1043,85 +1049,9 @@ errno_t HIDDriver_read(HIDDriverRef _Nonnull self, fd_flags_t flags, off_t* _Non
     return err;
 }
 
-errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kHIDCommand_GetNextEvent: {
-            const nanotime_t* timeoutp = va_arg(ap, nanotime_t*);
-            HIDEvent* evt = va_arg(ap, HIDEvent*);
-
-            return HIDDriver_GetNextEvent(self, timeoutp, evt);
-        }
-
-        case kHIDCommand_FlushEvents:
-            HIDDriver_FlushEvents(self);
-            return EOK;
-            
-        case kHIDCommand_GetKeyRepeatDelays: {
-            nanotime_t* initialp = va_arg(ap, nanotime_t*);
-            nanotime_t* repeatp = va_arg(ap, nanotime_t*);
-
-            HIDDriver_GetKeyRepeatDelays(self, initialp, repeatp);
-            return EOK;
-        }
-
-        case kHIDCommand_SetKeyRepeatDelays: {
-            const nanotime_t* initialp = va_arg(ap, nanotime_t*);
-            const nanotime_t* repeatp = va_arg(ap, nanotime_t*);
-
-            HIDDriver_SetKeyRepeatDelays(self, initialp, repeatp);
-            return EOK;
-        }
-
-        case kHIDCommand_ObtainCursor: {
-            return HIDDriver_ObtainCursor(self);
-        }
-
-        case kHIDCommand_ReleaseCursor:
-            HIDDriver_ReleaseCursor(self);
-            return EOK;
-
-        case kHIDCommand_SetCursor: {
-            const void** planes = va_arg(ap, const void**);
-            const size_t bytesPerRow = va_arg(ap, size_t);
-            const int width = va_arg(ap, int);
-            const int height = va_arg(ap, int);
-            const pixfmt_t format = va_arg(ap, pixfmt_t);
-            const int hotSpotX = va_arg(ap, int);
-            const int hotSpotY = va_arg(ap, int);
-
-            return HIDDriver_SetCursor(self, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
-        }
-
-        case kHIDCommand_ShowCursor:
-            HIDDriver_ShowCursor(self);
-            return EOK;
-
-        case kHIDCommand_HideCursor:
-            HIDDriver_HideCursor(self);
-            return EOK;
-
-        case kHIDCommand_ObscureCursor:
-            HIDDriver_ObscureCursor(self);
-            return EOK;
-
-        case kHIDCommand_ShieldCursor: {
-            const int x = va_arg(ap, int);
-            const int y = va_arg(ap, int);
-            const int w = va_arg(ap, int);
-            const int h = va_arg(ap, int);
-
-            return HIDDriver_ShieldMouseCursor(self, x, y, w, h);
-        }
-
-        default:
-            return super_n(ioctl, Driver, HIDDriver, self, flags, pOffset, cmd, ap);
-    }
-}
-
 
 class_func_defs(HIDDriver, Driver,
 override_func_def(onStart, HIDDriver, Driver)
+override_func_def(createHandler, HIDDriver, Driver)
 override_func_def(read, HIDDriver, Driver)
-override_func_def(ioctl, HIDDriver, Driver)
 );

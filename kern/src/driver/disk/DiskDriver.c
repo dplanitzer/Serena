@@ -7,6 +7,7 @@
 //
 
 #include "DiskDriver.h"
+#include <handler/IODiskHandler.h>
 #include <kpi/file.h>
 
 
@@ -87,6 +88,11 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
     if (self->dq) {
         kdispatch_terminate(self->dq, KDISPATCH_TERMINATE_AWAIT_ALL);
     }
+}
+
+errno_t DiskDriver_createHandler(DiskDriverRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return IODiskHandler_Create(self, flags, pOutHandler);
 }
 
 
@@ -517,48 +523,12 @@ errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnu
 }
 
 
-errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kDiskCommand_GetDriveInfo: {
-            drive_info_t* info = va_arg(ap, drive_info_t*);
-            
-            return DiskDriver_GetDriveInfo(self, info);
-        }
-
-        case kDiskCommand_GetDiskInfo: {
-            disk_info_t* info = va_arg(ap, disk_info_t*);
-        
-            return DiskDriver_GetDiskInfo(self, info);
-        }
-
-        case kDiskCommand_FormatDisk: {
-            const char fillByte = va_arg(ap, int);
-
-            const errno_t err = DiskDriver_FormatDisk(self, fillByte);
-            return err;
-        }
-
-        case kDiskCommand_FormatTrack: {
-            const char fillByte = va_arg(ap, int);
-
-            return DiskDriver_FormatTrack(self, pOffset, fillByte);
-        }
-
-        case kDiskCommand_SenseDisk:
-            return DiskDriver_SenseDisk(self);
-
-        default:
-            return super_n(ioctl, Driver, DiskDriver, self, flags, pOffset, cmd, ap);
-    }
-}
-
-
 class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
 func_def(getBootPriority, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
+override_func_def(createHandler, DiskDriver, Driver)
 func_def(doCommand, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
@@ -568,5 +538,4 @@ func_def(doSenseDisk, DiskDriver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
-override_func_def(ioctl, DiskDriver, Driver)
 );

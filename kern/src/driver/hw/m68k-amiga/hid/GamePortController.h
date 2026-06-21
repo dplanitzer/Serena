@@ -34,4 +34,8 @@ extern errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonn
 #define GamePortController_CreateInputDriver(__self, __port, __type, __pOutDriver) \
 invoke_n(createInputDriver, GamePortController, __self, __port, __type, __pOutDriver)
 
+extern errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId);
+extern errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, int type);
+extern errno_t GamePortController_GetPortForDriver(GamePortControllerRef _Nonnull self, did_t id, int* _Nonnull pOutPort);
+
 #endif /* GamePortController_h */
