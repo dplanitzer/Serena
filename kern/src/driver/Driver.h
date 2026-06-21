@@ -386,7 +386,7 @@ open_class_funcs(Driver, Object,
     // Creates a new handler for the driver. The handler will be used to allow
     // a user space application access to the driver.
     // Override: Optional
-    // Default Behavior: returns a DriverHandler instance
+    // Default Behavior: returns ENODEV
     errno_t (*createHandler)(void* _Nonnull _Locked self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
 
     // Invoked by the close() function to close an open I/O handler. The

@@ -7,7 +7,6 @@
 //
 
 #include "syscalldecls.h"
-#include <handler/DriverHandler.h>
 #include <handler/InodeHandler.h>
 #include <handler/HandlerTable.h>
 #include <kern/kernlib.h>

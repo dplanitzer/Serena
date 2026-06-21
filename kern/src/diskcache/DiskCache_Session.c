@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <string.h>
 #include <ext/bit.h>
-#include <handler/DriverHandler.h>
 #include <kern/kernlib.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>

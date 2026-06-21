@@ -8,7 +8,6 @@
 
 #include "Driver.h"
 #include <assert.h>
-#include <handler/DriverHandler.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/file.h>
@@ -318,7 +317,7 @@ catch:
 
 errno_t Driver_createHandler(DriverRef _Nonnull _Locked self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return DriverHandler_Create(self, FD_TYPE_DRIVER, flags, pOutHandler);
+    return ENODEV;
 }
 
 
