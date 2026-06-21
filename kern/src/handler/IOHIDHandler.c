@@ -15,17 +15,41 @@ errno_t IOHIDHandler_Create(HIDDriverRef _Nonnull drv, fd_flags_t flags, Handler
     return IODriverHandler_Create(class(IOHIDHandler), FD_TYPE_DRIVER, flags, (DriverRef)drv, pOutHandler);
 }
 
-errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+// Returns events in the order oldest to newest. As many events are returned as
+// fit in the provided buffer. Only blocks the caller if no events are queued.
+errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
+    decl_try_err();
+    HIDDriverRef drv = IODriverHandler_GetDriver(self);
     const fd_flags_t flags = Handler_GetFlags(self);
-    ConsoleRef con = IODriverHandler_GetDriver(self);
+    const bool isNonBlocking = (flags & O_NONBLOCK) == O_NONBLOCK;
+    const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
+    HIDEvent* pe = buf;
+    ssize_t nBytesRead = 0;
 
-    if ((flags & O_RDONLY) != 0) {
-        return Driver_Read(con, flags, NULL, pBuffer, nBytesToRead, nOutBytesRead);
-    }
-    else {
+    if ((flags & O_RDONLY) == 0) {
         return EBADF;
     }
+
+
+    while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
+        // Only block waiting for the first event. For all other events we do not
+        // wait.
+        const errno_t e1 = HIDDriver_GetNextEvent(drv, (pe == buf) ? timp : &NANOTIME_ZERO, pe);
+
+        if (e1 != EOK) {
+            // Return with an error if we were not able to read any event data at
+            // all and return with the data we were able to read otherwise.
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+        
+        nBytesRead += sizeof(HIDEvent);
+        pe++;
+    }
+
+    *nOutBytesRead = nBytesRead;
+    return err;
 }
 
 errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_list ap)
