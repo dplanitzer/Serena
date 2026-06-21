@@ -60,7 +60,33 @@ SYSCALL_4(fd_seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence
     return err;
 }
 
-SYSCALL_3(fd_setflags, int fd, int op, int flags)
+SYSCALL_2(fd_type, int fd, int* _Nonnull pOutType)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    HandlerRef hnd;
+
+    if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, NULL, &hnd)) == EOK) {
+        *(pa->pOutType) = Handler_GetType(hnd);
+        Object_Release(hnd);
+    }
+    return err;
+}
+
+SYSCALL_2(fd_flags, int fd, fd_flags_t* _Nonnull pOutFlags)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+    HandlerRef hnd;
+
+    if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, NULL, &hnd)) == EOK) {
+        *(pa->pOutFlags) = Handler_GetFlags(hnd);
+        Object_Release(hnd);
+    }
+    return err;
+}
+
+SYSCALL_3(fd_setflags, int fd, int op, fd_flags_t flags)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -107,19 +133,6 @@ SYSCALL_2(fd_attr, int fd, fs_attr_t* _Nonnull attr)
 
     if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, class(InodeHandler), &hnd)) == EOK) {
         err = InodeHandler_GetAttributes(hnd, pa->attr);
-        Object_Release(hnd);
-    }
-    return err;
-}
-
-SYSCALL_3(fd_info, int fd, int flavor, fd_info_ref _Nonnull info)
-{
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-    HandlerRef hnd;
-
-    if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, NULL, &hnd)) == EOK) {
-        err = Handler_GetInfo(hnd, pa->flavor, pa->info);
         Object_Release(hnd);
     }
     return err;

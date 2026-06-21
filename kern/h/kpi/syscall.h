@@ -24,7 +24,7 @@ enum {
     SC_host_cpus,           // errno_t host_cpus(cpuid_t* _Nonnull buf, size_t bufSize)
     SC_proc_vcpus,          // int proc_vcpus(const vcpu_matcher_t* _Nullable matchers, vcpuid_t* _Nonnull buf, size_t bufSize)
     SC_woa_wait,            // errno_t woa_wait(volatile atomic_int* _Nonnull addr, int expected, int flags, const nanotime_t* _Nullable wtp)
-    SC_fs_open,             // errno_t fs_open(int wd, const char * _Nonnull path, int oflags, int* _Nonnull fd)
+    SC_fs_open,             // errno_t fs_open(int wd, const char * _Nonnull path, fd_flags_t oflags, int* _Nonnull fd)
     SC_fd_close,            // errno_t fd_close(int fd)
     SC_proc_wait,           // errno_t proc_wait(int wstate, int match, pid_t id, int flags, proc_waitres_t* _Nonnull status)
     SC_fd_seek,             // errno_t fd_seek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
@@ -42,7 +42,7 @@ enum {
     SC_ioctl,               // errno_t ioctl(int fd, int cmd, ...)
     SC_fs_truncate,         // errno_t fs_truncate(int wd, const char* _Nonnull path, off_t length)
     SC_fd_truncate,         // errno_t fd_truncate(int fd, off_t length)
-    SC_fs_create_file,      // errno_t fs_create_file(int wd, const char* _Nonnull path, int options, fs_perms_t fsperms, int* _Nonnull fd)
+    SC_fs_create_file,      // errno_t fs_create_file(int wd, const char* _Nonnull path, fd_flags_t oflags, fs_perms_t fsperms, int* _Nonnull fd)
     SC_pipe_create,         // errno_t pipe_create(int fds[2])
     SC_cpu_info,            // errno_t cpu_info(cpuid_t cpuid, int flavor, cpu_info_ref _Nonnull info)
     SC_clock_time,          // errno_t clock_time(clockid_t clock, nanotime_t* _Nonnull ts)
@@ -54,11 +54,11 @@ enum {
     SC_fs_property,         // errno_t fs_property(fsid_t fsid, int flavor, char* _Nonnull buf, size_t bufSize)
     SC_vcpu_errno,          // errno_t* _Nonnull __vcpu_errno(void)
     SC_fs_setowner,         // errno_t fs_setowner(int wd, const char* _Nonnull path, uid_t uid, gid_t gid)
-    SC_fd_setflags,         // errno_t fd_setflags(int fd, int op, int flags)
+    SC_fd_setflags,         // errno_t fd_setflags(int fd, int op, fd_flags_t flags)
     SC_fs_setperms,         // errno_t fs_setperms(int, const char* _Nonnull path, fs_perms_t fsperms)
     SC_fs_settimes,         // errno_t fs_settimes(int, const char* _Nonnull path, const nanotime_t times[_Nullable 2])
     SC_vcpu_yield,          // void vcpu_yield(void)
-    SC_unused_2,            // UNUSED
+    SC_fd_type,             // errno_t fd_type(int fd, int* _Nonnull type)
     SC_unused_3,            // UNUSED
     SC_unused_4,            // UNUSED
     SC_unused_5,            // UNUSED
@@ -92,7 +92,7 @@ enum {
     SC_vcpu_setstate,       // int vcpu_setstate(vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull state)
     SC_fs_setlabel,         // errno_t fs_setlabel(fsid_t fsid, const char* _Nonnull label)
     SC_woa_wakeup,          // woa_wakeup(volatile atomic_int* _Nonnull addr, int flags)
-    SC_fd_info,             // errno_t fd_info(int fd, int flavor, fd_info_ref _Nonnull info)
+    SC_fd_flags,            // errno_t fd_flags(int fd, fd_flags_t* _Nonnull flags)
     SC_fd_dup,              // errno_t fd_dup(int fd, int min_fd, int* _Nonnull new_fd)
     SC_proc_self,           // pid_t proc_self(void)
 };

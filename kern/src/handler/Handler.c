@@ -29,7 +29,7 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, fd_flags_t oflags, Hand
 
 errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 {
-    if ((flags & ~O_FLAGS) != 0) {
+    if ((flags & ~O_MODMASK) != 0) {
         return EINVAL;
     }
 
@@ -101,25 +101,6 @@ errno_t do_seek(off_t offset, int whence, off_t endPos, off_t* _Nonnull pos)
 errno_t Handler_seek(HandlerRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     return ESPIPE;
-}
-
-
-errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info)
-{
-    switch (flavor) {
-        case FD_INFO_BASIC: {
-            fd_basic_info_t* ip = info;
-            const fd_flags_t flags = Handler_GetFlags(self);
-
-            ip->type = self->type;
-            ip->flags = flags & O_FLAGS;
-            ip->access_mode = flags & O_ACCMODE;
-            return EOK;
-        }
-            
-        default:
-            return EINVAL;
-    }
 }
 
 

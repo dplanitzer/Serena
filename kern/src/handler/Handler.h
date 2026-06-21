@@ -93,8 +93,6 @@ invoke_n(write, Handler, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 #define Handler_Seek(__self, __offset, __pOutNewPos, __whence) \
 invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
 
-extern errno_t Handler_GetInfo(HandlerRef _Nonnull self, int flavor, fd_info_ref _Nonnull info);
-
 
 //
 // Subclassers

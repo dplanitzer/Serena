@@ -53,7 +53,8 @@ SYSCALL_REF(fd_write);
 SYSCALL_REF(fd_seek);
 SYSCALL_REF(fd_truncate);
 SYSCALL_REF(fd_attr);
-SYSCALL_REF(fd_info);
+SYSCALL_REF(fd_type);
+SYSCALL_REF(fd_flags);
 SYSCALL_REF(fd_setflags);
 SYSCALL_REF(fd_dup);
 SYSCALL_REF(fd_dup_to);
@@ -149,7 +150,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fs_setperms, SC_ERRNO),
     SYSCALL_ENTRY(fs_settimes, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_yield, SC_VOID),
-    SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
+    SYSCALL_ENTRY(fd_type, SC_ERRNO),
     SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
     SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
     SYSCALL_ENTRY(nosys, SC_ERRNO),             // UNUSED
@@ -183,7 +184,7 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_setstate, SC_ERRNO),
     SYSCALL_ENTRY(fs_setlabel, SC_ERRNO),
     SYSCALL_ENTRY(woa_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(fd_info, SC_ERRNO),
+    SYSCALL_ENTRY(fd_flags, SC_ERRNO),
     SYSCALL_ENTRY(fd_dup, SC_ERRNO),
     SYSCALL_ENTRY(proc_self, SC_INT),
 };

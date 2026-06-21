@@ -47,9 +47,9 @@ const FILE_Callbacks __FILE_fd_callbacks = {
 int __fdopen_init(__FD_FILE* _Nonnull self, int fd, __FILE_Mode sm)
 {
     // The descriptor must be valid and open
-    fd_basic_info_t info;
+    const fd_flags_t flags = fd_flags(fd);
 
-    if (fd_info(fd, FD_INFO_BASIC, &info) == -1) {
+    if (flags == -1) {
         errno = EBADF;
         return EOF;
     }
@@ -59,13 +59,13 @@ int __fdopen_init(__FD_FILE* _Nonnull self, int fd, __FILE_Mode sm)
     // do
     int ok = 1;
 
-    if (((sm & __kStreamMode_Read) != 0) && ((info.access_mode & O_RDONLY) == 0)) {
+    if (((sm & __kStreamMode_Read) != 0) && ((flags & O_RDONLY) == 0)) {
         ok = 0;
     }
-    if (((sm & __kStreamMode_Write) != 0) && ((info.access_mode & O_WRONLY) == 0)) {
+    if (((sm & __kStreamMode_Write) != 0) && ((flags & O_WRONLY) == 0)) {
         ok = 0;
     }
-    if (((sm & __kStreamMode_Append) != 0) && ((info.flags & O_APPEND) == 0)) {
+    if (((sm & __kStreamMode_Append) != 0) && ((flags & O_APPEND) == 0)) {
         ok = 0;
     }
     if (!ok) {

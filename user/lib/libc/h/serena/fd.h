@@ -69,22 +69,23 @@ extern int fd_truncate(int fd, off_t length);
 extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 
 
-// Returns information about the descriptor 'fd'. The kind of information that
-// should be returned if specified by 'flavor'. 'info' must point to a memory
-// block that is big enough to hold the corresponding info data structure.
-// @Concurrency: Safe
-extern int fd_info(int fd, int flavor, fd_info_ref _Nonnull info);
-
 // Convenience function that returns the type of the descriptor. FD_TYPE_INVALID
 // is returned if the descriptor is not valid.
 // @Concurrency: Safe
 extern int fd_type(int fd);
 
 
-// Updates the descriptor flags by combining the current descriptor flags with
-// the new flags 'flags' based o the combination operation 'op'.
+// Returns a copy of the descriptor flags. -1 is returned ane errno is set to a
+// suitable error if teh descriptor is not valid.
 // @Concurrency: Safe
-extern int fd_setflags(int fd, int op, int flags);
+extern fd_flags_t fd_flags(int fd);
+
+
+// Updates the descriptor flags by combining the current descriptor flags with
+// the new flags 'flags' based o the combination operation 'op'. Note that only
+// the O_MODMASK subset of the descriptor flags can be changed.
+// @Concurrency: Safe
+extern int fd_setflags(int fd, int op, fd_flags_t flags);
 
 
 // Creates a new reference to the descriptor 'fd' and assigns it to a new

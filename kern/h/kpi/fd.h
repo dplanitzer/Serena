@@ -31,10 +31,10 @@
 #endif
 
 // File flags masks
-#define O_ACCMODE   (O_RDONLY | O_WRONLY | O_RDWR)
-#define O_FLAGS     (O_APPEND | O_NONBLOCK | O_PRSVEXEC)
+#define O_ACCMASK   (O_RDONLY | O_WRONLY | O_RDWR)
+#define O_MODMASK   (O_APPEND | O_NONBLOCK | O_PRSVEXEC)
 #if defined(__KERNEL__)
-#define O_USERMASK  (O_ACCMODE | O_FLAGS | O_EXCL | O_TRUNC)
+#define O_USERMASK  (O_ACCMASK | O_MODMASK | O_EXCL | O_TRUNC)
 #endif
 
 
@@ -49,16 +49,5 @@
 #define FD_TYPE_TERMINAL    0
 #define FD_TYPE_INODE       1
 #define FD_TYPE_DRIVER      2
-
-
-#define FD_INFO_BASIC   1
-
-typedef void* fd_info_ref;
-
-typedef struct fd_basic_info {
-    int type;
-    int flags;
-    int access_mode;
-} fd_basic_info_t;
 
 #endif /* _KPI_FD_H */

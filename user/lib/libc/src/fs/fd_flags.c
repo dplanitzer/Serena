@@ -1,5 +1,5 @@
 //
-//  fd_type.c
+//  fd_flags.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 4/11/26.
@@ -9,14 +9,14 @@
 #include <serena/fd.h>
 #include <kpi/syscall.h>
 
-int fd_type(int fd)
+fd_flags_t fd_flags(int fd)
 {
-    int type;
+    fd_flags_t flags;
 
-    if (_syscall(SC_fd_type, fd, &type) == 0) {
-        return type;
+    if (_syscall(SC_fd_flags, fd, &flags) == 0) {
+        return flags;
     }
     else {
-        return FD_TYPE_INVALID;
+        return -1;
     }
 }
