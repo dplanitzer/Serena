@@ -350,57 +350,6 @@ off_t Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
-errno_t Driver_ioctl(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kDriverCommand_GetId: {
-            did_t* pdid = va_arg(ap, did_t*);
-
-            *pdid = self->id;
-            return EOK;
-        }
-
-        case kDriverCommand_GetCategories: {
-            iocat_t* buf = va_arg(ap, iocat_t*);
-            const size_t bufsiz = va_arg(ap, size_t);
-            const iocat_t* sp = self->cats;
-            size_t i, len = 0;
-
-            if (bufsiz == 0) {
-                return EINVAL;
-            }
-
-            while (*sp != IOCAT_END) {
-                sp++; len++;
-            }
-
-            if (bufsiz < len + 1) {
-                return ERANGE;
-            }
-
-            for (i = 0; i < __min(len, bufsiz - 1); i++) {
-                buf[i] = self->cats[i];
-            }
-            buf[i] = IOCAT_END;
-
-            return EOK;
-        }
-
-        default:
-            return ENOTIOCTLCMD;
-    }
-}
-
-errno_t Driver_Ioctl(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, ...)
-{
-    va_list ap;
-    va_start(ap, cmd);
-    const errno_t err = Driver_vIoctl(self, flags, pOffset, cmd, ap);
-    va_end(ap);
-
-    return err;
-}
-
 
 bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
 {
@@ -652,5 +601,4 @@ func_def(onClose, Driver)
 func_def(read, Driver)
 func_def(write, Driver)
 func_def(getSeekableRange, Driver)
-func_def(ioctl, Driver)
 );

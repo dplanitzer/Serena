@@ -433,12 +433,6 @@ open_class_funcs(Driver, Object,
     // Override: Optional
     // Default Behavior: Returns 0
     off_t (*getSeekableRange)(void* _Nonnull self);
-
-    // Executes the driver specific function 'cmd' with command specific
-    // arguments 'ap'.
-    // Override: Optional
-    // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, va_list ap);
 );
 
 
@@ -494,11 +488,6 @@ invoke_n(write, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToWrite, _
 
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)
-
-#define Driver_vIoctl(__self, __flags, __pOffset, __cmd, __ap) \
-invoke_n(ioctl, Driver, __self, __flags, __pOffset, __cmd, __ap)
-
-extern errno_t Driver_Ioctl(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, int cmd, ...);
 
 
 // Returns true if there are open I/O handlers referencing this driver.
