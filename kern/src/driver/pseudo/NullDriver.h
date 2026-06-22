@@ -13,7 +13,6 @@
 
 
 final_class(NullDriver, Driver);
-class_ref(NullDriver);
 
 extern errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 

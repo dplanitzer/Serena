@@ -7,6 +7,7 @@
 //
 
 #include "LogDriver.h"
+#include <handler/LogHandler.h>
 #include <kern/log.h>
 
 IOCATS_DEF(g_cats, IOSRV_KLOG);
@@ -34,6 +35,11 @@ errno_t LogDriver_onStart(LogDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
+errno_t LogDriver_createHandler(LogDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return LogHandler_Create(self, flags, pOutHandler);
+}
+
 errno_t LogDriver_read(LogDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     *nOutBytesRead = log_read(buf, nBytesToRead);
@@ -50,6 +56,7 @@ errno_t LogDriver_write(LogDriverRef _Nonnull self, fd_flags_t flags, off_t* _No
 
 class_func_defs(LogDriver, Driver,
 override_func_def(onStart, LogDriver, Driver)
+override_func_def(createHandler, LogDriver, Driver)
 override_func_def(read, LogDriver, Driver)
 override_func_def(write, LogDriver, Driver)
 );

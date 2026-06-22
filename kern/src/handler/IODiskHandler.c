@@ -31,7 +31,6 @@ errno_t IODiskHandler_read(struct IODiskHandler* _Nonnull self, void* _Nonnull p
     DiskDriverRef drv = IODriverHandler_GetDriver(self);
 
     if ((flags & O_RDONLY) == 0) {
-        *nOutBytesRead = 0;
         return EBADF;
     }
 
@@ -50,7 +49,6 @@ errno_t IODiskHandler_write(struct IODiskHandler* _Nonnull self, const void* _No
     DiskDriverRef drv = IODriverHandler_GetDriver(self);
 
     if ((flags & O_WRONLY) == 0) {
-        *nOutBytesWritten = 0;
         return EBADF;
     }
 

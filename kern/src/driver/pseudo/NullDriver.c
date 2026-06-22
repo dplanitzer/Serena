@@ -7,6 +7,7 @@
 //
 
 #include "NullDriver.h"
+#include <handler/NullHandler.h>
 
 IOCATS_DEF(g_cats, IOSRV_NULL);
 
@@ -33,6 +34,12 @@ errno_t NullDriver_onStart(NullDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
+
+errno_t NullDriver_createHandler(NullDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return NullHandler_Create(self, flags, pOutHandler);
+}
+
 errno_t NullDriver_read(NullDriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     // Always return EOF
@@ -50,6 +57,7 @@ errno_t NullDriver_write(NullDriverRef _Nonnull self, fd_flags_t flags, off_t* _
 
 class_func_defs(NullDriver, Driver,
 override_func_def(onStart, NullDriver, Driver)
+override_func_def(createHandler, NullDriver, Driver)
 override_func_def(read, NullDriver, Driver)
 override_func_def(write, NullDriver, Driver)
 );

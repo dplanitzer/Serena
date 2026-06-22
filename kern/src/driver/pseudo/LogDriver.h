@@ -13,7 +13,6 @@
 
 
 final_class(LogDriver, Driver);
-class_ref(LogDriver);
 
 extern errno_t LogDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
