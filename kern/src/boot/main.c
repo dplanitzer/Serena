@@ -151,10 +151,6 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     // Detect hardware and initialize boot-time drivers
     try(drivers_init());
 
-
-    // Mount /dev for kerneld
-    try(kerneld_mount_devfs());
-
     
     // Open the boot screen and show the boot logo
     bt_open(&gBootScreen);

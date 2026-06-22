@@ -12,7 +12,6 @@
 #include <filemanager/FileManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/kernfs/KernFS.h>
-#include <kpi/filesystem.h>
 #include <process/ProcessManager.h>
 
 
@@ -62,18 +61,6 @@ errno_t kerneld_init(void)
     (void)ProcessManager_Register(gProcessManager, gKernelProcess);
 
 catch:
-    return err;
-}
-
-errno_t kerneld_mount_devfs(void)
-{
-    decl_try_err();
-
-    err = FileManager_CreateDirectory(&gKernelProcess->fm, "/dev", 0550);
-    if (err == EOK) {
-        err = FileManager_Mount(&gKernelProcess->fm, FS_MOUNT_CATALOG, FS_CATALOG_DEV, "/dev", "");
-    }
-
     return err;
 }
 
