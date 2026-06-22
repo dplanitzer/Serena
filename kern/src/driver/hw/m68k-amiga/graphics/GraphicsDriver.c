@@ -77,7 +77,6 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
-    de.arg = 0;
 
     err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {
@@ -87,7 +86,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     return err;
 }
 
-errno_t GraphicsDriver_createHandler(GraphicsDriverRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t GraphicsDriver_createHandler(GraphicsDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     return IOGraphicsHandler_Create(self, flags, pOutHandler);
 }

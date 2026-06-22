@@ -47,7 +47,6 @@ errno_t VDMDriver_onStart(VDMDriverRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
-    de.arg = 0;
 
     try(Driver_PublishBus((DriverRef)self, &be, &de));
 
@@ -85,7 +84,7 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
     if (nBytesToWrite > 0 && image) {
         const fd_flags_t oflags = O_WRONLY;
 
-        err = Driver_Open(dp, oflags, 0, NULL);
+        err = Driver_Open(dp, oflags, NULL);
         if (err == EOK) {
             err = Driver_Write(dp, oflags, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
             if (err == EOK && nBytesWritten != nBytesToWrite) {

@@ -78,7 +78,6 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0444);
-    de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);
 }

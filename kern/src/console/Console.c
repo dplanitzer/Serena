@@ -127,7 +127,6 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
-    de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);
 }
@@ -532,7 +531,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_createHandler(ConsoleRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t Console_createHandler(ConsoleRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     return IOConsoleHandler_Create(self, flags, pOutHandler);
 }

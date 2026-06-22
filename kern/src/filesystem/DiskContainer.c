@@ -26,7 +26,7 @@ errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, unsigned int mode, FSC
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(Driver_Open(disk, mode, 0, NULL));
+    try(Driver_Open(disk, mode, NULL));
     try(DiskDriver_GetDiskInfo(disk, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {

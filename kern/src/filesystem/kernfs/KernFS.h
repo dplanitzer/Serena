@@ -21,7 +21,7 @@ final_class(KernFS, Filesystem);
 extern errno_t KernFS_Create(const char* _Nonnull name, KernFSRef _Nullable * _Nonnull pOutSelf);
 
 // Creates a new driver node in the file system.
-extern errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, fs_perms_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, uid_t uid, gid_t gid, fs_perms_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns a snapshot of strong references to all drivers that match the provided
 // categories. The caller is responsible for releasing all references and calling

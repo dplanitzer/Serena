@@ -12,7 +12,7 @@
 #include <kpi/attr.h>
 
 
-static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ObjectRef _Nullable obj, intptr_t arg, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
+static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ObjectRef _Nullable obj, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     KfsNodeRef ip = NULL;
@@ -25,7 +25,7 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
             break;
 
         case FS_FTYPE_DEV:
-            try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), obj, arg, &ip));
+            try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), obj, &ip));
             break;
 
         default:
@@ -58,14 +58,14 @@ catch:
 }
 
 // Creates a new driver node in the file system.
-errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, (ObjectRef)drv, arg, uid, gid, FS_FTYPE_DEV, fsperms, pOutNode);
+    return _KernFS_createNode(self, dir, name, (ObjectRef)drv, uid, gid, FS_FTYPE_DEV, fsperms, pOutNode);
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, dirInsertionHint, 0, uid, gid, ftype, fsperms, pOutNode);
+    return _KernFS_createNode(self, dir, name, dirInsertionHint, uid, gid, ftype, fsperms, pOutNode);
 }
 
 errno_t KernFS_onAcquireNode(KernFSRef _Nonnull self, ino_t inid, InodeRef _Nullable * _Nonnull pOutNode)

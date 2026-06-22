@@ -106,7 +106,7 @@ errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonn
         return ENODEV;
     }
 
-    err = Driver_Open(drv, oflags, 0, NULL);
+    err = Driver_Open(drv, oflags, NULL);
     if (err == EOK) {
         *pOutDriver = drv;
         return EOK;
@@ -209,7 +209,7 @@ errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull d
 
     err = _acquire_folder(self, folderId, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, de->arg, de->uid, de->gid, de->perms, &pNode);
+        err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, de->uid, de->gid, de->perms, &pNode);
         if (err == EOK) {
             *pOutId = (did_t)Inode_GetId(pNode);
         }

@@ -70,7 +70,6 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0444);
-    de.arg = 0;
 
     err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {

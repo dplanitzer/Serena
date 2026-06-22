@@ -55,7 +55,6 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
-    de.arg = 0;
 
     try(Driver_PublishBus((DriverRef)self, &be, &de));
     try(GamePortController_SetPortDevice_Locked(self, 0, IOGP_MOUSE));
@@ -64,7 +63,7 @@ catch:
     return err;
 }
 
-errno_t GamePortController_createHandler(GamePortControllerRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t GamePortController_createHandler(GamePortControllerRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     return IOGPBusHandler_Create(self, flags, pOutHandler);
 }

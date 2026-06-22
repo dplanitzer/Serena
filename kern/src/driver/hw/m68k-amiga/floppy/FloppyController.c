@@ -133,7 +133,6 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
-    de.arg = 0;
 
     try(Driver_PublishBus((DriverRef)self, &be, &de));
 

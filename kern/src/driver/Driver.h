@@ -387,7 +387,7 @@ open_class_funcs(Driver, Object,
     // a user space application access to the driver.
     // Override: Optional
     // Default Behavior: returns ENODEV
-    errno_t (*createHandler)(void* _Nonnull _Locked self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler);
+    errno_t (*createHandler)(void* _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
     // Invoked by the close() function to close an open I/O handler. The
     // 'openCount' reflects the number of I/O handlers that are currently open
@@ -406,7 +406,7 @@ open_class_funcs(Driver, Object,
     // does not need a handler and can interact with the driver instance directly.
     // Override: Optional
     // Default Behavior: returns a handler instance
-    errno_t (*open)(void* _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nullable pOutHandler);
+    errno_t (*open)(void* _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
 
     // Closes an open I/O handler.
     // Override: Optional
@@ -470,11 +470,11 @@ extern void Driver_Stop(DriverRef _Nonnull self, int reason);
 extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 
 
-// Opens an I/O handler to the driver with the mode 'mode'. EOK and the handler
-// is returned in 'pOutHandler' on success and a suitable error code is returned
-// otherwise.
-#define Driver_Open(__self, __mode, __arg, __pOutHandler) \
-invoke_n(open, Driver, __self, __mode, __arg, __pOutHandler)
+// Opens an I/O handler to the driver with the open flagsmode 'flags'. EOK and
+// the handler is returned in 'pOutHandler' on success and a suitable error code
+// is returned otherwise.
+#define Driver_Open(__self, __flags, __pOutHandler) \
+invoke_n(open, Driver, __self, __flags, __pOutHandler)
 
 // Closes a driver handler.
 #define Driver_Close(__self) \
@@ -599,8 +599,8 @@ invoke_n(onDetaching, Driver, __self, __parent)
 #define Driver_OnOpen(__self, __openCount, __mode) \
 invoke_n(onOpen, Driver, __self, __openCount, __mode)
 
-#define Driver_CreateHandler(__self, __mode, __arg, __pOutHandler) \
-invoke_n(createHandler, Driver, __self, __mode, __arg, __pOutHandler)
+#define Driver_CreateHandler(__self, __flags, __pOutHandler) \
+invoke_n(createHandler, Driver, __self, __flags, __pOutHandler)
 
 #define Driver_OnClose(__self, __openCount) \
 invoke_n(onClose, Driver, __self, __openCount)

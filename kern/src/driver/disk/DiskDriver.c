@@ -90,7 +90,7 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
     }
 }
 
-errno_t DiskDriver_createHandler(DiskDriverRef _Nonnull self, fd_flags_t flags, intptr_t arg, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t DiskDriver_createHandler(DiskDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     return IODiskHandler_Create(self, flags, pOutHandler);
 }

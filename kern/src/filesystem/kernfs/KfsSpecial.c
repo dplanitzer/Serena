@@ -13,7 +13,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, ObjectRef _Nonnull obj, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, ObjectRef _Nonnull obj, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     nanotime_t now;
@@ -37,7 +37,6 @@ errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms
         pnid,
         (InodeRef*)&self));
     self->instance = Object_Retain(obj);
-    self->arg = arg;
 
 catch:
     *pOutSelf = (KfsNodeRef)self;
@@ -54,7 +53,7 @@ errno_t KfsSpecial_createHandler(KfsSpecialRef _Nonnull _Locked self, fd_flags_t
 {
     switch (Inode_GetFileType(self)) {
         case FS_FTYPE_DEV:
-            return Driver_Open((DriverRef)self->instance, flags, self->arg, pOutHandler);
+            return Driver_Open((DriverRef)self->instance, flags, pOutHandler);
 
         default:
             return EBADF;

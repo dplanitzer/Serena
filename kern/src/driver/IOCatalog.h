@@ -29,7 +29,6 @@ typedef struct DriverEntry {
     uid_t                   uid;
     gid_t                   gid;
     fs_perms_t              perms;
-    intptr_t                arg;
 } DriverEntry;
 
 
