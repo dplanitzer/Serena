@@ -31,7 +31,8 @@
 extern char _text, _etext, _data, _edata, _bss, _ebss;
 
 extern errno_t kerneld_init(void);
-extern errno_t drivers_init(void);
+extern errno_t init_iokit(void);
+extern errno_t init_pseudo_devices(void);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(bt_screen_t* _Nonnull bscr);
 static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc);
 static void OnMain(void);
@@ -149,7 +150,11 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Detect hardware and initialize boot-time drivers
-    try(drivers_init());
+    try(init_iokit());
+
+
+    // Create pseudo devices
+    try(init_pseudo_devices());
 
     
     // Open the boot screen and show the boot logo

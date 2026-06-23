@@ -41,13 +41,14 @@ static int do_save(const char* _Nonnull text, const char* _Nonnull path, const c
         mode[1] = 'b';
     }
 
+    errno = 0;
     FILE* fp = fopen(path, mode);
     if (fp) {
         fwrite(text, textLen, 1, fp);
         fclose(fp);
     }
 
-    if (fp == NULL || (fp && ferror(fp))) {
+    if (errno != 0) {
         print_error(proc_name, path, errno);
         return EXIT_FAILURE;
     }

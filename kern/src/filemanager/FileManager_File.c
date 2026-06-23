@@ -8,8 +8,8 @@
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
-#include <handler/InodeHandler.h>
 #include <security/perm_check.h>
+#include <kpi/fd.h>
 #include <kpi/file.h>
 
 
@@ -45,12 +45,12 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     // requested
     err = perm_check_node_access(pFile, self->ruid, self->rgid, accessMode);
     if (err == EOK) {
-        if (Inode_GetFileSize(pFile) >= 0ll) {
-            if ((oflags & O_TRUNC) == O_TRUNC) {
-                err = Inode_Truncate(pFile, 0);
-            }
+        const off_t siz = Inode_GetFileSize(pFile);
+
+        if (siz > 0ll && ((oflags & O_TRUNC) == O_TRUNC)) {
+            err = Inode_Truncate(pFile, 0);
         }
-        else {
+        else if (siz < 0ll) {
             // A negative file size is treated as an overflow
             err = EOVERFLOW;
         }
@@ -131,8 +131,8 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     }
 
 
-    // Create the file channel
-    try(InodeHandler_Create(ip, oflags, pOutHandler));
+    // Create the inode specific handler
+    err = Inode_CreateHandler(ip, oflags, pOutHandler);
 
 catch:
     Inode_Relinquish(ip);

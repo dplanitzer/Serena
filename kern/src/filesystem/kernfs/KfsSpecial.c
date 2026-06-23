@@ -28,7 +28,7 @@ errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, ino_t pnid, const 
         args->uid,
         args->gid,
         1,
-        8,
+        0,
         &now,
         &now,
         &now,
@@ -71,27 +71,9 @@ ObjectRef _Nullable KfsSpecial_getResource(KfsSpecialRef _Nonnull _Locked self)
     return self->resource;
 }
 
-errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EBADF;
-}
-
-errno_t KfsSpecial_write(KfsSpecialRef _Nonnull _Locked self, InodeHandlerRef _Nonnull _Locked hnd, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EBADF;
-}
-
-errno_t KfsSpecial_truncate(KfsSpecialRef _Nonnull _Locked self, off_t length)
-{
-    return EBADF;
-}
-
 
 class_func_defs(KfsSpecial, KfsNode,
 override_func_def(deinit, KfsSpecial, Inode)
 override_func_def(createHandler, KfsSpecial, Inode)
 override_func_def(getResource, KfsSpecial, Inode)
-override_func_def(read, KfsSpecial, Inode)
-override_func_def(write, KfsSpecial, Inode)
-override_func_def(truncate, KfsSpecial, Inode)
 );

@@ -236,17 +236,17 @@ void Inode_setTimes(InodeRef _Nonnull _Locked self, const nanotime_t times[_Null
 
 errno_t Inode_read(InodeRef _Nonnull _Locked self, off_t* _Nonnull pOffset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return EIO;
+    return EINVAL;
 }
 
 errno_t Inode_write(InodeRef _Nonnull _Locked self, off_t* _Nonnull pOffset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return EIO;
+    return EINVAL;
 }
 
 errno_t Inode_truncate(InodeRef _Nonnull _Locked self, off_t length)
 {
-    return EIO;
+    return EINVAL;
 }
 
 

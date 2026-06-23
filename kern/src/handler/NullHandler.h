@@ -9,15 +9,15 @@
 #ifndef NullHandler_h
 #define NullHandler_h
 
-#include <handler/IODriverHandler.h>
+#include <handler/Handler.h>
 
 
-open_class(NullHandler, IODriverHandler,
+open_class(NullHandler, Handler,
 );
-open_class_funcs(NullHandler, IODriverHandler,
+open_class_funcs(NullHandler, Handler,
 );
 
 
-extern errno_t NullHandler_Create(NullDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t NullHandler_Create(void* _Nullable ignore, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* NullHandler_h */

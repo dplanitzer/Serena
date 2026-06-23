@@ -6,10 +6,13 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <driver/IOCatalog.h>
 #include <driver/hid/HIDDriver.h>
 #include <driver/pseudo/LogDriver.h>
-#include <driver/pseudo/NullDriver.h>
 #include <driver/pseudo/VDMDriver.h>
+#include <handler/NullHandler.h>
+#include <kpi/fs_perms.h>
+#include <kpi/uid.h>
 #ifdef MACHINE_AMIGA
 #include <driver/hw/m68k-amiga/AmigaController.h>
 #else
@@ -26,7 +29,7 @@ static Class* _Nonnull _get_platform_controller_class(void)
 #endif
 }
 
-errno_t drivers_init(void)
+errno_t init_iokit(void)
 {
     decl_try_err();
     DriverRef dp;
@@ -51,14 +54,29 @@ errno_t drivers_init(void)
     try(Driver_Start(dp));
 
         
-    // 'null' driver
-    try(NullDriver_Create(&dp));
-    try(Driver_Start(dp));
-
-
     // 'vdm' driver
     try(VDMDriver_Create(&dp));
     try(Driver_Start(dp));
+
+catch:
+    return err;
+}
+
+
+errno_t init_pseudo_devices(void)
+{
+    decl_try_err();
+    CatalogEntry en;
+    did_t dummy;
+
+    en.name = "null";
+    en.resource = NULL;
+    en.context = NULL;
+    en.func = NullHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0666);
+    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
 
 catch:
     return err;
