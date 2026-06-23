@@ -197,6 +197,21 @@ catch:
 
 errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
+    CatalogEntry ce;
+
+    ce.name = de->name;
+    ce.resource = (ObjectRef)drv;
+    ce.context = drv;
+    ce.func = (KfsCreateHandlerFunc)implementationof(open, Driver, classof(drv));
+    ce.perms = de->perms;
+    ce.uid = de->uid;
+    ce.gid = de->gid;
+
+    return IOCatalog_PublishEntry(self, folderId, &ce, pOutId);
+}
+
+errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, CatalogId folderId, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId)
+{
     decl_try_err();
     InodeRef pDir = NULL;
     InodeRef pNode = NULL;
@@ -205,20 +220,18 @@ errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull d
 
     *pOutId = kCatalogId_None;
 
-    pc.name = de->name;
-    pc.count = strlen(de->name);
+    pc.name = ce->name;
+    pc.count = strlen(ce->name);
 
-    args.resource = (ObjectRef)drv;
-    args.context = drv;
-    args.func = (KfsCreateHandlerFunc)implementationof(open, Driver, classof(drv));
-    args.perms = de->perms;
-    args.uid = de->uid;
-    args.gid = de->gid;
+    args.resource = ce->resource;
+    args.context = ce->context;
+    args.func = ce->func;
+    args.perms = ce->perms;
+    args.uid = ce->uid;
+    args.gid = ce->gid;
 
     err = _acquire_folder(self, folderId, &pDir);
     if (err == EOK) {
-        KfsCreateHandlerFunc func = (KfsCreateHandlerFunc)implementationof(open, Driver, classof(drv));
-
         err = KernFS_CreateHandlerNode((KernFSRef)self->fs, pDir, &pc, &args, &pNode);
         if (err == EOK) {
             *pOutId = (did_t)Inode_GetId(pNode);

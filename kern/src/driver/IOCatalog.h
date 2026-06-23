@@ -32,6 +32,19 @@ typedef struct DriverEntry {
 } DriverEntry;
 
 
+typedef errno_t (*IOCreateHandlerFunc)(void* _Nonnull ctx, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
+
+typedef struct CatalogEntry {
+    const char* _Nonnull            name;
+    ObjectRef _Nullable             resource;
+    void* _Nullable                 context;
+    IOCreateHandlerFunc _Nonnull    func;
+    uid_t                           uid;
+    gid_t                           gid;
+    fs_perms_t                      perms;
+} CatalogEntry;
+
+
 #define IONOTIFY_STARTED    1
 #define IONOTIFY_STOPPING   2
 
@@ -91,6 +104,13 @@ extern errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId folderI
 // 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
 extern errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
+
+// Publishes a new special file entry in the catalog. The entry may be associated
+// with an already existing resource 'resource'. The function 'func' is called
+// with 'ctx' as teh first argument when a handler for the resource is needed.
+// 'resource' may be NULL. In this case the node will return NULL as its resource
+// and 'func' will still be called with 'ctx' to create a handler when needed.
+extern errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, CatalogId folderId, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId);
 
 
 // Returns a strong reference to the driver with ID 'id'. Returns NULL and a
