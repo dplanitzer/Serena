@@ -9,29 +9,15 @@
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
 #include "KfsSpecial.h"
+#include <driver/Driver.h>
 #include <kpi/attr.h>
 
 
-static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ObjectRef _Nullable obj, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
+static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, KfsNodeRef _Nonnull ip, fs_ftype_t ftype, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    KfsNodeRef ip = NULL;
 
     try(KfsDirectory_CanAcceptEntry((KfsDirectoryRef)dir, name, ftype));
-
-    switch (ftype) {
-        case FS_FTYPE_DIR:
-            try(KfsDirectory_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), &ip));
-            break;
-
-        case FS_FTYPE_DEV:
-            try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), obj, &ip));
-            break;
-
-        default:
-            throw(EIO);
-            break;
-    }
 
     _KernFS_AddInode(self, ip);
 
@@ -45,27 +31,52 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
     
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, Inode_GetId(ip), pOutNode));
 
-    return err;
-
 catch:
-    if (ip) {
-        _KernFS_DestroyInode(self, ip);
-    }
-
-    *pOutNode = NULL;
-
     return err;
 }
 
-// Creates a new driver node in the file system.
-errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, uid_t uid, gid_t gid, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
+// Creates a new node that has no backing resource and will invoke the provided handler factory function when needed.
+errno_t KernFS_CreateHandlerNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, const KfsHandlerNodeArgs* _Nonnull args, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, (ObjectRef)drv, uid, gid, FS_FTYPE_DEV, fsperms, pOutNode);
+    decl_try_err();
+    KfsNodeRef ip = NULL;
+
+    err = KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), Inode_GetId(dir), args, &ip);
+    if (err == EOK) {
+        err = _KernFS_createNode(self, dir, name, ip, FS_FTYPE_DEV, pOutNode);
+
+        if (err != EOK) {
+            _KernFS_DestroyInode(self, ip);
+        }
+    }
+
+    return err;
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, fs_ftype_t ftype, fs_perms_t fsperms, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, dirInsertionHint, uid, gid, ftype, fsperms, pOutNode);
+    decl_try_err();
+    KfsNodeRef ip = NULL;
+
+    switch (ftype) {
+        case FS_FTYPE_DIR:
+            err = KfsDirectory_Create(self, KernFS_GetNextAvailableInodeId(self), fsperms, uid, gid, Inode_GetId(dir), &ip);
+            break;
+
+        default:
+            err = EPERM;
+            break;
+    }
+
+    if (err == EOK) {
+        err = _KernFS_createNode(self, dir, name, ip, ftype, pOutNode);
+
+        if (err != EOK) {
+            _KernFS_DestroyInode(self, ip);
+        }
+    }
+
+    return err;
 }
 
 errno_t KernFS_onAcquireNode(KernFSRef _Nonnull self, ino_t inid, InodeRef _Nullable * _Nonnull pOutNode)

@@ -10,15 +10,21 @@
 #define KfsSpecial_h
 
 #include "KfsNode.h"
+#include "KernFS.h"
 
-    
+
 open_class(KfsSpecial, KfsNode,
-    ObjectRef _Nonnull  instance;
+    ObjectRef _Nullable             resource;
+    void* _Nullable                 context;
+    KfsCreateHandlerFunc _Nullable  createHandlerFunc;
 );
 open_class_funcs(KfsSpecial, KfsNode,
 );
 
 
-extern errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, fs_perms_t fsperms, uid_t uid, gid_t gid, ino_t pnid, ObjectRef _Nonnull fs, KfsNodeRef _Nullable * _Nonnull pOutSelf);
+extern errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, ino_t pnid, const KfsHandlerNodeArgs* args, KfsNodeRef _Nullable * _Nonnull pOutSelf);
+
+#define KfsSpecial_GetResource(__self) \
+((KfsSpecialRef)(__self))->resource
 
 #endif /* KfsSpecial_h */

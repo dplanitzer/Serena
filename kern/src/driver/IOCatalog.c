@@ -201,15 +201,25 @@ errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull d
     InodeRef pDir = NULL;
     InodeRef pNode = NULL;
     PathComponent pc;
+    KfsHandlerNodeArgs args;
 
     *pOutId = kCatalogId_None;
 
     pc.name = de->name;
     pc.count = strlen(de->name);
 
+    args.resource = (ObjectRef)drv;
+    args.context = drv;
+    args.func = (KfsCreateHandlerFunc)implementationof(open, Driver, classof(drv));
+    args.perms = de->perms;
+    args.uid = de->uid;
+    args.gid = de->gid;
+
     err = _acquire_folder(self, folderId, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateDriverNode((KernFSRef)self->fs, pDir, &pc, drv, de->uid, de->gid, de->perms, &pNode);
+        KfsCreateHandlerFunc func = (KfsCreateHandlerFunc)implementationof(open, Driver, classof(drv));
+
+        err = KernFS_CreateHandlerNode((KernFSRef)self->fs, pDir, &pc, &args, &pNode);
         if (err == EOK) {
             *pOutId = (did_t)Inode_GetId(pNode);
         }
@@ -231,7 +241,7 @@ errno_t IOCatalog_CopyDriverForId(IOCatalogRef _Nonnull self, CatalogId id, Driv
     try(Filesystem_AcquireNodeWithId(self->fs, (ino_t)id, &ip));
     Inode_Lock(ip);
     if (Inode_GetFileType(ip) == FS_FTYPE_DEV) {
-        driver = Object_Retain(((KfsSpecialRef)ip)->instance);
+        driver = Object_Retain(KfsSpecial_GetResource(ip));
     }
     Inode_Unlock(ip);
 
