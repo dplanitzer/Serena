@@ -40,15 +40,14 @@ errno_t NullHandler_write(struct NullHandler* _Nonnull self, const void* _Nonnul
 
 errno_t NullHandler_seek(struct NullHandler* _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
+    // File size is 0 and position is always 0
     switch (whence) {
         case SEEK_SET:
+        case SEEK_CUR:
+        case SEEK_END:
             if (offset < 0ll) {
                 return EINVAL;
             }
-            break;
-
-        case SEEK_CUR:
-        case SEEK_END:
             break;
 
         default:
@@ -56,7 +55,7 @@ errno_t NullHandler_seek(struct NullHandler* _Nonnull self, off_t offset, off_t*
     }
 
     if (pOutNewPos) {
-        *pOutNewPos = offset;
+        *pOutNewPos = 0ll;
     }
     return EOK;
 }
