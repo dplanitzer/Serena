@@ -10,7 +10,7 @@
 #define IOHIDManagerPriv_h
 
 #include "IOHIDManager.h"
-#include "HIDEventSynth.h"
+#include "evs.h"
 #include "IOHIDDevice.h"
 #include <driver/DisplayDriver.h>
 #include <hal/clock.h>
@@ -92,8 +92,8 @@ final_class_ivars(IOHIDManager, Object,
 
     // Event queue
     cnd_t                       evqCnd;
-    HIDEventSynth               evqSynth;
-    HIDSynthResult              evqSynthResult;
+    hid_evs_t                   evqSynth;
+    hid_evs_res_t               evqSynthResult;
     uint16_t                    evqCapacity;
     uint16_t                    evqCapacityMask;
     uint16_t                    evqReadIdx;

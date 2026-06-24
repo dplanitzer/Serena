@@ -1,12 +1,12 @@
 //
-//  HIDEventSynth.c
+//  evs.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/11/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "HIDEventSynth.h"
+#include "evs.h"
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <kern/kernlib.h>
@@ -19,18 +19,18 @@ enum {
 };
 
 
-void HIDEventSynth_Init(HIDEventSynthRef _Nonnull self)
+void hid_evs_init(hid_evs_t* _Nonnull self)
 {
     nanotime_from_ms(&self->initialKeyRepeatDelay, 300);
     nanotime_from_ms(&self->keyRepeatDelay, 100);
     self->state = kState_Idle;
 }
 
-void HIDEventSynth_Deinit(HIDEventSynthRef _Nullable self)
+void hid_evs_destroy(hid_evs_t* _Nullable self)
 {
 }
 
-void HIDEventSynth_Reset(HIDEventSynthRef _Nonnull self)
+void hid_evs_reset(hid_evs_t* _Nonnull self)
 {
     self->state = kState_Idle;
     self->keyCode = 0;
@@ -117,7 +117,7 @@ static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
             return true;
     }
 }
-static bool _key_repeat_tick(HIDEventSynthRef _Nonnull self, HIDSynthResult* _Nonnull result)
+static bool _key_repeat_tick(hid_evs_t* _Nonnull self, hid_evs_res_t* _Nonnull result)
 {
     nanotime_t now;
 
@@ -139,7 +139,7 @@ static bool _key_repeat_tick(HIDEventSynthRef _Nonnull self, HIDSynthResult* _No
     }
 }
 
-HIDSynthAction HIDEventSynth_Tick(HIDEventSynthRef _Nonnull self, const HIDEvent* _Nullable evt, HIDSynthResult* _Nonnull result)
+hid_action_t hid_evs_tickle(hid_evs_t* _Nonnull self, const HIDEvent* _Nullable evt, hid_evs_res_t* _Nonnull result)
 {
     const int evtType = (evt) ? evt->type : -1;
     nanotime_t now;

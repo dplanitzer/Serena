@@ -63,7 +63,7 @@ errno_t IOHIDManager_Create(IOHIDManagerRef _Nullable * _Nonnull pOutSelf)
     self->evqReadIdx = 0;
     self->evqWriteIdx = 0;
     self->evqOverflowCount = 0;
-    HIDEventSynth_Init(&self->evqSynth);
+    hid_evs_init(&self->evqSynth);
     cnd_init(&self->evqCnd);
 
 
@@ -406,7 +406,7 @@ void IOHIDManager_FlushEvents(IOHIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     self->evqReadIdx = 0;
     self->evqWriteIdx = 0;
-    HIDEventSynth_Reset(&self->evqSynth);
+    hid_evs_reset(&self->evqSynth);
     mtx_unlock(&self->mtx);
 }
 
@@ -455,7 +455,7 @@ errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_
         }
 
 
-        const HIDSynthAction t = HIDEventSynth_Tick(&self->evqSynth, queue_evt, &self->evqSynthResult);
+        const hid_action_t t = hid_evs_tickle(&self->evqSynth, queue_evt, &self->evqSynthResult);
         if (t == HIDSynth_UseEvent) {
             *evt = *queue_evt;
             self->evqReadIdx++;
