@@ -252,7 +252,7 @@ errno_t IOCatalog_CopyDriverForId(IOCatalogRef _Nonnull self, CatalogId id, Driv
     try(Filesystem_AcquireNodeWithId(self->fs, (ino_t)id, &ip));
     Inode_Lock(ip);
     if (Inode_GetFileType(ip) == FS_FTYPE_DEV) {
-        driver = Object_Retain(KfsSpecial_GetResource(ip));
+        driver = Object_Retain(Inode_GetResource(ip));
     }
     Inode_Unlock(ip);
 

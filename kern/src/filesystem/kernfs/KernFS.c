@@ -248,8 +248,8 @@ errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonn
         deque_for_each(&self->inOwned[i], struct KfsNode, it,
             KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
-            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)KfsSpecial_GetResource(curNode), cats)) {
-                drivers[idx++] = Object_Retain(KfsSpecial_GetResource(curNode));
+            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)Inode_GetResource(curNode), cats)) {
+                drivers[idx++] = Object_Retain(Inode_GetResource(curNode));
             }
         )
     }
@@ -271,8 +271,8 @@ DriverRef _Nullable KernFS_CopyBestMatchingDriver(KernFSRef _Nonnull self, const
         deque_for_each(&self->inOwned[i], struct KfsNode, it,
             KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
-            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)KfsSpecial_GetResource(curNode), cats)) {
-                drv = Object_Retain(KfsSpecial_GetResource(curNode));
+            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)Inode_GetResource(curNode), cats)) {
+                drv = Object_Retain(Inode_GetResource(curNode));
                 break;
             }
         )

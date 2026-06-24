@@ -23,7 +23,4 @@ open_class_funcs(KfsSpecial, KfsNode,
 
 extern errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, ino_t pnid, const KfsHandlerNodeArgs* args, KfsNodeRef _Nullable * _Nonnull pOutSelf);
 
-#define KfsSpecial_GetResource(__self) \
-((KfsSpecialRef)(__self))->resource
-
 #endif /* KfsSpecial_h */
