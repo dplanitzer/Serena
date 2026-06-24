@@ -86,7 +86,7 @@ errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
     return err;
 }
 
-void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, HIDReport* _Nonnull report)
+void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     register uint8_t pra = *(self->reg_ciaa_pra);
     register uint16_t joydat = *(self->reg_joydat);
@@ -124,7 +124,7 @@ void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, HIDReport* _Nonnu
     }
 
 
-    report->type = kHIDReportType_Joystick;
+    report->type = kIOHIDReportType_Joystick;
     report->data.joy.x = x;
     report->data.joy.y = y;
     report->data.joy.buttons = buttons;

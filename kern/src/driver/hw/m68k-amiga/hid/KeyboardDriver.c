@@ -91,7 +91,7 @@ void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
     irq_disable_src(IRQ_ID_CIA_A_SP);
 }
 
-void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnull report)
+void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     char keyCode;
     
@@ -100,11 +100,11 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
     irq_restore_mask(sim);
 
     if (r > 0) {
-        report->type = (keyCode & 0x80) ? kHIDReportType_KeyUp : kHIDReportType_KeyDown;
+        report->type = (keyCode & 0x80) ? kIOHIDReportType_KeyUp : kIOHIDReportType_KeyDown;
         report->data.key.keyCode = (uint16_t)g_usb_code_map[keyCode & 0x7f];
     }
     else {
-        report->type = kHIDReportType_Null;
+        report->type = kIOHIDReportType_Null;
     }
 }
 

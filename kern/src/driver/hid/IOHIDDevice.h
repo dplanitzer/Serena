@@ -15,53 +15,53 @@
 
 
 // HID report types
-typedef enum HIDReportType {
-    kHIDReportType_Null = 0,
-    kHIDReportType_KeyDown,
-    kHIDReportType_KeyUp,
-    kHIDReportType_Mouse,
-    kHIDReportType_Joystick,
-    kHIDReportType_LightPen
-} HIDReportType;
+typedef enum IOHIDReportType {
+    kIOHIDReportType_Null = 0,
+    kIOHIDReportType_KeyDown,
+    kIOHIDReportType_KeyUp,
+    kIOHIDReportType_Mouse,
+    kIOHIDReportType_Joystick,
+    kIOHIDReportType_LightPen
+} IOHIDReportType;
 
 
 // HID report data
-typedef struct HIDReportData_KeyUpDown {
+typedef struct IOHIDReportData_Key {
     uint16_t    keyCode;        // USB HID key scan code
-} HIDReportData_KeyUpDown;
+} IOHIDReportData_Key;
 
-typedef struct HIDReportData_Mouse {
+typedef struct IOHIDReportData_Mouse {
     int16_t     dx;
     int16_t     dy;
     uint32_t    buttons;        // buttons pressed. 0: left, 1: right, 2: middle, ...
-} HIDReportData_Mouse;
+} IOHIDReportData_Mouse;
 
-typedef struct HIDReportData_LightPen {
+typedef struct IOHIDReportData_LightPen {
     int16_t     x;
     int16_t     y;
     uint32_t    buttons;        // buttons pressed. 0: left, 1: right, ...
     bool        hasPosition;    // true if the light pen triggered and a position could be sampled
-} HIDReportData_LightPen;
+} IOHIDReportData_LightPen;
 
-typedef struct HIDReportData_Joystick {
+typedef struct IOHIDReportData_GamePad {
     int16_t     x;              // (int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right)
     int16_t     y;              // (int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down)
     uint32_t    buttons;        // buttons pressed. 0: left, 1: right, ...
-} HIDReportData_Joystick;
+} IOHIDReportData_GamePad;
 
-typedef union _HIDReportData {
-    HIDReportData_KeyUpDown     key;
-    HIDReportData_Mouse         mouse;
-    HIDReportData_LightPen      lp;
-    HIDReportData_Joystick      joy;
-} HIDReportData;
+typedef union IOHIDReportData {
+    IOHIDReportData_Key     key;
+    IOHIDReportData_Mouse         mouse;
+    IOHIDReportData_LightPen      lp;
+    IOHIDReportData_GamePad      joy;
+} IOHIDReportData;
 
 
 // HID event
-typedef struct HIDReport {
+typedef struct IOHIDReport {
     int32_t         type;
-    HIDReportData   data;
-} HIDReport;
+    IOHIDReportData data;
+} IOHIDReport;
 
 
 
@@ -81,7 +81,7 @@ open_class_funcs(IOHIDDevice, Driver,
     // state of the HID hardware.
     // Override: required
     // Default Behavior: returns a null report
-    void (*getReport)(void* _Nonnull self, HIDReport* _Nonnull report);
+    void (*getReport)(void* _Nonnull self, IOHIDReport* _Nonnull report);
 
     // Sets the kernel virtual processor that should receive signal 'signo'
     // every time the state of the HID hardware changes in the sense that the

@@ -79,7 +79,7 @@ errno_t PaddleDriver_onStart(PaddleDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, HIDReport* _Nonnull report)
+void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     register uint16_t potdat = *(self->reg_potdat);
     register uint16_t joydat = *(self->reg_joydat);
@@ -128,7 +128,7 @@ void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, HIDReport* _Nonnull r
     *(self->reg_potgo) = 0x0001;
     
     
-    report->type = kHIDReportType_Joystick;
+    report->type = kIOHIDReportType_Joystick;
     report->data.joy.x = x;
     report->data.joy.y = y;
     report->data.joy.buttons = buttons;

@@ -10,8 +10,6 @@
 #include <assert.h>
 #include <limits.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
-#include <driver/hw/m68k-amiga/hid/KeyboardDriver.h>
-#include <driver/hw/m68k-amiga/hid/MouseDriver.h>
 #include <driver/IOCatalog.h>
 #include <ext/bit.h>
 #include <ext/math.h>
@@ -42,7 +40,7 @@ errno_t IOHIDManager_Create(IOHIDManagerRef _Nullable * _Nonnull pOutSelf)
     wq_init(&self->reportsWaitQueue);
 
     self->reportSigs = sig_bit(SIGVBL) | sig_bit(SIGSCR);
-    self->report.type = kHIDReportType_Null;
+    self->report.type = kIOHIDReportType_Null;
 
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
@@ -510,14 +508,14 @@ errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_
 // Reports a key down or up from a keyboard device. This function updates the
 // state of the logical keyboard and it posts a suitable keyboard event to the
 // event queue.
-static void _post_key_event(IOHIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
+static void _post_key_event(IOHIDManagerRef _Nonnull _Locked self, const IOHIDReport* _Nonnull report)
 {
     // Update the key map
     const uint16_t keyCode = report->data.key.keyCode;
     const uint32_t wordIdx = keyCode >> 5;
     const uint32_t bitIdx = keyCode - (wordIdx << 5);
 
-    if (report->type == kHIDReportType_KeyUp) {
+    if (report->type == kIOHIDReportType_KeyUp) {
         self->keyMap[wordIdx] &= ~(1 << bitIdx);
     } else {
         self->keyMap[wordIdx] |= (1 << bitIdx);
@@ -533,7 +531,7 @@ static void _post_key_event(IOHIDManagerRef _Nonnull _Locked self, const HIDRepo
         const bool isRight = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x80 : 0;
         const uint32_t devModFlags = (isRight) ? logModFlags << 16 : logModFlags << 24;
 
-        if (report->type == kHIDReportType_KeyUp) {
+        if (report->type == kIOHIDReportType_KeyUp) {
             modifierFlags &= ~logModFlags;
             modifierFlags &= ~devModFlags;
         } else {
@@ -551,7 +549,7 @@ static void _post_key_event(IOHIDManagerRef _Nonnull _Locked self, const HIDRepo
     HIDEventData evt;
 
     if (!isModifierKey) {
-        evtType = (report->type == kHIDReportType_KeyUp) ? kHIDEventType_KeyUp : kHIDEventType_KeyDown;
+        evtType = (report->type == kIOHIDReportType_KeyUp) ? kHIDEventType_KeyUp : kHIDEventType_KeyDown;
     } else {
         evtType = kHIDEventType_FlagsChanged;
     }
@@ -602,7 +600,7 @@ static void _post_mouse_event(IOHIDManagerRef _Nonnull _Locked self, bool hasPos
 
 // Reports a change in the state of a gamepad style device. Posts suitable events
 // to the event queue.
-static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
+static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const IOHIDReport* _Nonnull report)
 {
     did_t did = Driver_GetId(gp->drv);
 
@@ -747,10 +745,10 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
     }
 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
-        DriverRef cdp = self->mouse.drv[i];
+        IOHIDDeviceRef cdp = self->mouse.drv[i];
 
-        if (cdp == driver) {
-            if (self->mouse.lpCount > 0 && Driver_HasCategory(cdp, IOHID_LIGHTPEN)) {
+        if ((DriverRef)cdp == driver) {
+            if (self->mouse.lpCount > 0 && Driver_HasCategory((DriverRef)cdp, IOHID_LIGHTPEN)) {
                 self->mouse.lpCount--;
                 if (self->mouse.lpCount == 0) {
                     DisplayDriver_SetLightPenEnabled(self->fb, false);
@@ -768,7 +766,7 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
     for (int i = 0; i < MAX_GAME_PADS; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if (gp->drv == driver) {
+        if ((DriverRef)gp->drv == driver) {
             Driver_Close(gp->drv);
             Object_Release(gp->drv);
             gp->drv = NULL;
@@ -812,7 +810,7 @@ static bool _collect_keyboard_reports(IOHIDManagerRef _Nonnull self)
     for (;;) {
         IOHIDDevice_GetReport(self->kb, &self->report);
                 
-        if (self->report.type == kHIDReportType_Null) {
+        if (self->report.type == kIOHIDReportType_Null) {
             break;
         }
 
@@ -837,7 +835,7 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
     // Collect reports from all devices that control the logical mouse and compute
     // the new logical mouse state
     for (int i = 0; i < self->mouse.drvCount; i++) {
-        DriverRef d = self->mouse.drv[i];
+        IOHIDDeviceRef d = self->mouse.drv[i];
 
         if (d) {
             int16_t dx, dy;
@@ -846,13 +844,13 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
             IOHIDDevice_GetReport(d, &self->report);
 
             switch (self->report.type) {
-                case kHIDReportType_Mouse:
+                case kIOHIDReportType_Mouse:
                     dx = self->report.data.mouse.dx;
                     dy = self->report.data.mouse.dy;
                     bt = self->report.data.mouse.buttons;
                     break;
 
-                case kHIDReportType_LightPen:
+                case kIOHIDReportType_LightPen:
                     dx = (self->report.data.lp.hasPosition) ? self->report.data.lp.x - self->mouse.x : 0;
                     dy = (self->report.data.lp.hasPosition) ? self->report.data.lp.y - self->mouse.y : 0;
                     bt = self->report.data.lp.buttons;
@@ -965,7 +963,7 @@ static void _reports_collector_loop(IOHIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
 
     for (;;) {
-        self->report.type = kHIDReportType_Null;
+        self->report.type = kIOHIDReportType_Null;
         clock_gettime(g_mono_clock, &self->now);
 
 

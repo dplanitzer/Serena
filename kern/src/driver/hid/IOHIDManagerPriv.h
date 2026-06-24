@@ -42,21 +42,21 @@ typedef struct hid_rect {
 
 // State of the logical pointing device (mouse)
 typedef struct logical_mouse {
-    DriverRef _Nullable drv[MAX_POINTING_DEVICES];
-    int16_t             drvCount;
-    int16_t             lpCount;
-    int16_t             x;
-    int16_t             y;
-    uint32_t            buttons;
+    IOHIDDeviceRef _Nullable    drv[MAX_POINTING_DEVICES];
+    int16_t                     drvCount;
+    int16_t                     lpCount;
+    int16_t                     x;
+    int16_t                     y;
+    uint32_t                    buttons;
 } logical_mouse_t;
 
 
 // State of a gamepad/joystick device
 typedef struct gamepad_state {
-    DriverRef _Nullable drv;
-    int16_t             x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
-    int16_t             y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
-    uint32_t            buttons;  // Button #0 -> 0, Button #1 -> 1, ...
+    IOHIDDeviceRef _Nullable    drv;
+    int16_t                     x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
+    int16_t                     y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
+    uint32_t                    buttons;  // Button #0 -> 0, Button #1 -> 1, ...
 } gamepad_state_t;
 
 
@@ -73,8 +73,8 @@ final_class_ivars(IOHIDManager, Object,
     mtx_t                       mtx;
 
 
-    // Input Drivers
-    KeyboardDriverRef _Nullable kb;
+    // HID devices
+    IOHIDDeviceRef _Nullable    kb;
 
 
     // Framebuffer interface
@@ -85,7 +85,7 @@ final_class_ivars(IOHIDManager, Object,
     vcpu_t _Nullable            reportsCollector;
     struct waitqueue            reportsWaitQueue;
     sigset_t                    reportSigs;
-    HIDReport                   report;
+    IOHIDReport                 report;
     nanotime_t                  now;        // Current time from the viewpoint of the reports collector
     irq_handler_t               vblHandler;
 

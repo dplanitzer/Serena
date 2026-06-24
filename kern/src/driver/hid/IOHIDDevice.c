@@ -14,9 +14,9 @@
 // HID Manager API
 //
 
-void IOHIDDevice_getReport(IOHIDDeviceRef _Nonnull self, HIDReport* _Nonnull report)
+void IOHIDDevice_getReport(IOHIDDeviceRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
-    report->type = kHIDReportType_Null;
+    report->type = kIOHIDReportType_Null;
 }
 
 errno_t IOHIDDevice_setReportTarget(IOHIDDeviceRef _Nonnull self, vcpu_t _Nullable vp, int signo)

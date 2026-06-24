@@ -128,7 +128,7 @@ static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
     return r;
 }
 
-void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, HIDReport* _Nonnull report)
+void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     // Return the smoothed value
     int16_t x = self->smoothedX;
@@ -174,7 +174,7 @@ void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, HIDReport* _Nonnu
     }
     
 
-    report->type = kHIDReportType_LightPen;
+    report->type = kIOHIDReportType_LightPen;
     report->data.lp.x = x;
     report->data.lp.y = y;
     report->data.lp.buttons = buttons;

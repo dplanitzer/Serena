@@ -88,7 +88,7 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
 }
 
 // Based on <https://www.markwrobel.dk/post/amiga-machine-code-letter11/>
-void MouseDriver_getReport(MouseDriverRef _Nonnull self, HIDReport* _Nonnull report)
+void MouseDriver_getReport(MouseDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     register uint16_t new_state = *(self->reg_joydat);
     
@@ -157,7 +157,7 @@ void MouseDriver_getReport(MouseDriverRef _Nonnull self, HIDReport* _Nonnull rep
     }
 
 
-    report->type = kHIDReportType_Mouse;
+    report->type = kIOHIDReportType_Mouse;
     report->data.mouse.dx = dx;
     report->data.mouse.dy = dy;
     report->data.mouse.buttons = buttons;
