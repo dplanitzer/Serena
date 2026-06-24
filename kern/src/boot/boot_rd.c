@@ -12,8 +12,6 @@
 #include <kpi/fd.h>
 #include <kpi/smg.h>
 
-IOCATS_DEF(g_vdm_cats, IOSRV_VDM);
-
 
 // Checks whether the platform controller is able to provide a boot-able disk image
 // for a ROM/RAM disk and creates a ROM/RAM disk with the name '/vd-bus/rd0' from

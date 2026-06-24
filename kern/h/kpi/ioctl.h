@@ -28,9 +28,7 @@
 #define IOCAT_AUDIO         6
 #define IOCAT_BUS           7
 #define IOCAT_COM           8
-#define IOCAT_TERMINAL      9
-#define IOCAT_SERVICE       10
-#define IOCAT_UNSPECIFIED   11
+#define IOCAT_UNSPECIFIED   10
 
 // HID Category
 #define IOHID_MANAGER       _IOCAT(IOCAT_HID, 1)
@@ -99,11 +97,6 @@
 #define IOCOM_TOKENRING     _IOCAT(IOCAT_COM, 4)
 #define IOCOM_FDDI          _IOCAT(IOCAT_COM, 5)
 #define IOCOM_WIFI          _IOCAT(IOCAT_COM, 6)
-
-// Service Category
-#define IOSRV_KLOG          _IOCAT(IOCAT_SERVICE, 1)
-#define IOSRV_VDM           _IOCAT(IOCAT_SERVICE, 2)
-#define IOSRV_NULL          _IOCAT(IOCAT_SERVICE, 3)
 
 // Unspecified Category
 #define IOUNS_UNKNOWN       _IOCAT(IOCAT_UNSPECIFIED, 0)

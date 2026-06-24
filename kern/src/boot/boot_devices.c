@@ -6,8 +6,10 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <console/Console.h>
 #include <driver/IOCatalog.h>
 #include <driver/hid/HIDDriver.h>
+#include <handler/ConsoleHandler.h>
 #include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
 #include <kpi/fs_perms.h>
@@ -73,6 +75,27 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0440);
+    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+
+catch:
+    return err;
+}
+
+errno_t init_console(void)
+{
+    decl_try_err();
+    CatalogEntry en;
+    did_t dummy;
+
+    try(Console_Create(&gConsole));
+    Console_Start(gConsole);
+
+    en.name = "console";
+    en.resource = NULL;
+    en.func = ConsoleHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0666);
     try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
 
 catch:

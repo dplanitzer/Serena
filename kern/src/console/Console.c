@@ -12,15 +12,14 @@
 #include <driver/hid/HIDDriver.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
-#include <handler/IOConsoleHandler.h>
+#include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
 #include <kpi/hid.h>
 
-IOCATS_DEF(g_cats, IOCAT_TERMINAL);
-
+ConsoleRef gConsole;
 IOCATS_DEF(g_hid_manager_cats, IOHID_MANAGER);
 IOCATS_DEF(g_fb_cats, IOVID_FB);
 
@@ -35,7 +34,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL, "con");
     ConsoleRef self;
 
-    try(Driver_CreateRoot(class(Console), 0, g_cats, (DriverRef*)&self));
+    try(kalloc_cleared(sizeof(struct Console), (void**)&self));
     
     mtx_init(&self->mtx);
 
@@ -108,7 +107,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
     }
 }
 
-errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
+void Console_Start(ConsoleRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
 
@@ -120,16 +119,6 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     Console_UpdateCursorVisuals_Locked(self);
 
     mtx_unlock(&self->mtx);
-
-
-    DriverEntry de;
-    de.name = "console";
-    de.func = IOConsoleHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0666);
-
-    return Driver_Publish((DriverRef)self, &de);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self)
@@ -626,7 +615,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, fd_flags_t fl
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_read(ConsoleRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_Read(ConsoleRef _Nonnull self, fd_flags_t flags, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     char* pChars = pBuffer;
@@ -675,7 +664,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_write(ConsoleRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Console_Write(ConsoleRef _Nonnull self, fd_flags_t flags, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
@@ -712,9 +701,6 @@ void Console_GetCursorPosition(ConsoleRef _Nonnull self, con_cursor_t* _Nonnull 
 }
 
 
-class_func_defs(Console, Driver,
+class_func_defs(Console, Object,
 override_func_def(deinit, Console, Object)
-override_func_def(onStart, Console, Driver)
-override_func_def(read, Console, Driver)
-override_func_def(write, Console, Driver)
 );
