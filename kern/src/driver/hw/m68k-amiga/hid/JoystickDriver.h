@@ -9,10 +9,10 @@
 #ifndef JoystickDriver_h
 #define JoystickDriver_h
 
-#include <driver/hid/InputDriver.h>
+#include <driver/hid/IOHIDDevice.h>
 
 
-final_class(JoystickDriver, InputDriver);
+final_class(JoystickDriver, IOHIDDevice);
 
 extern errno_t JoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 

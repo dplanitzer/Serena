@@ -11,7 +11,7 @@
 
 #include "IOHIDManager.h"
 #include "HIDEventSynth.h"
-#include "InputDriver.h"
+#include "IOHIDDevice.h"
 #include <driver/DisplayDriver.h>
 #include <hal/clock.h>
 #include <hal/irq.h>

@@ -11,7 +11,7 @@
 #include <handler/IODriverHandler.h>
 
 
-final_class_ivars(LightPenDriver, InputDriver,
+final_class_ivars(LightPenDriver, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_potgor;
     uint16_t                    right_button_mask;
     uint16_t                    middle_button_mask;
@@ -182,7 +182,7 @@ void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, HIDReport* _Nonnu
 }
 
 
-class_func_defs(LightPenDriver, InputDriver,
+class_func_defs(LightPenDriver, IOHIDDevice,
 override_func_def(onStart, LightPenDriver, Driver)
-override_func_def(getReport, LightPenDriver, InputDriver)
+override_func_def(getReport, LightPenDriver, IOHIDDevice)
 );

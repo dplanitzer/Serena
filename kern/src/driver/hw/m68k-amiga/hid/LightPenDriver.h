@@ -9,10 +9,10 @@
 #ifndef LightPenDriver_h
 #define LightPenDriver_h
 
-#include <driver/hid/InputDriver.h>
+#include <driver/hid/IOHIDDevice.h>
 
 
-final_class(LightPenDriver, InputDriver);
+final_class(LightPenDriver, IOHIDDevice);
 
 extern errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 

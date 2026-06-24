@@ -9,10 +9,10 @@
 #ifndef PaddleDriver_h
 #define PaddleDriver_h
 
-#include <driver/hid/InputDriver.h>
+#include <driver/hid/IOHIDDevice.h>
 
 
-final_class(PaddleDriver, InputDriver);
+final_class(PaddleDriver, IOHIDDevice);
 
 extern errno_t PaddleDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 

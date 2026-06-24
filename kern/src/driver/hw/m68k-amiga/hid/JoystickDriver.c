@@ -11,7 +11,7 @@
 #include <handler/IODriverHandler.h>
 
 
-final_class_ivars(JoystickDriver, InputDriver,
+final_class_ivars(JoystickDriver, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
     volatile uint8_t* _Nonnull  reg_ciaa_pra;
@@ -131,7 +131,7 @@ void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, HIDReport* _Nonnu
 }
 
 
-class_func_defs(JoystickDriver, InputDriver,
+class_func_defs(JoystickDriver, IOHIDDevice,
 override_func_def(onStart, JoystickDriver, Driver)
-override_func_def(getReport, JoystickDriver, InputDriver)
+override_func_def(getReport, JoystickDriver, IOHIDDevice)
 );

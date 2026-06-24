@@ -11,7 +11,7 @@
 #include <handler/IODriverHandler.h>
 
 
-final_class_ivars(MouseDriver, InputDriver,
+final_class_ivars(MouseDriver, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
     volatile uint8_t* _Nonnull  reg_ciaa_pra;
@@ -164,7 +164,7 @@ void MouseDriver_getReport(MouseDriverRef _Nonnull self, HIDReport* _Nonnull rep
 }
 
 
-class_func_defs(MouseDriver, InputDriver,
+class_func_defs(MouseDriver, IOHIDDevice,
 override_func_def(onStart, MouseDriver, Driver)
-override_func_def(getReport, MouseDriver, InputDriver)
+override_func_def(getReport, MouseDriver, IOHIDDevice)
 );

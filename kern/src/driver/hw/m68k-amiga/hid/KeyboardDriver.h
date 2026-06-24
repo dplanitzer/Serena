@@ -9,10 +9,10 @@
 #ifndef KeyboardDriver_h
 #define KeyboardDriver_h
 
-#include <driver/hid/InputDriver.h>
+#include <driver/hid/IOHIDDevice.h>
 
 
-final_class(KeyboardDriver, InputDriver);
+final_class(KeyboardDriver, IOHIDDevice);
 
 extern errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 

@@ -810,7 +810,7 @@ static bool _collect_keyboard_reports(IOHIDManagerRef _Nonnull self)
     bool r = false;
 
     for (;;) {
-        InputDriver_GetReport(self->kb, &self->report);
+        IOHIDDevice_GetReport(self->kb, &self->report);
                 
         if (self->report.type == kHIDReportType_Null) {
             break;
@@ -843,7 +843,7 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
             int16_t dx, dy;
             uint32_t bt;
 
-            InputDriver_GetReport(d, &self->report);
+            IOHIDDevice_GetReport(d, &self->report);
 
             switch (self->report.type) {
                 case kHIDReportType_Mouse:
@@ -921,7 +921,7 @@ static bool _collect_gamepad_reports(IOHIDManagerRef _Nonnull self)
         gamepad_state_t* gp = &self->gamepad[i];
 
         if (gp->drv) {
-            InputDriver_GetReport(gp->drv, &self->report);
+            IOHIDDevice_GetReport(gp->drv, &self->report);
             _post_gamepad_event(self, gp, &self->report);
             r = true;
         }

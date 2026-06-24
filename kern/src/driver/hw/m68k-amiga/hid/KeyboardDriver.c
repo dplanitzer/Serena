@@ -29,7 +29,7 @@ static const uint8_t g_usb_code_map[128] = {
 };
 
 
-final_class_ivars(KeyboardDriver, InputDriver,
+final_class_ivars(KeyboardDriver, IOHIDDevice,
     cbuf_t  keyQueue;   // irq state
     int     dropCount;  // irq state
 );
@@ -116,9 +116,9 @@ void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key
 }
 
 
-class_func_defs(KeyboardDriver, InputDriver,
+class_func_defs(KeyboardDriver, IOHIDDevice,
 override_func_def(deinit, KeyboardDriver, Object)
 override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(onStop, KeyboardDriver, Driver)
-override_func_def(getReport, KeyboardDriver, InputDriver)
+override_func_def(getReport, KeyboardDriver, IOHIDDevice)
 );

@@ -1,13 +1,13 @@
 //
-//  InputDriver.h
+//  IOHIDDevice.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 1/12/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef InputDriver_h
-#define InputDriver_h
+#ifndef IOHIDDevice_h
+#define IOHIDDevice_h
 
 #include <driver/Driver.h>
 #include <kpi/hid.h>
@@ -68,9 +68,9 @@ typedef struct HIDReport {
 // An input driver manages a specific input device and translates actions on the
 // input device into events that it the posts to the HID manager.
 //
-open_class(InputDriver, Driver,
+open_class(IOHIDDevice, Driver,
 );
-open_class_funcs(InputDriver, Driver,
+open_class_funcs(IOHIDDevice, Driver,
 
     // Fills in the provided report structure with a report of the current HID
     // state of the device. If an input driver manages a queue of reports
@@ -102,10 +102,10 @@ open_class_funcs(InputDriver, Driver,
 // Methods for use by the HID system.
 //
 
-#define InputDriver_GetReport(__self, __report) \
-invoke_n(getReport, InputDriver, __self, __report)
+#define IOHIDDevice_GetReport(__self, __report) \
+invoke_n(getReport, IOHIDDevice, __self, __report)
 
-#define InputDriver_SetReportTarget(__self, __vp, __signo) \
-invoke_n(setReportTarget, InputDriver, __self, __vp, __signo)
+#define IOHIDDevice_SetReportTarget(__self, __vp, __signo) \
+invoke_n(setReportTarget, IOHIDDevice, __self, __vp, __signo)
 
-#endif /* InputDriver_h */
+#endif /* IOHIDDevice_h */

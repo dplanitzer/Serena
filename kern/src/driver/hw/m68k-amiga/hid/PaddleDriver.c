@@ -11,7 +11,7 @@
 #include <handler/IODriverHandler.h>
 
 
-final_class_ivars(PaddleDriver, InputDriver,
+final_class_ivars(PaddleDriver, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potdat;
     volatile uint16_t* _Nonnull reg_potgo;
@@ -135,7 +135,7 @@ void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, HIDReport* _Nonnull r
 }
 
 
-class_func_defs(PaddleDriver, InputDriver,
+class_func_defs(PaddleDriver, IOHIDDevice,
 override_func_def(onStart, PaddleDriver, Driver)
-override_func_def(getReport, PaddleDriver, InputDriver)
+override_func_def(getReport, PaddleDriver, IOHIDDevice)
 );
