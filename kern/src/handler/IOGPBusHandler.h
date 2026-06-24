@@ -19,6 +19,6 @@ open_class_funcs(IOGPBusHandler, IODriverHandler,
 );
 
 
-extern errno_t IOGPBusHandler_Create(GamePortControllerRef _Nonnull bus, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IOGPBusHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* IOGPBusHandler_h */

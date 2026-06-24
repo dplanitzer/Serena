@@ -284,7 +284,7 @@ errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, fd_flags_t
     return EOK;
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler)
+errno_t Driver_open(DriverRef _Nonnull self, fd_flags_t flags)
 {
     decl_try_err();
 
@@ -301,23 +301,10 @@ errno_t Driver_open(DriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nulla
     try(Driver_OnOpen(self, self->openCount, flags));
     self->openCount++;
 
-    if (pOutHandler) {
-        err = Driver_CreateHandler(self, flags, pOutHandler);
-        if (err != EOK) {
-            Driver_OnClose(self, self->openCount);
-            self->openCount--;
-        }
-    }
-
 catch:
     mtx_unlock(&self->mtx);
 
     return err;
-}
-
-errno_t Driver_createHandler(DriverRef _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return ENODEV;
 }
 
 
@@ -337,12 +324,12 @@ void Driver_close(DriverRef _Nonnull self)
 
 errno_t Driver_read(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return EBADF;
+    return EINVAL;
 }
 
 errno_t Driver_write(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return EBADF;
+    return EINVAL;
 }
 
 off_t Driver_getSeekableRange(DriverRef _Nonnull self)
@@ -595,7 +582,6 @@ func_def(onAttached, Driver)
 func_def(onDetaching, Driver)
 func_def(open, Driver)
 func_def(onOpen, Driver)
-func_def(createHandler, Driver)
 func_def(close, Driver)
 func_def(onClose, Driver)
 func_def(read, Driver)

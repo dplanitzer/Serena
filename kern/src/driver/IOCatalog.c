@@ -106,7 +106,7 @@ errno_t IOCatalog_OpenBestMatch(IOCatalogRef _Nonnull self, const iocat_t* _Nonn
         return ENODEV;
     }
 
-    err = Driver_Open(drv, oflags, NULL);
+    err = Driver_Open(drv, oflags);
     if (err == EOK) {
         *pOutDriver = drv;
         return EOK;
@@ -201,8 +201,7 @@ errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull d
 
     ce.name = de->name;
     ce.resource = (ObjectRef)drv;
-    ce.context = drv;
-    ce.func = (KfsCreateHandlerFunc)implementationof(open, Driver, classof(drv));
+    ce.func = de->func;
     ce.perms = de->perms;
     ce.uid = de->uid;
     ce.gid = de->gid;
@@ -224,7 +223,6 @@ errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, CatalogId folderId, c
     pc.count = strlen(ce->name);
 
     args.resource = ce->resource;
-    args.context = ce->context;
     args.func = ce->func;
     args.perms = ce->perms;
     args.uid = ce->uid;

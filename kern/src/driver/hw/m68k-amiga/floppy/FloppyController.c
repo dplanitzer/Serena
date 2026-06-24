@@ -12,6 +12,7 @@
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
+#include <handler/IODriverHandler.h>
 #include <machine/amiga/adf.h>
 #include <sched/cnd.h>
 #include <sched/delay.h>
@@ -130,6 +131,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "self";
+    de.func = IONopHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);

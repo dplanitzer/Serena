@@ -19,6 +19,6 @@ open_class_funcs(IOHIDHandler, IODriverHandler,
 );
 
 
-extern errno_t IOHIDHandler_Create(HIDDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IOHIDHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* IOHIDHandler_h */

@@ -7,6 +7,7 @@
 //
 
 #include "ZStubDriver.h"
+#include <handler/IODriverHandler.h>
 
 IOCATS_DEF(g_cats, IOUNS_UNKNOWN);
 
@@ -32,6 +33,7 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = name;
+    de.func = IONopHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0);

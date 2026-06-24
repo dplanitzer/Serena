@@ -10,9 +10,9 @@
 #include <driver/hw/m68k-amiga/hid/GamePortController.h>
 
 
-errno_t IOGPBusHandler_Create(GamePortControllerRef _Nonnull bus, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t IOGPBusHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOGPBusHandler), FD_TYPE_DRIVER, flags, (DriverRef)bus, pOutHandler);
+    return IODriverHandler_Create(class(IOGPBusHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
 }
 
 errno_t IOGPBusHandler_control(struct IOGPBusHandler* _Nonnull self, int cmd, va_list ap)

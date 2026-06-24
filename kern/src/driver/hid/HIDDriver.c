@@ -101,6 +101,7 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
     irq_add_handler(&self->vblHandler);
 
     de.name = "hid";
+    de.func = IOHIDHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
@@ -109,11 +110,6 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
 
 catch:
     return err;
-}
-
-errno_t HIDDriver_createHandler(HIDDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IOHIDHandler_Create(self, flags, pOutHandler);
 }
 
 
@@ -688,7 +684,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
     decl_try_err();
 
     if (self->kb == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
-        err = Driver_Open(driver, O_RDWR, NULL);
+        err = Driver_Open(driver, O_RDWR);
         if (err == EOK) {
             self->kb = Object_Retain(driver);
         }
@@ -696,7 +692,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
     else if (self->mouse.drvCount < MAX_POINTING_DEVICES && Driver_HasSomeCategories(driver, g_pointing_device_cats)) {
         for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
             if (self->mouse.drv[i] == NULL) {
-                err = Driver_Open(driver, O_RDWR, NULL);
+                err = Driver_Open(driver, O_RDWR);
                 if (err == EOK) {
                     if (Driver_HasCategory(driver, IOHID_LIGHTPEN) && self->fb) {
                         self->mouse.lpCount++;
@@ -717,7 +713,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
             gamepad_state_t* gp = &self->gamepad[i];
 
             if (gp->drv == NULL) {
-                err = Driver_Open(driver, O_RDWR, NULL);
+                err = Driver_Open(driver, O_RDWR);
                 if (err == EOK) {
                     gp->drv = Object_Retain(driver);
                     gp->x = 0;
@@ -731,7 +727,7 @@ static void _connect_driver(HIDDriverRef _Nonnull _Locked self, DriverRef _Nonnu
     }
     else if (self->fb == NULL && Driver_HasCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
-        err = Driver_Open(driver, O_RDWR, NULL);
+        err = Driver_Open(driver, O_RDWR);
         if (err == EOK) {
             self->fb = Object_Retain(driver);
             DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
@@ -1014,5 +1010,4 @@ static void _reports_collector_loop(HIDDriverRef _Nonnull self)
 
 class_func_defs(HIDDriver, Driver,
 override_func_def(onStart, HIDDriver, Driver)
-override_func_def(createHandler, HIDDriver, Driver)
 );

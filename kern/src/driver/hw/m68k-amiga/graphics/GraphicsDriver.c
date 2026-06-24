@@ -74,6 +74,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "fb";
+    de.func = IOGraphicsHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
@@ -84,11 +85,6 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
         vcpu_resume(self->copvp, false);
     }
     return err;
-}
-
-errno_t GraphicsDriver_createHandler(GraphicsDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IOGraphicsHandler_Create(self, flags, pOutHandler);
 }
 
 
@@ -130,7 +126,6 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 
 class_func_defs(GraphicsDriver, DisplayDriver,
 override_func_def(onStart, GraphicsDriver, Driver)
-override_func_def(createHandler, GraphicsDriver, Driver)
 override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
 override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
 override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)

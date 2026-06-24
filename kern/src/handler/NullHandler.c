@@ -9,9 +9,9 @@
 #include "NullHandler.h"
 
 
-errno_t NullHandler_Create(void* _Nullable ignore, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t NullHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return Handler_Create(class(NullHandler), FD_TYPE_DRIVER, flags, pOutHandler);
+    return PseudoHandler_Create(class(NullHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
 }
 
 errno_t NullHandler_read(struct NullHandler* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -61,7 +61,7 @@ errno_t NullHandler_seek(struct NullHandler* _Nonnull self, off_t offset, off_t*
 }
 
 
-class_func_defs(NullHandler, Handler,
+class_func_defs(NullHandler, PseudoHandler,
 override_func_def(read, NullHandler, Handler)
 override_func_def(write, NullHandler, Handler)
 override_func_def(seek, NullHandler, Handler)

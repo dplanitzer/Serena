@@ -19,6 +19,6 @@ open_class_funcs(IOConsoleHandler, IODriverHandler,
 );
 
 
-extern errno_t IOConsoleHandler_Create(ConsoleRef _Nonnull con, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IOConsoleHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* IOConsoleHandler_h */

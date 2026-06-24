@@ -16,6 +16,9 @@
 #include <filemanager/ResolvedPath.h>
 
 
+typedef errno_t (*IOCreateHandlerFunc)(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
+
+
 typedef struct DirEntry {
     const char* _Nonnull    name;
     uid_t                   uid;
@@ -25,19 +28,17 @@ typedef struct DirEntry {
 
 
 typedef struct DriverEntry {
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    fs_perms_t              perms;
+    const char* _Nonnull            name;
+    IOCreateHandlerFunc _Nonnull    func;
+    uid_t                           uid;
+    gid_t                           gid;
+    fs_perms_t                      perms;
 } DriverEntry;
 
-
-typedef errno_t (*IOCreateHandlerFunc)(void* _Nonnull ctx, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
 
 typedef struct CatalogEntry {
     const char* _Nonnull            name;
     ObjectRef _Nullable             resource;
-    void* _Nullable                 context;
     IOCreateHandlerFunc _Nonnull    func;
     uid_t                           uid;
     gid_t                           gid;

@@ -9,6 +9,7 @@
 #include "KeyboardDriver.h"
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <handler/IODriverHandler.h>
 #include <kern/cbuf.h>
 #include <kpi/file.h>
 
@@ -67,6 +68,7 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "kb";
+    de.func = IONopHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0444);

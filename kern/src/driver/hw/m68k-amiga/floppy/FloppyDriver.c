@@ -12,6 +12,7 @@
 #include <ext/math.h>
 #include <ext/nanotime.h>
 #include <hal/clock.h>
+#include <handler/IODiskHandler.h>
 #include <kern/kalloc.h>
 #include <kern/log.h>
 #include <sched/delay.h>
@@ -158,6 +159,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = name;
+    de.func = IODiskHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);

@@ -9,26 +9,46 @@
 #include "IODriverHandler.h"
 #include <driver/Driver.h>
 #include <ext/math.h>
+#include <filesystem/Filesystem.h>
+#include <filesystem/Inode.h>
 
 
-errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, fd_flags_t flags, DriverRef _Nonnull drv, HandlerRef _Nullable * _Nonnull pOutHandler)
+
+//XXX tmp
+errno_t IONopHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    return IODriverHandler_Create(class(IODriverHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
+}
+
+errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
+    DriverRef drv = (DriverRef)Inode_GetResource(ip);
     struct IODriverHandler* self;
 
-    try(Handler_Create(pClass, type, flags, (HandlerRef*)&self));
-    self->driver = Object_Retain(drv);
+    err = Driver_Open(drv, flags);
+    if (err == EOK) {
+        err = Handler_Create(pClass, type, flags, (HandlerRef*)&self);
+        if (err != EOK) {
+            Driver_Close(drv);
+            return err;
+        }
 
-catch:
-    *pOutHandler = (HandlerRef)self;
+        self->ino = Inode_Reacquire(ip);
+        self->driver = drv;
+        *pOutHandler = (HandlerRef)self;
+    }
+
     return err;
 }
 
 void IODriverHandler_deinit(struct IODriverHandler* _Nonnull self)
 {
     Driver_Close(self->driver);
-    Object_Release(self->driver);
     self->driver = NULL;
+
+    (void)Inode_Relinquish(self->ino);
+    self->ino = NULL;
 }
 
 errno_t IODriverHandler_control(struct IODriverHandler* _Nonnull self, int cmd, va_list ap)

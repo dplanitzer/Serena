@@ -52,6 +52,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "self";
+    de.func = IOGPBusHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
@@ -61,11 +62,6 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     
 catch:
     return err;
-}
-
-errno_t GamePortController_createHandler(GamePortControllerRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IOGPBusHandler_Create(self, flags, pOutHandler);
 }
 
 
@@ -192,6 +188,5 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
-override_func_def(createHandler, GamePortController, Driver)
 func_def(createInputDriver, GamePortController)
 );

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ext/bit.h>
 #include <ext/math.h>
+#include <handler/IODiskHandler.h>
 #include <kern/kalloc.h>
 
 
@@ -83,6 +84,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 
     DriverEntry de;
     de.name = self->name;
+    de.func = IODiskHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);

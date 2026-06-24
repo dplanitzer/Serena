@@ -8,6 +8,7 @@
 
 #include "ZRamDriver.h"
 #include <hal/sys_desc.h>
+#include <handler/IODriverHandler.h>
 #include <kern/kalloc.h>
 
 IOCATS_DEF(g_cats, IOMEM_RAM);
@@ -34,6 +35,7 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = name;
+    de.func = IONopHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0440);

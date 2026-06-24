@@ -8,6 +8,7 @@
 
 #include "LightPenDriver.h"
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <handler/IODriverHandler.h>
 
 
 final_class_ivars(LightPenDriver, InputDriver,
@@ -73,6 +74,7 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = name;
+    de.func = IONopHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0444);

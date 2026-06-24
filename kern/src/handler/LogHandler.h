@@ -18,6 +18,6 @@ open_class_funcs(LogHandler, IODriverHandler,
 );
 
 
-extern errno_t LogHandler_Create(LogDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t LogHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* LogHandler_h */

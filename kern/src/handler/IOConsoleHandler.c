@@ -10,9 +10,9 @@
 #include <console/Console.h>
 
 
-errno_t IOConsoleHandler_Create(ConsoleRef _Nonnull con, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t IOConsoleHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOConsoleHandler), FD_TYPE_TERMINAL, flags, (DriverRef)con, pOutHandler);
+    return IODriverHandler_Create(class(IOConsoleHandler), FD_TYPE_TERMINAL, ip, flags, pOutHandler);
 }
 
 errno_t IOConsoleHandler_read(struct IOConsoleHandler* _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

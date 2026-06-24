@@ -19,6 +19,6 @@ open_class_funcs(IOZorroBusHandler, IODriverHandler,
 );
 
 
-extern errno_t IOZorroBusHandler_Create(ZorroControllerRef _Nonnull bus, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IOZorroBusHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* IOZorroBusHandler_h */

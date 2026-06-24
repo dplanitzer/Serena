@@ -9,15 +9,15 @@
 #ifndef NullHandler_h
 #define NullHandler_h
 
-#include <handler/Handler.h>
+#include <handler/PseudoHandler.h>
 
 
-open_class(NullHandler, Handler,
+open_class(NullHandler, PseudoHandler,
 );
-open_class_funcs(NullHandler, Handler,
+open_class_funcs(NullHandler, PseudoHandler,
 );
 
 
-extern errno_t NullHandler_Create(void* _Nullable ignore, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t NullHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* NullHandler_h */

@@ -124,6 +124,7 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "console";
+    de.func = IOConsoleHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
@@ -530,12 +531,6 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
     Console_FillRect_Locked(self, Rect_Make(0, self->bounds.bottom - nLines, self->bounds.right, self->bounds.bottom), ' ');
 }
 
-
-errno_t Console_createHandler(ConsoleRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IOConsoleHandler_Create(self, flags, pOutHandler);
-}
-
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     ssize_t nBytesRead = 0;
@@ -720,7 +715,6 @@ void Console_GetCursorPosition(ConsoleRef _Nonnull self, con_cursor_t* _Nonnull 
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
 override_func_def(onStart, Console, Driver)
-override_func_def(createHandler, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)
 );

@@ -22,6 +22,6 @@ open_class_funcs(IODiskHandler, IODriverHandler,
 );
 
 
-extern errno_t IODiskHandler_Create(DiskDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IODiskHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* IODiskHandler_h */

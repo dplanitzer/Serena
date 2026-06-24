@@ -19,14 +19,14 @@ final_class_ivars(DiskContainer, FSContainer,
 );
 
 
-errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, fd_flags_t oflags, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     struct DiskContainer* self = NULL;
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(Driver_Open(disk, mode, NULL));
+    try(Driver_Open(disk, oflags));
     try(DiskDriver_GetDiskInfo(disk, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {

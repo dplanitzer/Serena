@@ -10,9 +10,9 @@
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
 
 
-errno_t IOGraphicsHandler_Create(GraphicsDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t IOGraphicsHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOGraphicsHandler), FD_TYPE_DRIVER, flags, (DriverRef)drv, pOutHandler);
+    return IODriverHandler_Create(class(IOGraphicsHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
 }
 
 errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int cmd, va_list ap)

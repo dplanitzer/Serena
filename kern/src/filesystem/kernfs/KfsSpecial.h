@@ -15,8 +15,7 @@
 
 open_class(KfsSpecial, KfsNode,
     ObjectRef _Nullable             resource;
-    void* _Nullable                 context;
-    KfsCreateHandlerFunc _Nullable  createHandlerFunc;
+    KfsCreateHandlerFunc _Nonnull   createHandlerFunc;
 );
 open_class_funcs(KfsSpecial, KfsNode,
 );

@@ -14,12 +14,11 @@
 
 #define KERNFS_NAME_MAX 7
 
-typedef errno_t (*KfsCreateHandlerFunc)(void* _Nonnull ctx, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
+typedef errno_t (*KfsCreateHandlerFunc)(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
 
 typedef struct KfsHandlerNodeArgs {
     ObjectRef _Nullable             resource;
-    void* _Nullable                 context;
-    KfsCreateHandlerFunc _Nullable  func;
+    KfsCreateHandlerFunc _Nonnull   func;
     fs_perms_t                      perms;
     uid_t                           uid;
     gid_t                           gid;

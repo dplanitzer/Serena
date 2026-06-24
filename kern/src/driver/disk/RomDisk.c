@@ -9,6 +9,7 @@
 #include "RomDisk.h"
 #include <string.h>
 #include <ext/bit.h>
+#include <handler/IODiskHandler.h>
 #include <kern/kalloc.h>
 
 
@@ -75,6 +76,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = self->name;
+    de.func = IODiskHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0444);

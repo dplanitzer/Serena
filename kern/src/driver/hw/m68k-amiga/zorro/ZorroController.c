@@ -61,6 +61,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 
     DriverEntry de;
     de.name = "self";
+    de.func = IOZorroBusHandler_Create;
     de.uid = UID_ROOT;
     de.gid = GID_ROOT;
     de.perms = fs_perms_from_octal(0666);
@@ -74,11 +75,6 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 
 catch:
     return err;
-}
-
-errno_t ZorroController_createHandler(ZorroControllerRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IOZorroBusHandler_Create(self, flags, pOutHandler);
 }
 
 size_t ZorroController_GetCardCount(ZorroControllerRef _Nonnull self)
@@ -102,5 +98,4 @@ errno_t ZorroController_GetCardConfig(ZorroControllerRef _Nonnull self, size_t i
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)
-override_func_def(createHandler, ZorroController, Driver)
 );

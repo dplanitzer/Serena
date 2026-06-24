@@ -17,6 +17,6 @@
 final_class(DiskContainer, FSContainer);
 
 
-extern errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, unsigned int mode, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, fd_flags_t oflags, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskContainer_h */

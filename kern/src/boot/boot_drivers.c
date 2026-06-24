@@ -71,7 +71,6 @@ errno_t init_pseudo_devices(void)
 
     en.name = "null";
     en.resource = NULL;
-    en.context = NULL;
     en.func = NullHandler_Create;
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;

@@ -19,6 +19,6 @@ open_class_funcs(IOGraphicsHandler, IODriverHandler,
 );
 
 
-extern errno_t IOGraphicsHandler_Create(GraphicsDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
+extern errno_t IOGraphicsHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 #endif /* IOGraphicsHandler_h */

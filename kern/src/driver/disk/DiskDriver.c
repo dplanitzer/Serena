@@ -90,11 +90,6 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
     }
 }
 
-errno_t DiskDriver_createHandler(DiskDriverRef _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IODiskHandler_Create(self, flags, pOutHandler);
-}
-
 
 void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _Nullable info)
 {
@@ -528,7 +523,6 @@ override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
 func_def(getBootPriority, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
-override_func_def(createHandler, DiskDriver, Driver)
 func_def(doCommand, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)

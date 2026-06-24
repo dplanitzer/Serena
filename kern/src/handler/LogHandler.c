@@ -10,9 +10,9 @@
 #include <driver/pseudo/LogDriver.h>
 
 
-errno_t LogHandler_Create(LogDriverRef _Nonnull drv, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t LogHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(LogHandler), FD_TYPE_DRIVER, flags, (DriverRef)drv, pOutHandler);
+    return IODriverHandler_Create(class(LogHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
 }
 
 errno_t LogHandler_read(struct LogHandler* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

@@ -38,7 +38,6 @@ errno_t KfsSpecial_Create(KernFSRef _Nonnull kfs, ino_t inid, ino_t pnid, const 
     if (args->resource) {
         self->resource = Object_Retain(args->resource);
     }
-    self->context = args->context;
     self->createHandlerFunc = args->func;
 
 catch:
@@ -48,22 +47,14 @@ catch:
 
 void KfsSpecial_deinit(KfsSpecialRef _Nullable self)
 {
-    if (self->resource) {
-        Object_Release(self->resource);
-        self->resource = NULL;
-    }
-    self->context = NULL;
+    Object_Release(self->resource);
+    self->resource = NULL;
     self->createHandlerFunc = NULL;
 }
 
 errno_t KfsSpecial_createHandler(KfsSpecialRef _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    if (self->createHandlerFunc) {
-        return self->createHandlerFunc(self->context, flags, pOutHandler);
-    }
-    else {
-        return EBADF;
-    }
+    return self->createHandlerFunc((InodeRef)self, flags, pOutHandler);
 }
 
 ObjectRef _Nullable KfsSpecial_getResource(KfsSpecialRef _Nonnull _Locked self)

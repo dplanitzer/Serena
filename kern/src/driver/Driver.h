@@ -383,12 +383,6 @@ open_class_funcs(Driver, Object,
     // Default Behavior: returns EOK
     errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, fd_flags_t flags);
 
-    // Creates a new handler for the driver. The handler will be used to allow
-    // a user space application access to the driver.
-    // Override: Optional
-    // Default Behavior: returns ENODEV
-    errno_t (*createHandler)(void* _Nonnull _Locked self, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
-
     // Invoked by the close() function to close an open I/O handler. The
     // 'openCount' reflects the number of I/O handlers that are currently open
     // and this number does include the handler that should be closed. A driver
@@ -400,15 +394,13 @@ open_class_funcs(Driver, Object,
     void (*onClose)(void* _Nonnull _Locked self, int openCount);
 
 
-    // Opens an I/O handler to the driver and optionally returns a new handler
-    // for the driver instance. Note that a handler is only necessary if a
-    // user space application wants to interact with the driver. Kernel code
-    // does not need a handler and can interact with the driver instance directly.
+    // Opens the driver for use. You need to call this function first before
+    // calling any of the driver commands.
     // Override: Optional
     // Default Behavior: returns a handler instance
-    errno_t (*open)(void* _Nonnull self, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
+    errno_t (*open)(void* _Nonnull self, fd_flags_t flags);
 
-    // Closes an open I/O handler.
+    // Closes the driver.
     // Override: Optional
     // Default Behavior: Does nothing
     void (*close)(void* _Nonnull self);
@@ -470,11 +462,9 @@ extern void Driver_Stop(DriverRef _Nonnull self, int reason);
 extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 
 
-// Opens an I/O handler to the driver with the open flagsmode 'flags'. EOK and
-// the handler is returned in 'pOutHandler' on success and a suitable error code
-// is returned otherwise.
-#define Driver_Open(__self, __flags, __pOutHandler) \
-invoke_n(open, Driver, __self, __flags, __pOutHandler)
+// Opens the driver for use.
+#define Driver_Open(__self, __flags) \
+invoke_n(open, Driver, __self, __flags)
 
 // Closes a driver handler.
 #define Driver_Close(__self) \
@@ -596,11 +586,8 @@ invoke_n(onAttached, Driver, __self, __parent)
 invoke_n(onDetaching, Driver, __self, __parent)
 
 
-#define Driver_OnOpen(__self, __openCount, __mode) \
-invoke_n(onOpen, Driver, __self, __openCount, __mode)
-
-#define Driver_CreateHandler(__self, __flags, __pOutHandler) \
-invoke_n(createHandler, Driver, __self, __flags, __pOutHandler)
+#define Driver_OnOpen(__self, __openCount, __flags) \
+invoke_n(onOpen, Driver, __self, __openCount, __flags)
 
 #define Driver_OnClose(__self, __openCount) \
 invoke_n(onClose, Driver, __self, __openCount)
