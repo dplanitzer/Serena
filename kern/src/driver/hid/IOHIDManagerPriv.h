@@ -1,15 +1,15 @@
 //
-//  HIDDriverPriv.h
+//  IOHIDManagerPriv.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 10/04/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef HIDDriverPriv_h
-#define HIDDriverPriv_h
+#ifndef IOHIDManagerPriv_h
+#define IOHIDManagerPriv_h
 
-#include "HIDDriver.h"
+#include "IOHIDManager.h"
 #include "HIDEventSynth.h"
 #include "InputDriver.h"
 #include <driver/DisplayDriver.h>
@@ -69,7 +69,7 @@ typedef struct gamepad_state {
 // may contribute to their state. Eg multiple keyboards may contribute to the
 // logical keyboard and multiple mice and other devices such as a joystick or
 // light pen may contribute to the state of the logical mouse.
-final_class_ivars(HIDDriver, Driver,
+final_class_ivars(IOHIDManager, Object,
     mtx_t                       mtx;
 
 
@@ -174,4 +174,4 @@ const int16_t __y1 = __min((__a)->b, (__b)->b); \
 #define EVQ_WRITABLE_COUNT() \
 (self->evqCapacity - (self->evqWriteIdx - self->evqReadIdx))
 
-#endif /* HIDDriverPriv_h */
+#endif /* IOHIDManagerPriv_h */

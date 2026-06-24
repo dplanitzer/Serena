@@ -8,8 +8,9 @@
 
 #include <console/Console.h>
 #include <driver/IOCatalog.h>
-#include <driver/hid/HIDDriver.h>
+#include <driver/hid/IOHIDManager.h>
 #include <handler/ConsoleHandler.h>
+#include <handler/IOHIDHandler.h>
 #include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
 #include <kpi/fs_perms.h>
@@ -44,11 +45,6 @@ errno_t init_iokit(void)
     try(Driver_Start(dp));
     gPlatformController = (PlatformControllerRef)dp;
 
-
-    // 'hid' driver
-    try(HIDDriver_Create(&dp));
-    try(Driver_Start(dp));
-
 catch:
     return err;
 }
@@ -75,6 +71,18 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0440);
+    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+
+
+    try(IOHIDManager_Create(&gIOHIDManager));
+    try(IOHIDManager_Start(gIOHIDManager));
+    
+    en.name = "hid";
+    en.resource = NULL;
+    en.func = IOHIDHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0666);
     try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
 
 catch:

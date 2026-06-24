@@ -10,12 +10,12 @@
 #define IOHIDHandler_h
 
 #include <stdarg.h>
-#include <handler/IODriverHandler.h>
+#include <handler/PseudoHandler.h>
 
 
-open_class(IOHIDHandler, IODriverHandler,
+open_class(IOHIDHandler, PseudoHandler,
 );
-open_class_funcs(IOHIDHandler, IODriverHandler,
+open_class_funcs(IOHIDHandler, PseudoHandler,
 );
 
 

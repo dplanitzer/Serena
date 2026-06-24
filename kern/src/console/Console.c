@@ -9,7 +9,8 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
-#include <driver/hid/HIDDriver.h>
+#include <driver/hid/IOHIDManager.h>
+#include <driver/Driver.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
 #include <kern/kalloc.h>
@@ -20,7 +21,6 @@
 #include <kpi/hid.h>
 
 ConsoleRef gConsole;
-IOCATS_DEF(g_hid_manager_cats, IOHID_MANAGER);
 IOCATS_DEF(g_fb_cats, IOVID_FB);
 
 
@@ -40,8 +40,8 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(kdispatch_create(&attr, &self->dq));
 
-    // Open the HID driver
-    try(IOCatalog_OpenBestMatch(gIOCatalog, g_hid_manager_cats, O_RDONLY, (DriverRef*)&self->hid));
+    // Connect to the HID manager
+    self->hid = gIOHIDManager;
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open the framebuffer
@@ -100,11 +100,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
         self->fb = NULL;
     }
 
-    if (self->hid) {
-        Driver_Close(self->hid);
-        Object_Release(self->hid);
-        self->hid = NULL;
-    }
+    self->hid = NULL;
 }
 
 void Console_Start(ConsoleRef _Nonnull self)
@@ -577,7 +573,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, fd_flags_t fl
         mtx_unlock(&self->mtx);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        errno_t e1 = HIDDriver_GetNextEvent(self->hid, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
+        errno_t e1 = IOHIDManager_GetNextEvent(self->hid, (nBytesRead == 0) ? timp : &NANOTIME_ZERO, &evt);
         mtx_lock(&self->mtx);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

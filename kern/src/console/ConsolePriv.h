@@ -172,7 +172,7 @@ final_class_ivars(Console, Object,
 
     vtparser_t                  vtparser;
 
-    HIDDriverRef _Nonnull       hid;
+    IOHIDManagerRef _Nonnull    hid;
     const KeyMap* _Nonnull      keyMap;
     CharBuffer                  chb;
     cbuf_t                      reportsQueue;

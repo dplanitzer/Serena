@@ -7,12 +7,13 @@
 //
 
 #include "IOHIDHandler.h"
-#include <driver/hid/HIDDriver.h>
+#include <driver/hid/IOHIDManager.h>
+#include <ext/nanotime.h>
 
 
 errno_t IOHIDHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOHIDHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
+    return PseudoHandler_Create(class(IOHIDHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as
@@ -20,7 +21,6 @@ errno_t IOHIDHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _
 errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    HIDDriverRef drv = IODriverHandler_GetDriver(self);
     const fd_flags_t flags = Handler_GetFlags(self);
     const bool isNonBlocking = (flags & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
@@ -35,7 +35,7 @@ errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
         // Only block waiting for the first event. For all other events we do not
         // wait.
-        const errno_t e1 = HIDDriver_GetNextEvent(drv, (pe == buf) ? timp : &NANOTIME_ZERO, pe);
+        const errno_t e1 = IOHIDManager_GetNextEvent(gIOHIDManager, (pe == buf) ? timp : &NANOTIME_ZERO, pe);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -54,25 +54,23 @@ errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf
 
 errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_list ap)
 {
-    HIDDriverRef drv = IODriverHandler_GetDriver(self);
-
     switch (cmd) {
         case kHIDCommand_GetNextEvent: {
             const nanotime_t* timeoutp = va_arg(ap, nanotime_t*);
             HIDEvent* evt = va_arg(ap, HIDEvent*);
 
-            return HIDDriver_GetNextEvent(drv, timeoutp, evt);
+            return IOHIDManager_GetNextEvent(gIOHIDManager, timeoutp, evt);
         }
 
         case kHIDCommand_FlushEvents:
-            HIDDriver_FlushEvents(drv);
+            IOHIDManager_FlushEvents(gIOHIDManager);
             return EOK;
             
         case kHIDCommand_GetKeyRepeatDelays: {
             nanotime_t* initialp = va_arg(ap, nanotime_t*);
             nanotime_t* repeatp = va_arg(ap, nanotime_t*);
 
-            HIDDriver_GetKeyRepeatDelays(drv, initialp, repeatp);
+            IOHIDManager_GetKeyRepeatDelays(gIOHIDManager, initialp, repeatp);
             return EOK;
         }
 
@@ -80,16 +78,16 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             const nanotime_t* initialp = va_arg(ap, nanotime_t*);
             const nanotime_t* repeatp = va_arg(ap, nanotime_t*);
 
-            HIDDriver_SetKeyRepeatDelays(drv, initialp, repeatp);
+            IOHIDManager_SetKeyRepeatDelays(gIOHIDManager, initialp, repeatp);
             return EOK;
         }
 
         case kHIDCommand_ObtainCursor: {
-            return HIDDriver_ObtainCursor(drv);
+            return IOHIDManager_ObtainCursor(gIOHIDManager);
         }
 
         case kHIDCommand_ReleaseCursor:
-            HIDDriver_ReleaseCursor(drv);
+            IOHIDManager_ReleaseCursor(gIOHIDManager);
             return EOK;
 
         case kHIDCommand_SetCursor: {
@@ -101,19 +99,19 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             const int hotSpotX = va_arg(ap, int);
             const int hotSpotY = va_arg(ap, int);
 
-            return HIDDriver_SetCursor(drv, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
+            return IOHIDManager_SetCursor(gIOHIDManager, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
         }
 
         case kHIDCommand_ShowCursor:
-            HIDDriver_ShowCursor(drv);
+            IOHIDManager_ShowCursor(gIOHIDManager);
             return EOK;
 
         case kHIDCommand_HideCursor:
-            HIDDriver_HideCursor(drv);
+            IOHIDManager_HideCursor(gIOHIDManager);
             return EOK;
 
         case kHIDCommand_ObscureCursor:
-            HIDDriver_ObscureCursor(drv);
+            IOHIDManager_ObscureCursor(gIOHIDManager);
             return EOK;
 
         case kHIDCommand_ShieldCursor: {
@@ -122,7 +120,7 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             const int w = va_arg(ap, int);
             const int h = va_arg(ap, int);
 
-            return HIDDriver_ShieldMouseCursor(drv, x, y, w, h);
+            return IOHIDManager_ShieldMouseCursor(gIOHIDManager, x, y, w, h);
         }
 
         default:
@@ -131,7 +129,7 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
 }
 
 
-class_func_defs(IOHIDHandler, IODriverHandler,
+class_func_defs(IOHIDHandler, PseudoHandler,
 override_func_def(read, IOHIDHandler, Handler)
 override_func_def(control, IOHIDHandler, Handler)
 );
