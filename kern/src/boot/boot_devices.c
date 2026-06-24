@@ -8,8 +8,7 @@
 
 #include <driver/IOCatalog.h>
 #include <driver/hid/HIDDriver.h>
-#include <driver/pseudo/LogDriver.h>
-#include <driver/pseudo/VDMDriver.h>
+#include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
 #include <kpi/fs_perms.h>
 #include <kpi/uid.h>
@@ -48,16 +47,6 @@ errno_t init_iokit(void)
     try(HIDDriver_Create(&dp));
     try(Driver_Start(dp));
 
-
-    // 'klog' driver
-    try(LogDriver_Create(&dp));
-    try(Driver_Start(dp));
-
-        
-    // 'vdm' driver
-    try(VDMDriver_Create(&dp));
-    try(Driver_Start(dp));
-
 catch:
     return err;
 }
@@ -75,6 +64,15 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
+    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+
+
+    en.name = "klog";
+    en.resource = NULL;
+    en.func = LogHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0440);
     try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
 
 catch:

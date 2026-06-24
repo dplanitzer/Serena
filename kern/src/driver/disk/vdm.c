@@ -1,62 +1,18 @@
 //
-//  VDMDriver.c
+//  vdm.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/11/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "VDMDriver.h"
+#include "vdm.h"
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <handler/IODriverHandler.h>
 #include <kpi/fd.h>
 
-IOCATS_DEF(g_cats, IOSRV_VDM);
 
-
-final_class_ivars(VDMDriver, Driver,
-);
-
-
-errno_t VDMDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    VDMDriverRef self;
-
-    err = Driver_CreateRoot(class(VDMDriver), kDriver_IsBus, g_cats, (DriverRef*)&self);
-    if (err == EOK) {
-        Driver_SetMaxChildCount((DriverRef)self, 8);
-    }
-
-    *pOutSelf = (DriverRef)self;
-    return err;
-}
-
-errno_t VDMDriver_onStart(VDMDriverRef _Nonnull _Locked self)
-{
-    decl_try_err();
-
-    DirEntry be;
-    be.name = "vd-bus";
-    be.uid = UID_ROOT;
-    be.gid = GID_ROOT;
-    be.perms = fs_perms_from_octal(0755);
-
-    DriverEntry de;
-    de.name = "self";
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0666);
-
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
-
-catch:
-    return err;
-}
-
-errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image)
+errno_t vdm_create_disk(int type, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image)
 {
     decl_try_err();
     DriverRef dp = NULL;
@@ -98,15 +54,10 @@ errno_t VDMDriver_CreateDisk(VDMDriverRef _Nonnull self, int type, const char* _
         throw_iferr(err);
     }
 
-    try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
+    try(Driver_Start((DriverRef)dp));
     
 
 catch:
     Object_Release(dp);
     return err;
 }
-
-
-class_func_defs(VDMDriver, Driver,
-override_func_def(onStart, VDMDriver, Driver)
-);

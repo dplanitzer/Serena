@@ -9,12 +9,12 @@
 #ifndef LogHandler_h
 #define LogHandler_h
 
-#include <handler/IODriverHandler.h>
+#include <handler/PseudoHandler.h>
 
 
-open_class(LogHandler, IODriverHandler,
+open_class(LogHandler, PseudoHandler,
 );
-open_class_funcs(LogHandler, IODriverHandler,
+open_class_funcs(LogHandler, PseudoHandler,
 );
 
 

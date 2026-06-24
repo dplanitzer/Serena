@@ -7,9 +7,8 @@
 //
 
 #include <string.h>
-#include <driver/IOCatalog.h>
 #include <driver/PlatformController.h>
-#include <driver/pseudo/VDMDriver.h>
+#include <driver/disk/vdm.h>
 #include <kpi/fd.h>
 #include <kpi/smg.h>
 
@@ -29,11 +28,6 @@ void auto_discover_boot_rd(void)
     }
 
 
-    // Open the VDM
-    VDMDriverRef vdm;
-    try(IOCatalog_OpenBestMatch(gIOCatalog, g_vdm_cats, O_RDWR, (DriverRef*)&vdm));
-
-
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
     // that the disk image is exactly 64k in size.
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
@@ -46,11 +40,5 @@ void auto_discover_boot_rd(void)
         type = VDM_TYPE_REF_ROM;
     }
 
-    try(VDMDriver_CreateDisk(vdm, type, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
-
-catch:
-    if (vdm) {
-        Driver_Close(vdm);
-        Object_Release(vdm);
-    }
+    vdm_create_disk(type, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg);
 }
