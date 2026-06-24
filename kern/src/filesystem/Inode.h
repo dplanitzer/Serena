@@ -137,7 +137,7 @@ any_subclass_funcs(Inode,
 
 
 //
-// The following functions may be called without holding the inode mtx.
+// The following functions may be called without holding the inode lock.
 //
 
 // Reacquiring and relinquishing an existing inode
@@ -147,6 +147,15 @@ any_subclass_funcs(Inode,
 
 extern errno_t Inode_Relinquish(InodeRef _Nullable self);
 extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
+
+// Returns a weak reference to the resource that is associated with the inode.
+// NULL is returned if the inode has no associated resource. The returned
+// reference is guaranteed to remain valid as long as the call holds a strong
+// reference to the inode. Furthermore, the resource reference is guaranteed to
+// stay constant as long as the inode stays alive. Thus it is not necessary to
+// hold the inode lock when calling this function. 
+#define Inode_GetResource(__self) \
+invoke_0(getResource, Inode, __self)
 
 
 //
@@ -295,9 +304,6 @@ extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 #define Inode_CreateHandler(__self, __mode, __pOutHandler) \
 invoke_n(createHandler, Inode, __self, __mode, __pOutHandler)
-
-#define Inode_GetResource(__self) \
-invoke_0(getResource, Inode, __self)
 
 
 #define Inode_GetAttributes(__self, __attr) \
