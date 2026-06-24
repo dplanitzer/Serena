@@ -16,7 +16,7 @@
 
 void IOHIDDevice_getReport(IOHIDDeviceRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
-    report->type = kIOHIDReportType_Null;
+    report->type = kIOHIDReportType_None;
 }
 
 errno_t IOHIDDevice_setReportTarget(IOHIDDeviceRef _Nonnull self, vcpu_t _Nullable vp, int signo)

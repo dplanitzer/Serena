@@ -124,7 +124,7 @@ void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, IOHIDReport* _Non
     }
 
 
-    report->type = kIOHIDReportType_Joystick;
+    report->type = kIOHIDReportType_GamePad;
     report->data.joy.x = x;
     report->data.joy.y = y;
     report->data.joy.buttons = buttons;

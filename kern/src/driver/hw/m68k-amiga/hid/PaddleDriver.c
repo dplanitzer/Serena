@@ -128,7 +128,7 @@ void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, IOHIDReport* _Nonnull
     *(self->reg_potgo) = 0x0001;
     
     
-    report->type = kIOHIDReportType_Joystick;
+    report->type = kIOHIDReportType_GamePad;
     report->data.joy.x = x;
     report->data.joy.y = y;
     report->data.joy.buttons = buttons;

@@ -16,11 +16,11 @@
 
 // HID report types
 typedef enum IOHIDReportType {
-    kIOHIDReportType_Null = 0,
+    kIOHIDReportType_None = 0,
     kIOHIDReportType_KeyDown,
     kIOHIDReportType_KeyUp,
     kIOHIDReportType_Mouse,
-    kIOHIDReportType_Joystick,
+    kIOHIDReportType_GamePad,
     kIOHIDReportType_LightPen
 } IOHIDReportType;
 

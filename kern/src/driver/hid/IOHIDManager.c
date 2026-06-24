@@ -40,7 +40,7 @@ errno_t IOHIDManager_Create(IOHIDManagerRef _Nullable * _Nonnull pOutSelf)
     wq_init(&self->reportsWaitQueue);
 
     self->reportSigs = sig_bit(SIGVBL) | sig_bit(SIGSCR);
-    self->report.type = kIOHIDReportType_Null;
+    self->report.type = kIOHIDReportType_None;
 
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
@@ -810,7 +810,7 @@ static bool _collect_keyboard_reports(IOHIDManagerRef _Nonnull self)
     for (;;) {
         IOHIDDevice_GetReport(self->kb, &self->report);
                 
-        if (self->report.type == kIOHIDReportType_Null) {
+        if (self->report.type == kIOHIDReportType_None) {
             break;
         }
 
@@ -963,7 +963,7 @@ static void _reports_collector_loop(IOHIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
 
     for (;;) {
-        self->report.type = kIOHIDReportType_Null;
+        self->report.type = kIOHIDReportType_None;
         clock_gettime(g_mono_clock, &self->now);
 
 

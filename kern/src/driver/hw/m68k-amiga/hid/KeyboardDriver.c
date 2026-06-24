@@ -104,7 +104,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, IOHIDReport* _Non
         report->data.key.keyCode = (uint16_t)g_usb_code_map[keyCode & 0x7f];
     }
     else {
-        report->type = kIOHIDReportType_Null;
+        report->type = kIOHIDReportType_None;
     }
 }
 
