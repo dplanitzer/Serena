@@ -12,7 +12,7 @@
 
 errno_t IOGraphicsHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOGraphicsHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
+    return IODriverHandler_Create(class(IOGraphicsHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
 }
 
 errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int cmd, va_list ap)

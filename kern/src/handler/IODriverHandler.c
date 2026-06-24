@@ -17,7 +17,7 @@
 //XXX tmp
 errno_t IONopHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IODriverHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
+    return IODriverHandler_Create(class(IODriverHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
 }
 
 errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
@@ -93,8 +93,18 @@ errno_t IODriverHandler_control(struct IODriverHandler* _Nonnull self, int cmd, 
     }
 }
 
+errno_t IODriverHandler_getAttributes(struct IODriverHandler* _Nonnull self, fs_attr_t* _Nonnull attr)
+{
+    Inode_Lock(self->ino);
+    Inode_GetAttributes(self->ino, attr);
+    Inode_Unlock(self->ino);
+    
+    return EOK;
+}
+
 
 class_func_defs(IODriverHandler, Handler,
 override_func_def(deinit, IODriverHandler, Object)
 override_func_def(control, IODriverHandler, Handler)
+override_func_def(getAttributes, IODriverHandler, Handler)
 );

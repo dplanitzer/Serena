@@ -12,7 +12,7 @@
 
 errno_t IOHIDHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOHIDHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
+    return IODriverHandler_Create(class(IOHIDHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as

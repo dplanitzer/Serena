@@ -48,6 +48,6 @@
 #define FD_TYPE_INVALID     -1
 #define FD_TYPE_TERMINAL    0
 #define FD_TYPE_INODE       1
-#define FD_TYPE_DRIVER      2
+#define FD_TYPE_DEVICE      2
 
 #endif /* _KPI_FD_H */

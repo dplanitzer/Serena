@@ -32,7 +32,17 @@ void PseudoHandler_deinit(struct PseudoHandler* _Nonnull self)
     self->ino = NULL;
 }
 
+errno_t PseudoHandler_getAttributes(struct PseudoHandler* _Nonnull self, fs_attr_t* _Nonnull attr)
+{
+    Inode_Lock(self->ino);
+    Inode_GetAttributes(self->ino, attr);
+    Inode_Unlock(self->ino);
+    
+    return EOK;
+}
+
 
 class_func_defs(PseudoHandler, Handler,
 override_func_def(deinit, PseudoHandler, Object)
+override_func_def(getAttributes, PseudoHandler, Handler)
 );

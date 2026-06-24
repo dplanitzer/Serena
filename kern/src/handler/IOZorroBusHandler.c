@@ -12,7 +12,7 @@
 
 errno_t IOZorroBusHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOZorroBusHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
+    return IODriverHandler_Create(class(IOZorroBusHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
 }
 
 errno_t IOZorroBusHandler_control(struct IOZorroBusHandler* _Nonnull self, int cmd, va_list ap)

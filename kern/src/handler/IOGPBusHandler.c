@@ -12,7 +12,7 @@
 
 errno_t IOGPBusHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
-    return IODriverHandler_Create(class(IOGPBusHandler), FD_TYPE_DRIVER, ip, flags, pOutHandler);
+    return IODriverHandler_Create(class(IOGPBusHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
 }
 
 errno_t IOGPBusHandler_control(struct IOGPBusHandler* _Nonnull self, int cmd, va_list ap)

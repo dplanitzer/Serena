@@ -15,7 +15,7 @@ errno_t IODiskHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef 
     decl_try_err();
     struct IODiskHandler* self;
 
-    err = IODriverHandler_Create(class(IODiskHandler), FD_TYPE_DRIVER, ip, flags, (HandlerRef*)&self);
+    err = IODriverHandler_Create(class(IODiskHandler), FD_TYPE_DEVICE, ip, flags, (HandlerRef*)&self);
     if (err == EOK) {
         mtx_init(&self->mtx);
     }
