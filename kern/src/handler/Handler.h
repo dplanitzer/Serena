@@ -13,6 +13,7 @@
 #include <ext/atomic.h>
 #include <ext/try.h>
 #include <kobj/Object.h>
+#include <kpi/attr.h>
 #include <kpi/fd.h>
 #include <kpi/types.h>
 #include <kpi/_seek.h>
@@ -70,6 +71,17 @@ open_class_funcs(Handler, Object,
     // lock the channel and then invoke do_seek().
     errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
+    // Returns the attributes of the Inode to which the channel is connected if
+    // the channel is an Inode channel. Returns EBADF otherwise.
+    // Override: Optional
+    // Default Behavior: Returns EBADF
+    errno_t (*getAttributes)(void* _Nonnull self, fs_attr_t* _Nonnull attr);
+
+    // Reduces or increases the size of a regular file if the channel is connected
+    // to an Inode. Returns EBADF otherwise
+    // Override: Optional
+    // Default Behavior: Returns EBADF
+    errno_t (*truncate)(void* _Nonnull self, off_t length);
 
     // Execute a resource specific command.
     errno_t (*control)(void* _Nonnull self, int cmd, va_list ap);
@@ -97,6 +109,12 @@ invoke_n(write, Handler, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Handler_Seek(__self, __offset, __pOutNewPos, __whence) \
 invoke_n(seek, Handler, __self, __offset, __pOutNewPos, __whence)
+
+#define Handler_GetAttributes(__self, __attr) \
+invoke_n(getAttributes, Handler, __self, __attr)
+
+#define Handler_Truncate(__self, __length) \
+invoke_n(truncate, Handler, __self, __length)
 
 #define Handler_Control(__self, __cmd, __ap) \
 invoke_n(control, Handler, __self, __cmd, __ap)

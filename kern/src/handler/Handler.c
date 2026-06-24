@@ -56,12 +56,12 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 
 errno_t Handler_read(HandlerRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return EBADF;
+    return EINVAL;
 }
 
 errno_t Handler_write(HandlerRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return EBADF;
+    return EINVAL;
 }
 
 
@@ -108,10 +108,22 @@ errno_t Handler_control(HandlerRef _Nonnull self, int cmd, va_list ap)
     return ENOTIOCTLCMD;
 }
 
+errno_t Handler_getAttributes(HandlerRef _Nonnull self, fs_attr_t* _Nonnull attr)
+{
+    return EINVAL;
+}
+
+errno_t Handler_truncate(HandlerRef _Nonnull self, off_t length)
+{
+    return EINVAL;
+}
+
 
 class_func_defs(Handler, Object,
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
 func_def(control, Handler)
+func_def(getAttributes, Handler)
+func_def(truncate, Handler)
 );

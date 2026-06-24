@@ -119,28 +119,20 @@ errno_t HandlerTable_AdoptHandler(HandlerTable* _Nonnull self, HandlerRef _Consu
     return err;
 }
 
-errno_t HandlerTable_CopyHandler(HandlerTable* _Nonnull self, int fd, Class* _Nullable pClass, HandlerRef _Nullable * _Nonnull pOutHandler)
+errno_t HandlerTable_CopyHandler(HandlerTable* _Nonnull self, int fd, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
-    HandlerRef hnd = NULL;
 
     mtx_lock(&self->mtx);
 
     if (fd >= 0 && fd <= self->max_fd_num && self->table[fd]) {
-        if (pClass == NULL || _dynamiccast((AnyRef)self->table[fd], pClass) != NULL) {
-            hnd = Object_Retain(self->table[fd]);
-        }
-        else {
-            err = EINVAL;
-        }
+        *pOutHandler = Object_Retain(self->table[fd]);
     }
     else {
         err = EBADF;
     }
     
     mtx_unlock(&self->mtx);
-    
-    *pOutHandler = hnd;
     return err;
 }
 

@@ -226,7 +226,7 @@ errno_t proc_img_open_file(proc_img_t* _Nonnull pimg, const char* _Nonnull path)
 
 
     try(FileManager_OpenFile(pimg->fm, pimg->orig_path, O_RDONLY | O_EXONLY, &pimg->file));
-    try(InodeHandler_GetAttributes(pimg->file, &pimg->file_attr));
+    try(Handler_GetAttributes(pimg->file, &pimg->file_attr));
 
     // Do some basic file validation
     if (pimg->file_attr.file_type != FS_FTYPE_REG) {

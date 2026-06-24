@@ -9,7 +9,6 @@
 #include "InodeHandler.h"
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
-#include <kpi/fd.h>
 
 
 errno_t InodeHandler_Create(InodeRef _Nonnull pNode, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutFile)
@@ -131,7 +130,7 @@ errno_t InodeHandler_truncate(InodeHandlerRef _Nonnull self, off_t length)
         err = Inode_Truncate(self->ino, length);
     }
     else {
-        err = EBADF;
+        err = EINVAL;
     }
     Inode_Unlock(self->ino);
     
@@ -144,6 +143,6 @@ override_func_def(deinit, InodeHandler, Object)
 override_func_def(read, InodeHandler, Handler)
 override_func_def(write, InodeHandler, Handler)
 override_func_def(seek, InodeHandler, Handler)
-func_def(getAttributes, InodeHandler)
-func_def(truncate, InodeHandler)
+override_func_def(getAttributes, InodeHandler, Handler)
+override_func_def(truncate, InodeHandler, Handler)
 );
