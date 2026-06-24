@@ -13,7 +13,6 @@
 #include <driver/Driver.h>
 #include <driver/IOCatalog.h>
 #include <ext/nanotime.h>
-#include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
@@ -34,7 +33,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL, "con");
     ConsoleRef self;
 
-    try(kalloc_cleared(sizeof(struct Console), (void**)&self));
+    try(Object_Create(class(Console), 0, (void**)&self));
     
     mtx_init(&self->mtx);
 
