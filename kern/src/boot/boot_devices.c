@@ -64,7 +64,7 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
 
 
     en.name = "klog";
@@ -73,7 +73,7 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0440);
-    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
 
 
     try(IOHIDManager_Create(&gIOHIDManager));
@@ -85,7 +85,7 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
 
 catch:
     return err;
@@ -106,7 +106,7 @@ errno_t init_console(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(IOCatalog_PublishEntry(gIOCatalog, kCatalogId_None, &en, &dummy));
+    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
 
 catch:
     return err;

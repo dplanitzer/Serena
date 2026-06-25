@@ -77,32 +77,17 @@ extern errno_t IOCatalog_AcquireNodeForDriver(IOCatalogRef _Nonnull self, Driver
 extern errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 
-// Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
-// the 'parentFolderId' to create the new folder inside the root folder. 
-extern errno_t IOCatalog_PublishFolder(IOCatalogRef _Nonnull self, CatalogId parentFolderId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutFolderId);
+// Removes a published entry from the catalog.
+extern errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId entryId);
 
 
-// Either removes a published entry or a published folder from the catalog.
-// Pass both a folder ID and the entry ID if you want to remove an entry.
-// Note that this removes just the entry and not the published folder. Pass a
-// folder ID and kIOCatalog_None as the entry ID to remove a folder. Note that the
-// folder must be empty in order to remove it.
-extern errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId);
-
-
-// Publish the driver instance 'drv' with the name 'name' as a child of the
-// directory 'folderId', in the driver catalog. The driver is published as a
-// child of the root directory if 'folderId' is kCatalogId_None.
+// Publish the driver instance 'drv' with the name 'name' in the driver catalog.
 // Returns a suitable error if another entry with the same name already exists.
-// 'arg' is an optional argument that will be passed to the Driver_Open() method
-// when the driver needs to be opened.
-extern errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
+extern errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
 
 // Publishes a new special file entry in the catalog. The entry may be associated
 // with an already existing resource 'resource'. The function 'func' is called
-// with 'ctx' as teh first argument when a handler for the resource is needed.
-// 'resource' may be NULL. In this case the node will return NULL as its resource
-// and 'func' will still be called with 'ctx' to create a handler when needed.
-extern errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, CatalogId folderId, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId);
+// when a handler for the resource is needed. 'resource' may be NULL.
+extern errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId);
 
 #endif /* IOCatalog_h */

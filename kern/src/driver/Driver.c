@@ -230,13 +230,13 @@ errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
         return EBUSY;
     }
 
-    return IOCatalog_PublishDriver(gIOCatalog, self, kCatalogId_None, de, &self->pid);
+    return IOCatalog_PublishDriver(gIOCatalog, self, de, &self->pid);
 }
 
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
     if (self->pid > 0) {
-        IOCatalog_Unpublish(gIOCatalog, kCatalogId_None, self->pid);
+        IOCatalog_Unpublish(gIOCatalog, self->pid);
         self->pid = 0;
     }
 }

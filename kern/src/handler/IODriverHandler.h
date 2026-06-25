@@ -19,9 +19,6 @@ open_class(IODriverHandler, Handler,
 open_class_funcs(IODriverHandler, Handler,
 );
 
-//XXX tmp
-extern errno_t IONopHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
-
 extern errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler);
 
 

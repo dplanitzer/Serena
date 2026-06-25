@@ -13,13 +13,6 @@
 #include <filesystem/Inode.h>
 
 
-
-//XXX tmp
-errno_t IONopHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    return IODriverHandler_Create(class(IODriverHandler), FD_TYPE_DEVICE, ip, flags, pOutHandler);
-}
-
 errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();

@@ -87,71 +87,24 @@ errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, fd
     return err;
 }
 
-static errno_t _acquire_folder(IOCatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
-{
-    if (folderId == kCatalogId_None) {
-        return Filesystem_AcquireRootDirectory(self->fs, pOutDir);
-    }
-    else {
-        return Filesystem_AcquireNodeWithId(self->fs, (ino_t)folderId, pOutDir);
-    }
-}
 
-// Publishes a folder with the name 'name' to the catalog. Pass kIOCatalog_None as
-// the 'parentFolderId' to create the new folder inside the root folder. 
-errno_t IOCatalog_PublishFolder(IOCatalogRef _Nonnull self, CatalogId parentFolderId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutFolderId)
-{
-    decl_try_err();
-    InodeRef pDir = NULL;
-    InodeRef pNode = NULL;
-    PathComponent pc;
-
-    *pOutFolderId = kCatalogId_None;
-
-    pc.name = be->name;
-    pc.count = strlen(be->name);
-
-    err = _acquire_folder(self, parentFolderId, &pDir);
-    if (err == EOK) {
-        err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, be->uid, be->gid, FS_FTYPE_DIR, be->perms, &pNode);
-        if (err == EOK) {
-            *pOutFolderId = (CatalogId)Inode_GetId(pNode);
-        }
-    }
-
-    Inode_Relinquish(pNode);
-    Inode_Relinquish(pDir);
-
-    return err;
-}
-
-
-errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId)
+errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId entryId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
     InodeRef pNode = NULL;
 
-    if (folderId == kCatalogId_None && entryId == kCatalogId_None) {
+    if (entryId == kCatalogId_None) {
         return EOK;
     }
     
     // Get the bus directory or devfs root
-    err = _acquire_folder(self, folderId, &pDir);
+    err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
     if (err == EOK) {
-        // Get the parent of the directory or the driver entry
-        if (entryId == kCatalogId_None) {
-            pNode = pDir;
-            pDir = NULL;
-
-            err = Filesystem_AcquireParentNode(self->fs, pDir, &pDir);
-        }
-        else {
-            err = Filesystem_AcquireNodeWithId(self->fs, (ino_t)entryId, &pNode);
-        }
+        err = Filesystem_AcquireNodeWithId(self->fs, (ino_t)entryId, &pNode);
 
 
-        // Delete the directory or the driver entry
+        // Delete the (driver) entry
         if (err == EOK) {
             err = Filesystem_Unlink(self->fs, pNode, pDir);
         }
@@ -165,7 +118,7 @@ catch:
 }
 
 
-errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, CatalogId folderId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
+errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     CatalogEntry ce;
 
@@ -176,10 +129,10 @@ errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull d
     ce.uid = de->uid;
     ce.gid = de->gid;
 
-    return IOCatalog_PublishEntry(self, folderId, &ce, pOutId);
+    return IOCatalog_PublishEntry(self, &ce, pOutId);
 }
 
-errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, CatalogId folderId, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId)
+errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -198,7 +151,7 @@ errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, CatalogId folderId, c
     args.uid = ce->uid;
     args.gid = ce->gid;
 
-    err = _acquire_folder(self, folderId, &pDir);
+    err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
     if (err == EOK) {
         err = KernFS_CreateHandlerNode((KernFSRef)self->fs, pDir, &pc, &args, &pNode);
         if (err == EOK) {
