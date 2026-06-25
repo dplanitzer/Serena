@@ -39,7 +39,7 @@ errno_t init_iokit(void)
 
     // Create the I/O catalog
     try(IOCatalog_Create(&gIOCatalog));
-    try(IORegistry_Create(&gIORegistry));
+    IORegistry_Init();
 
 
     // Platform controller

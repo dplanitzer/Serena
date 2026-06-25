@@ -781,11 +781,11 @@ static void _matching_driver(IOHIDManagerRef _Nonnull self, DriverRef _Nonnull d
     mtx_lock(&self->mtx);
 
     switch (action) {
-        case IONOTIFY_STARTED:
+        case IOMATCH_STARTED:
             _connect_driver(self, driver);
             break;
 
-        case IONOTIFY_STOPPING:
+        case IOMATCH_STOPPING:
             _disconnect_driver(self, driver);
             break;
 
@@ -958,7 +958,7 @@ static void _reports_collector_loop(IOHIDManagerRef _Nonnull self)
 {
     int signo = 0;
 
-    IORegistry_StartMatching(gIORegistry, g_hid_cats, (drv_match_func_t)_matching_driver, self);
+    IORegistry_StartMatching(gIORegistry, g_hid_cats, (IOMatchCallback)_matching_driver, self);
 
     mtx_lock(&self->mtx);
 

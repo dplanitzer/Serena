@@ -21,35 +21,30 @@
 
 struct matcher {
     queue_node_t        qe;
-    drv_match_func_t    func;
+    IOMatchCallback     func;
     void* _Nullable     arg;
     iocat_t             cats[IOCAT_MAX];
 };
 typedef struct matcher* matcher_t;
 
 
-typedef struct IORegistry {
-    mtx_t                       mtx;
-    deque_t/*Driver*/           drivers;
-    queue_t/*<matcher_t*/       matchers;
-    size_t                      driver_count;
-} IORegistry;
+struct IORegistry {
+    mtx_t                   mtx;
+    deque_t/*Driver*/       drivers;
+    queue_t/*<matcher_t*/   matchers;
+    size_t                  driver_count;
+};
 
 
-IORegistryRef gIORegistry;
+static struct IORegistry    g_io_reg;
+IORegistryRef               gIORegistry;
 
 
-errno_t IORegistry_Create(IORegistryRef _Nullable * _Nonnull pOutSelf)
+void IORegistry_Init(void)
 {
-    decl_try_err();
-    IORegistryRef self = NULL;
+    mtx_init(&g_io_reg.mtx);
 
-    try(kalloc_cleared(sizeof(IORegistry), (void**) &self));
-    mtx_init(&self->mtx);
-
-catch:
-    *pOutSelf = self;
-    return err;
+    gIORegistry = &g_io_reg;
 }
 
 static void _do_match_callouts(IORegistryRef _Nonnull _Locked self, DriverRef _Nonnull driver, int notify)
@@ -109,7 +104,7 @@ void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull d
     deque_add_last(&self->drivers, &drv->ioreg_qe);
     self->driver_count++;
 
-    _do_match_callouts(self, drv, IONOTIFY_STARTED);
+    _do_match_callouts(self, drv, IOMATCH_STARTED);
 
     mtx_unlock(&self->mtx);
 }
@@ -118,7 +113,7 @@ void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull
 {
     mtx_lock(&self->mtx);
 
-    _do_match_callouts(self, drv, IONOTIFY_STOPPING);
+    _do_match_callouts(self, drv, IOMATCH_STOPPING);
 
     self->driver_count--;
     deque_remove(&self->drivers, &drv->ioreg_qe);
@@ -145,7 +140,7 @@ DriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull sel
     return drv;
 }
 
-errno_t IORegistry_StartMatching(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg)
+errno_t IORegistry_StartMatching(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, IOMatchCallback _Nonnull f, void* _Nullable arg)
 {
     decl_try_err();
     DriverRef* drivers = NULL;
@@ -170,7 +165,7 @@ errno_t IORegistry_StartMatching(IORegistryRef _Nonnull self, const iocat_t* _No
     try(_copy_matching_drivers(self, cats, &drivers));
     i = 0;
     while (drivers[i]) {
-        f(arg, drivers[i], IONOTIFY_STARTED);
+        f(arg, drivers[i], IOMATCH_STARTED);
         i++;
     }
     kfree(drivers);
@@ -181,7 +176,7 @@ catch:
     return err;
 }
 
-void IORegistry_StopMatching(IORegistryRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg)
+void IORegistry_StopMatching(IORegistryRef _Nonnull self, IOMatchCallback _Nonnull f, void* _Nullable arg)
 {
     matcher_t pprev = NULL;
 

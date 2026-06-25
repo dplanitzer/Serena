@@ -14,16 +14,16 @@
 #include <kpi/types.h>
 
 
-#define IONOTIFY_STARTED    1
-#define IONOTIFY_STOPPING   2
+#define IOMATCH_STARTED     1
+#define IOMATCH_STOPPING    2
 
-typedef void (*drv_match_func_t)(void* _Nullable arg, DriverRef _Nonnull driver, int notify);
+typedef void (*IOMatchCallback)(void* _Nullable arg, DriverRef _Nonnull driver, int notify);
 
 
 extern IORegistryRef gIORegistry;
 
 
-extern errno_t IORegistry_Create(IORegistryRef _Nullable * _Nonnull pOutSelf);
+extern void IORegistry_Init(void);
 
 extern void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv);
 extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv);
@@ -39,20 +39,19 @@ extern errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const
 // no matching driver could be found.
 extern DriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats);
 
-// Registers a continuous driver matcher with the driver manager. This matcher
+// Registers a continuous driver matcher with the IORegistry. This matcher
 // will invoke 'f' with the argument 'arg' and the matching driver everytime a
 // driver matching any of the I/O categories 'cats' is started or stopped.
 // The function 'f' is also invoked with each driver that is already started
 // at the time this function is called and that matches any of the I/O categories
 // 'cats'. The matching stays in effect until it is cancelled by calling
 // IORegistry_StopMatching().
-// Note: the function 'f' is called while the driver manager is locked. Thus this
-// function will trigger a deadlock if it invokes any of the driver manager
-// methods.
-extern errno_t IORegistry_StartMatching(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg);
+// Note: the function 'f' is called while the IORegistry is locked. Thus this
+// function will trigger a deadlock if it invokes any of the IORegistry methods.
+extern errno_t IORegistry_StartMatching(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, IOMatchCallback _Nonnull f, void* _Nullable arg);
 
 // Cancels the driver matcher bound to the function 'f' and the argument 'arg'.
-extern void IORegistry_StopMatching(IORegistryRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg);
+extern void IORegistry_StopMatching(IORegistryRef _Nonnull self, IOMatchCallback _Nonnull f, void* _Nullable arg);
 
 
 // Opens the best driver that matches 'cats'.
