@@ -74,13 +74,13 @@ open_class_funcs(Handler, Object,
     // Returns the attributes of the Inode to which the channel is connected if
     // the channel is an Inode channel. Returns EBADF otherwise.
     // Override: Optional
-    // Default Behavior: Returns EBADF
+    // Default: Returns EBADF
     errno_t (*getAttributes)(void* _Nonnull self, fs_attr_t* _Nonnull attr);
 
     // Reduces or increases the size of a regular file if the channel is connected
     // to an Inode. Returns EBADF otherwise
     // Override: Optional
-    // Default Behavior: Returns EBADF
+    // Default: Returns EBADF
     errno_t (*truncate)(void* _Nonnull self, off_t length);
 
     // Execute a resource specific command.

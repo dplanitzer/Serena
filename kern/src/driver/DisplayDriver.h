@@ -38,14 +38,14 @@ open_class_funcs(DisplayDriver, Driver,
     // Returns the width and height in terms of pixels of the currently active
     // screen configuration.
     // Override: Required
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*getScreenSize)(void* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 
     // Specifies a VP that should receive the signal 'signo' every time the
     // current screen configuration changes. Turns notifications off if 'vp' is
     // NULL.
     // Override: Required
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*setScreenConfigObserver)(void* _Nonnull self, vcpu_t _Nullable vp, int signo);
 
 
@@ -55,7 +55,7 @@ open_class_funcs(DisplayDriver, Driver,
 
     // Enables or disables support for a light pen.
     // Override: Optional
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*setLightPenEnabled)(void* _Nonnull self, bool enabled);
 
 
@@ -68,32 +68,32 @@ open_class_funcs(DisplayDriver, Driver,
     // the BindMouseCursor() function. Note that calling this function may forcefully
     // take ownership of the highest priority hardware sprites.
     // Override: Required
-    // Default Behavior: Does nothing and returns ENOTSUP
+    // Default: Does nothing and returns ENOTSUP
     errno_t (*obtainCursor)(void* _Nonnull self);
 
     // Releases the mouse cursor and makes the underlying sprite available for
     // other uses again.
     // Override: Required
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*releaseCursor)(void* _Nonnull self);
 
     // Binds the given surface to the mouse cursor.
     // Override: Required
-    // Default Behavior: Does nothing and returns ENOTSUP
+    // Default: Does nothing and returns ENOTSUP
     errno_t (*bindCursor)(void* _Nonnull self, int id);
 
     // Sets the position of the mouse cursor. Note that the mouse cursor is only
     // visible as long as at least some part of it is inside the display window
     // area.
     // Override: Required
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*setCursorPosition)(void* _Nonnull self, int x, int y);
 
     // Sets the position of the mouse cursor. Note that the mouse cursor is only
     // visible as long as at least some part of it is inside the display window
     // area.
     // Override: Required
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*setCursorVisible)(void* _Nonnull self, bool isVisible);
 );
 

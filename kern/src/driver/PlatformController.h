@@ -27,14 +27,14 @@ open_class_funcs(PlatformController, Driver,
     // connected to the motherboard and instantiate suitable driver classes for
     // them.
     // Override: Required
-    // Default Behavior: Does nothing and returns EOK
+    // Default: Does nothing and returns EOK
     errno_t (*detectDevices)(void* _Nonnull self);
 
     // Override in a subclass to return the amount of physical RAM in the machine.
     // This is the RAM o the motherboard and all expansion boards that is useable
     // by Serena OS.
     // Override: Required
-    // Default Behavior: Returns 0
+    // Default: Returns 0
     uint64_t (*getPhysicalMemorySize)(void* _Nonnull self);
 
     // Override in a subclass to return a Rom-based disk image from which to boot

@@ -24,7 +24,7 @@ open_class_funcs(GamePortController, Driver,
     // be returned if no suitable driver is available. 
     // 
     // Override: Optional
-    // Default Behavior: Returns a suitable driver instance
+    // Default: Returns a suitable driver instance
     errno_t (*createInputDriver)(void* _Nonnull self, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver);
 );
 

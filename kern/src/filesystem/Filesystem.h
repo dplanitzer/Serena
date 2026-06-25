@@ -201,7 +201,7 @@ open_class_funcs(Filesystem, Object,
     // filesystem before start() has returned with EOK. 'params' is an optional
     // string with mount parameters. 
     // Override: Required
-    // Default Behavior: Returns EOK
+    // Default: Returns EOK
     errno_t (*onStart)(void* _Nonnull self, const char* _Nonnull params, FSProperties* _Nonnull pOutProps);
 
     // Invoked when a started instance of this file system is stopped. A file
@@ -215,7 +215,7 @@ open_class_funcs(Filesystem, Object,
     // Note that the filesystem will receive a call to disconnect() next once
     // this method has returned.
     // Override: Optional
-    // Default Behavior: Returns EOK
+    // Default: Returns EOK
     errno_t (*onStop)(void* _Nonnull self);
 
     // Invoked after onStop() has returned to disconnect the filesystem from its
@@ -224,7 +224,7 @@ open_class_funcs(Filesystem, Object,
     // has returned. Instead of accessing the storage the filesystem should
     // return a suitable error such as ENODEV to its clients.
     // Override: Optional
-    // Default Behavior: Syncs the disk cache disconnects the container
+    // Default: Syncs the disk cache disconnects the container
     void (*onDisconnect)(void* _Nonnull self);
 
 
@@ -232,22 +232,22 @@ open_class_funcs(Filesystem, Object,
     // implementation may return 0 to indicate that the filesystem storage is
     // not block based.
     // Override: Optional
-    // Default Behavior: Returns the block size as reported by the container
+    // Default: Returns the block size as reported by the container
     size_t (*getNodeBlockSize)(void* _Nonnull self, InodeRef _Locked _Nonnull node);
 
     // Returns general information about the filesystem.
     // Override: Optional
-    // Default Behavior: Returns EINVAL
+    // Default: Returns EINVAL
     errno_t (*getInfo)(void* _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo);
 
     // Returns a copy of the property 'flavor' in 'buf'.
     // Override: Optional
-    // Default Behavior: Returns EINVAL
+    // Default: Returns EINVAL
     errno_t (*getProperty)(void* _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize);
 
     // Sets the filesystem's label.
     // Override: Optional
-    // Default Behavior: Returns ENOTSUP
+    // Default: Returns ENOTSUP
     errno_t (*setLabel)(void* _Nonnull self, const char* _Nonnull buf);
 
 
@@ -263,7 +263,7 @@ open_class_funcs(Filesystem, Object,
     // unlocked. If 'pNode' is the root node of the filesystem then 'pOutParent'
     // is set to 'pNode' and 'pNode' is reacquired.
     // Override: Advised
-    // Default Behavior: Calls Inode.getParentId()
+    // Default: Calls Inode.getParentId()
     errno_t (*acquireParentNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nullable * _Nonnull pOutParent);
 
     // Returns EOK and the node corresponding to the tuple (parent-node, name),
@@ -282,7 +282,7 @@ open_class_funcs(Filesystem, Object,
     // You may use this mechanism to check whether a directory contains a node
     // with a given name without forcing the acquisition of the node itself.
     // Override: Advised
-    // Default Behavior: Returns NULL and ENOENT (EIO for '..' lookups)
+    // Default: Returns NULL and ENOENT (EIO for '..' lookups)
     errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
@@ -294,7 +294,7 @@ open_class_funcs(Filesystem, Object,
     // filesystem is > the capacity of the path component, then ENAMETOOLONG
     // should be returned.
     // Override: Advised
-    // Default Behavior: Returns EIO and sets 'pName' to an empty name
+    // Default: Returns EIO and sets 'pName' to an empty name
     errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, MutablePathComponent* _Nonnull pName);
 
     
@@ -336,7 +336,7 @@ open_class_funcs(Filesystem, Object,
     // then return it. It should return a suitable error and NULL if the inode
     // data can not be read off the disk.
     // Override: Required
-    // Default Behavior: Returns EIO
+    // Default: Returns EIO
     errno_t (*onAcquireNode)(void* _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Invoked when the inode is relinquished and it is marked as modified or
@@ -347,7 +347,7 @@ open_class_funcs(Filesystem, Object,
     // with the node and its content should be freed. On the other hand, a node
     // with a link count > 0 should be kept alive and just updated on the disk.
     // Override: Required
-    // Default Behavior: Returns EIO
+    // Default: Returns EIO
     errno_t (*onWritebackNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode);
 
     // Invoked when the given inode should be freed. This function is called

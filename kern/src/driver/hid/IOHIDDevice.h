@@ -80,7 +80,7 @@ open_class_funcs(IOHIDDevice, Driver,
     // override of this method should generate a report that reflects the current
     // state of the HID hardware.
     // Override: required
-    // Default Behavior: returns a null report
+    // Default: returns a null report
     void (*getReport)(void* _Nonnull self, IOHIDReport* _Nonnull report);
 
     // Sets the kernel virtual processor that should receive signal 'signo'

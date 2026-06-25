@@ -74,22 +74,22 @@ any_subclass_funcs(Inode,
     // Returns the attributes of the given node. The node may be of any
     // type.
     // Override: Optional
-    // Default Behavior: Returns the node's file info
+    // Default: Returns the node's file info
     void (*getAttributes)(void* _Nonnull _Locked self, fs_attr_t* _Nonnull attr);
 
     // Sets the access permissions of the inode.
     // Override: Optional
-    // Default Behavior: Updates the inode's permissions
+    // Default: Updates the inode's permissions
     void (*setPermissions)(void* _Nonnull _Locked self, fs_perms_t fsperms);
 
     // Sets the user and group id of the inode.
     // Override: Optional
-    // Default Behavior: Updates the inode's owner info
+    // Default: Updates the inode's owner info
     void (*setOwner)(void* _Nonnull _Locked self, uid_t uid, gid_t gid);
 
     // Sets the access and modification timestamps of the inode.
     // Override: Optional
-    // Default Behavior: Updates the inode's timestamp info
+    // Default: Updates the inode's timestamp info
     void (*setTimes)(void* _Nonnull _Locked self, const nanotime_t times[_Nullable 2]);
 
 

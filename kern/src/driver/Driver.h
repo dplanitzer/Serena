@@ -345,14 +345,14 @@ open_class_funcs(Driver, Object,
     // all components are in an idle state and to publish the driver to the
     // driver catalog.
     // Override: Recommended
-    // Default Behavior: Returns EOK and does nothing
+    // Default: Returns EOK and does nothing
     errno_t (*onStart)(void* _Nonnull _Locked self);
 
     // Invoked as the result of calling Driver_Stop(). A driver subclass should
     // override this method and configure the hardware such that it is in an
     // idle and (if possible) powered-down state.
     // Override: Optional
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*onStop)(void* _Nonnull _Locked self);
 
     // Invoked as the result of calling Driver_WaitForStopped(). A driver
@@ -361,19 +361,30 @@ open_class_funcs(Driver, Object,
     // The shutdown of those processes should be triggered from an onStop()
     // override.
     // Override: Optional
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*onWaitForStopped)(void* _Nonnull self);
+
+
+    // Registers the driver in the I/O registry.
+    // Override: Optional
+    // Default: registers the driver with the I/O registry
+    void (*doRegister)(void* _Nonnull self);
+
+    // Deregisters the driver from the I/O registry.
+    // Override: Optional
+    // Default: deregisters the driver from the I/O registry
+    void (*doDeregister)(void* _Nonnull self);
 
    
     // Invoked after the driver has been added as a child to the driver 'parent'.
     // Override: Optional; must call super
-    // Default Behavior: Various management tasks
+    // Default: Various management tasks
     void (*onAttached)(void* _Nonnull self, DriverRef _Nonnull parent);
 
     // Invoked after the driver has been stopped, waited for stopped and right
     // before it is detached from 'parent'.
     // Override: Optional; must call super
-    // Default Behavior: Various management tasks
+    // Default: Various management tasks
     void (*onDetaching)(void* _Nonnull self, DriverRef _Nonnull parent);
 
 
@@ -382,7 +393,7 @@ open_class_funcs(Driver, Object,
     // far. A count of 0 indicates that this is the first open. A driver
     // subclass can use this information to eg power up the hardware if necessary.
     // Override: Optional
-    // Default Behavior: returns EOK
+    // Default: returns EOK
     errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, fd_flags_t flags);
 
     // Invoked by the close() function to close an open I/O handler. The
@@ -392,19 +403,19 @@ open_class_funcs(Driver, Object,
     // last open handler is closed. The 'openCount' for the last open handler is
     // 1.
     // Override: Optional
-    // Default Behavior: does nothing
+    // Default: does nothing
     void (*onClose)(void* _Nonnull _Locked self, int openCount);
 
 
     // Opens the driver for use. You need to call this function first before
     // calling any of the driver commands.
     // Override: Optional
-    // Default Behavior: returns a handler instance
+    // Default: returns a handler instance
     errno_t (*open)(void* _Nonnull self, fd_flags_t flags);
 
     // Closes the driver.
     // Override: Optional
-    // Default Behavior: Does nothing
+    // Default: Does nothing
     void (*close)(void* _Nonnull self);
 
     // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
@@ -413,19 +424,19 @@ open_class_funcs(Driver, Object,
     // function will always either read at least one byte and return EOK or it
     // will read no bytes and return some error.
     // Override: Optional
-    // Default Behavior: Returns EBADF
+    // Default: Returns EBADF
     errno_t (*read)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
     // Override: Optional
-    // Default Behavior: Returns EBADF
+    // Default: Returns EBADF
     errno_t (*write)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is the value returned by
     // this function, minus one.
     // Override: Optional
-    // Default Behavior: Returns 0
+    // Default: Returns 0
     off_t (*getSeekableRange)(void* _Nonnull self);
 );
 
@@ -462,6 +473,13 @@ extern void Driver_Stop(DriverRef _Nonnull self, int reason);
 // The driver can be safely freed by calling Object_Release() once this function
 // has returned.
 extern void Driver_WaitForStopped(DriverRef _Nonnull self);
+
+
+#define Driver_Register(__self) \
+invoke_0(doRegister, Driver, __self)
+
+#define Driver_Deregister(__self) \
+invoke_0(doDeregister, Driver, __self)
 
 
 // Opens the driver for use.

@@ -101,7 +101,7 @@ open_class_funcs(DiskDriver, Driver,
     // execute the action directly instead of dispatching to a queue that doesn't
     // exist. 
     // Override: Optional
-    // Default Behavior: create a dispatch queue with priority Normal
+    // Default: create a dispatch queue with priority Normal
     errno_t (*createDispatchQueue)(void* _Nonnull self, kdispatch_t _Nullable * _Nonnull pOutQueue);
 
 
@@ -115,7 +115,7 @@ open_class_funcs(DiskDriver, Driver,
     //
 
     // Executes a disk request.
-    // Default Behavior: XXX
+    // Default: XXX
     void (*doCommand)(void* _Nonnull self, IODiskCommand* _Nonnull req);
 
 
@@ -126,7 +126,7 @@ open_class_funcs(DiskDriver, Driver,
     // returned, or it fails and no sector data is returned.
     // The sector address 'chs' is guaranteed to be a valid address.
     // 'secSize' is the sector size in bytes.
-    // Default Behavior: returns EIO
+    // Default: returns EIO
     errno_t (*getSector)(void* _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize);
 
     // Writes the contents of 'data' to the sector 'chs'. Blocks the caller
@@ -136,7 +136,7 @@ open_class_funcs(DiskDriver, Driver,
     // The sector address 'chs' is guaranteed to be valid.
     // 'secSize' is the sector size in bytes.
     // The abstract implementation returns EIO.
-    // Default Behavior: returns EIO
+    // Default: returns EIO
     errno_t (*putSector)(void* _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize);
 
 

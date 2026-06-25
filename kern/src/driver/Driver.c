@@ -127,7 +127,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
     mtx_unlock(&self->mtx);
 
     if (hasStarted) {
-        IORegistry_RegisterDriver(gIORegistry, self);
+        Driver_Register(self);
     }
 
     return err;
@@ -161,7 +161,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
         return;
     }
 
-    IORegistry_DeregisterDriver(gIORegistry, self);
+    Driver_Deregister(self);
 
     // The list of child drivers is now frozen and can not change anymore.
     // Tell all our child drivers to stop.
@@ -208,6 +208,17 @@ void Driver_WaitForStopped(DriverRef _Nonnull self)
 
 void Driver_onWaitForStopped(DriverRef _Nonnull self)
 {
+}
+
+
+void Driver_doRegister(DriverRef _Nonnull self)
+{
+    IORegistry_RegisterDriver(gIORegistry, self);
+}
+
+void Driver_doDeregister(DriverRef _Nonnull self)
+{
+    IORegistry_DeregisterDriver(gIORegistry, self);
 }
 
 
@@ -550,6 +561,8 @@ override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(onWaitForStopped, Driver)
+func_def(doRegister, Driver)
+func_def(doDeregister, Driver)
 func_def(onAttached, Driver)
 func_def(onDetaching, Driver)
 func_def(open, Driver)

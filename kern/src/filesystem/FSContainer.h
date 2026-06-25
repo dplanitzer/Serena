@@ -68,13 +68,13 @@ open_class_funcs(FSContainer, Object,
     // Returns information about the filesystem container and specified by
     // 'flavor', which is one of the FS_INFO_XXX constants.
     // Override: Optional
-    // Default Behavior: Returns EINVAL
+    // Default: Returns EINVAL
     errno_t (*getInfo)(void* _Nonnull self, int flavor, fs_info_ref _Nonnull pOutInfo);
 
     // Returns a copy of a container property specified by 'flavor', which is
     // one of the FS_PROP_XXX constants.
     // Override: Optional
-    // Default Behavior: Returns EINVAL
+    // Default: Returns EINVAL
     errno_t (*getProperty)(void* _Nonnull self, int flavor, char* _Nonnull buf, size_t bufSize);
 );
 
