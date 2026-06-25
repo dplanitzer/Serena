@@ -8,7 +8,7 @@
 
 #include "boot_screen.h"
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
-#include <driver/IOCatalog.h>
+#include <driver/IORegistry.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
@@ -40,7 +40,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(bt_screen_t));
 
-    if ((err = IOCatalog_OpenBestMatch(gIOCatalog, g_fb_cats, O_RDWR, (DriverRef*)&fb)) == EOK) {
+    if ((err = IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (DriverRef*)&fb)) == EOK) {
         // Create the surface and screen
         GraphicsDriver_CreateSurface2d(fb, width, height, PIXFMT_RGB_IND_1, &srf);
         GraphicsDriver_CreateCLUT(fb, 32, &clut);

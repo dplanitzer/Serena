@@ -23,7 +23,6 @@ errno_t KernFS_Create(const char* _Nonnull name, KernFSRef _Nullable * _Nonnull 
     try(Filesystem_Create(&kKernFSClass, NULL, (FilesystemRef*)&self));
 
     mtx_init(&self->inOwnedLock);
-    self->drvCount = 0;
     self->nextAvailableInodeId = 1;
 
     strncpy(self->name, name, KERNFS_NAME_MAX);
@@ -59,10 +58,6 @@ void _KernFS_AddInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
 
     mtx_lock(&self->inOwnedLock);
     deque_add_first(&self->inOwned[idx], &ip->inChain);
-
-    if (Inode_GetFileType(ip) == FS_FTYPE_DEV) {
-        self->drvCount++;
-    }
     mtx_unlock(&self->inOwnedLock);
 }
 
@@ -76,10 +71,6 @@ void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
         KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
         if (Inode_GetId(curNode) == id) {
-            if (Inode_GetFileType(ip) == FS_FTYPE_DEV) {
-                self->drvCount--;
-            }
-
             deque_remove(&self->inOwned[idx], &ip->inChain);
             Inode_Destroy((InodeRef)ip);
             break;
@@ -233,54 +224,6 @@ errno_t KernFS_getProperty(KernFSRef _Nonnull self, int flavor, char* _Nonnull b
     }
 
     return err;
-}
-
-errno_t KernFS_CopyMatchingDrivers(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers)
-{
-    decl_try_err();
-    DriverRef* drivers = NULL;
-    size_t idx = 0;
-
-    mtx_lock(&self->inOwnedLock);
-    try(kalloc(sizeof(DriverRef) * (self->drvCount + 1), (void**)&drivers));
-
-    for (size_t i = 0; i < IN_HASH_CHAINS_COUNT; i++) {
-        deque_for_each(&self->inOwned[i], struct KfsNode, it,
-            KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
-
-            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)Inode_GetResource(curNode), cats)) {
-                drivers[idx++] = Object_Retain(Inode_GetResource(curNode));
-            }
-        )
-    }
-    drivers[idx] = NULL;
-
-catch:
-    mtx_unlock(&self->inOwnedLock);
-
-    *pOutDrivers = drivers;
-    return err;
-}
-
-DriverRef _Nullable KernFS_CopyBestMatchingDriver(KernFSRef _Nonnull self, const iocat_t* _Nonnull cats)
-{
-    DriverRef drv = NULL;
-
-    mtx_lock(&self->inOwnedLock);
-    for (size_t i = 0; (drv == NULL) && (i < IN_HASH_CHAINS_COUNT); i++) {
-        deque_for_each(&self->inOwned[i], struct KfsNode, it,
-            KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
-
-            if (Inode_GetFileType(curNode) == FS_FTYPE_DEV && Driver_HasSomeCategories((DriverRef)Inode_GetResource(curNode), cats)) {
-                drv = Object_Retain(Inode_GetResource(curNode));
-                break;
-            }
-        )
-    }
-
-catch:
-    mtx_unlock(&self->inOwnedLock);
-    return drv;
 }
 
 

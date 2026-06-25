@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <driver/IOCatalog.h>
+#include <driver/IORegistry.h>
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
@@ -35,9 +35,9 @@ static DiskDriverRef _Nullable get_boot_mem_driver(void)
 {
     DiskDriverRef drv = NULL;
 
-    drv = (DiskDriverRef) IOCatalog_CopyBestMatchingDriver(gIOCatalog, g_ram_cats);
+    drv = (DiskDriverRef) IORegistry_CopyBestMatchingDriver(gIORegistry, g_ram_cats);
     if (drv == NULL) {
-        drv = (DiskDriverRef) IOCatalog_CopyBestMatchingDriver(gIOCatalog, g_rom_cats);
+        drv = (DiskDriverRef) IORegistry_CopyBestMatchingDriver(gIORegistry, g_rom_cats);
     }
 
     return drv;
@@ -63,7 +63,7 @@ static DiskDriverRef _Nullable get_boot_floppy_driver(void)
     size_t count = 0;
     static int g_pri_cutoff = INT_MAX;
     
-    err = IOCatalog_CopyMatchingDrivers(gIOCatalog, g_fd_cats, &drivers);
+    err = IORegistry_CopyMatchingDrivers(gIORegistry, g_fd_cats, &drivers);
     if (err != EOK) {
         return NULL;
     }

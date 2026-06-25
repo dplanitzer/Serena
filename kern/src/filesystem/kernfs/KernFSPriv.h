@@ -45,7 +45,6 @@
 final_class_ivars(KernFS, Filesystem,
     mtx_t                   inOwnedLock;
     deque_t/*<KfsNode>*/    inOwned[IN_HASH_CHAINS_COUNT];
-    size_t                  drvCount;
     ino_t                   nextAvailableInodeId;
     char                    name[KERNFS_NAME_MAX + 1];
 );

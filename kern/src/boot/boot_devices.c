@@ -8,6 +8,7 @@
 
 #include <console/Console.h>
 #include <driver/IOCatalog.h>
+#include <driver/IORegistry.h>
 #include <driver/hid/IOHIDManager.h>
 #include <handler/ConsoleHandler.h>
 #include <handler/IOHIDHandler.h>
@@ -38,6 +39,7 @@ errno_t init_iokit(void)
 
     // Create the I/O catalog
     try(IOCatalog_Create(&gIOCatalog));
+    try(IORegistry_Create(&gIORegistry));
 
 
     // Platform controller
@@ -76,7 +78,7 @@ errno_t init_pseudo_devices(void)
 
     try(IOHIDManager_Create(&gIOHIDManager));
     try(IOHIDManager_Start(gIOHIDManager));
-    
+
     en.name = "hid";
     en.resource = NULL;
     en.func = IOHIDHandler_Create;

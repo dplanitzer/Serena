@@ -41,6 +41,7 @@ class_ref(InodeHandler);
 class_ref(IOCatalog);
 class_ref(IOHIDDevice);
 class_ref(IOHIDManager);
+class_ref(IORegistry);
 class_ref(Handler);
 class_ref(JoystickDriver);
 class_ref(KernFS);

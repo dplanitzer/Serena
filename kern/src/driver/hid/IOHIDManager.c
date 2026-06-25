@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
-#include <driver/IOCatalog.h>
+#include <driver/IORegistry.h>
 #include <ext/bit.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
@@ -958,7 +958,7 @@ static void _reports_collector_loop(IOHIDManagerRef _Nonnull self)
 {
     int signo = 0;
 
-    IOCatalog_StartMatching(gIOCatalog, g_hid_cats, (drv_match_func_t)_matching_driver, self);
+    IORegistry_StartMatching(gIORegistry, g_hid_cats, (drv_match_func_t)_matching_driver, self);
 
     mtx_lock(&self->mtx);
 

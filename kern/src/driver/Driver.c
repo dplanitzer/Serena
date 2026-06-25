@@ -7,6 +7,7 @@
 //
 
 #include "Driver.h"
+#include "IORegistry.h"
 #include <assert.h>
 #include <ext/atomic.h>
 #include <kern/kalloc.h>
@@ -126,7 +127,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
     mtx_unlock(&self->mtx);
 
     if (hasStarted) {
-        IOCatalog_RegisterDriver(gIOCatalog, self);
+        IORegistry_RegisterDriver(gIORegistry, self);
     }
 
     return err;
@@ -160,7 +161,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
         return;
     }
 
-    IOCatalog_DeregisterDriver(gIOCatalog, self);
+    IORegistry_DeregisterDriver(gIORegistry, self);
 
     // The list of child drivers is now frozen and can not change anymore.
     // Tell all our child drivers to stop.
