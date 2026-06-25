@@ -56,37 +56,10 @@ FilesystemRef _Nonnull IOCatalog_GetFilesystem(IOCatalogRef _Nonnull self)
     return self->fs;
 }
 
-errno_t IOCatalog_AcquireNodeForPath(IOCatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
-{
-    return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, rp);
-}
-
 errno_t IOCatalog_AcquireNodeForDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull driver, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return Filesystem_AcquireNodeWithId(self->fs, (ino_t)driver->pid, pOutNode);
 }
-
-errno_t IOCatalog_Open(IOCatalogRef _Nonnull self, const char* _Nonnull path, fd_flags_t oflags, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    decl_try_err();
-    ResolvedPath rp;
-
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, UID_ROOT, GID_ROOT, &rp);
-    if (err == EOK) {
-        Inode_Lock(rp.inode);
-        if (!Inode_IsDirectory(rp.inode)) {
-            err = Inode_CreateHandler(rp.inode, oflags, pOutHandler);
-        }
-        else {
-            err = EISDIR;
-        }
-        Inode_Unlock(rp.inode);
-    }
-
-    ResolvedPath_Deinit(&rp);
-    return err;
-}
-
 
 errno_t IOCatalog_Unpublish(IOCatalogRef _Nonnull self, CatalogId entryId)
 {
@@ -115,21 +88,6 @@ catch:
     Inode_Relinquish(pDir);
 
     return err;
-}
-
-
-errno_t IOCatalog_PublishDriver(IOCatalogRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
-{
-    CatalogEntry ce;
-
-    ce.name = de->name;
-    ce.resource = (ObjectRef)drv;
-    ce.func = de->func;
-    ce.perms = de->perms;
-    ce.uid = de->uid;
-    ce.gid = de->gid;
-
-    return IOCatalog_PublishEntry(self, &ce, pOutId);
 }
 
 errno_t IOCatalog_PublishEntry(IOCatalogRef _Nonnull self, const CatalogEntry* _Nonnull ce, did_t* _Nullable pOutId)

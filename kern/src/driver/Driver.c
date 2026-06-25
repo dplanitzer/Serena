@@ -224,13 +224,13 @@ void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
 }
 
 
-errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
+errno_t Driver_Publish(DriverRef _Nonnull self, const CatalogEntry* _Nonnull ce)
 {
     if (self->pid > 0) {
         return EBUSY;
     }
 
-    return IOCatalog_PublishDriver(gIOCatalog, self, de, &self->pid);
+    return IOCatalog_PublishEntry(gIOCatalog, ce, &self->pid);
 }
 
 void Driver_Unpublish(DriverRef _Nonnull self)

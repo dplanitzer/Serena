@@ -157,14 +157,15 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     name[2] = '0' + self->drive;
     name[3] = '\0';
 
-    DriverEntry de;
-    de.name = name;
-    de.func = IODiskHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0666);
+    CatalogEntry ce;
+    ce.name = name;
+    ce.resource = (ObjectRef)self;
+    ce.func = IODiskHandler_Create;
+    ce.uid = UID_ROOT;
+    ce.gid = GID_ROOT;
+    ce.perms = fs_perms_from_octal(0666);
 
-    try(Driver_Publish((DriverRef)self, &de));
+    try(Driver_Publish((DriverRef)self, &ce));
     try(kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)FloppyDriver_Reset, self));
 
 catch:

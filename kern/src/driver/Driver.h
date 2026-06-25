@@ -550,7 +550,7 @@ extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const
 
 
 // Publish the receiver as a client driver to the driver catalog.
-extern errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de);
+extern errno_t Driver_Publish(DriverRef _Nonnull self, const CatalogEntry* _Nonnull ce);
 
 // Unpublishes the driver. Should be called from the onStop() override.
 extern void Driver_Unpublish(DriverRef _Nonnull self);
