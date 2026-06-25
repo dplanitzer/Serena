@@ -82,15 +82,15 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
-    CatalogEntry ce;
-    ce.name = self->name;
-    ce.resource = (ObjectRef)self;
-    ce.func = IODiskHandler_Create;
-    ce.uid = UID_ROOT;
-    ce.gid = GID_ROOT;
-    ce.perms = fs_perms_from_octal(0666);
+    devfs_entry_t en;
+    en.name = self->name;
+    en.resource = (ObjectRef)self;
+    en.func = IODiskHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0666);
 
-    return Driver_Publish((DriverRef)self, &ce);
+    return Driver_Publish((DriverRef)self, &en);
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk

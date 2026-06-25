@@ -12,11 +12,11 @@
 #include <stdarg.h>
 #include <ext/queue.h>
 #include <kobj/Object.h>
+#include <kern/devfs.h>
 #include <kpi/file.h>
 #include <kpi/ioctl.h>
 #include <kpi/uid.h>
 #include <sched/mtx.h>
-#include <driver/IOCatalog.h>
 
 struct drv_child;
 
@@ -325,7 +325,7 @@ open_class(Driver, Object,
 
     mtx_t                       mtx;    // lifecycle management lock
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
-    CatalogId                   pid;    //XXX tmp
+    devfs_hnd_t                 devfs_hnd;
     
     DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver
     struct drv_child* _Nullable child;
@@ -520,6 +520,9 @@ extern DriverRef _Nullable Driver_GetBusController(DriverRef _Nonnull self);
 #define Driver_GetParentAs(__self, __class) \
 ((__class##Ref)(((DriverRef)__self)->parent))
 
+#define Driver_GetDevfsHandle(__self) \
+((DriverRef)__self)->devfs_hnd
+
 
 //
 // Subclassers
@@ -550,7 +553,7 @@ extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const
 
 
 // Publish the receiver as a client driver to the driver catalog.
-extern errno_t Driver_Publish(DriverRef _Nonnull self, const CatalogEntry* _Nonnull ce);
+extern errno_t Driver_Publish(DriverRef _Nonnull self, const devfs_entry_t* _Nonnull en);
 
 // Unpublishes the driver. Should be called from the onStop() override.
 extern void Driver_Unpublish(DriverRef _Nonnull self);

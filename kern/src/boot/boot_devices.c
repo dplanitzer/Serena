@@ -7,13 +7,13 @@
 //
 
 #include <console/Console.h>
-#include <driver/IOCatalog.h>
 #include <driver/IORegistry.h>
 #include <driver/hid/IOHIDManager.h>
 #include <handler/ConsoleHandler.h>
 #include <handler/IOHIDHandler.h>
 #include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
+#include <kern/devfs.h>
 #include <kpi/fs_perms.h>
 #include <kpi/uid.h>
 #ifdef MACHINE_AMIGA
@@ -37,8 +37,8 @@ errno_t init_iokit(void)
     decl_try_err();
     DriverRef dp;
 
-    // Create the I/O catalog
-    try(IOCatalog_Create(&gIOCatalog));
+    // Create devfs and the I/O registry
+    try(devfs_init());
     IORegistry_Init();
 
 
@@ -55,8 +55,7 @@ catch:
 errno_t init_pseudo_devices(void)
 {
     decl_try_err();
-    CatalogEntry en;
-    did_t dummy;
+    devfs_entry_t en;
 
     en.name = "null";
     en.resource = NULL;
@@ -64,7 +63,7 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
+    try(devfs_add(&en, NULL));
 
 
     en.name = "klog";
@@ -73,7 +72,7 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0440);
-    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
+    try(devfs_add(&en, NULL));
 
 
     try(IOHIDManager_Create(&gIOHIDManager));
@@ -85,7 +84,7 @@ errno_t init_pseudo_devices(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
+    try(devfs_add(&en, NULL));
 
 catch:
     return err;
@@ -94,8 +93,7 @@ catch:
 errno_t init_console(void)
 {
     decl_try_err();
-    CatalogEntry en;
-    did_t dummy;
+    devfs_entry_t en;
 
     try(Console_Create(&gConsole));
     Console_Start(gConsole);
@@ -106,7 +104,7 @@ errno_t init_console(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(IOCatalog_PublishEntry(gIOCatalog, &en, &dummy));
+    try(devfs_add(&en, NULL));
 
 catch:
     return err;

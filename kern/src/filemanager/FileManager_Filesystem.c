@@ -12,10 +12,10 @@
 #include "FilesystemManager.h"
 #include <string.h>
 #include <driver/disk/DiskDriver.h>
-#include <driver/IOCatalog.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <handler/Handler.h>
+#include <kern/devfs.h>
 #include <kpi/file.h>
 #include <kpi/filesystem.h>
 #include <process/ProcessManager.h>
@@ -98,7 +98,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     FilesystemRef fs = NULL;
 
     if (!strcmp(catalogName, FS_CATALOG_DEV)) {
-        fs = IOCatalog_GetFilesystem(gIOCatalog);
+        fs = devfs_get_fs();
     }
     else {
         *pOutFs = NULL;
@@ -174,7 +174,7 @@ errno_t FileManager_GetPathForDriver(FileManagerRef _Nonnull self, DriverRef _No
     decl_try_err();
     InodeRef ip = NULL;
 
-    try(IOCatalog_AcquireNodeForDriver(gIOCatalog, driver, &ip));
+    try(devfs_acquire_node_for_handle(Driver_GetDevfsHandle(driver), &ip));
     
     //XXX getting insufficient permissions when using the user credentials 
     try(FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize));

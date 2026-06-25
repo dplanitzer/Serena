@@ -9,7 +9,6 @@
 #include <string.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <driver/IOCatalog.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/kernfs/KernFS.h>

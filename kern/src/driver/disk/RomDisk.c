@@ -74,15 +74,15 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
-    CatalogEntry ce;
-    ce.name = self->name;
-    ce.resource = (ObjectRef)self;
-    ce.func = IODiskHandler_Create;
-    ce.uid = UID_ROOT;
-    ce.gid = GID_ROOT;
-    ce.perms = fs_perms_from_octal(0444);
+    devfs_entry_t en;
+    en.name = self->name;
+    en.resource = (ObjectRef)self;
+    en.func = IODiskHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0444);
 
-    return Driver_Publish((DriverRef)self, &ce);
+    return Driver_Publish((DriverRef)self, &en);
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)

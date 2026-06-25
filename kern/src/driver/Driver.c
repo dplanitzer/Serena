@@ -224,20 +224,20 @@ void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
 }
 
 
-errno_t Driver_Publish(DriverRef _Nonnull self, const CatalogEntry* _Nonnull ce)
+errno_t Driver_Publish(DriverRef _Nonnull self, const devfs_entry_t* _Nonnull en)
 {
-    if (self->pid > 0) {
+    if (self->devfs_hnd > 0) {
         return EBUSY;
     }
 
-    return IOCatalog_PublishEntry(gIOCatalog, ce, &self->pid);
+    return devfs_add(en, &self->devfs_hnd);
 }
 
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
-    if (self->pid > 0) {
-        IOCatalog_Unpublish(gIOCatalog, self->pid);
-        self->pid = 0;
+    if (self->devfs_hnd > 0) {
+        devfs_remove(self->devfs_hnd);
+        self->devfs_hnd = 0;
     }
 }
 

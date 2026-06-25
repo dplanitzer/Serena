@@ -72,15 +72,15 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    CatalogEntry ce;
-    ce.name = "fb";
-    ce.resource = (ObjectRef)self;
-    ce.func = IOGraphicsHandler_Create;
-    ce.uid = UID_ROOT;
-    ce.gid = GID_ROOT;
-    ce.perms = fs_perms_from_octal(0666);
+    devfs_entry_t en;
+    en.name = "fb";
+    en.resource = (ObjectRef)self;
+    en.func = IOGraphicsHandler_Create;
+    en.uid = UID_ROOT;
+    en.gid = GID_ROOT;
+    en.perms = fs_perms_from_octal(0666);
 
-    err = Driver_Publish((DriverRef)self, &ce);
+    err = Driver_Publish((DriverRef)self, &en);
     if (err == EOK) {
         copper_start();
         vcpu_resume(self->copvp, false);
