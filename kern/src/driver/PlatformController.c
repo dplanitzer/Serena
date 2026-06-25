@@ -20,19 +20,7 @@ errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * 
 
 errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
 {
-    decl_try_err();
-
-    DirEntry be;
-    be.name = "hw";
-    be.uid = UID_ROOT;
-    be.gid = GID_ROOT;
-    be.perms = fs_perms_from_octal(0755);
-
-    try(Driver_PublishBus((DriverRef)self, &be, NULL));
-    try(PlatformController_DetectDevices(self));
-
-catch:
-    return err;
+    return PlatformController_DetectDevices(self);
 }
 
 errno_t PlatformController_detectDevices(PlatformControllerRef _Nonnull _Locked self)

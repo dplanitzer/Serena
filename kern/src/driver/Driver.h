@@ -326,7 +326,6 @@ open_class(Driver, Object,
     mtx_t                       mtx;    // lifecycle management lock
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
     CatalogId                   pid;    //XXX tmp
-    CatalogId                   ownedBusDirId;  // bus directory that this driver has published
     
     DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver
     struct drv_child* _Nullable child;
@@ -549,24 +548,9 @@ extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const
 #define Driver_GetId(__self) \
 ((DriverRef)__self)->id
 
-// Returns the bus directory of the bus controller that manages the receiver.
-// This is the directory inside of which the receiver should place its own
-// driver catalog entries (driver and bus entry).
-extern CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self);
-
-// Returns the bus directory that was created and is managed by the receiver.
-#define Driver_GetPublishedBusDirectory(__self) \
-((DriverRef)__self)->ownedBusDirId
-
 
 // Publish the receiver as a client driver to the driver catalog.
 extern errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de);
-
-// Publishes the receiver as a bus controller to the driver catalog. This means
-// that a directory is created based on 'be' and then a 'self' entry is added
-// to the bus directory based on 'de', if 'de' is provided. No 'self' entry is
-// added if 'de' is NULL. 
-extern errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de);
 
 // Unpublishes the driver. Should be called from the onStop() override.
 extern void Driver_Unpublish(DriverRef _Nonnull self);

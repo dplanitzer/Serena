@@ -105,7 +105,7 @@ Initializes an unformatted disk with the specified filesystem. The filesystem is
 
 ### Example
 
-`disk format -t sefs /dev/hw/fd-bus/fd1`
+`disk format -t sefs /dev/fd1`
 
 The disk in floppy disk drive 1 is formatted and initialized with a fresh Serena Filesystem copy. Note that it will take a while to complete the formatting process. Once completed the disk may be mounted and then accessed through the mountpoint directory.
 
@@ -163,7 +163,7 @@ Mounts the filesystem stored on a disk and makes it accessible at the directory 
 
 ### Example
 
-`disk mount --at /Volumes/FD1 /dev/hw/fd-bus/fd1`
+`disk mount --at /Volumes/FD1 /dev/fd1`
 
 Mounts the disk in floppy disk drive 1 at the directory `/Volumes/FD1`. Once mounting has completed, the contents of the disk may be accessed through this directory path.
 

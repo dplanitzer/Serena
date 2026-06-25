@@ -12,7 +12,6 @@
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
-#include <handler/IODriverHandler.h>
 #include <machine/amiga/adf.h>
 #include <sched/cnd.h>
 #include <sched/delay.h>
@@ -121,24 +120,6 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
 
 errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 {
-    decl_try_err();
-
-    DirEntry be;
-    be.name = "fd-bus";
-    be.uid = UID_ROOT;
-    be.gid = GID_ROOT;
-    be.perms = fs_perms_from_octal(0755);
-
-    DriverEntry de;
-    de.name = "self";
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0666);
-
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
-
-    
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
     FloppyController_DetectDevices(self);
@@ -147,8 +128,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_direct_func_t)_disk_block_irq, self);
     irq_enable_src(IRQ_ID_DISK_BLOCK);
 
-catch:
-    return err;
+    return EOK;
 }
 
 void FloppyController_onStop(DriverRef _Nonnull _Locked self)

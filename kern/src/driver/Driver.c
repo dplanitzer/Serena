@@ -230,47 +230,15 @@ errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
         return EBUSY;
     }
 
-    return IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetBusDirectory(self), de, &self->pid);
-}
-
-errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de)
-{
-    decl_try_err();
-
-    if (self->ownedBusDirId > 0) {
-        return EBUSY;
-    }
-
-    err = IOCatalog_PublishFolder(gIOCatalog, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
-    if (err == EOK && de) {
-        err = IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetPublishedBusDirectory(self), de, &self->pid);
-        if (err != EOK) {
-            IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->ownedBusDirId);
-            self->ownedBusDirId = 0;
-        }
-    }
-
-    return err;
+    return IOCatalog_PublishDriver(gIOCatalog, self, kCatalogId_None, de, &self->pid);
 }
 
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
     if (self->pid > 0) {
-        IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->pid);
+        IOCatalog_Unpublish(gIOCatalog, kCatalogId_None, self->pid);
         self->pid = 0;
     }
-    if (self->ownedBusDirId > 0) {
-        IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->ownedBusDirId);
-        self->ownedBusDirId = 0;
-    }
-}
-
-
-CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self)
-{
-    DriverRef bdp = Driver_GetBusController(self);
-
-    return (bdp) ? bdp->ownedBusDirId : 0;
 }
 
 

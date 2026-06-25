@@ -12,7 +12,6 @@
 #include <_cmndef.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <kpi/ioctl.h>
 
 __CPP_BEGIN
 
@@ -46,15 +45,6 @@ typedef struct zorro_conf {
     int8_t              slot;
     uint8_t             flags;
 } zorro_conf_t;
-
-
-// Returns the number of slots that contain cards.
-// get_card_count(size_t* _Nonnull ncards)
-#define kZorroCommand_GetCardCount  IOResourceCommand(kDriverCommand_SubclassBase + 0)
-
-// Returns the configuration information for the card at index 'idx'.
-// get_card_config(size_t idx, zorro_conf_t* _Nonnull cfg)
-#define kZorroCommand_GetCardConfig IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 __CPP_END
 
