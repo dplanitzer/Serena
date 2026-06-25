@@ -8,7 +8,6 @@
 
 #include "JoystickDriver.h"
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <handler/IODriverHandler.h>
 
 
 final_class_ivars(JoystickDriver, IOHIDDevice,
@@ -51,39 +50,16 @@ catch:
 
 errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
-    char name[10];
+    CHIPSET_BASE_DECL(cp);
+    CIAA_BASE_DECL(ciaa);
 
-    name[0] = 'j';
-    name[1] = 'o';
-    name[2] = 'y';
-    name[3] = 's';
-    name[4] = 't';
-    name[5] = 'i';
-    name[6] = 'c';
-    name[7] = 'k';
-    name[8] = '0' + self->port;
-    name[9] = '\0';
-
-    DriverEntry de;
-    de.name = name;
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0444);
-
-    err = Driver_Publish((DriverRef)self, &de);
-    if (err == EOK) {
-        CHIPSET_BASE_DECL(cp);
-        CIAA_BASE_DECL(ciaa);
-
-        // Switch bit 7 and 6 to input
-        *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
+    // Switch bit 7 and 6 to input
+    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
     
-        // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-        *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
-    }
-    return err;
+    // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
+    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+
+    return EOK;
 }
 
 void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, IOHIDReport* _Nonnull report)

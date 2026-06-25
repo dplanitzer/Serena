@@ -8,7 +8,6 @@
 
 #include "MouseDriver.h"
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <handler/IODriverHandler.h>
 
 
 final_class_ivars(MouseDriver, IOHIDDevice,
@@ -55,36 +54,16 @@ catch:
 
 errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
-    char name[7];
+    CHIPSET_BASE_DECL(cp);
+    CIAA_BASE_DECL(ciaa);
 
-    name[0] = 'm';
-    name[1] = 'o';
-    name[2] = 'u';
-    name[3] = 's';
-    name[4] = 'e';
-    name[5] = '0' + self->port;
-    name[6] = '\0';
-
-    DriverEntry de;
-    de.name = name;
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0444);
-
-    err = Driver_Publish((DriverRef)self, &de);
-    if (err == EOK) {
-        CHIPSET_BASE_DECL(cp);
-        CIAA_BASE_DECL(ciaa);
-
-        // Switch CIA PRA bit 7 and 6 to input for the left mouse button
-        *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
+    // Switch CIA PRA bit 7 and 6 to input for the left mouse button
+    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
     
-        // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-        *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
-    }
-    return err;
+    // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
+    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+
+    return EOK;
 }
 
 // Based on <https://www.markwrobel.dk/post/amiga-machine-code-letter11/>

@@ -8,7 +8,6 @@
 
 #include "ZRamDriver.h"
 #include <hal/sys_desc.h>
-#include <handler/IODriverHandler.h>
 #include <kern/kalloc.h>
 
 IOCATS_DEF(g_cats, IOMEM_RAM);
@@ -21,33 +20,16 @@ errno_t ZRamDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
     ZorroDriverRef zdp = Driver_GetParentAs(self, ZorroDriver);
     const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(zdp);
     mem_desc_t md = {0};
-    char name[5];
 
-    name[0] = 'r';
-    name[1] = 'a';
-    name[2] = 'm';
-    name[3] = '0' + cfg->slot;
-    name[4] = '\0';
+    md.lower = cfg->start;
+    md.upper = cfg->start + cfg->logicalSize;
+    md.type = MEM_TYPE_MEMORY;
+    (void) kalloc_add_memory_region(&md);
 
-    DriverEntry de;
-    de.name = name;
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0440);
-
-    if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
-        md.lower = cfg->start;
-        md.upper = cfg->start + cfg->logicalSize;
-        md.type = MEM_TYPE_MEMORY;
-        (void) kalloc_add_memory_region(&md);
-    }
-
-    return err;
+    return EOK;
 }
 
 class_func_defs(ZRamDriver, Driver,

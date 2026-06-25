@@ -9,7 +9,6 @@
 #include "ZorroController.h"
 #include "ZorroDriver.h"
 #include "zorro_bus.h"
-#include <handler/IOZorroBusHandler.h>
 
 
 final_class_ivars(ZorroController, Driver,
@@ -51,30 +50,11 @@ catch:
 
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
-    decl_try_err();
-
-    DirEntry be;
-    be.name = "zorro-bus";
-    be.uid = UID_ROOT;
-    be.gid = GID_ROOT;
-    be.perms = fs_perms_from_octal(0755);
-
-    DriverEntry de;
-    de.name = "self";
-    de.func = IOZorroBusHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0666);
-
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
-
-
     // Auto-config the bus. Discover as many cards as possible and ignore anything
     // that fails.
     _auto_config_bus(self);
 
-catch:
-    return err;
+    return EOK;
 }
 
 size_t ZorroController_GetCardCount(ZorroControllerRef _Nonnull self)

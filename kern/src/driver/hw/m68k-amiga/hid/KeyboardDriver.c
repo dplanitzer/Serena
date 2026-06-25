@@ -9,9 +9,7 @@
 #include "KeyboardDriver.h"
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <handler/IODriverHandler.h>
 #include <kern/cbuf.h>
-#include <kpi/file.h>
 
 
 // Keycode -> USB HID keyscan codes
@@ -64,26 +62,15 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 
 errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
+    // Configure the keyboard serial port
+    CIAA_BASE_DECL(ciaa);
 
-    DriverEntry de;
-    de.name = "kb";
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0444);
+    *CIA_REG_8(ciaa, CIA_CRA) = 0;
 
-    err = Driver_Publish((DriverRef)self, &de);
-    if (err == EOK) {
-        // Configure the keyboard serial port
-        CIAA_BASE_DECL(ciaa);
+    irq_set_direct_handler(IRQ_ID_KEYBOARD, (irq_direct_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
+    irq_enable_src(IRQ_ID_CIA_A_SP);
 
-        *CIA_REG_8(ciaa, CIA_CRA) = 0;
-
-        irq_set_direct_handler(IRQ_ID_KEYBOARD, (irq_direct_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
-        irq_enable_src(IRQ_ID_CIA_A_SP);
-    }
-    return err;
+    return EOK;
 }
 
 void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)

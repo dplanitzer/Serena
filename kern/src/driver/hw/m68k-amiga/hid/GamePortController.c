@@ -11,7 +11,6 @@
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
 #include "PaddleDriver.h"
-#include <handler/IOGPBusHandler.h>
 
 IOCATS_DEF(g_cats, IOBUS_GP);
 
@@ -42,26 +41,7 @@ catch:
 
 errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 {
-    decl_try_err();
-
-    DirEntry be;
-    be.name = "gp-bus";
-    be.uid = UID_ROOT;
-    be.gid = GID_ROOT;
-    be.perms = fs_perms_from_octal(0755);
-
-    DriverEntry de;
-    de.name = "self";
-    de.func = IOGPBusHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0666);
-
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
-    try(GamePortController_SetPortDevice_Locked(self, 0, IOGP_MOUSE));
-    
-catch:
-    return err;
+    return GamePortController_SetPortDevice_Locked(self, 0, IOGP_MOUSE);
 }
 
 

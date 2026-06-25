@@ -8,7 +8,6 @@
 
 #include "PaddleDriver.h"
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <handler/IODriverHandler.h>
 
 
 final_class_ivars(PaddleDriver, IOHIDDevice,
@@ -54,29 +53,6 @@ errno_t PaddleDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 catch:
     *pOutSelf = (DriverRef)self;
     return err;
-}
-
-errno_t PaddleDriver_onStart(PaddleDriverRef _Nonnull _Locked self)
-{
-    char name[8];
-
-    name[0] = 'p';
-    name[1] = 'a';
-    name[2] = 'd';
-    name[3] = 'd';
-    name[4] = 'l';
-    name[5] = 'e';
-    name[6] = '0' + self->port;
-    name[7] = '\0';
-
-    DriverEntry de;
-    de.name = name;
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0444);
-
-    return Driver_Publish((DriverRef)self, &de);
 }
 
 void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
@@ -136,6 +112,5 @@ void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, IOHIDReport* _Nonnull
 
 
 class_func_defs(PaddleDriver, IOHIDDevice,
-override_func_def(onStart, PaddleDriver, Driver)
 override_func_def(getReport, PaddleDriver, IOHIDDevice)
 );

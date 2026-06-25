@@ -8,7 +8,6 @@
 
 #include "LightPenDriver.h"
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <handler/IODriverHandler.h>
 
 
 final_class_ivars(LightPenDriver, IOHIDDevice,
@@ -62,31 +61,12 @@ catch:
 
 errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
-    char name[6];
+    CHIPSET_BASE_DECL(cp);
 
-    name[0] = 'l';
-    name[1] = 'p';
-    name[2] = 'e';
-    name[3] = 'n';
-    name[4] = '0' + self->port;
-    name[5] = '\0';
+    // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
+    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
 
-    DriverEntry de;
-    de.name = name;
-    de.func = IONopHandler_Create;
-    de.uid = UID_ROOT;
-    de.gid = GID_ROOT;
-    de.perms = fs_perms_from_octal(0444);
-
-    err = Driver_Publish((DriverRef)self, &de);
-    if (err == EOK) {
-        CHIPSET_BASE_DECL(cp);
-
-        // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-        *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
-    }
-    return err;
+    return EOK;
 }
 
 // Returns the current position of the light pen if the light pen triggered.
