@@ -108,7 +108,29 @@ open_class_funcs(DiskDriver, Driver,
     // Returns the boot priority of the drive. A value < 0 means that booting is
     // not supported. Higher values correspond to a higher boot priority.
     int (*getBootPriority)(void* _Nonnull self);
+
     
+    // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
+    // source and returns them in 'buf'. The actual amount of bytes read is
+    // returned in 'nOutBytesRead' and returns a suitable status. Note that this
+    // function will always either read at least one byte and return EOK or it
+    // will read no bytes and return some error.
+    // Override: Optional
+    // Default: Returns EBADF
+    errno_t (*read)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+
+    // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
+    // Override: Optional
+    // Default: Returns EBADF
+    errno_t (*write)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+
+    // Invoked by seek() to get the size of the seekable space. The maximum
+    // position to which a client is allowed to seek is the value returned by
+    // this function, minus one.
+    // Override: Optional
+    // Default: Returns 0
+    off_t (*getSeekableSize)(void* _Nonnull self);
+
 
     //
     // The following methods are executed on the dispatch queue.
@@ -161,6 +183,16 @@ open_class_funcs(DiskDriver, Driver,
 
 #define DiskDriver_GetBootPriority(__self) \
 invoke_0(getBootPriority, DiskDriver, __self)
+
+
+#define DiskDriver_Read(__self, __flags, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, DiskDriver, __self, __flags, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead)
+
+#define DiskDriver_Write(__self, __flags, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, DiskDriver, __self, __flags, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+
+#define DiskDriver_GetSeekableSize(__self) \
+invoke_0(getSeekableSize, DiskDriver, __self)
 
 
 // It's the callers responsibility to keep 'iov' and 'completion' alive until the async operation is done

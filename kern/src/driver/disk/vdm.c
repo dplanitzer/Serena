@@ -44,7 +44,7 @@ errno_t vdm_create_disk(int type, const char* _Nonnull name, size_t sectorSize, 
 
         err = Driver_Open(dp, oflags);
         if (err == EOK) {
-            err = Driver_Write(dp, oflags, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
+            err = DiskDriver_Write(dp, oflags, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
             if (err == EOK && nBytesWritten != nBytesToWrite) {
                 err = EIO;
             }

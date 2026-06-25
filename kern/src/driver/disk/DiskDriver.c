@@ -423,7 +423,7 @@ errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnul
 // I/O Handler API
 //
 
-off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
+off_t DiskDriver_getSeekableSize(DiskDriverRef _Nonnull self)
 {
     decl_try_err();
     disk_info_t info;
@@ -520,16 +520,16 @@ errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnu
 
 class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
+override_func_def(onStop, DiskDriver, Driver)
 func_def(createDispatchQueue, DiskDriver)
 func_def(getBootPriority, DiskDriver)
-override_func_def(onStop, DiskDriver, Driver)
+func_def(read, DiskDriver)
+func_def(write, DiskDriver)
+func_def(getSeekableSize, DiskDriver)
 func_def(doCommand, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(doFormatDisk, DiskDriver)
 func_def(doFormatTrack, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
-override_func_def(read, DiskDriver, Driver)
-override_func_def(write, DiskDriver, Driver)
-override_func_def(getSeekableRange, DiskDriver, Driver)
 );

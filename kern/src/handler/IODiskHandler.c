@@ -36,7 +36,7 @@ errno_t IODiskHandler_read(struct IODiskHandler* _Nonnull self, void* _Nonnull p
 
 
     mtx_lock(&self->mtx);
-    err = Driver_Read(drv, flags, &self->offset, pBuffer, nBytesToRead, nOutBytesRead);
+    err = DiskDriver_Read(drv, flags, &self->offset, pBuffer, nBytesToRead, nOutBytesRead);
     mtx_unlock(&self->mtx);
 
     return err;
@@ -54,7 +54,7 @@ errno_t IODiskHandler_write(struct IODiskHandler* _Nonnull self, const void* _No
 
 
     mtx_lock(&self->mtx);
-    err = Driver_Write(drv, flags, &self->offset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    err = DiskDriver_Write(drv, flags, &self->offset, pBuffer, nBytesToWrite, nOutBytesWritten);
     mtx_unlock(&self->mtx);
 
     return err;
@@ -73,7 +73,7 @@ errno_t IODiskHandler_seek(struct IODiskHandler* _Nonnull self, off_t offset, of
 
     mtx_lock(&self->mtx);
     if (whence == SEEK_END) {
-        endPos = Driver_GetSeekableRange(drv);
+        endPos = DiskDriver_GetSeekableSize(drv);
     }
 
     err = do_seek(offset, whence, endPos, &self->offset);

@@ -305,21 +305,6 @@ void Driver_close(DriverRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-errno_t Driver_read(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EINVAL;
-}
-
-errno_t Driver_write(DriverRef _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EINVAL;
-}
-
-off_t Driver_getSeekableRange(DriverRef _Nonnull self)
-{
-    return 0ll;
-}
-
 
 bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
 {
@@ -569,7 +554,4 @@ func_def(open, Driver)
 func_def(onOpen, Driver)
 func_def(close, Driver)
 func_def(onClose, Driver)
-func_def(read, Driver)
-func_def(write, Driver)
-func_def(getSeekableRange, Driver)
 );

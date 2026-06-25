@@ -417,27 +417,6 @@ open_class_funcs(Driver, Object,
     // Override: Optional
     // Default: Does nothing
     void (*close)(void* _Nonnull self);
-
-    // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
-    // source and returns them in 'buf'. The actual amount of bytes read is
-    // returned in 'nOutBytesRead' and returns a suitable status. Note that this
-    // function will always either read at least one byte and return EOK or it
-    // will read no bytes and return some error.
-    // Override: Optional
-    // Default: Returns EBADF
-    errno_t (*read)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-
-    // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
-    // Override: Optional
-    // Default: Returns EBADF
-    errno_t (*write)(void* _Nonnull self, fd_flags_t flags, off_t* _Nonnull pOffset, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-
-    // Invoked by seek() to get the size of the seekable space. The maximum
-    // position to which a client is allowed to seek is the value returned by
-    // this function, minus one.
-    // Override: Optional
-    // Default: Returns 0
-    off_t (*getSeekableRange)(void* _Nonnull self);
 );
 
 
@@ -489,15 +468,6 @@ invoke_n(open, Driver, __self, __flags)
 // Closes a driver handler.
 #define Driver_Close(__self) \
 invoke_0(close, Driver, __self)
-
-#define Driver_Read(__self, __mode, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToRead, __nOutBytesRead)
-
-#define Driver_Write(__self, __mode, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, Driver, __self, __mode, __pOffset, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
-
-#define Driver_GetSeekableRange(__self) \
-invoke_0(getSeekableRange, Driver, __self)
 
 
 // Returns true if there are open I/O handlers referencing this driver.
