@@ -26,7 +26,6 @@ struct drv_child;
 enum {
     kDriver_Exclusive = 1,  // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
     kDriver_IsBus = 2,      // This driver manages a hardware or virtual bus
-    kDriver_Seekable = 4,   // Set if the driver supports seeking. Seek() will return ESPIPE if this option is not set
 };
 
 
@@ -472,11 +471,6 @@ invoke_0(close, Driver, __self)
 
 // Returns true if there are open I/O handlers referencing this driver.
 extern bool Driver_IsOpen(DriverRef _Nonnull self);
-
-
-// Returns true if the driver supports seeking; false otherwise
-#define Driver_IsSeekable(__self) \
-((((DriverRef)__self)->options & kDriver_Seekable) == kDriver_Seekable)
 
 
 // Returns a reference to a read-only array of all the I/O categories the

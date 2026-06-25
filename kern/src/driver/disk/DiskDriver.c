@@ -7,8 +7,6 @@
 //
 
 #include "DiskDriver.h"
-#include <handler/IODiskHandler.h>
-#include <kpi/file.h>
 
 
 errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -16,7 +14,7 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_
     decl_try_err();
     DiskDriverRef self = NULL;
 
-    try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, cats, (DriverRef*)&self));
+    try(Driver_Create(pClass, kDriver_Exclusive, cats, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dq));
     self->driveInfo = *driveInfo;
 

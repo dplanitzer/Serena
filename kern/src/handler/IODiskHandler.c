@@ -66,11 +66,6 @@ errno_t IODiskHandler_seek(struct IODiskHandler* _Nonnull self, off_t offset, of
     DiskDriverRef drv = IODriverHandler_GetDriver(self);
     off_t endPos = 0ll;
 
-    if (!Driver_IsSeekable(drv)) {
-        return ESPIPE;
-    }
-
-
     mtx_lock(&self->mtx);
     if (whence == SEEK_END) {
         endPos = DiskDriver_GetSeekableSize(drv);
