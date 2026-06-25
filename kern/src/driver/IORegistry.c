@@ -100,6 +100,7 @@ catch:
 void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv)
 {
     mtx_lock(&self->mtx);
+    Object_Retain(drv);
     assert(drv->ioreg_qe.next == NULL && drv->ioreg_qe.prev == NULL);
     deque_add_last(&self->drivers, &drv->ioreg_qe);
     self->driver_count++;
@@ -117,6 +118,7 @@ void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull
 
     self->driver_count--;
     deque_remove(&self->drivers, &drv->ioreg_qe);
+    Object_Release(drv);
     mtx_unlock(&self->mtx);
 }
 
