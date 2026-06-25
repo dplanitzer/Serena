@@ -320,9 +320,12 @@ enum {
 // Unpublish is able to correctly unpublish a client driver and a bus driver.
 //
 open_class(Driver, Object,
+    deque_node_t                ioreg_qe;   // dequeue is owned and managed by IORegistry
+    did_t                       id;         // globally unique driver id (> 0)
+
     mtx_t                       mtx;    // lifecycle management lock
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
-    did_t                       id;     // unique id assigned at publish time
+    CatalogId                   pid;    //XXX tmp
     CatalogId                   ownedBusDirId;  // bus directory that this driver has published
     
     DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver

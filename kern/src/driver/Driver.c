@@ -8,6 +8,7 @@
 
 #include "Driver.h"
 #include <assert.h>
+#include <ext/atomic.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/file.h>
@@ -17,6 +18,7 @@ typedef struct drv_child {
     intptr_t            data;
 } drv_child_t;
 
+static volatile atomic_int   g_next_driver_id = {.value = 1};
 
 errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
 {
@@ -28,6 +30,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
         mtx_init(&self->mtx);
         mtx_init(&self->childMtx);
 
+        self->id = atomic_int_fetch_add(&g_next_driver_id, 1);
         self->cats = cats;
         self->options = options;
         self->state = kDriverState_Inactive;
@@ -123,7 +126,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
     mtx_unlock(&self->mtx);
 
     if (hasStarted) {
-        IOCatalog_OnDriverStarted(gIOCatalog, self);
+        IOCatalog_RegisterDriver(gIOCatalog, self);
     }
 
     return err;
@@ -157,7 +160,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
         return;
     }
 
-    IOCatalog_OnDriverStopping(gIOCatalog, self);
+    IOCatalog_DeregisterDriver(gIOCatalog, self);
 
     // The list of child drivers is now frozen and can not change anymore.
     // Tell all our child drivers to stop.
@@ -222,11 +225,11 @@ void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
 
 errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
-    if (self->id > 0) {
+    if (self->pid > 0) {
         return EBUSY;
     }
 
-    return IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetBusDirectory(self), de, &self->id);
+    return IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetBusDirectory(self), de, &self->pid);
 }
 
 errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de)
@@ -239,7 +242,7 @@ errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, 
 
     err = IOCatalog_PublishFolder(gIOCatalog, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
     if (err == EOK && de) {
-        err = IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetPublishedBusDirectory(self), de, &self->id);
+        err = IOCatalog_PublishDriver(gIOCatalog, self, Driver_GetPublishedBusDirectory(self), de, &self->pid);
         if (err != EOK) {
             IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->ownedBusDirId);
             self->ownedBusDirId = 0;
@@ -251,9 +254,9 @@ errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, 
 
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
-    if (self->id > 0) {
-        IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->id);
-        self->id = 0;
+    if (self->pid > 0) {
+        IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->pid);
+        self->pid = 0;
     }
     if (self->ownedBusDirId > 0) {
         IOCatalog_Unpublish(gIOCatalog, Driver_GetBusDirectory(self), self->ownedBusDirId);
