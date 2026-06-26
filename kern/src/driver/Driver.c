@@ -24,7 +24,7 @@ static volatile atomic_int   g_next_driver_id = {.value = 1};
 errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DriverRef self = NULL;
+    DriverRef self;
 
     err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
@@ -35,23 +35,25 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
         self->cats = cats;
         self->options = options;
         self->state = kDriverState_Inactive;
+
+        *pOutSelf = self;
     }
 
-    *pOutSelf = self;
     return err;
 }
 
 errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DriverRef self = NULL;
+    DriverRef self;
 
     err = Driver_Create(pClass, options, cats, &self);
     if (err == EOK) {
-        self->flags |= (kDriverFlag_IsRoot | kDriverFlag_IsAttached); 
+        self->flags |= (kDriverFlag_IsRoot | kDriverFlag_IsAttached);
+
+        *pOutSelf = self;
     }
 
-    *pOutSelf = self;
     return err;
 }
 
@@ -59,16 +61,13 @@ errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const iocat_
 void Driver_deinit(DriverRef _Nonnull self)
 {
     switch (self->state) {
-        case kDriverState_Stopping:
-            Driver_WaitForStopped(self);
-            break;
-
         case kDriverState_Inactive:
         case kDriverState_Stopped:
             break;
 
-        case kDriverState_Active:
+        default:
             abort();
+            /* NOT REACHED */
     }
 
 
@@ -329,21 +328,6 @@ bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull c
     }
 
     return false;
-}
-
-DriverRef _Nullable Driver_GetBusController(DriverRef _Nonnull self)
-{
-    DriverRef cp = self->parent;
-
-    while (cp) {
-        if ((cp->options & kDriver_IsBus) == kDriver_IsBus) {
-            return cp;
-        }
-
-        cp = cp->parent;
-    }
-
-    return NULL;
 }
 
 

@@ -22,7 +22,7 @@ errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, 
     decl_try_err();
     IOGPBusRef self;
 
-    try(Driver_Create(class(IOGPBus), kDriver_IsBus | kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(IOGPBus), kDriver_Exclusive, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, __IOGPBUS__));
 
     mtx_init(&self->mtx);

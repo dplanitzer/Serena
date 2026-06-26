@@ -25,7 +25,6 @@ struct drv_child;
 // behavior from the Driver class.
 enum {
     kDriver_Exclusive = 1,  // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
-    kDriver_IsBus = 2,      // This driver manages a hardware or virtual bus
 };
 
 
@@ -486,21 +485,11 @@ extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
 extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
-// Returns the bus controller that directly controls the receiver
-extern DriverRef _Nullable Driver_GetBusController(DriverRef _Nonnull self);
-
-#define Driver_GetBusControllerAs(__self, __class) \
-((__class##Ref)Driver_GetBusController((DriverRef)__self))
-
-
 // Returns the immediate parent driver of the receiver. This is often the direct
 // bus controller. However it may be an intermediate driver that sits between
 // you and the bus controller.
 #define Driver_GetParent(__self) \
-((DriverRef)__self)->parent
-
-#define Driver_GetParentAs(__self, __class) \
-((__class##Ref)(((DriverRef)__self)->parent))
+((void*)((DriverRef)__self)->parent)
 
 #define Driver_GetDevfsHandle(__self) \
 ((DriverRef)__self)->devfs_hnd
