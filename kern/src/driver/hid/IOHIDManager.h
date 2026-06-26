@@ -55,4 +55,13 @@ extern errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const na
 extern void IOHIDManager_PostEvent(IOHIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData);
 extern void IOHIDManager_FlushEvents(IOHIDManagerRef _Nonnull self);
 
+
+// Game port bus control
+#if __IOGPBUS__ > 0
+extern size_t IOHIDManager_GetPortCount(IOHIDManagerRef _Nonnull self);
+extern errno_t IOHIDManager_GetPortDevice(IOHIDManagerRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId);
+extern errno_t IOHIDManager_SetPortDevice(IOHIDManagerRef _Nonnull self, int port, int type);
+extern errno_t IOHIDManager_GetPortForDeviceId(IOHIDManagerRef _Nonnull self, did_t id, int* _Nonnull pOutPort);
+#endif
+
 #endif /* IOHIDManager_h */

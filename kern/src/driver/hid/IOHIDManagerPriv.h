@@ -11,6 +11,9 @@
 
 #include "IOHIDManager.h"
 #include "evs.h"
+#if __IOGPBUS__ > 0
+#include "IOGPBus.h"
+#endif
 #include "IOHIDDevice.h"
 #include <driver/DisplayDriver.h>
 #include <hal/clock.h>
@@ -73,8 +76,12 @@ final_class_ivars(IOHIDManager, Object,
     mtx_t                       mtx;
 
 
-    // HID devices
+    // HID devices and (conditionally) GamePort bus
     IOHIDDeviceRef _Nullable    kb;
+//XXX fix me: can't have preprocessor checks in a class ivar section...
+//#if __IOGPBUS__ > 0
+    IOGPBusRef _Nullable        gamePortBus;
+//#endif
 
 
     // Framebuffer interface

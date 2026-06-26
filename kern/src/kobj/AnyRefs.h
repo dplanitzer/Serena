@@ -61,7 +61,6 @@ class_ref(SfsRegularFile);
 class_ref(VirtualDiskManager);
 
 // Amiga
-class_ref(AmiGPBus);
 class_ref(FloppyController);
 class_ref(FloppyDriver);
 class_ref(GraphicsDriver);

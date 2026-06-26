@@ -27,6 +27,7 @@ open_class_funcs(IOGPBus, Driver,
 
 extern errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, IOGPBusRef _Nullable * _Nonnull pOutSelf);
 
+extern size_t IOGPBus_GetPortCount(IOGPBusRef _Nonnull self);
 extern errno_t IOGPBus_GetPortDevice(IOGPBusRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId);
 extern errno_t IOGPBus_SetPortDevice(IOGPBusRef _Nonnull self, int port, int type);
 extern errno_t IOGPBus_GetPortForDeviceId(IOGPBusRef _Nonnull self, did_t id, int* _Nonnull pOutPort);

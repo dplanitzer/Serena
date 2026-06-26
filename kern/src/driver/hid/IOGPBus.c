@@ -49,6 +49,11 @@ errno_t IOGPBus_onStart(IOGPBusRef _Nonnull _Locked self)
 // API
 //
 
+size_t IOGPBus_GetPortCount(IOGPBusRef _Nonnull self)
+{
+    return __IOGPBUS__;
+}
+
 errno_t IOGPBus_GetPortDevice(IOGPBusRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
 {
     if (port < 0 || port >= __IOGPBUS__) {

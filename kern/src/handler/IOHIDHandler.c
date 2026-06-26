@@ -123,6 +123,37 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return IOHIDManager_ShieldMouseCursor(gIOHIDManager, x, y, w, h);
         }
 
+#if __IOGPBUS__ > 0
+        case kHIDCommand_GetPortCount: {
+            size_t* pcount = va_arg(ap, size_t*);
+
+            *pcount = IOHIDManager_GetPortCount(gIOHIDManager);
+            return EOK;
+        }
+
+        case kHIDCommand_GetPortDevice: {
+            const int port = va_arg(ap, int);
+            int* ptype = va_arg(ap, int*);
+            did_t* pdid = va_arg(ap, did_t*);
+
+            return IOHIDManager_GetPortDevice(gIOHIDManager, port, ptype, pdid);
+        }
+
+        case kHIDCommand_SetPortDevice: {
+            const int port = va_arg(ap, int);
+            const int itype = va_arg(ap, int);
+
+            return IOHIDManager_SetPortDevice(gIOHIDManager, port, itype);
+        }
+
+        case kHIDCommand_GetPortForDeviceId: {
+            const did_t did = va_arg(ap, did_t);
+            int* pport = va_arg(ap, int*);
+
+            return IOHIDManager_GetPortForDeviceId(gIOHIDManager, did, pport);
+        }
+#endif
+
         default:
             return Handler_Super_Control(IOHIDHandler, cmd, ap);
     }

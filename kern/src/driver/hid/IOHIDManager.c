@@ -103,7 +103,7 @@ catch:
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Kernel API
+// MARK: API
 ////////////////////////////////////////////////////////////////////////////////
 
 void IOHIDManager_GetKeyRepeatDelays(IOHIDManagerRef _Nonnull self, nanotime_t* _Nullable pInitialDelay, nanotime_t* _Nullable pRepeatDelay)
@@ -392,6 +392,44 @@ uint32_t IOHIDManager_GetMouseDeviceButtonsDown(IOHIDManagerRef _Nonnull self)
     return buttons;
 }
 
+#if __IOGPBUS__ > 0
+size_t IOHIDManager_GetPortCount(IOHIDManagerRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const size_t count = (self->gamePortBus) ? IOGPBus_GetPortCount(self->gamePortBus) : 0;
+    mtx_unlock(&self->mtx);
+
+    return count;
+}
+
+errno_t IOHIDManager_GetPortDevice(IOHIDManagerRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
+{
+    mtx_lock(&self->mtx);
+    const errno_t err = (self->gamePortBus) ? IOGPBus_GetPortDevice(self->gamePortBus, port, pOutType, pOutId) : ENODEV;
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+errno_t IOHIDManager_SetPortDevice(IOHIDManagerRef _Nonnull self, int port, int type)
+{
+    mtx_lock(&self->mtx);
+    const errno_t err = (self->gamePortBus) ? IOGPBus_SetPortDevice(self->gamePortBus, port, type) : ENODEV;
+    mtx_unlock(&self->mtx);
+    
+    return err;
+}
+
+errno_t IOHIDManager_GetPortForDeviceId(IOHIDManagerRef _Nonnull self, did_t id, int* _Nonnull pOutPort)
+{
+    mtx_lock(&self->mtx);
+    const errno_t err = (self->gamePortBus) ? IOGPBus_GetPortForDeviceId(self->gamePortBus, id, pOutPort) : ENODEV;
+    mtx_unlock(&self->mtx);
+    
+    return err;
+}
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -657,7 +695,7 @@ static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_s
 
 IOCATS_DEF(g_hid_cats, IOHID_KEYBOARD, IOHID_KEYPAD, IOHID_MOUSE, IOHID_LIGHTPEN,
     IOHID_STYLUS, IOHID_TRACKBALL, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK,
-    IOVID_FB);
+    IOVID_FB, IOBUS_GP);
 
 IOCATS_DEF(g_gamepad_cats, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK);
 
@@ -722,14 +760,31 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _No
             _collect_framebuffer_size(self);
         }
     }
+#if __IOGPBUS__ > 0
+    else if (self->gamePortBus == NULL && Driver_HasCategory(driver, IOBUS_GP)) {
+        // Pick up the game port bus controller
+        err = EOK; // Driver_Open(driver, O_RDWR);
+        if (err == EOK) {
+            self->gamePortBus = Object_Retain(driver);
+        }
+    }
+#endif
 }
 
 // Disconnects the given HID driver or framebuffer.
 static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
 {
+#if __IOGPBUS__ > 0
+    if ((DriverRef)self->gamePortBus == driver) {
+        Driver_Close(driver);
+        Object_Release(driver);
+        self->gamePortBus = NULL;
+    }
+#endif
+
     if ((DriverRef)self->kb == driver) {
-        Driver_Close(self->kb);
-        Object_Release(self->kb);
+        Driver_Close(driver);
+        Object_Release(driver);
         self->kb = NULL;
         return;
     }
@@ -737,8 +792,8 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
     if ((DriverRef)self->fb == driver) {
         DisplayDriver_SetScreenConfigObserver(self->fb, NULL, 0);
 
-        Driver_Close(self->fb);
-        Object_Release(self->fb);
+        Driver_Close(driver);
+        Object_Release(driver);
         self->fb = NULL;
         hid_rect_set_empty(&self->screenBounds);
         return;
@@ -767,8 +822,8 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
         gamepad_state_t* gp = &self->gamepad[i];
 
         if ((DriverRef)gp->drv == driver) {
-            Driver_Close(gp->drv);
-            Object_Release(gp->drv);
+            Driver_Close(driver);
+            Object_Release(driver);
             gp->drv = NULL;
             self->gamepadCount--;
             break;

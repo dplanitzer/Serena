@@ -92,29 +92,33 @@
 
 
 //
-// GamePort Controller
+// Game Port Bus Support (Platform Specific)
 //
 
-// Types of input drivers
+// Types of HID devices supported by the game port bus
 #define IOGP_NONE               0
 #define IOGP_MOUSE              1
 #define IOGP_LIGHTPEN           2
 #define IOGP_ANALOG_JOYSTICK    3
 #define IOGP_DIGITAL_JOYSTICK   4
 
+// Returns the number of ports supported by the game port bus.
+// get_port_count(size_t* _Nonnull count)
+#define kHIDCommand_GetPortCount    IOResourceCommand(kDriverCommand_SubclassBase + 11)
+
 // Returns the type of input device for a port and the driver id of the associated
 // input driver. There are two ports: 0 and 1.
 // get_port_device(int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
-#define kGamePortCommand_GetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 0)
+#define kHIDCommand_GetPortDevice   IOResourceCommand(kDriverCommand_SubclassBase + 12)
 
 // Selects the type of input device for a port. There are two port: 0 and 1.
 // set_port_device(int port, int type)
-#define kGamePortCommand_SetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 1)
+#define kHIDCommand_SetPortDevice   IOResourceCommand(kDriverCommand_SubclassBase + 13)
 
 // Returns the number of the port to which the driver with the given driver id
 // is connected. -1 is returned if the driver id doesn't refer to a driver that
 // is connected to any of the game bus ports.
-// get_port_for driver(did_t id, int* _Nonnull pOutPort)
-#define kGamePortCommand_GetPortForDriver  IOResourceCommand(kDriverCommand_SubclassBase + 2)
+// get_port_for_device_id(did_t id, int* _Nonnull pOutPort)
+#define kHIDCommand_GetPortForDeviceId  IOResourceCommand(kDriverCommand_SubclassBase + 14)
 
 #endif /* _KPI_HID_H */

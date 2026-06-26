@@ -79,17 +79,47 @@ static const int gArrow_Height = 16;
 
 
 
+static const char* _hid_device_type_string(int type)
+{
+    switch (type) {
+        case IOGP_NONE:             return "none";
+        case IOGP_MOUSE:            return "mouse";
+        case IOGP_LIGHTPEN:         return "light pen";
+        case IOGP_ANALOG_JOYSTICK:  return "paddle";
+        case IOGP_DIGITAL_JOYSTICK: return "joystick";
+        default:                    return "??";
+    }
+}
+
 void hid_test(int argc, char *argv[])
 {
     HIDEvent evt;
     bool mc_vis = true;
     bool done = false;
+    size_t gp_count = 0;
 
     const int fd = fs_open(NULL, "/dev/hid", O_RDONLY);
     assert_int_ge(0, fd);
+
+
+    // Game port
+    assert_int_ge(0, fd_cntl(fd, kHIDCommand_GetPortCount, &gp_count));
+    printf("\nGame Ports: %d\n", gp_count);
+
+    for (size_t i = 0; i < gp_count; i++) {
+        int type;
+        did_t device_id;
+
+        assert_int_ge(0, fd_cntl(fd, kHIDCommand_GetPortDevice, i, &type, &device_id));
+        printf("  #%d: %s [%u]\n", i, _hid_device_type_string(type), device_id);
+    }
+    printf("\n\n");
+
+
+    // Event loop
     printf("Press '1' to toggle mouse cursor visibility.\n");
     printf("Press '2' to hide mouse cursor until move.\n");
-    printf("Press 'q' to quit.\n");
+    printf("Press 'q' to quit.\n\n");
 
     assert_int_ge(0, fd_cntl(fd, kHIDCommand_ObtainCursor));
     assert_int_ge(0, fd_cntl(fd, kHIDCommand_SetCursor, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
