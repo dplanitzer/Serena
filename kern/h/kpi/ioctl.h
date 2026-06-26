@@ -11,8 +11,8 @@
 
 #include <stdint.h>
 
+typedef uint16_t iocat_t;
 
-#define IOResourceCommand(__cmd) (__cmd)
 
 #define _IOCAT(major, minor) ((iocat_t)((major << 8) | (minor)))
 
@@ -102,8 +102,6 @@
 #define IOUNS_PROPRIETARY   _IOCAT(IOCAT_UNSPECIFIED, 1)
 
 
-typedef uint16_t iocat_t;
-
 
 // The maximum number of categories that a driver may conform to. This includes
 // the terminating IOCAT_END.
@@ -121,6 +119,47 @@ static const iocat_t __name[] = { IOCAT_END }
 // Driver Commands
 //
 
+#define _IOCMD_ACC_RD   0x01
+#define _IOCMD_ACC_WR   0x02
+#define _IOCMD_ACC_RDWR (_IOCMD_ACC_RD | _IOCMD_ACC_WR)
+
+#define _IOCMD_FLAG_1   0x01
+#define _IOCMD_FLAG_2   0x02
+
+
+#define IOCMD_MAKE(__protocol, __action, __accessmode, __flags) \
+(((__protocol) << 16) | ((__action) << 4) | ((__accessmode) << 2) | (__flags))
+
+// Returns the signed protocol number. Protocol numbers are limited to 16 bits.
+// Number 0 is reserved, values > 0 are well-known protocols that may be shared
+// between vendors and values < 0 are private protocols that are for use by a
+// single vendor only. 
+#define IOCMD_PROTOCOL(__cmd) \
+((int)((__cmd) >> 16))
+
+// Returns the unsigned action number in a protocol. A protocol defines which
+// actions exist and what their semantics are. Action numbers are limited to
+// 12 bits. Action 0 is reserved. 
+#define IOCMD_ACTION(__cmd) \
+(((__cmd) >> 4) & 0x0fff)
+
+// Returns the access mode that is required to be able to use the action. The
+// driver handler returns EBADF if the handler wasn't opened with at least one
+// of the access modes specified by the access mode mask.
+#define IOCMD_ACCESSMODE(__cmd) \
+(((__cmd) >> 2) & 0x3)
+
+
+// Well-known driver protocols
+#define IOPROTO_DRV     1
+#define IOPROTO_HID     2
+#define IOPROTO_FB      3
+#define IOPROTO_TTY     4
+#define IOPROTO_DISK    5
+
+
+// Core protocol
+
 // Returns the unique driver id. Note that this id is not suitable for
 // persistence. The id for a driver may change from one boot cycle to the next.
 // Use the driver hardware path ('/dev/hw/xxx') instead if you need to persist
@@ -128,7 +167,8 @@ static const iocat_t __name[] = { IOCAT_END }
 // efficiently refer to a particular driver instance with respect to the current
 // boot cycle.
 // get_id(did_t* _Nonnull id)
-#define kDriverCommand_GetId    IOResourceCommand(1)
+#define IOCMD_DRV_ID \
+IOCMD_MAKE(IOPROTO_DRV, 1, _IOCMD_ACC_RD, 0)
 
 // Returns a copy of the I/O categories to which the driver conforms. The
 // categories are returned in the buffer 'cats' with byte size sizeof(iocat_t) *
@@ -137,14 +177,7 @@ static const iocat_t __name[] = { IOCAT_END }
 // 'bufsiz' is less than the number of I/O categories stored in the driver plus
 // one. The returned I/O categories string is terminated by IOCAT_END.
 // get_categories(iocat_t* _Nonnull cats, size_t bufsiz)
-#define kDriverCommand_GetCategories    IOResourceCommand(2)
-
-
-//
-// Driver Subclasses
-//
-
-// Driver subclasses define their respective commands based on this number.
-#define kDriverCommand_SubclassBase  IOResourceCommand(256)
+#define IOCMD_DRV_CATEGORIES \
+IOCMD_MAKE(IOPROTO_DRV, 2, _IOCMD_ACC_RD, 0)
 
 #endif /* _KPI_IOCTL_H */

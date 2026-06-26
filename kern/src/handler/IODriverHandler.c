@@ -47,14 +47,14 @@ void IODriverHandler_deinit(struct IODriverHandler* _Nonnull self)
 errno_t IODriverHandler_control(struct IODriverHandler* _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kDriverCommand_GetId: {
+        case IOCMD_DRV_ID: {
             did_t* pdid = va_arg(ap, did_t*);
 
             *pdid = Driver_GetId(self->driver);
             return EOK;
         }
 
-        case kDriverCommand_GetCategories: {
+        case IOCMD_DRV_CATEGORIES: {
             iocat_t* buf = va_arg(ap, iocat_t*);
             const size_t bufsiz = va_arg(ap, size_t);
             const iocat_t* pcats = Driver_GetCategories(self->driver);

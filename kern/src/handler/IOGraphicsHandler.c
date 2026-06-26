@@ -20,7 +20,7 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
     GraphicsDriverRef drv = IODriverHandler_GetDriver(self);
 
     switch (cmd) {
-        case kFBCommand_CreateSurface2d: {
+        case IOCMD_FB_CREATE_SURFACE_2D: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const pixfmt_t fmt = va_arg(ap, pixfmt_t);
@@ -29,20 +29,20 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return GraphicsDriver_CreateSurface2d(drv, width, height, fmt, hnd);
         }
 
-        case kFBCommand_DestroySurface: {
+        case IOCMD_FB_DESTROY_SURFACE: {
             int hnd = va_arg(ap, int);
 
             return GraphicsDriver_DestroySurface(drv, hnd);
         }
 
-        case kFBCommand_GetSurfaceInfo: {
+        case IOCMD_FB_SURFACE_INFO: {
             int hnd = va_arg(ap, int);
             surface_info_t* si = va_arg(ap, surface_info_t*);
 
             return GraphicsDriver_GetSurfaceInfo(drv, hnd, si);
         }
 
-        case kFBCommand_MapSurface: {
+        case IOCMD_FB_MAP_SURFACE: {
             int hnd = va_arg(ap, int);
             int mode = va_arg(ap, int);
             surface_mapping_t* sm = va_arg(ap, surface_mapping_t*);
@@ -50,13 +50,13 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return GraphicsDriver_MapSurface(drv, hnd, mode, sm);
         }
 
-        case kFBCommand_UnmapSurface: {
+        case IOCMD_FB_UNMAP_SURFACE: {
             const int hnd = va_arg(ap, int);
 
             return GraphicsDriver_UnmapSurface(drv, hnd);
         }
 
-        case kFBCommand_WritePixels: {
+        case IOCMD_FB_WRITE_PIXELS: {
             int hnd = va_arg(ap, int);
             const void* planes = va_arg(ap, const void*);
             size_t bytesPerRow = va_arg(ap, size_t);
@@ -65,13 +65,13 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return GraphicsDriver_WritePixels(drv, hnd, planes, bytesPerRow, format);
         }
 
-        case kFBCommand_ClearPixels: {
+        case IOCMD_FB_CLEAR_PIXELS: {
             const int hnd = va_arg(ap, int);
 
             return GraphicsDriver_ClearPixels(drv, hnd);
         }
 
-        case kFBCommand_BindSurface: {
+        case IOCMD_FB_BIND_SURFACE: {
             const int target = va_arg(ap, int);
             const int id = va_arg(ap, int);
 
@@ -79,27 +79,27 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case kFBCommand_CreateCLUT: {
+        case IOCMD_FB_CREATE_CLUT: {
             const size_t entryCount = va_arg(ap, size_t);
             int* hnd = va_arg(ap, int*);
 
             return GraphicsDriver_CreateCLUT(drv, entryCount, hnd);
         }
 
-        case kFBCommand_DestroyCLUT: {
+        case IOCMD_FB_DESTROY_CLUT: {
             int hnd = va_arg(ap, int);
 
             return GraphicsDriver_DestroyCLUT(drv, hnd);
         }
 
-        case kFBCommand_GetCLUTInfo: {
+        case IOCMD_FB_CLUT_INFO: {
             int hnd = va_arg(ap, int);
             clut_info_t* ci = va_arg(ap, clut_info_t*);
 
             return GraphicsDriver_GetCLUTInfo(drv, hnd, ci);
         }
 
-        case kFBCommand_SetCLUTEntries: {
+        case IOCMD_FB_SET_CLUT_ENTRIES: {
             const int hnd = va_arg(ap, int);
             const size_t idx = va_arg(ap, size_t);
             const size_t count = va_arg(ap, size_t);
@@ -109,14 +109,14 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case kFBCommand_GetSpriteCaps: {
+        case IOCMD_FB_SPRITE_CAPS: {
             sprite_caps_t* cp = va_arg(ap, sprite_caps_t*);
 
             GraphicsDriver_GetSpriteCaps(drv, cp);
             return EOK;
         }
 
-        case kFBCommand_SetSpritePosition: {
+        case IOCMD_FB_SET_SPRITE_POS: {
             const int hnd = va_arg(ap, int);
             const int x = va_arg(ap, int);
             const int y = va_arg(ap, int);
@@ -124,7 +124,7 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return GraphicsDriver_SetSpritePosition(drv, hnd, x, y);
         }
 
-        case kFBCommand_SetSpriteVisible: {
+        case IOCMD_FB_SET_SPRITE_VIS: {
             const int hnd = va_arg(ap, int);
             const bool flag = va_arg(ap, int);
 
@@ -132,20 +132,20 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case kFBCommand_SetScreenConfig: {
+        case IOCMD_FB_SET_SCREEN_CONFIG: {
             const intptr_t* cp = va_arg(ap, const intptr_t*);
 
             return GraphicsDriver_SetScreenConfig(drv, cp);
         }
 
-        case kFBCommand_GetScreenConfig: {
+        case IOCMD_FB_SCREEN_CONFIG: {
             intptr_t* cp = va_arg(ap, intptr_t*);
             size_t bufsiz = va_arg(ap, size_t);
 
             return GraphicsDriver_GetScreenConfig(drv, cp, bufsiz);
         }
 
-        case kFBCommand_SetScreenCLUTEntries: {
+        case IOCMD_FB_SET_SCREEN_CLUT_ENTRIES: {
             const size_t idx = va_arg(ap, size_t);
             const size_t count = va_arg(ap, size_t);
             const color_rgb32_t* colors = va_arg(ap, const color_rgb32_t*);

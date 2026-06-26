@@ -653,8 +653,8 @@ static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
     con_screen_t scr;
     con_cursor_t crs;
 
-    fd_cntl(self->fd_out, kConsoleCommand_GetScreen, &scr);
-    fd_cntl(self->fd_out, kConsoleCommand_GetCursor, &crs);
+    fd_cntl(self->fd_out, IOCMD_TTY_SCREEN, &scr);
+    fd_cntl(self->fd_out, IOCMD_TTY_CURSOR, &crs);
 
     self->lrY = crs.y - 1;
     self->promptX = self->lrX;

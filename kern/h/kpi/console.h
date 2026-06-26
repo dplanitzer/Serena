@@ -19,7 +19,8 @@ typedef struct con_screen {
 
 // Returns the current screen size of the console.
 // con_get_screen(con_screen_t* _Nonnull info)
-#define kConsoleCommand_GetScreen   IOResourceCommand(kDriverCommand_SubclassBase + 0)
+#define IOCMD_TTY_SCREEN \
+IOCMD_MAKE(IOPROTO_TTY, 1, _IOCMD_ACC_RD, 0)
 
 
 typedef struct con_cursor {
@@ -28,6 +29,7 @@ typedef struct con_cursor {
 
 // Returns the current cursor position.
 // con_get_cursor(con_cursor_t* _Nonnull info)
-#define kConsoleCommand_GetCursor   IOResourceCommand(kDriverCommand_SubclassBase + 1)
+#define IOCMD_TTY_CURSOR \
+IOCMD_MAKE(IOPROTO_TTY, 2, _IOCMD_ACC_RD, 0)
 
 #endif /* _KPI_CONSOLE_H */

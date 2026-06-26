@@ -79,7 +79,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
     
     fputs("\033[?25l", stdout);
     // Try format_disk() first
-    if (fd_cntl(ioc, kDiskCommand_FormatDisk, 0) != 0) {
+    if (fd_cntl(ioc, IOCMD_DISK_FORMAT, 0) != 0) {
         if (errno == ENOTSUP) {
             errno = 0;
             
@@ -89,7 +89,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
                 printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
                 fflush(stdout);
         
-                if (fd_cntl(ioc, kDiskCommand_FormatTrack, 0) != 0) {
+                if (fd_cntl(ioc, IOCMD_DISK_FORMAT_TRACK, 0) != 0) {
                     ok = 0;
                     break;
                 }
@@ -122,8 +122,8 @@ void cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t ro
 
         setbuf(fp, NULL);
 
-        if (fd_cntl(fd, kDiskCommand_SenseDisk) == 0) {
-            fd_cntl(fd, kDiskCommand_GetDiskInfo, &info);
+        if (fd_cntl(fd, IOCMD_DISK_SENSE) == 0) {
+            fd_cntl(fd, IOCMD_DISK_MEDIA, &info);
             if (!bQuick) {
                 ok = wipe_disk(fd, &info);
                 if (ok) {
@@ -263,7 +263,7 @@ static void cmd_geometry(const char* _Nonnull path)
         if (fd < 0) {
             return;
         }
-        fd_cntl(fd, kDiskCommand_GetDiskInfo, &di);
+        fd_cntl(fd, IOCMD_DISK_MEDIA, &di);
         fd_close(fd);
     }
     else {
@@ -305,7 +305,7 @@ static void sense_disk(const char* _Nonnull diskPath)
     const int fd = fs_open(NULL, diskPath, O_RDONLY);
 
     if (fd >= 0) {
-        fd_cntl(fd, kDiskCommand_SenseDisk);
+        fd_cntl(fd, IOCMD_DISK_SENSE);
         fd_close(fd);
     }
 }

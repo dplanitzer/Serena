@@ -33,11 +33,12 @@ typedef struct drive_info {
     uint32_t    flags;          // drive flags 
 } drive_info_t;
 
-// Returns information about a disk drive. Use the kDriverCommand_GetCategories
+// Returns information about a disk drive. Use the IOCMD_DRV_GET_CATEGORIES
 // call and look at the IODISK category to find out what kind of disk drive this
 // is.
 // get_drive_info(drive_info_t* _Nonnull pOutInfo)
-#define kDiskCommand_GetDriveInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
+#define IOCMD_DISK_DRIVE \
+IOCMD_MAKE(IOPROTO_DISK, 1, _IOCMD_ACC_RD, 0)
 
 
 // Disk flags
@@ -59,7 +60,8 @@ typedef struct disk_info {
 // Returns information about the disk that is currently in the drive.
 // ENOMEDIUM is returned if no disk is in the drive.
 // get_disk_info(disk_info_t* _Nonnull pOutInfo)
-#define kDiskCommand_GetDiskInfo    IOResourceCommand(kDriverCommand_SubclassBase + 1)
+#define IOCMD_DISK_MEDIA \
+IOCMD_MAKE(IOPROTO_DISK, 2, _IOCMD_ACC_RD, 0)
 
 
 // Formats all sectors on the disk. 'The data portion of all sectors is filled
@@ -67,7 +69,8 @@ typedef struct disk_info {
 // formatted. Returns ENOTSUP if this command is not supported by the disk
 // driver. You should attempt to use FormatTrack() instead in this case.
 // format_disk(char fillByte)
-#define kDiskCommand_FormatDisk     IOResourceCommand(kDriverCommand_SubclassBase + 2)
+#define IOCMD_DISK_FORMAT \
+IOCMD_MAKE(IOPROTO_DISK, 3, _IOCMD_ACC_WR, 0)
 
 
 // Formats a track of 'sectorsPerTrack' consecutive sectors starting at the
@@ -75,14 +78,16 @@ typedef struct disk_info {
 // of every sector is filled with 'fillByte'. The caller will be blocked until
 // all data has been written to disk or an error is encountered.
 // format(char fillByte)
-#define kDiskCommand_FormatTrack    IOResourceCommand(kDriverCommand_SubclassBase + 3)
+#define IOCMD_DISK_FORMAT_TRACK \
+IOCMD_MAKE(IOPROTO_DISK, 4, _IOCMD_ACC_WR, 0)
 
 
 // Checks whether a disk was inserted into the drive and updates the drive state
 // accordingly. You should call this function after receiving a EDISKCHANGE error
 // from any of the other disk related calls. Returns EOK if a disk is in the drive
 // and ENOMEDIUM if no disk is in the drive.
-// sensedisk(void)
-#define kDiskCommand_SenseDisk  IOResourceCommand(kDriverCommand_SubclassBase + 4)
+// sense_disk(void)
+#define IOCMD_DISK_SENSE \
+IOCMD_MAKE(IOPROTO_DISK, 5, _IOCMD_ACC_RDWR, 0)
 
 #endif /* _KPI_DISK_H */

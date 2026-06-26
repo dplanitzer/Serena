@@ -86,26 +86,26 @@ errno_t IODiskHandler_control(struct IODiskHandler* _Nonnull self, int cmd, va_l
     DiskDriverRef drv = IODriverHandler_GetDriver(self);
 
     switch (cmd) {
-        case kDiskCommand_GetDriveInfo: {
+        case IOCMD_DISK_DRIVE: {
             drive_info_t* info = va_arg(ap, drive_info_t*);
             
             return DiskDriver_GetDriveInfo(drv, info);
         }
 
-        case kDiskCommand_GetDiskInfo: {
+        case IOCMD_DISK_MEDIA: {
             disk_info_t* info = va_arg(ap, disk_info_t*);
         
             return DiskDriver_GetDiskInfo(drv, info);
         }
 
-        case kDiskCommand_FormatDisk: {
+        case IOCMD_DISK_FORMAT: {
             const char fillByte = va_arg(ap, int);
 
             const errno_t err = DiskDriver_FormatDisk(drv, fillByte);
             return err;
         }
 
-        case kDiskCommand_FormatTrack: {
+        case IOCMD_DISK_FORMAT_TRACK: {
             decl_try_err();
             const char fillByte = va_arg(ap, int);
 
@@ -115,7 +115,7 @@ errno_t IODiskHandler_control(struct IODiskHandler* _Nonnull self, int cmd, va_l
             return err;
         }
 
-        case kDiskCommand_SenseDisk:
+        case IOCMD_DISK_SENSE:
             return DiskDriver_SenseDisk(drv);
 
         default:
