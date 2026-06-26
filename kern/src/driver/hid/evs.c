@@ -38,7 +38,7 @@ void hid_evs_reset(hid_evs_t* _Nonnull self)
 }
 
 // Returns true if the given key should be auto-repeated
-static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
+static bool shouldAutoRepeatKeyCode(hid_key_t keyCode)
 {
     // Everything except:
     // - modifier keys
@@ -139,14 +139,14 @@ static bool _key_repeat_tick(hid_evs_t* _Nonnull self, hid_evs_res_t* _Nonnull r
     }
 }
 
-hid_action_t hid_evs_tickle(hid_evs_t* _Nonnull self, const HIDEvent* _Nullable evt, hid_evs_res_t* _Nonnull result)
+hid_action_t hid_evs_tickle(hid_evs_t* _Nonnull self, const hid_event_t* _Nullable evt, hid_evs_res_t* _Nonnull result)
 {
     const int evtType = (evt) ? evt->type : -1;
     nanotime_t now;
     int r;
 
     switch (evtType) {
-        case kHIDEventType_KeyDown:
+        case HID_EVENT_KEY_DOWN:
             if (shouldAutoRepeatKeyCode(evt->data.key.keyCode)) {
                 self->state = kState_Repeating;
                 self->keyFlags = evt->data.key.flags;
@@ -160,14 +160,14 @@ hid_action_t hid_evs_tickle(hid_evs_t* _Nonnull self, const HIDEvent* _Nullable 
             r = HIDSynth_UseEvent;
             break;
 
-        case kHIDEventType_KeyUp:
+        case HID_EVENT_KEY_UP:
             if (self->state == kState_Repeating && self->keyCode == evt->data.key.keyCode) {
                 self->state = kState_Idle;
             }
             r = HIDSynth_UseEvent;
             break;
 
-        case kHIDEventType_FlagsChanged:
+        case HID_EVENT_FLAGS_CHANGED:
             if (self->state == kState_Repeating && self->keyFlags != evt->data.flags.flags) {
                 self->state = kState_Idle;
             }

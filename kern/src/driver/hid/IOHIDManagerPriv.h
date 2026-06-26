@@ -106,7 +106,7 @@ final_class_ivars(IOHIDManager, Object,
     uint16_t                    evqReadIdx;
     uint16_t                    evqWriteIdx;
     size_t                      evqOverflowCount;
-    HIDEvent* _Nonnull          evqQueue;
+    hid_event_t* _Nonnull          evqQueue;
 
 
     // Keyboard Configuration

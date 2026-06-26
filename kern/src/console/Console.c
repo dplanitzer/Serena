@@ -559,7 +559,7 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, cha
 static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, fd_flags_t flags, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    HIDEvent evt;
+    hid_event_t evt;
     ssize_t nBytesRead = 0;
     const bool isNonBlocking = (flags & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
@@ -581,7 +581,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, fd_flags_t fl
             break;
         }
 
-        if (evt.type != kHIDEventType_KeyDown) {
+        if (evt.type != HID_EVENT_KEY_DOWN) {
             continue;
         }
 
@@ -614,7 +614,7 @@ errno_t Console_Read(ConsoleRef _Nonnull self, fd_flags_t flags, void* _Nonnull 
 {
     decl_try_err();
     char* pChars = pBuffer;
-    HIDEvent evt;
+    hid_event_t evt;
     int evtCount;
     ssize_t nBytesRead = 0;
     ssize_t nTmpBytesRead;

@@ -9,6 +9,7 @@
 #ifndef KeyMap_h
 #define KeyMap_h
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <kpi/hid_event.h>
 #include <kpi/hid_keys.h>
@@ -70,8 +71,8 @@ typedef uint16_t  KeyMapOffset;
 
 typedef struct KeyMapRange {
     uint16_t        type;
-    HIDKeyCode      lower;
-    HIDKeyCode      upper;
+    hid_key_t      lower;
+    hid_key_t      upper;
     KeyMapOffset    traps;
 } KeyMapRange;
 
@@ -104,6 +105,6 @@ extern bool KeyMap_IsValid(const KeyMap* _Nonnull pMap);
 // returned. If that length is zero then the key press or release should be
 // ignored. Note that this function returns a sequence of bytes and not a
 // C string. Consequently the sequence is not nul-terminated.
-extern ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, void* _Nonnull pBuffer, ssize_t maxOutBytes);
+extern ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const hid_evt_key_t* _Nonnull pEvent, void* _Nonnull pBuffer, ssize_t maxOutBytes);
 
 #endif /* KeyMap_h */

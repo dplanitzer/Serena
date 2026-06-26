@@ -26,7 +26,7 @@
 // no event has arrived before timeout. Returns EAGAIN if timeout is 0 and no
 // event is pending. Note that this call disregards the O_NONBLOCK mode
 // on the I/O channel.
-// get_event(const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt)
+// get_event(const nanotime_t* _Nonnull timeout, hid_event_t* _Nonnull evt)
 #define IOCMD_HID_GET_EVENT \
 IOCMD_MAKE(IOPROTO_HID, 1, _IOCMD_ACC_RD, 0)
 

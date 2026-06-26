@@ -32,7 +32,7 @@ extern void IOHIDManager_SetKeyRepeatDelays(IOHIDManagerRef _Nonnull self, const
 
 
 // Returns the keyboard hardware state
-extern void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown);
+extern void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const hid_key_t* _Nullable pKeysToCheck, int nKeysToCheck, hid_key_t* _Nullable pKeysDown, int* _Nonnull nKeysDown);
 
 
 // Mouse cursor state
@@ -51,8 +51,8 @@ extern uint32_t IOHIDManager_GetMouseDeviceButtonsDown(IOHIDManagerRef _Nonnull 
 
 
 // Event queue
-extern errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt);
-extern void IOHIDManager_PostEvent(IOHIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData);
+extern errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, hid_event_t* _Nonnull evt);
+extern void IOHIDManager_PostEvent(IOHIDManagerRef _Nonnull self, int type, did_t driverId, const hid_event_data_t* _Nonnull pEventData);
 extern void IOHIDManager_FlushEvents(IOHIDManagerRef _Nonnull self);
 
 

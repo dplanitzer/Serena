@@ -93,7 +93,7 @@ static const char* _hid_device_type_string(int type)
 
 void hid_test(int argc, char *argv[])
 {
-    HIDEvent evt;
+    hid_event_t evt;
     bool mc_vis = true;
     bool done = false;
     size_t gp_count = 0;
@@ -128,14 +128,14 @@ void hid_test(int argc, char *argv[])
         assert_int_ge(0, fd_cntl(fd, IOCMD_HID_GET_EVENT, &NANOTIME_INF, &evt));
 
         switch (evt.type) {
-            case kHIDEventType_KeyDown:
-            case kHIDEventType_KeyUp:
+            case HID_EVENT_KEY_DOWN:
+            case HID_EVENT_KEY_UP:
                 printf("%s: $%hhx\tflags: $%hhx\tisRepeat: %s\n",
-                      (evt.type == kHIDEventType_KeyUp) ? "key-up" : "key-down",
+                      (evt.type == HID_EVENT_KEY_UP) ? "key-up" : "key-down",
                       (int)evt.data.key.keyCode,
                       (int)evt.data.key.flags, evt.data.key.isRepeat ? "true" : "false");
 
-                if (evt.type == kHIDEventType_KeyDown) {
+                if (evt.type == HID_EVENT_KEY_DOWN) {
                     switch (evt.data.key.keyCode) {
                         case KEY_Q:
                             done = true;
@@ -162,40 +162,40 @@ void hid_test(int argc, char *argv[])
                 }
                 break;
                 
-            case kHIDEventType_FlagsChanged:
+            case HID_EVENT_FLAGS_CHANGED:
                 printf("flags-changed: $%hhx\n", evt.data.flags.flags);
                 break;
                 
-            case kHIDEventType_MouseUp:
-            case kHIDEventType_MouseDown:
+            case HID_EVENT_MOUSE_UP:
+            case HID_EVENT_MOUSE_DOWN:
                 printf("%s: %d\tflags: $%hhx\t(%d, %d)\n",
-                      (evt.type == kHIDEventType_MouseUp) ? "mouse-up" : "mouse-down",
+                      (evt.type == HID_EVENT_MOUSE_UP) ? "mouse-up" : "mouse-down",
                       evt.data.mouse.buttonNumber,
                       (int)evt.data.mouse.flags,
                       evt.data.mouse.x,
                       evt.data.mouse.y);
                 break;
 
-            case kHIDEventType_MouseMoved:
+            case HID_EVENT_MOUSE_MOVED:
                 printf("mouse-moved\t(%d, %d)\n",
                       evt.data.mouseMoved.x,
                       evt.data.mouseMoved.y);
                 break;
 
-            case kHIDEventType_JoystickUp:
-            case kHIDEventType_JoystickDown:
+            case HID_EVENT_GPAD_UP:
+            case HID_EVENT_GPAD_DOWN:
                 printf("%s: %d\tflags: $%hhx\t(%d, %d)\n",
-                      (evt.type == kHIDEventType_JoystickUp) ? "joy-up" : "joy-down",
-                      evt.data.joystick.buttonNumber,
-                      (int)evt.data.joystick.flags,
-                      evt.data.joystick.dx,
-                      evt.data.joystick.dy);
+                      (evt.type == HID_EVENT_GPAD_UP) ? "joy-up" : "joy-down",
+                      evt.data.gamepad.buttonNumber,
+                      (int)evt.data.gamepad.flags,
+                      evt.data.gamepad.dx,
+                      evt.data.gamepad.dy);
                 break;
 
-            case kHIDEventType_JoystickMotion:
+            case HID_EVENT_GPAD_MOTION:
                 printf("joy-motion\t(%d, %d)\n",
-                      evt.data.joystickMotion.dx,
-                      evt.data.joystickMotion.dy);
+                      evt.data.gamepadMoved.dx,
+                      evt.data.gamepadMoved.dy);
                 break;
 
             default:

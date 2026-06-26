@@ -24,7 +24,7 @@ typedef enum hid_action {
 typedef struct hid_evs_res {
     nanotime_t  deadline;   // MakeRepeat: event timestamp; TimedWait: wait until this time
     uint32_t    flags;      // MakeRepeat: event flags
-    HIDKeyCode  keyCode;    // MakeRepeat: event key code
+    hid_key_t  keyCode;    // MakeRepeat: event key code
 } hid_evs_res_t;
 
 
@@ -35,7 +35,7 @@ typedef struct hid_evs {
     // At most one key may be in key repeat state
     nanotime_t  nextEventTime;
     uint32_t    keyFlags;       // Modifier flags of the original key down (flags changes cause the repeat to end)
-    HIDKeyCode  keyCode;        // Key code of the original key down
+    hid_key_t  keyCode;        // Key code of the original key down
     uint16_t    state;
 } hid_evs_t;
 
@@ -50,6 +50,6 @@ extern void hid_evs_reset(hid_evs_t* _Nonnull self);
 // and it determines whether the caller should return 'evt' to the user,
 // synthesize a key repeat event and return it to the user or whether it should
 // wait for events to arrive.
-extern hid_action_t hid_evs_tickle(hid_evs_t* _Nonnull self, const HIDEvent* _Nullable evt, hid_evs_res_t* _Nonnull result);
+extern hid_action_t hid_evs_tickle(hid_evs_t* _Nonnull self, const hid_event_t* _Nullable evt, hid_evs_res_t* _Nonnull result);
 
 #endif /* hid_evs_h */

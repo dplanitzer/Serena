@@ -9,24 +9,21 @@
 #ifndef _KPI_HID_EVENT_H
 #define _KPI_HID_EVENT_H 1
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <kpi/_time.h>
 #include <kpi/types.h>
 
 
 // Event types
-typedef enum HIDEventType {
-    kHIDEventType_KeyDown = 0,
-    kHIDEventType_KeyUp,
-    kHIDEventType_FlagsChanged,
-    kHIDEventType_MouseDown,
-    kHIDEventType_MouseUp,
-    kHIDEventType_MouseMoved,
-    kHIDEventType_JoystickDown,
-    kHIDEventType_JoystickUp,
-    kHIDEventType_JoystickMotion
-} HIDEventType;
+#define HID_EVENT_KEY_DOWN      1
+#define HID_EVENT_KEY_UP        2
+#define HID_EVENT_FLAGS_CHANGED 3
+#define HID_EVENT_MOUSE_DOWN    4
+#define HID_EVENT_MOUSE_UP      5
+#define HID_EVENT_MOUSE_MOVED   6
+#define HID_EVENT_GPAD_DOWN     7
+#define HID_EVENT_GPAD_UP       8
+#define HID_EVENT_GPAD_MOTION   9
 
 
 // Modifier key flags
@@ -34,79 +31,77 @@ typedef enum HIDEventType {
 // [15...0]: logical modifier flags
 // [23...16]: right shift / control / option / command pressed
 // [31...24]: left shift / control / option / command pressed
-enum {
-    kHIDEventModifierFlag_Shift         = 1,    // Any shift key except caps lock is pressed
-    kHIDEventModifierFlag_Option        = 2,    // Any option key is pressed
-    kHIDEventModifierFlag_Control       = 4,    // Any control key is pressed
-    kHIDEventModifierFlag_Command       = 8,    // Any command / GUI key is pressed
-    kHIDEventModifierFlag_CapsLock      = 16,   // Caps lock key is pressed
-    kHIDEventModifierFlag_KeyPad        = 32,   // Any key on the key pad is pressed
-    kHIDEventModifierFlag_Function      = 64,   // Any function key is pressed (this includes literal function 'F' keys and cursor keys, return, delete, etc)
-};
+#define HID_MODIFIER_SHIFT      1   // Any shift key except caps lock is pressed
+#define HID_MODIFIER_OPTION     2   // Any option key is pressed
+#define HID_MODIFIER_CONTROL    4   // Any control key is pressed
+#define HID_MODIFIER_COMMAND    8   // Any command / GUI key is pressed
+#define HID_MODIFIER_CAPS_LOCK  16  // Caps lock key is pressed
+#define HID_MODIFIER_KEY_PAD    32  // Any key on the key pad is pressed
+#define HID_MODIFIER_FUNCTION   64  // Any function key is pressed (this includes literal function 'F' keys and cursor keys, return, delete, etc)
 
 
 // HID key codes are based on the USB HID key scan codes
-typedef uint16_t  HIDKeyCode;
+typedef uint16_t  hid_key_t;
 
 
 // HID event data
-typedef struct HIDEventData_KeyUpDown {
+typedef struct hid_evt_key {
     uint32_t    flags;          // Modifier keys
-    HIDKeyCode  keyCode;        // USB HID key scan code
-    bool        isRepeat;       // True if this is an auto-repeated key down; false otherwise
-} HIDEventData_KeyUpDown;
+    hid_key_t   keyCode;        // USB HID key scan code
+    int         isRepeat;       // True if this is an auto-repeated key down; false otherwise
+} hid_evt_key_t;
 
 
-typedef struct HIDEventData_FlagsChanged {
+typedef struct hid_evt_flags {
     uint32_t    flags;              // Modifier keys
-} HIDEventData_FlagsChanged;
+} hid_evt_flags_t;
 
 
-typedef struct HIDEventData_MouseButton {
+typedef struct hid_evt_mouse_button {
     int         buttonNumber;   // 0 -> left button, 1 -> right button, 2-> middle button, ...
     uint32_t    flags;          // modifier keys
     int         x;              // Mouse position when the button was pressed / released
     int         y;
-} HIDEventData_MouseButton;
+} hid_evt_mouse_button_t;
 
 
-typedef struct HIDEventData_MouseMove {
+typedef struct hid_evt_mouse_move {
     int         x;              // Current mouse position
     int         y;
     uint32_t    flags;          // Modifier keys
-} HIDEventData_MouseMove;
+} hid_evt_mouse_move_t;
 
 
-typedef struct HIDEventData_JoystickButton {
+typedef struct hid_evt_gpad_button {
     int         buttonNumber;
     uint32_t    flags;          // Modifier keys
     int         dx;             // Joystick direction when the button was pressed / released
     int         dy;
-} HIDEventData_JoystickButton;
+} hid_evt_gpad_button_t;
 
 
-typedef struct HIDEventData_JoystickMotion {
+typedef struct hid_evt_gpad_move_t {
     int         dx;
     int         dy;
-} HIDEventData_JoystickMotion;
+} hid_evt_gpad_move_t;
 
 
-typedef union _HIDEventData {
-    HIDEventData_KeyUpDown      key;
-    HIDEventData_FlagsChanged   flags;
-    HIDEventData_MouseButton    mouse;
-    HIDEventData_MouseMove      mouseMoved;
-    HIDEventData_JoystickButton joystick;
-    HIDEventData_JoystickMotion joystickMotion;
-} HIDEventData;
+typedef union hid_event_data {
+    hid_evt_key_t           key;
+    hid_evt_flags_t         flags;
+    hid_evt_mouse_button_t  mouse;
+    hid_evt_mouse_move_t    mouseMoved;
+    hid_evt_gpad_button_t   gamepad;
+    hid_evt_gpad_move_t     gamepadMoved;
+} hid_event_data_t;
 
 
 // HID event
-typedef struct HIDEvent {
-    int32_t         type;
-    did_t           driverId;   // Driver id of the driver that triggered this event; not available for keyboard and mouse events
-    nanotime_t      eventTime;
-    HIDEventData    data;
-} HIDEvent;
+typedef struct hid_event {
+    int32_t             type;
+    did_t               driverId;   // Driver id of the driver that triggered this event; not available for keyboard and mouse events
+    nanotime_t          eventTime;
+    hid_event_data_t    data;
+} hid_event_t;
 
 #endif /* _KPI_HID_EVENT_H */

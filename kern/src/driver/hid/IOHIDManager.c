@@ -55,7 +55,7 @@ errno_t IOHIDManager_Create(IOHIDManagerRef _Nullable * _Nonnull pOutSelf)
     // Create the HID event queue
     const size_t powOf2Capacity = pow2_ceil_sz(REPORT_QUEUE_MAX_EVENTS);
     
-    try(kalloc_cleared(powOf2Capacity * sizeof(HIDEvent), (void**)&self->evqQueue));
+    try(kalloc_cleared(powOf2Capacity * sizeof(hid_event_t), (void**)&self->evqQueue));
     self->evqCapacity = powOf2Capacity;
     self->evqCapacityMask = powOf2Capacity - 1;
     self->evqReadIdx = 0;
@@ -142,7 +142,7 @@ static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t k
 // potentially (slightly) different from the state you get from inspecting the
 // events in the event stream because the event stream lags the hardware state
 // slightly.
-void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
+void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const hid_key_t* _Nullable pKeysToCheck, int nKeysToCheck, hid_key_t* _Nullable pKeysDown, int* _Nonnull nKeysDown)
 {
     int oi = 0;
 
@@ -167,14 +167,14 @@ void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const HIDKeyC
         if (pKeysDown) {
             // Return all keys that are down
             for (int i = 0; i < *nKeysDown; i++) {
-                if (KeyMap_IsKeyDown(self->keyMap, (HIDKeyCode)i)) {
-                    pKeysDown[oi++] = (HIDKeyCode)i;
+                if (KeyMap_IsKeyDown(self->keyMap, (hid_key_t)i)) {
+                    pKeysDown[oi++] = (hid_key_t)i;
                 }
             }
         } else {
             // Return the number of keys that are down
             for (int i = 0; i < nKeysToCheck; i++) {
-                if (KeyMap_IsKeyDown(self->keyMap, (HIDKeyCode)i)) {
+                if (KeyMap_IsKeyDown(self->keyMap, (hid_key_t)i)) {
                     oi++;
                 }
             }
@@ -450,10 +450,10 @@ void IOHIDManager_FlushEvents(IOHIDManagerRef _Nonnull self)
 // the queue is full. This function must be called from the interrupt context.
 // NOTE: this function does not do a cnd_broadcast() the caller must do this
 // before dropping the lock.
-static void _queue_event(IOHIDManagerRef _Nonnull _Locked self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+static void _queue_event(IOHIDManagerRef _Nonnull _Locked self, int type, did_t driverId, const hid_event_data_t* _Nonnull pEventData)
 {
     if (EVQ_WRITABLE_COUNT() > 0) {
-        HIDEvent* pe = &self->evqQueue[self->evqWriteIdx++ & self->evqCapacityMask];
+        hid_event_t* pe = &self->evqQueue[self->evqWriteIdx++ & self->evqCapacityMask];
 
         pe->type = type;
         pe->driverId = driverId;
@@ -465,7 +465,7 @@ static void _queue_event(IOHIDManagerRef _Nonnull _Locked self, HIDEventType typ
     }
 }
 
-void IOHIDManager_PostEvent(IOHIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+void IOHIDManager_PostEvent(IOHIDManagerRef _Nonnull self, int type, did_t driverId, const hid_event_data_t* _Nonnull pEventData)
 {
     mtx_lock(&self->mtx);
     clock_gettime(g_mono_clock, &self->now);
@@ -477,14 +477,14 @@ void IOHIDManager_PostEvent(IOHIDManagerRef _Nonnull self, HIDEventType type, di
 // Dequeues and returns the next available event or ETIMEDOUT if no event is
 // available and a timeout > 0 was specified. Returns EAGAIN if no event is
 // available and the timeout is 0.
-errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, HIDEvent* _Nonnull evt)
+errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_t* _Nonnull timeout, hid_event_t* _Nonnull evt)
 {
     decl_try_err();
     nanotime_t deadline;
 
     mtx_lock(&self->mtx);
     for (;;) {
-        const HIDEvent* queue_evt = NULL;
+        const hid_event_t* queue_evt = NULL;
 
         if (EVQ_READABLE_COUNT() > 0) {
             queue_evt = &self->evqQueue[self->evqReadIdx & self->evqCapacityMask];
@@ -498,7 +498,7 @@ errno_t IOHIDManager_GetNextEvent(IOHIDManagerRef _Nonnull self, const nanotime_
             break;
         }
         if (t == HIDSynth_MakeRepeat) {
-            evt->type = kHIDEventType_KeyDown;
+            evt->type = HID_EVENT_KEY_DOWN;
             evt->eventTime = self->evqSynthResult.deadline;
             evt->data.key.flags = self->evqSynthResult.flags;
             evt->data.key.keyCode = self->evqSynthResult.keyCode;
@@ -583,13 +583,13 @@ static void _post_key_event(IOHIDManagerRef _Nonnull _Locked self, const IOHIDRe
     // Generate and post the keyboard event
     const uint32_t keyFunc = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x60 : 0;
     const uint32_t flags = modifierFlags | keyFunc;
-    HIDEventType evtType;
-    HIDEventData evt;
+    int evtType;
+    hid_event_data_t evt;
 
     if (!isModifierKey) {
-        evtType = (report->type == kIOHIDReportType_KeyUp) ? kHIDEventType_KeyUp : kHIDEventType_KeyDown;
+        evtType = (report->type == kIOHIDReportType_KeyUp) ? HID_EVENT_KEY_UP : HID_EVENT_KEY_DOWN;
     } else {
-        evtType = kHIDEventType_FlagsChanged;
+        evtType = HID_EVENT_FLAGS_CHANGED;
     }
     evt.key.flags = flags;
     evt.key.keyCode = keyCode;
@@ -602,8 +602,8 @@ static void _post_key_event(IOHIDManagerRef _Nonnull _Locked self, const IOHIDRe
 static void _post_mouse_event(IOHIDManagerRef _Nonnull _Locked self, bool hasPositionChange, bool hasButtonsChange, uint32_t oldButtonsDown)
 {
     if (hasButtonsChange) {
-        HIDEventType evtType;
-        HIDEventData evt;
+        int evtType;
+        hid_event_data_t evt;
 
         // Generate mouse button up/down events
         // XXX should be able to ask the mouse input driver how many buttons it supports
@@ -613,9 +613,9 @@ static void _post_mouse_event(IOHIDManagerRef _Nonnull _Locked self, bool hasPos
             
             if (old_down ^ new_down) {
                 if (old_down == 0 && new_down != 0) {
-                    evtType = kHIDEventType_MouseDown;
+                    evtType = HID_EVENT_MOUSE_DOWN;
                 } else {
-                    evtType = kHIDEventType_MouseUp;
+                    evtType = HID_EVENT_MOUSE_UP;
                 }
                 evt.mouse.buttonNumber = i;
                 evt.mouse.flags = self->modifierFlags;
@@ -627,12 +627,12 @@ static void _post_mouse_event(IOHIDManagerRef _Nonnull _Locked self, bool hasPos
     }
     
     if (hasPositionChange && self->isMouseMoveReportingEnabled) {
-        HIDEventData evt;
+        hid_event_data_t evt;
 
         evt.mouseMoved.flags = self->modifierFlags;
         evt.mouseMoved.x = self->mouse.x;
         evt.mouseMoved.y = self->mouse.y;
-        _queue_event(self, kHIDEventType_MouseMoved, 0, &evt);
+        _queue_event(self, HID_EVENT_MOUSE_MOVED, 0, &evt);
     }
 }
 
@@ -650,20 +650,20 @@ static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_s
         for (int i = 0; i < 2; i++) {
             const uint32_t old_down = oldButtons & (1 << i);
             const uint32_t new_down = report->data.joy.buttons & (1 << i);
-            HIDEventType evtType;
-            HIDEventData evt;
+            int evtType;
+            hid_event_data_t evt;
 
             if (old_down ^ new_down) {
                 if (old_down == 0 && new_down != 0) {
-                    evtType = kHIDEventType_JoystickDown;
+                    evtType = HID_EVENT_GPAD_DOWN;
                 } else {
-                    evtType = kHIDEventType_JoystickUp;
+                    evtType = HID_EVENT_GPAD_UP;
                 }
 
-                evt.joystick.buttonNumber = i;
-                evt.joystick.flags = self->modifierFlags;
-                evt.joystick.dx = report->data.joy.x;
-                evt.joystick.dy = report->data.joy.y;
+                evt.gamepad.buttonNumber = i;
+                evt.gamepad.flags = self->modifierFlags;
+                evt.gamepad.dx = report->data.joy.x;
+                evt.gamepad.dy = report->data.joy.y;
                 _queue_event(self, evtType, did, &evt);
             }
         }
@@ -675,11 +675,11 @@ static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_s
     const int16_t diffY = report->data.joy.y - gp->y;
     
     if (diffX != 0 || diffY != 0) {
-        HIDEventData evt;
+        hid_event_data_t evt;
 
-        evt.joystickMotion.dx = report->data.joy.x;
-        evt.joystickMotion.dy = report->data.joy.y;
-        _queue_event(self, kHIDEventType_JoystickMotion, did, &evt);
+        evt.gamepadMoved.dx = report->data.joy.x;
+        evt.gamepadMoved.dy = report->data.joy.y;
+        _queue_event(self, HID_EVENT_GPAD_MOTION, did, &evt);
     }
 
     gp->x = report->data.joy.x;

@@ -24,7 +24,7 @@ errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf
     const fd_flags_t flags = Handler_GetFlags(self);
     const bool isNonBlocking = (flags & O_NONBLOCK) == O_NONBLOCK;
     const nanotime_t* timp = (isNonBlocking) ? &NANOTIME_ZERO : &NANOTIME_INF;
-    HIDEvent* pe = buf;
+    hid_event_t* pe = buf;
     ssize_t nBytesRead = 0;
 
     if ((flags & O_RDONLY) == 0) {
@@ -32,7 +32,7 @@ errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf
     }
 
 
-    while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
+    while ((nBytesRead + sizeof(hid_event_t)) <= nBytesToRead) {
         // Only block waiting for the first event. For all other events we do not
         // wait.
         const errno_t e1 = IOHIDManager_GetNextEvent(gIOHIDManager, (pe == buf) ? timp : &NANOTIME_ZERO, pe);
@@ -44,7 +44,7 @@ errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf
             break;
         }
         
-        nBytesRead += sizeof(HIDEvent);
+        nBytesRead += sizeof(hid_event_t);
         pe++;
     }
 
@@ -57,7 +57,7 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
     switch (cmd) {
         case IOCMD_HID_GET_EVENT: {
             const nanotime_t* timeoutp = va_arg(ap, nanotime_t*);
-            HIDEvent* evt = va_arg(ap, HIDEvent*);
+            hid_event_t* evt = va_arg(ap, hid_event_t*);
 
             return IOHIDManager_GetNextEvent(gIOHIDManager, timeoutp, evt);
         }

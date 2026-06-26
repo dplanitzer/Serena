@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 
-// USB Keycode -> kHIDEventModifierFlag_XXX values which are be or'd / and'd into self->modifierFlags.
+// USB Keycode -> khid_event_tModifierFlag_XXX values which are be or'd / and'd into self->modifierFlags.
 // Bit 7 indicates whether the key is left or right: 0 -> left; 1 -> right
 // shift        0x01
 // option       0x02
