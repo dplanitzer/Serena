@@ -1,16 +1,16 @@
 //
-//  LightPenDriver.c
+//  AmiLightPen.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/25/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "LightPenDriver.h"
+#include "AmiLightPen.h"
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-final_class_ivars(LightPenDriver, IOHIDDevice,
+final_class_ivars(AmiLightPen, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_potgor;
     uint16_t                    right_button_mask;
     uint16_t                    middle_button_mask;
@@ -28,16 +28,16 @@ final_class_ivars(LightPenDriver, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_LIGHTPEN);
 
 
-errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiLightPen_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    LightPenDriverRef self;
+    AmiLightPenRef self;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(AmiLightPen), kDriver_Exclusive, g_cats, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
 
@@ -59,7 +59,7 @@ catch:
     return err;
 }
 
-errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
+errno_t AmiLightPen_onStart(AmiLightPenRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
 
@@ -108,7 +108,7 @@ static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
     return r;
 }
 
-void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
+void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     // Return the smoothed value
     int16_t x = self->smoothedX;
@@ -162,7 +162,7 @@ void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, IOHIDReport* _Non
 }
 
 
-class_func_defs(LightPenDriver, IOHIDDevice,
-override_func_def(onStart, LightPenDriver, Driver)
-override_func_def(getReport, LightPenDriver, IOHIDDevice)
+class_func_defs(AmiLightPen, IOHIDDevice,
+override_func_def(onStart, AmiLightPen, Driver)
+override_func_def(getReport, AmiLightPen, IOHIDDevice)
 );

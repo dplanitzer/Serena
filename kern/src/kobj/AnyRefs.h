@@ -65,11 +65,11 @@ class_ref(AmiGPBus);
 class_ref(FloppyController);
 class_ref(FloppyDriver);
 class_ref(GraphicsDriver);
-class_ref(JoystickDriver);
-class_ref(KeyboardDriver);
-class_ref(LightPenDriver);
-class_ref(MouseDriver);
-class_ref(PaddleDriver);
+class_ref(AmiJoystick);
+class_ref(AmiKeyboard);
+class_ref(AmiLightPen);
+class_ref(AmiMouse);
+class_ref(AmiPaddle);
 class_ref(ZorroController);
 class_ref(ZorroDriver);
 

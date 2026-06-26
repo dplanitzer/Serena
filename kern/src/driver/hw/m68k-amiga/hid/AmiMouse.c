@@ -1,16 +1,16 @@
 //
-//  MouseDriver.c
+//  AmiMouse.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/25/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "MouseDriver.h"
+#include "AmiMouse.h"
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-final_class_ivars(MouseDriver, IOHIDDevice,
+final_class_ivars(AmiMouse, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
     volatile uint8_t* _Nonnull  reg_ciaa_pra;
@@ -25,16 +25,16 @@ final_class_ivars(MouseDriver, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_MOUSE);
 
 
-errno_t MouseDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiMouse_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    MouseDriverRef self;
+    AmiMouseRef self;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(MouseDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(AmiMouse), kDriver_Exclusive, g_cats, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -52,7 +52,7 @@ catch:
     return err;
 }
 
-errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
+errno_t AmiMouse_onStart(AmiMouseRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -67,7 +67,7 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
 }
 
 // Based on <https://www.markwrobel.dk/post/amiga-machine-code-letter11/>
-void MouseDriver_getReport(MouseDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
+void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     register uint16_t new_state = *(self->reg_joydat);
     
@@ -143,7 +143,7 @@ void MouseDriver_getReport(MouseDriverRef _Nonnull self, IOHIDReport* _Nonnull r
 }
 
 
-class_func_defs(MouseDriver, IOHIDDevice,
-override_func_def(onStart, MouseDriver, Driver)
-override_func_def(getReport, MouseDriver, IOHIDDevice)
+class_func_defs(AmiMouse, IOHIDDevice,
+override_func_def(onStart, AmiMouse, Driver)
+override_func_def(getReport, AmiMouse, IOHIDDevice)
 );

@@ -1,16 +1,16 @@
 //
-//  PaddleDriver.c
+//  AmiPaddle.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/25/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "PaddleDriver.h"
+#include "AmiPaddle.h"
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-final_class_ivars(PaddleDriver, IOHIDDevice,
+final_class_ivars(AmiPaddle, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potdat;
     volatile uint16_t* _Nonnull reg_potgo;
@@ -26,16 +26,16 @@ final_class_ivars(PaddleDriver, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_ANALOG_JOYSTICK);
 
 
-errno_t PaddleDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiPaddle_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    PaddleDriverRef self = NULL;
+    AmiPaddleRef self = NULL;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(PaddleDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(AmiPaddle), kDriver_Exclusive, g_cats, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
 
@@ -55,7 +55,7 @@ catch:
     return err;
 }
 
-void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
+void AmiPaddle_getReport(AmiPaddleRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     register uint16_t potdat = *(self->reg_potdat);
     register uint16_t joydat = *(self->reg_joydat);
@@ -111,6 +111,6 @@ void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, IOHIDReport* _Nonnull
 }
 
 
-class_func_defs(PaddleDriver, IOHIDDevice,
-override_func_def(getReport, PaddleDriver, IOHIDDevice)
+class_func_defs(AmiPaddle, IOHIDDevice,
+override_func_def(getReport, AmiPaddle, IOHIDDevice)
 );

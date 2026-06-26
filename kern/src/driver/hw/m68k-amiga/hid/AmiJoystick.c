@@ -1,16 +1,16 @@
 //
-//  JoystickDriver.c
+//  AmiJoystick.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/25/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "JoystickDriver.h"
+#include "AmiJoystick.h"
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-final_class_ivars(JoystickDriver, IOHIDDevice,
+final_class_ivars(AmiJoystick, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
     volatile uint8_t* _Nonnull  reg_ciaa_pra;
@@ -22,16 +22,16 @@ final_class_ivars(JoystickDriver, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_DIGITAL_JOYSTICK);
 
 
-errno_t JoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiJoystick_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    JoystickDriverRef self;
+    AmiJoystickRef self;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(JoystickDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(AmiJoystick), kDriver_Exclusive, g_cats, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -48,7 +48,7 @@ catch:
     return err;
 }
 
-errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
+errno_t AmiJoystick_onStart(AmiJoystickRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -62,7 +62,7 @@ errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
+void AmiJoystick_getReport(AmiJoystickRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     register uint8_t pra = *(self->reg_ciaa_pra);
     register uint16_t joydat = *(self->reg_joydat);
@@ -107,7 +107,7 @@ void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, IOHIDReport* _Non
 }
 
 
-class_func_defs(JoystickDriver, IOHIDDevice,
-override_func_def(onStart, JoystickDriver, Driver)
-override_func_def(getReport, JoystickDriver, IOHIDDevice)
+class_func_defs(AmiJoystick, IOHIDDevice,
+override_func_def(onStart, AmiJoystick, Driver)
+override_func_def(getReport, AmiJoystick, IOHIDDevice)
 );

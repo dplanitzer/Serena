@@ -12,11 +12,11 @@
 #include <driver/hid/IOGPBus.h>
 #include <driver/hw/m68k-amiga/floppy/FloppyController.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
-#include <driver/hw/m68k-amiga/hid/JoystickDriver.h>
-#include <driver/hw/m68k-amiga/hid/KeyboardDriver.h>
-#include <driver/hw/m68k-amiga/hid/LightPenDriver.h>
-#include <driver/hw/m68k-amiga/hid/MouseDriver.h>
-#include <driver/hw/m68k-amiga/hid/PaddleDriver.h>
+#include <driver/hw/m68k-amiga/hid/AmiJoystick.h>
+#include <driver/hw/m68k-amiga/hid/AmiKeyboard.h>
+#include <driver/hw/m68k-amiga/hid/AmiLightPen.h>
+#include <driver/hw/m68k-amiga/hid/AmiMouse.h>
+#include <driver/hw/m68k-amiga/hid/AmiPaddle.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroController.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroDriver.h>
 #include <hal/cpu.h>
@@ -34,16 +34,16 @@ static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int ty
 {
     switch (type) {
         case IOGP_MOUSE:
-            return MouseDriver_Create(port, pOutDriver);
+            return AmiMouse_Create(port, pOutDriver);
 
         case IOGP_LIGHTPEN:
-            return LightPenDriver_Create(port, pOutDriver);
+            return AmiLightPen_Create(port, pOutDriver);
 
         case IOGP_ANALOG_JOYSTICK:
-            return PaddleDriver_Create(port, pOutDriver);
+            return AmiPaddle_Create(port, pOutDriver);
 
         case IOGP_DIGITAL_JOYSTICK:
-            return JoystickDriver_Create(port, pOutDriver);
+            return AmiJoystick_Create(port, pOutDriver);
 
         default:
             return EINVAL;
@@ -69,7 +69,7 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
 
     // Keyboard
     DriverRef kb;
-    try(KeyboardDriver_Create(&kb));
+    try(AmiKeyboard_Create(&kb));
     try(Driver_AttachStartChild((DriverRef)self, kb, slotId++));
 
 

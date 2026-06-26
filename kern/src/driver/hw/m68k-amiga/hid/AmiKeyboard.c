@@ -1,12 +1,12 @@
 //
-//  KeyboardDriver.c
+//  AmiKeyboard.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/25/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "KeyboardDriver.h"
+#include "AmiKeyboard.h"
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/cbuf.h>
@@ -27,7 +27,7 @@ static const uint8_t g_usb_code_map[128] = {
 };
 
 
-final_class_ivars(KeyboardDriver, IOHIDDevice,
+final_class_ivars(AmiKeyboard, IOHIDDevice,
     cbuf_t  keyQueue;   // irq state
     int     dropCount;  // irq state
 );
@@ -35,15 +35,15 @@ final_class_ivars(KeyboardDriver, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_KEYBOARD);
 
 
-extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key);
+extern void AmiKeyboard_OnKeyboardInterrupt(AmiKeyboardRef _Nonnull self, int key);
 
 
-errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiKeyboard_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    KeyboardDriverRef self;
+    AmiKeyboardRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(AmiKeyboard), kDriver_Exclusive, g_cats, (DriverRef*)&self));
     try(cbuf_init(&self->keyQueue, 16));
 
     *pOutSelf = (DriverRef)self;
@@ -55,30 +55,30 @@ catch:
     return err;
 }
 
-static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
+static void AmiKeyboard_deinit(AmiKeyboardRef _Nonnull self)
 {
     cbuf_deinit(&self->keyQueue);
 }
 
-errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
+errno_t AmiKeyboard_onStart(DriverRef _Nonnull _Locked self)
 {
     // Configure the keyboard serial port
     CIAA_BASE_DECL(ciaa);
 
     *CIA_REG_8(ciaa, CIA_CRA) = 0;
 
-    irq_set_direct_handler(IRQ_ID_KEYBOARD, (irq_direct_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
+    irq_set_direct_handler(IRQ_ID_KEYBOARD, (irq_direct_func_t)AmiKeyboard_OnKeyboardInterrupt, self);
     irq_enable_src(IRQ_ID_CIA_A_SP);
 
     return EOK;
 }
 
-void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
+void AmiKeyboard_onStop(DriverRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_CIA_A_SP);
 }
 
-void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, IOHIDReport* _Nonnull report)
+void AmiKeyboard_getReport(AmiKeyboardRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
     char keyCode;
     
@@ -95,7 +95,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, IOHIDReport* _Non
     }
 }
 
-void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key)
+void AmiKeyboard_OnKeyboardInterrupt(AmiKeyboardRef _Nonnull self, int key)
 {
     if (_cbuf_put(&self->keyQueue, (char)key) == 0) {
         self->dropCount++;
@@ -103,9 +103,9 @@ void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key
 }
 
 
-class_func_defs(KeyboardDriver, IOHIDDevice,
-override_func_def(deinit, KeyboardDriver, Object)
-override_func_def(onStart, KeyboardDriver, Driver)
-override_func_def(onStop, KeyboardDriver, Driver)
-override_func_def(getReport, KeyboardDriver, IOHIDDevice)
+class_func_defs(AmiKeyboard, IOHIDDevice,
+override_func_def(deinit, AmiKeyboard, Object)
+override_func_def(onStart, AmiKeyboard, Driver)
+override_func_def(onStop, AmiKeyboard, Driver)
+override_func_def(getReport, AmiKeyboard, IOHIDDevice)
 );
