@@ -107,11 +107,11 @@ IOCMD_MAKE(IOPROTO_HID, 11, _IOCMD_ACC_WR, 0)
 //
 
 // Types of HID devices supported by the game port bus
-#define IOGP_NONE               0
-#define IOGP_MOUSE              1
-#define IOGP_LIGHTPEN           2
-#define IOGP_ANALOG_JOYSTICK    3
-#define IOGP_DIGITAL_JOYSTICK   4
+#define HID_PORT_NONE       0
+#define HID_PORT_MOUSE      1
+#define HID_PORT_LIGHT_PEN  2
+#define HID_PORT_PADDLE     3
+#define HID_PORT_JOYSTICK   4
 
 // Returns the number of ports supported by the game port bus.
 // get_port_count(size_t* _Nonnull count)

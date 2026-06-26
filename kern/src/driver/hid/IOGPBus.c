@@ -40,7 +40,7 @@ catch:
 
 errno_t IOGPBus_onStart(IOGPBusRef _Nonnull _Locked self)
 {
-    return IOGPBus_SetPortDevice_Locked(self, 0, IOGP_MOUSE);
+    return IOGPBus_SetPortDevice_Locked(self, 0, HID_PORT_MOUSE);
 }
 
 
@@ -117,11 +117,11 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
     }
 
     switch (type) {
-        case IOGP_NONE:
-        case IOGP_MOUSE:
-        case IOGP_LIGHTPEN:
-        case IOGP_ANALOG_JOYSTICK:
-        case IOGP_DIGITAL_JOYSTICK:
+        case HID_PORT_NONE:
+        case HID_PORT_MOUSE:
+        case HID_PORT_LIGHT_PEN:
+        case HID_PORT_PADDLE:
+        case HID_PORT_JOYSTICK:
             break;
 
         default:
@@ -130,10 +130,10 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 
 
     Driver_DetachChild((DriverRef)self, kDriverStop_Shutdown, port);
-    Driver_SetChildDataAt((DriverRef)self, port, IOGP_NONE);
+    Driver_SetChildDataAt((DriverRef)self, port, HID_PORT_NONE);
 
 
-    if (type != IOGP_NONE) {
+    if (type != HID_PORT_NONE) {
         DriverRef newDriver = NULL;
 
         err = self->createHidDevice(self->ctx, port, type, &newDriver);

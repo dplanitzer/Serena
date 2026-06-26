@@ -33,16 +33,16 @@ final_class_ivars(AmigaController, PlatformController,
 static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     switch (type) {
-        case IOGP_MOUSE:
+        case HID_PORT_MOUSE:
             return AmiMouse_Create(port, pOutDriver);
 
-        case IOGP_LIGHTPEN:
+        case HID_PORT_LIGHT_PEN:
             return AmiLightPen_Create(port, pOutDriver);
 
-        case IOGP_ANALOG_JOYSTICK:
+        case HID_PORT_PADDLE:
             return AmiPaddle_Create(port, pOutDriver);
 
-        case IOGP_DIGITAL_JOYSTICK:
+        case HID_PORT_JOYSTICK:
             return AmiJoystick_Create(port, pOutDriver);
 
         default:

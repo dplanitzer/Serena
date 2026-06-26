@@ -82,11 +82,11 @@ static const int gArrow_Height = 16;
 static const char* _hid_device_type_string(int type)
 {
     switch (type) {
-        case IOGP_NONE:             return "none";
-        case IOGP_MOUSE:            return "mouse";
-        case IOGP_LIGHTPEN:         return "light pen";
-        case IOGP_ANALOG_JOYSTICK:  return "paddle";
-        case IOGP_DIGITAL_JOYSTICK: return "joystick";
+        case HID_PORT_NONE:         return "none";
+        case HID_PORT_MOUSE:        return "mouse";
+        case HID_PORT_LIGHT_PEN:    return "light pen";
+        case HID_PORT_PADDLE:       return "paddle";
+        case HID_PORT_JOYSTICK:     return "joystick";
         default:                    return "??";
     }
 }
