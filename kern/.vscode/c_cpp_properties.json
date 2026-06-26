@@ -18,7 +18,8 @@
                 "MACHINE_AMIGA",
                 "__SERENA__",
                 "_POSIX_SOURCE=1",
-                "__STDC_WANT_LIB_EXT1__=1"
+                "__STDC_WANT_LIB_EXT1__=1",
+                "__IOGPBUS__=2"
             ],        
             "compilerPath": "",
             "cStandard": "c99",

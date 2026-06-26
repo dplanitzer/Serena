@@ -107,7 +107,7 @@ KERNEL_AS_DONTWARN := -nowarn=62
 KERNEL_CC_DONTWARN := -dontwarn=51,148,208
 KERNEL_LD_DONTWARN := -nowarn=22
 
-KERNEL_CC_PREPROC_DEFS := $(CC_PREPROC_DEFS) -D__KERNEL__=1
+KERNEL_CC_PREPROC_DEFS := $(CC_PREPROC_DEFS) -D__KERNEL__=1 -D__IOGPBUS__=2
 
 
 # --------------------------------------------------------------------------

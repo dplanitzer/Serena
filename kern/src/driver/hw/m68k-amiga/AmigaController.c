@@ -9,21 +9,46 @@
 #include "AmigaController.h"
 #include <ext/endian.h>
 #include <ext/math.h>
+#include <driver/hid/IOGPBus.h>
 #include <driver/hw/m68k-amiga/floppy/FloppyController.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
-#include <driver/hw/m68k-amiga/hid/GamePortController.h>
+#include <driver/hw/m68k-amiga/hid/JoystickDriver.h>
 #include <driver/hw/m68k-amiga/hid/KeyboardDriver.h>
+#include <driver/hw/m68k-amiga/hid/LightPenDriver.h>
+#include <driver/hw/m68k-amiga/hid/MouseDriver.h>
+#include <driver/hw/m68k-amiga/hid/PaddleDriver.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroController.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroDriver.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <kpi/hid.h>
 #include <kpi/smg.h>
 
 
 final_class_ivars(AmigaController, PlatformController,
     ZorroControllerRef _Nonnull zorroController;
 );
+
+static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver)
+{
+    switch (type) {
+        case IOGP_MOUSE:
+            return MouseDriver_Create(port, pOutDriver);
+
+        case IOGP_LIGHTPEN:
+            return LightPenDriver_Create(port, pOutDriver);
+
+        case IOGP_ANALOG_JOYSTICK:
+            return PaddleDriver_Create(port, pOutDriver);
+
+        case IOGP_DIGITAL_JOYSTICK:
+            return JoystickDriver_Create(port, pOutDriver);
+
+        default:
+            return EINVAL;
+    }
+}
 
 // This function effectively "leaks" drivers when it fails. This doesn't matter
 // because this platform controller never frees its children anyway.
@@ -49,9 +74,9 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
 
 
     // GamePort
-    GamePortControllerRef gpc = NULL;
-    try(GamePortController_Create(&gpc));
-    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)gpc, slotId++));
+    IOGPBusRef gp = NULL;
+    try(IOGPBus_Create(_create_gpbus_hid_device, NULL, &gp));
+    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)gp, slotId++));
 
 
     // Floppy Bus
