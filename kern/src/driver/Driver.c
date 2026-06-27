@@ -45,7 +45,7 @@ errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const iocat_
 
     err = Driver_Create(pClass, options, cats, &self);
     if (err == EOK) {
-        self->flags |= (kDriverFlag_IsRoot | kDriverFlag_IsAttached);
+        self->flags |= kDriverFlag_IsAttached;
 
         *pOutSelf = self;
     }
@@ -134,7 +134,7 @@ errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
 }
 
 
-void Driver_Stop(DriverRef _Nonnull self, int reason)
+void Driver_Stop(DriverRef _Nonnull self)
 {
     bool doStop = true;
 
@@ -168,7 +168,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
             // and our iterator 'i' is stable. Also no new children can be added
             // anymore anyway.
             mtx_unlock(&self->childMtx);
-            Driver_Stop(self->child[i], reason);
+            Driver_Stop(self->child[i]);
             mtx_lock(&self->childMtx);
         }
     }
@@ -467,19 +467,19 @@ errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull chil
     if (err == EOK) {
         err = Driver_Start(child);
         if (err != EOK) {
-            Driver_DetachChild(self, kDriverStop_Shutdown, slotId);
+            Driver_DetachChild(self, slotId);
         }
     }
 
     return err;
 }
 
-void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId)
+void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId)
 {
     DriverRef child = Driver_CopyChildAt(self, slotId);
 
     if (child) {
-        Driver_Stop(self, stopReason);
+        Driver_Stop(self);
         Driver_WaitForStopped(child);
 
         Driver_OnDetaching(child, self);

@@ -133,7 +133,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
     }
 
 
-    Driver_DetachChild((DriverRef)self, kDriverStop_Shutdown, port);
+    Driver_DetachChild((DriverRef)self, port);
     self->portType[port] = HID_PORT_NONE;
 
 

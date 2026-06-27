@@ -28,14 +28,6 @@ enum {
 };
 
 
-// Driver stop reason. Used to indicate why a driver instance should be stopped.
-enum {
-    kDriverStop_Shutdown = 0,   // An orderly driver shutdown
-    kDriverStop_HardwareLost,   // Driver should stop because the hardware was unexpectedly lost. Eg user disconnected the hardware without going through the user interface to do this in an orderly fashion
-    kDriverStop_Abort,          // Driver detected a fatal error condition and is unable to continue
-};
-
-
 // Driver state. Used internally by the Driver class.
 enum {
     kDriverState_Inactive = 0,
@@ -47,9 +39,8 @@ enum {
 
 // Driver flags. Used internally by the Driver class.
 enum {
-    kDriverFlag_IsRoot = 1,             // This driver marks the root of a driver hierarchy
-    kDriverFlag_IsAttached = 2,         // Driver is attached to a parent driver
-    kDriverFlag_NoMoreChildren = 4,     // Driver has entered stopping state and no longer allows children to be attached
+    kDriverFlag_IsAttached = 1,         // Driver is attached to a parent driver
+    kDriverFlag_NoMoreChildren = 2,     // Driver has entered stopping state and no longer allows children to be attached
 };
 
 
@@ -100,23 +91,14 @@ enum {
 // Driver_Open(). The last Handler_Release() on a driver handler will trigger a
 // call to Driver_Close().
 //
-// A driver may be voluntarily terminated by calling Driver_Stop() with the.
-// kDriverStop_Shutdown parameter. This indicates to the driver system that the
-// driver wants to stop in a voluntarily and orderly fashion. If the driver is
-// a bus controller (driver) then this stop will be automatically propagated to
-// all the child drivers and the child drivers will be able to use I/O services
-// of the bus driver to orderly shut down themselves.
+// A driver may be voluntarily terminated by calling Driver_Stop(). If the
+// driver is a bus controller (driver) then this stop will be automatically
+// propagated to all the child drivers and the child drivers will be able to
+// use I/O services of the bus driver to orderly shut down themselves.
 //
 // For example, a SCSI bus driver that stops will stop all of its bus clients by
-// calling Driver_Stop() on them with the same reason that was passed to the
-// SCSI bus driver. If the reason is kDriverStop_Shutdown then bus clients like
-// a SCSI disk driver will be able to use the I/O services of the SCSI bus driver
-// to park the head of the disk.
-//
-// If however the stop reason is kDriverStop_Abort or kDriverStop_HardwareLoss
-// then the bus client drivers would not be allowed to use the SCSI bus driver
-// I/O services since either the SCSI bus driver is in an undetermined state or
-// it is no longer able to access the SCSI hardware.
+// calling Driver_Stop() on them. This will allow the SCSI disk driver to use
+// the I/O services of the SCSI bus driver to park the head of the disk.
 // 
 // The next step after calling Driver_Stop() is to invoke Driver_WaitForStopped().
 // A driver may deploy asynchronous services internally and the shutdown of those
@@ -310,7 +292,7 @@ enum {
 //
 // A driver should call the Publish() or PublishBus() function from its onStart()
 // override. It is not necessary to override onStop() to call Unpublish() because
-// the Driver base class takes care of unpublishing the driver automatically.
+// the Driver base class takes care of un-publishing the driver automatically.
 // Additionally, a onStart() override does not need to call Unpublish() if it
 // encounters an error because Driver automatically unpublishes the driver if
 // necessary if onStart() returns with an error.
@@ -334,7 +316,6 @@ open_class(Driver, Object,
     int8_t                      state;      //XXX should be atomic_int
     int                         openCount;
     int16_t                     maxChildCount;
-    int8_t                      stopReason;
 );
 open_class_funcs(Driver, Object,
     
@@ -425,23 +406,8 @@ open_class_funcs(Driver, Object,
 // unpublishes the driver if its onStart() override returns with an error.
 extern errno_t Driver_Start(DriverRef _Nonnull self);
 
-// Stops the driver. 'reason' specifies the reason why the driver should be
-// stopped. This method first stops all children of the receiver and it then
-// changes the state to stopping and it finally unpublishes the driver and its
-// bus directory (if it published one) and it then invokes the onStop() lifecycle
-// method. A driver subclass should override onStop() and program the hardware
-// in such a way that it is effectively disabled and no longer active. A child
-// driver which is told to stop by its controlling parent (bus) driver should
-// check the reason for the stop: The reason 'shutdown' indicates that the stop
-// is orderly and was voluntarily triggered. The parent driver is still active
-// and is still willing to accept I/O requests. The child driver may issue I/O
-// requests to its parent to eg park the head of its harddisk (assuming the
-// child driver manages a hard disk). A reason of 'abort' or 'hardware-lost'
-// indicates that the stop is not orderly and that the parent/bus and the child
-// driver are no longer able to access the hardware. A driver should simply free
-// resources and not attempt to access hardware or issues I/O requests to its
-// parent driver in this case. 
-extern void Driver_Stop(DriverRef _Nonnull self, int reason);
+// Stops the driver. 
+extern void Driver_Stop(DriverRef _Nonnull self);
 
 // Waits until the driver has finished its shutdown sequence. This specifically
 // means that the caller is guaranteed that once this function returns that:
@@ -594,10 +560,9 @@ extern errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull ch
 // 'child' is detached if the start operation fails.
 extern errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
 
-// Stops the child at the bus slot id 'slotId' with stop reason 'reason' and
-// waits for the stop to complete. Does nothing if the slot contains no driver.
-// The child is stopped, waited for stopped and then released and removed from
-// the child list.
-extern void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId);
+// Stops the child at the bus slot id 'slotId' and waits for the stop to
+// complete. Does nothing if the slot contains no driver. The child is stopped
+// waited for stopped and then released and removed from the child list.
+extern void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId);
 
 #endif /* Driver_h */
