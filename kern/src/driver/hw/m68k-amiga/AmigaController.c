@@ -9,6 +9,7 @@
 #include "AmigaController.h"
 #include <ext/endian.h>
 #include <ext/math.h>
+#include <driver/IORegistry.h>
 #include <driver/hid/IOGPBus.h>
 #include <driver/hw/m68k-amiga/floppy/FloppyController.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
@@ -19,9 +20,11 @@
 #include <driver/hw/m68k-amiga/hid/AmiPaddle.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroController.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroDriver.h>
+#include <driver/hw/m68k-amiga/zorro/ZRamDriver.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <kern/kalloc.h>
 #include <kpi/hid.h>
 #include <kpi/smg.h>
 
@@ -95,23 +98,36 @@ catch:
 
 uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull self)
 {
-    uint64_t msize = 0;
+    decl_try_err();
+    uint64_t msize = 0ull;
+    DriverRef* drivers;
+    IOCATS_DEF(g_ram_cats, IOMEM_RAM);
 
     // Get the motherboard RAM
     msize += sys_desc_getramsize(g_sys_desc);
 
 
-    // Look for RAM expansion boards o the Zorro bus. Only pick up RAM expansions
+    // Look for RAM expansion boards on the Zorro bus. Only pick up RAM expansions
     // that were properly detected and where a ZRamDriver instance has been
     // assigned.
-    const size_t nboards = Driver_GetChildCount((DriverRef)self->zorroController);
-    for (size_t i = 0; i < nboards; i++) {
-        DriverRef drv = Driver_GetChildAt((DriverRef)self->zorroController, i);
-        const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(drv);
+    err = IORegistry_CopyMatchingDrivers(gIORegistry, g_ram_cats, &drivers);
+    if (err == EOK) {
+        size_t count = 0;
 
-        if (cfg->type == ZORRO_TYPE_RAM && Driver_GetChildCount(drv) > 0) {
-            msize += cfg->logicalSize;
+        while (drivers[count]) {
+            count++;
         }
+
+        for (size_t i = 0; i < count; i++) {
+            DriverRef drv = drivers[i];
+
+            if (instanceof(drv, ZRamDriver)) {
+                msize += ZRamDriver_GetMemorySize((ZRamDriverRef)drv);
+            }
+            Object_Release(drv);
+        }
+
+        kfree(drivers);
     }
 
     return msize;

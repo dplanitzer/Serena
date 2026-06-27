@@ -71,5 +71,6 @@ class_ref(AmiMouse);
 class_ref(AmiPaddle);
 class_ref(ZorroController);
 class_ref(ZorroDriver);
+class_ref(ZRamDriver);
 
 #endif /* AnyRefs_h */

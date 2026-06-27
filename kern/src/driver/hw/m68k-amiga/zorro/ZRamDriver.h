@@ -16,8 +16,10 @@ open_class(ZRamDriver, Driver,
 );
 open_class_funcs(ZRamDriver, Driver,
 );
-class_ref(ZRamDriver);
+
 
 extern errno_t ZRamDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
+
+extern size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self);
 
 #endif /* ZRamDriver_h */

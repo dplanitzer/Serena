@@ -23,6 +23,6 @@ open_class_funcs(ZorroDriver, Driver,
 extern errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _Nullable * _Nonnull pOutSelf);
 
 #define ZorroDriver_GetConfiguration(__self) \
-((const zorro_conf_t*)&((ZorroDriverRef)__self)->cfg)
+((const zorro_conf_t*)&((ZorroDriverRef)(__self))->cfg)
 
 #endif /* ZorroDriver_h */

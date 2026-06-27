@@ -32,6 +32,11 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     return EOK;
 }
 
+size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self)
+{
+    return ZorroDriver_GetConfiguration(Driver_GetParent(self))->logicalSize;
+}
+
 class_func_defs(ZRamDriver, Driver,
 override_func_def(onStart, ZRamDriver, Driver)
 );
