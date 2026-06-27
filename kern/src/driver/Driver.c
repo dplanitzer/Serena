@@ -14,10 +14,6 @@
 #include <kern/kernlib.h>
 #include <kpi/file.h>
 
-typedef struct drv_child {
-    DriverRef _Nullable driver;
-    intptr_t            data;
-} drv_child_t;
 
 static volatile atomic_int   g_next_driver_id = {.value = 1};
 
@@ -73,9 +69,9 @@ void Driver_deinit(DriverRef _Nonnull self)
 
     if (self->maxChildCount > 0) {
         for (int16_t i = 0; i < self->maxChildCount; i++) {
-            if (self->child[i].driver) {
-                Object_Release(self->child[i].driver);
-                self->child[i].driver = NULL;
+            if (self->child[i]) {
+                Object_Release(self->child[i]);
+                self->child[i] = NULL;
             }
         }
     }
@@ -166,13 +162,13 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
     // Tell all our child drivers to stop.
     mtx_lock(&self->childMtx);
     for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver) {
+        if (self->child[i]) {
             // We temporarily drop the lock so that the child is able to eg remove
             // itself from us. That's fine because the child array has a fixed size
             // and our iterator 'i' is stable. Also no new children can be added
             // anymore anyway.
             mtx_unlock(&self->childMtx);
-            Driver_Stop(self->child[i].driver, reason);
+            Driver_Stop(self->child[i], reason);
             mtx_lock(&self->childMtx);
         }
     }
@@ -349,7 +345,7 @@ errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count)
 
     // Only allowed to change the bus size if the driver has no children
     for (int i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver) {
+        if (self->child[i]) {
             throw(EBUSY);
         }
     }
@@ -363,7 +359,7 @@ errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count)
 
     // Allocate the new bus storage, if needed
     if (count > 0) {
-        try(kalloc_cleared(sizeof(drv_child_t) * count, (void**)&self->child));
+        try(kalloc_cleared(sizeof(DriverRef) * count, (void**)&self->child));
         self->maxChildCount = count;
     }
 
@@ -388,7 +384,7 @@ size_t Driver_GetChildCount(DriverRef _Nonnull self)
 
     mtx_lock(&self->childMtx);
     for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver) {
+        if (self->child[i]) {
             count++;
         }
     }
@@ -401,7 +397,7 @@ size_t Driver_GetChildCount(DriverRef _Nonnull self)
 DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 {
     mtx_lock(&self->childMtx);
-    DriverRef dp = (slotId < self->maxChildCount) ? self->child[slotId].driver : NULL;
+    DriverRef dp = (slotId < self->maxChildCount) ? self->child[slotId] : NULL;
     mtx_unlock(&self->childMtx);
 
     return dp;
@@ -410,7 +406,7 @@ DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId)
 {
     mtx_lock(&self->childMtx);
-    DriverRef dp = (slotId < self->maxChildCount && self->child[slotId].driver) ? Object_Retain(self->child[slotId].driver) : NULL;
+    DriverRef dp = (slotId < self->maxChildCount && self->child[slotId]) ? Object_Retain(self->child[slotId]) : NULL;
     mtx_unlock(&self->childMtx);
 
     return dp;
@@ -422,7 +418,7 @@ ssize_t _get_first_available_slotid(DriverRef _Nonnull _Locked self)
     ssize_t idx = -1;
 
     for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver == NULL) {
+        if (self->child[i] == NULL) {
             idx = i;
             break;
         }
@@ -448,11 +444,11 @@ errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, si
     if (slotId >= self->maxChildCount) {
         err = ERANGE;
     }
-    else if (self->child[slotId].driver) {
+    else if (self->child[slotId]) {
         err = EBUSY;
     }
     else {
-        self->child[slotId].driver = Object_Retain(child);
+        self->child[slotId] = Object_Retain(child);
     }
     mtx_unlock(&self->childMtx);
 
@@ -490,38 +486,10 @@ void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId)
         Object_Release(child);  // Release the tmp strong ref from CopyChildAt()
 
         mtx_lock(&self->childMtx);
-        Object_Release(self->child[slotId].driver); // Release the slot ref
-        self->child[slotId].driver = NULL;
+        Object_Release(self->child[slotId]); // Release the slot ref
+        self->child[slotId] = NULL;
         mtx_unlock(&self->childMtx);
     }
-}
-
-
-intptr_t Driver_GetChildDataAt(DriverRef _Nonnull self, size_t slotId)
-{
-    intptr_t data = 0;
-
-    mtx_lock(&self->childMtx);
-    if (slotId < self->maxChildCount) {
-        data = self->child[slotId].data;
-    }
-    mtx_unlock(&self->childMtx);
-
-    return data;
-}
-
-intptr_t Driver_SetChildDataAt(DriverRef _Nonnull self, size_t slotId, intptr_t data)
-{
-    intptr_t oldData = 0;
-
-    mtx_lock(&self->childMtx);
-    if (slotId < self->maxChildCount) {
-        oldData = self->child[slotId].data;
-        self->child[slotId].data = data;
-    }
-    mtx_unlock(&self->childMtx);
-
-    return oldData;
 }
 
 

@@ -326,7 +326,7 @@ open_class(Driver, Object,
     devfs_hnd_t                 devfs_hnd;
     
     DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver
-    struct drv_child* _Nullable child;
+    DriverRef* _Nullable        child;
     mtx_t                       childMtx;
 
     uint16_t                    options;
@@ -599,17 +599,5 @@ extern errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnu
 // The child is stopped, waited for stopped and then released and removed from
 // the child list.
 extern void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId);
-
-
-// Returns the data associated with the bus slot id 'slotId'. 0 is returned if
-// no data has ever been set on the bus slot.
-extern intptr_t Driver_GetChildDataAt(DriverRef _Nonnull self, size_t slotId);
-
-// Replaces the data currently associated with bus slot id 'slotId' with the
-// provided data. The data is stored by value. Also note that the data is
-// managed independently from the child driver. Eg removing the child driver
-// for a slot does not automatically remove the associated data. This function
-// returns the data that was previously associated with the slot.
-extern intptr_t Driver_SetChildDataAt(DriverRef _Nonnull self, size_t slotId, intptr_t data);
 
 #endif /* Driver_h */

@@ -98,6 +98,4 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 
 #define FloppyDriver_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))
 
-#define _get_fdc() Driver_GetParentAs(self, FloppyController)
-
 #endif /* FloppyDriverPriv_h */

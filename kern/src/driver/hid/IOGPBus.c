@@ -29,6 +29,10 @@ errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, 
     self->createHidDevice = func;
     self->ctx = ctx;
 
+    for (int i = 0; i < __IOGPBUS__; i++) {
+        self->portType[i] = HID_PORT_NONE;
+    }
+
 catch:
     *pOutSelf = self;
     return err;
@@ -62,7 +66,7 @@ errno_t IOGPBus_GetPortDevice(IOGPBusRef _Nonnull self, int port, int* _Nullable
 
     mtx_lock(&self->mtx);
     if (pOutType) {
-        *pOutType = Driver_GetChildDataAt((DriverRef)self, port);
+        *pOutType = self->portType[port];
     }
     if (pOutId) {
         DriverRef pd = Driver_GetChildAt((DriverRef)self, port);
@@ -130,7 +134,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 
 
     Driver_DetachChild((DriverRef)self, kDriverStop_Shutdown, port);
-    Driver_SetChildDataAt((DriverRef)self, port, HID_PORT_NONE);
+    self->portType[port] = HID_PORT_NONE;
 
 
     if (type != HID_PORT_NONE) {
@@ -140,7 +144,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
         if (err == EOK) {
             err = Driver_AttachStartChild((DriverRef)self, newDriver, port);
             if (err == EOK) {
-                Driver_SetChildDataAt((DriverRef)self, port, type);
+                self->portType[port] = type;
             }
             Object_Release(newDriver);
         }
