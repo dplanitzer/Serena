@@ -9,7 +9,7 @@
 #ifndef ZRamDriver_h
 #define ZRamDriver_h
 
-#include "ZorroDriver.h"
+#include "ZorroDevice.h"
 
 
 open_class(ZRamDriver, Driver,

@@ -20,8 +20,8 @@ errno_t ZRamDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
 {
-    ZorroDriverRef zdp = Driver_GetParent(self);
-    const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(zdp);
+    ZorroDeviceRef zdp = Driver_GetParent(self);
+    const zorro_conf_t* cfg = ZorroDevice_GetConfiguration(zdp);
     mem_desc_t md = {0};
 
     md.lower = cfg->start;
@@ -34,7 +34,7 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
 
 size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self)
 {
-    return ZorroDriver_GetConfiguration(Driver_GetParent(self))->logicalSize;
+    return ZorroDevice_GetConfiguration(Driver_GetParent(self))->logicalSize;
 }
 
 class_func_defs(ZRamDriver, Driver,

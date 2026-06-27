@@ -18,8 +18,8 @@
 #include <driver/hw/m68k-amiga/hid/AmiLightPen.h>
 #include <driver/hw/m68k-amiga/hid/AmiMouse.h>
 #include <driver/hw/m68k-amiga/hid/AmiPaddle.h>
-#include <driver/hw/m68k-amiga/zorro/ZorroController.h>
-#include <driver/hw/m68k-amiga/zorro/ZorroDriver.h>
+#include <driver/hw/m68k-amiga/zorro/ZorroBus.h>
+#include <driver/hw/m68k-amiga/zorro/ZorroDevice.h>
 #include <driver/hw/m68k-amiga/zorro/ZRamDriver.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
@@ -30,7 +30,7 @@
 
 
 final_class_ivars(AmigaController, PlatformController,
-    ZorroControllerRef _Nonnull zorroController;
+    ZorroBusRef _Nonnull zorroController;
 );
 
 static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver)
@@ -89,7 +89,7 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
 
 
     // Zorro Bus
-    try(ZorroController_Create(&self->zorroController));
+    try(ZorroBus_Create(&self->zorroController));
     try(Driver_AttachStartChild((DriverRef)self, (DriverRef)self->zorroController, slotId++));
 
 catch:

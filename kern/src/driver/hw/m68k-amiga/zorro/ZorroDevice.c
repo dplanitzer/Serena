@@ -1,12 +1,12 @@
 //
-//  ZorroDriver.c
+//  ZorroDevice.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 1/18/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "ZorroDriver.h"
+#include "ZorroDevice.h"
 #include "ZRamDriver.h"
 #include "ZStubDriver.h"
 #include "zorro_bus.h"
@@ -14,12 +14,12 @@
 IOCATS_NONE(g_cats);
 
 
-errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    ZorroDriverRef self;
+    ZorroDeviceRef self;
 
-    if ((err = Driver_Create(class(ZorroDriver), 0, g_cats, (DriverRef*)&self)) == EOK) {
+    if ((err = Driver_Create(class(ZorroDevice), 0, g_cats, (DriverRef*)&self)) == EOK) {
         Driver_SetMaxChildCount((DriverRef)self, 1);
         self->cfg = *config;
     }
@@ -28,7 +28,7 @@ errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _
     return err;
 }
 
-errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
+errno_t ZorroDevice_onStart(ZorroDeviceRef _Nonnull _Locked self)
 {
     decl_try_err();
     DriverRef dp = NULL;
@@ -49,6 +49,6 @@ errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
     return err;
 }
 
-class_func_defs(ZorroDriver, Driver,
-override_func_def(onStart, ZorroDriver, Driver)
+class_func_defs(ZorroDevice, Driver,
+override_func_def(onStart, ZorroDevice, Driver)
 );

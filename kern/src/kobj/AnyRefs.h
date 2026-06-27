@@ -69,8 +69,8 @@ class_ref(AmiKeyboard);
 class_ref(AmiLightPen);
 class_ref(AmiMouse);
 class_ref(AmiPaddle);
-class_ref(ZorroController);
-class_ref(ZorroDriver);
+class_ref(ZorroBus);
+class_ref(ZorroDevice);
 class_ref(ZRamDriver);
 
 #endif /* AnyRefs_h */

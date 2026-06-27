@@ -9,7 +9,7 @@
 #ifndef ZStubDriver_h
 #define ZStubDriver_h
 
-#include "ZorroDriver.h"
+#include "ZorroDevice.h"
 
 
 open_class(ZStubDriver, Driver,
