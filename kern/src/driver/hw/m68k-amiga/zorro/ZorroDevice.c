@@ -8,7 +8,6 @@
 
 #include "ZorroDevice.h"
 #include "ZRamDriver.h"
-#include "ZStubDriver.h"
 #include "zorro_bus.h"
 
 IOCATS_NONE(g_cats);
@@ -31,19 +30,15 @@ errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _
 errno_t ZorroDevice_onStart(ZorroDeviceRef _Nonnull _Locked self)
 {
     decl_try_err();
-    DriverRef dp = NULL;
+    DriverRef dp;
 
     if (self->cfg.type == ZORRO_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
         err = ZRamDriver_Create(&dp);
-    }
-    else {
-        err = ZStubDriver_Create(&dp);
-    }
-
-
-    if (dp) {
-        err = Driver_AttachStartChild((DriverRef)self, dp, 0);
-        Object_Release(dp);
+        
+        if (err == EOK) {
+            err = Driver_AttachStartChild((DriverRef)self, dp, 0);
+            Object_Release(dp);
+        }
     }
 
     return err;
