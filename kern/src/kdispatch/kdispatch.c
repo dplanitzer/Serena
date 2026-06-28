@@ -45,7 +45,7 @@ static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t
     }
 
     if (attr->name && attr->name[0] != '\0') {
-        snprintf(self->name, KDISPATCH_MAX_NAME_LENGTH + 1, "%s", attr->name);
+        strncpy(self->name, attr->name, KDISPATCH_MAX_NAME_LENGTH);
     }
 
     return EOK;
@@ -348,7 +348,7 @@ bool _kdispatch_item_has_func(kdispatch_item_t _Nonnull item, kdispatch_item_fun
 
 kdispatch_item_t _Nullable _kdispatch_acquire_cached_conv_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_func_t func)
 {
-    kdispatch_item_t ip = NULL;
+    kdispatch_item_t ip;
 
     if (self->item_cache.first) {
         ip = (kdispatch_item_t)self->item_cache.first;
