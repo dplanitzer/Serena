@@ -49,6 +49,11 @@ extern void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _No
 extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv);
 
 
+// Returns a strong reference to the driver with the driver ID 'id'. NULL is
+// returned if no such driver exists.
+extern DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id);
+
+
 // Returns a snapshot of strong references to all drivers that match the provided
 // categories. The caller is responsible for releasing all references and calling
 // kfree() on the returned pointer when done. The array of driver references is
@@ -58,6 +63,7 @@ extern errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const
 // Same as above but return the best matching driver only. Returns ENODEV if
 // no matching driver could be found.
 extern DriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats);
+
 
 // Registers a continuous driver matcher with the IORegistry. This matcher
 // will invoke 'f' with the argument 'arg' and the matching driver everytime a

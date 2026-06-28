@@ -64,7 +64,7 @@ static errno_t _create_matching_drivers_iterator(IORegistryRef _Nonnull _Locked 
     iter->count = 0;
     iter->idx = 0;
 
-    try(kalloc(sizeof(DriverRef) * (self->driver_count + 1), (void**)&iter->drivers));
+    try(kalloc(sizeof(DriverRef) * self->driver_count, (void**)&iter->drivers));
 
     deque_for_each(&self->drivers, deque_node_t, it,
         DriverRef cdp = drv_from_ioreg_qe(it);
@@ -73,7 +73,6 @@ static errno_t _create_matching_drivers_iterator(IORegistryRef _Nonnull _Locked 
             iter->drivers[iter->count++] = Object_Retain(cdp);
         }
     )
-    iter->drivers[iter->count] = NULL;
 
 catch:
     return err;
@@ -120,6 +119,24 @@ void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull
     deque_remove(&self->drivers, &drv->ioreg_qe);
     Object_Release(drv);
     mtx_unlock(&self->mtx);
+}
+
+DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id)
+{
+    DriverRef drv = NULL;
+
+    mtx_lock(&self->mtx);
+    deque_for_each(&self->drivers, deque_node_t, it,
+        DriverRef cdp = drv_from_ioreg_qe(it);
+
+        if (Driver_GetId(cdp) == id) {
+            drv = Object_Retain(cdp);
+            break;
+        }
+    )
+    mtx_unlock(&self->mtx);
+
+    return drv;
 }
 
 errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, IOIterator* _Nonnull iter)
