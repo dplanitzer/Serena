@@ -20,6 +20,26 @@
 typedef void (*IOMatchCallback)(void* _Nullable arg, DriverRef _Nonnull driver, int notify);
 
 
+typedef struct IOIterator {
+    DriverRef* _Nonnull drivers;
+    size_t              count;
+    size_t              idx;
+} IOIterator;
+
+// Returns true if a call to IOIterator_GetNext() will return a driver reference
+#define IOIterator_HasNext(__iter) \
+((__iter)->idx < (__iter)->count)
+
+// Returns the next driver reference and advances the iterator to the next entry.
+// The returned reference is a weak reference. The caller must retain the driver
+// if it wants to keep it past a IOIterator_Destroy() call
+#define IOIterator_GetNext(__iter) \
+(__iter)->drivers[(__iter)->idx++]
+
+// Frees all iterator resources.
+extern void IOIterator_Destroy(IOIterator* _Nullable iter);
+
+
 extern IORegistryRef gIORegistry;
 
 
@@ -33,7 +53,7 @@ extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _
 // categories. The caller is responsible for releasing all references and calling
 // kfree() on the returned pointer when done. The array of driver references is
 // terminated by a NULL entry.
-extern errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nullable * _Nonnull pOutDrivers);
+extern errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, IOIterator* _Nonnull iter);
 
 // Same as above but return the best matching driver only. Returns ENODEV if
 // no matching driver could be found.

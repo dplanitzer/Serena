@@ -100,7 +100,7 @@ uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull 
 {
     decl_try_err();
     uint64_t msize = 0ull;
-    DriverRef* drivers;
+    IOIterator iter;
     IOCATS_DEF(g_ram_cats, IOMEM_RAM);
 
     // Get the motherboard RAM
@@ -110,24 +110,16 @@ uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull 
     // Look for RAM expansion boards on the Zorro bus. Only pick up RAM expansions
     // that were properly detected and where a ZRamDriver instance has been
     // assigned.
-    err = IORegistry_CopyMatchingDrivers(gIORegistry, g_ram_cats, &drivers);
+    err = IORegistry_CopyMatchingDrivers(gIORegistry, g_ram_cats, &iter);
     if (err == EOK) {
-        size_t count = 0;
-
-        while (drivers[count]) {
-            count++;
-        }
-
-        for (size_t i = 0; i < count; i++) {
-            DriverRef drv = drivers[i];
+        while (IOIterator_HasNext(&iter)) {
+            DriverRef drv = IOIterator_GetNext(&iter);
 
             if (instanceof(drv, ZRamDriver)) {
                 msize += ZRamDriver_GetMemorySize((ZRamDriverRef)drv);
             }
-            Object_Release(drv);
         }
-
-        kfree(drivers);
+        IOIterator_Destroy(&iter);
     }
 
     return msize;

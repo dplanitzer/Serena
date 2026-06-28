@@ -58,47 +58,35 @@ static int comp_by_boot_pri(DiskDriverRef* _Nonnull p0, DiskDriverRef* _Nonnull 
 static DiskDriverRef _Nullable get_boot_floppy_driver(void)
 {
     decl_try_err();
-    DriverRef* drivers = NULL;
-    DiskDriverRef drv = NULL;
-    size_t count = 0;
+    IOIterator iter;
+    DiskDriverRef disk = NULL;
     static int g_pri_cutoff = INT_MAX;
     
-    err = IORegistry_CopyMatchingDrivers(gIORegistry, g_fd_cats, &drivers);
+    err = IORegistry_CopyMatchingDrivers(gIORegistry, g_fd_cats, &iter);
     if (err != EOK) {
         return NULL;
     }
 
 
-    // Figure out how many drivers matched
-    while (drivers[count]) {
-        count++;
-    }
-
-
     // Sort by descending boot priority
-    qsort(drivers, count, sizeof(void*), (int (*)(const void*, const void*))comp_by_boot_pri);
+    qsort(iter.drivers, iter.count, sizeof(void*), (int (*)(const void*, const void*))comp_by_boot_pri);
 
     
     // Pick the disk with the priority equal or just below the current priority
     // cutoff
-    for (size_t i = 0; (i < count) && (g_pri_cutoff >= 0); i++) {
-        const int curPri = DiskDriver_GetBootPriority(drivers[i]);
+    while (IOIterator_HasNext(&iter) && (g_pri_cutoff >= 0)) {
+        DiskDriverRef cdp = (DiskDriverRef)IOIterator_GetNext(&iter);
+        const int curPri = DiskDriver_GetBootPriority(cdp);
 
         if (curPri <= g_pri_cutoff) {
             g_pri_cutoff = curPri - 1;
-            drv = Object_Retain(drivers[i]);
+            disk = Object_Retain(cdp);
             break;
         }
     }
+    IOIterator_Destroy(&iter);
 
-    
-    // Release all drivers
-    for (size_t i = 0; i < count; i++) {
-        Object_Release(drivers[i]);
-    }
-    kfree(drivers);
-
-    return drv;
+    return disk;
 }
 
 static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, DiskDriverRef _Nonnull disk, uint32_t* _Nonnull diskId)
