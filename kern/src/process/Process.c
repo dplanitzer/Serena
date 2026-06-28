@@ -214,10 +214,7 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
             break;
 
         case PROC_PROP_CMDLINE:
-            if (self->arg_strings == NULL || self->arg_size == 0) {
-                *buf = '\0';
-            }
-            else if (bufSize >= self->arg_size) {
+            if (bufSize >= self->arg_size) {
                 memcpy(buf, self->arg_strings, self->arg_size);
             }
             else {
@@ -227,10 +224,7 @@ errno_t Process_GetProperty(ProcessRef _Nonnull self, int flavor, char* _Nonnull
             break;
 
         case PROC_PROP_ENVIRON:
-            if (self->env_strings == NULL || self->env_size == 0) {
-                *buf = '\0';
-            }
-            else if (bufSize >= self->env_size) {
+            if (bufSize >= self->env_size) {
                 memcpy(buf, self->env_strings, self->env_size);
             }
             else {
