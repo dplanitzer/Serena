@@ -30,7 +30,6 @@
 
 
 final_class_ivars(AmigaController, PlatformController,
-    ZorroBusRef _Nonnull zorroController;
 );
 
 static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver)
@@ -58,39 +57,35 @@ static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int ty
 errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
-    size_t slotId = 0;
-
-    // Set our virtual bus slot count
-    try(Driver_SetMaxChildCount((DriverRef)self, 8));
-
 
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(&fb));
-    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)fb, slotId++));
+    try(Driver_Launch((DriverRef)fb, (DriverRef)self));
 
 
     // Keyboard
     DriverRef kb;
     try(AmiKeyboard_Create(&kb));
-    try(Driver_AttachStartChild((DriverRef)self, kb, slotId++));
+    try(Driver_Launch((DriverRef)kb, (DriverRef)self));
 
 
     // GamePort
     IOGPBusRef gp = NULL;
     try(IOGPBus_Create(_create_gpbus_hid_device, NULL, &gp));
-    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)gp, slotId++));
+    try(Driver_Launch((DriverRef)gp, (DriverRef)self));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(&fdc));
-    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)fdc, slotId++));
+    try(Driver_Launch((DriverRef)fdc, (DriverRef)self));
 
 
     // Zorro Bus
-    try(ZorroBus_Create(&self->zorroController));
-    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)self->zorroController, slotId++));
+    ZorroBusRef zb = NULL;
+    try(ZorroBus_Create(&zb));
+    try(Driver_Launch((DriverRef)zb, (DriverRef)self));
 
 catch:
     return err;

@@ -9,6 +9,7 @@
 #if __IOGPBUS__ > 0
 
 #include "IOGPBus.h"
+#include <driver/IORegistry.h>
 #include <kpi/hid.h>
 
 IOCATS_DEF(g_cats, IOBUS_GP);
@@ -23,7 +24,6 @@ errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, 
     IOGPBusRef self;
 
     try(Driver_Create(class(IOGPBus), kDriver_Exclusive, g_cats, (DriverRef*)&self));
-    try(Driver_SetMaxChildCount((DriverRef)self, __IOGPBUS__));
 
     mtx_init(&self->mtx);
     self->createHidDevice = func;
@@ -69,9 +69,7 @@ errno_t IOGPBus_GetPortDevice(IOGPBusRef _Nonnull self, int port, int* _Nullable
         *pOutType = self->portType[port];
     }
     if (pOutId) {
-        DriverRef pd = Driver_GetChildAt((DriverRef)self, port);
-
-        *pOutId = (pd) ? Driver_GetId(pd) : 0;
+        *pOutId = self->portDriverId[port];
     }
     mtx_unlock(&self->mtx);
 
@@ -93,14 +91,11 @@ errno_t IOGPBus_GetPortForDeviceId(IOGPBusRef _Nonnull self, did_t id, int* _Non
 
     mtx_lock(&self->mtx);
     for (int i = 0; i < __IOGPBUS__; i++) {
-        DriverRef dp = Driver_GetChildAt((DriverRef)self, i);
-
-        if (dp && Driver_GetId(dp) == id) {
+        if (self->portDriverId[i] == id) {
             port = i;
             break;
         }
     }
-
     *pOutPort = port;
     mtx_unlock(&self->mtx);
     
@@ -133,17 +128,24 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
     }
 
 
-    Driver_DetachChild((DriverRef)self, port);
-    self->portType[port] = HID_PORT_NONE;
+    DriverRef oldDriver = IORegistry_CopyDriverWithId(gIORegistry, self->portDriverId[port]);
+    if (oldDriver) {
+        Driver_Terminate(oldDriver);
+        Object_Release(oldDriver);
+
+        self->portDriverId[port] = 0;
+        self->portType[port] = HID_PORT_NONE;
+    }
 
 
     if (type != HID_PORT_NONE) {
-        DriverRef newDriver = NULL;
+        DriverRef newDriver;
 
         err = self->createHidDevice(self->ctx, port, type, &newDriver);
         if (err == EOK) {
-            err = Driver_AttachStartChild((DriverRef)self, newDriver, port);
+            err = Driver_Launch(newDriver, (DriverRef)self);
             if (err == EOK) {
+                self->portDriverId[port] = Driver_GetId(newDriver);
                 self->portType[port] = type;
             }
             Object_Release(newDriver);

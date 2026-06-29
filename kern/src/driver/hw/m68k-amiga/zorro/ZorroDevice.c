@@ -19,7 +19,6 @@ errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _
     ZorroDeviceRef self;
 
     if ((err = Driver_Create(class(ZorroDevice), 0, g_cats, (DriverRef*)&self)) == EOK) {
-        Driver_SetMaxChildCount((DriverRef)self, 1);
         self->cfg = *config;
     }
 
@@ -36,7 +35,7 @@ errno_t ZorroDevice_onStart(ZorroDeviceRef _Nonnull _Locked self)
         err = ZRamDriver_Create(&dp);
         
         if (err == EOK) {
-            err = Driver_AttachStartChild((DriverRef)self, dp, 0);
+            err = Driver_Launch(dp, (DriverRef)self);
             Object_Release(dp);
         }
     }

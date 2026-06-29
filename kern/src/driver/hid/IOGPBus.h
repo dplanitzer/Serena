@@ -20,6 +20,7 @@ open_class(IOGPBus, Driver,
     mtx_t                           mtx;
     IOGPCreateDriverFunc _Nonnull   createHidDevice;
     void* _Nullable                 ctx;
+    did_t                           portDriverId[__IOGPBUS__];
     char                            portType[__IOGPBUS__];
 );
 open_class_funcs(IOGPBus, Driver,

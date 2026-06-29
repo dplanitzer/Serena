@@ -53,6 +53,8 @@ extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _
 // returned if no such driver exists.
 extern DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id);
 
+// Returns an iterator that lists all drivers that are clients to the given provider.
+extern errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, IOIterator* _Nonnull iter);
 
 // Returns a snapshot of strong references to all drivers that match the provided
 // categories. The caller is responsible for releasing all references and calling
@@ -82,5 +84,9 @@ extern void IORegistry_StopMatching(IORegistryRef _Nonnull self, IOMatchCallback
 
 // Opens the best driver that matches 'cats'.
 extern errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, DriverRef _Nullable * _Nonnull pOutDriver);
+
+
+extern void IORegistry_AttachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, DriverRef _Nonnull client);
+extern void IORegistry_DetachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull client);
 
 #endif /* IORegistry_h */

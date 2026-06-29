@@ -70,7 +70,6 @@ errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSel
     FloppyControllerRef self;
     
     try(Driver_Create(class(FloppyController), 0, g_cats, (DriverRef*)&self));
-    try(Driver_SetMaxChildCount((DriverRef)self, MAX_FLOPPY_DISK_DRIVES));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
@@ -111,7 +110,7 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
             const errno_t err = FloppyDriver_Create(slotId, ds, dp, &drive);
             
             if (err == EOK) {
-                Driver_AttachStartChild((DriverRef)self, (DriverRef)drive, slotId);
+                Driver_Launch((DriverRef)drive, (DriverRef)self);
                 Object_Release(drive);
             }
         }

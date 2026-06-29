@@ -18,8 +18,6 @@
 #include <kpi/uid.h>
 #include <sched/mtx.h>
 
-struct drv_child;
-
 
 // Driver instantiation option. Used by subclassers to request specific default
 // behavior from the Driver class.
@@ -34,13 +32,6 @@ enum {
     kDriverState_Active,
     kDriverState_Stopping,
     kDriverState_Stopped
-};
-
-
-// Driver flags. Used internally by the Driver class.
-enum {
-    kDriverFlag_IsAttached = 1,         // Driver is attached to a parent driver
-    kDriverFlag_NoMoreChildren = 2,     // Driver has entered stopping state and no longer allows children to be attached
 };
 
 
@@ -301,21 +292,17 @@ enum {
 //
 open_class(Driver, Object,
     deque_node_t                ioreg_qe;   // dequeue is owned and managed by IORegistry
+    DriverRef _Nullable         provider;   // strong ref to the provider driver; immutable between start() and stop()
     did_t                       id;         // globally unique driver id (> 0)
 
     mtx_t                       mtx;    // lifecycle management lock
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
     devfs_hnd_t                 devfs_hnd;
-    
-    DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver
-    DriverRef* _Nullable        child;
-    mtx_t                       childMtx;
 
     uint16_t                    options;
     uint8_t                     flags;
     int8_t                      state;      //XXX should be atomic_int
     int                         openCount;
-    int16_t                     maxChildCount;
 );
 open_class_funcs(Driver, Object,
     
@@ -358,13 +345,13 @@ open_class_funcs(Driver, Object,
     // Invoked after the driver has been added as a child to the driver 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*onAttached)(void* _Nonnull self, DriverRef _Nonnull parent);
+    void (*attachProvider)(void* _Nonnull self, DriverRef _Nonnull provider);
 
     // Invoked after the driver has been stopped, waited for stopped and right
     // before it is detached from 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*onDetaching)(void* _Nonnull self, DriverRef _Nonnull parent);
+    void (*detachProvider)(void* _Nonnull self, DriverRef _Nonnull provider);
 
 
     // Invoked by the open() function to inform the driver of another open. The
@@ -418,6 +405,12 @@ extern void Driver_Stop(DriverRef _Nonnull self);
 extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 
 
+#define Driver_AttachProvider(__self, __provider) \
+invoke_n(attachProvider, Driver, __self, __provider)
+
+#define Driver_DetachProvider(__self, __provider) \
+invoke_n(detachProvider, Driver, __self, __provider)
+
 #define Driver_Register(__self) \
 invoke_0(doRegister, Driver, __self)
 
@@ -454,8 +447,8 @@ extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _No
 // Returns the immediate parent driver of the receiver. This is often the direct
 // bus controller. However it may be an intermediate driver that sits between
 // you and the bus controller.
-#define Driver_GetParent(__self) \
-((void*)((DriverRef)__self)->parent)
+#define Driver_GetProvider(__self) \
+((void*)((DriverRef)__self)->provider)
 
 #define Driver_GetDevfsHandle(__self) \
 ((DriverRef)__self)->devfs_hnd
@@ -472,11 +465,11 @@ extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _No
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
 extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
 
-// Creates a new driver instance which represents the root of a driver hierarchy.
-// \param pClass the concrete driver class
-// \param options options specifying various default behaviors
-// \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
-extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
+
+extern errno_t Driver_Launch(DriverRef _Nonnull client, DriverRef _Nullable provider);
+
+extern void Driver_TerminateClients(DriverRef _Nonnull self);
+extern void Driver_Terminate(DriverRef _Nonnull driver);
 
 
 // Returns true if the driver is in active state; false otherwise
@@ -506,63 +499,10 @@ invoke_0(onStop, Driver, __self)
 invoke_0(onWaitForStopped, Driver, __self)
 
 
-#define Driver_OnAttached(__self, __parent) \
-invoke_n(onAttached, Driver, __self, __parent)
-
-#define Driver_OnDetaching(__self, __parent) \
-invoke_n(onDetaching, Driver, __self, __parent)
-
-
 #define Driver_OnOpen(__self, __openCount, __flags) \
 invoke_n(onOpen, Driver, __self, __openCount, __flags)
 
 #define Driver_OnClose(__self, __openCount) \
 invoke_n(onClose, Driver, __self, __openCount)
-
-
-// Specifies the number of children that a driver is able to manage. This number
-// corresponds to the number of slots available on the bus that the driver
-// manages. The number is 0 by default. A driver that manages a physical or
-// virtual bus should call this method with a suitable number before it calls
-// Driver_Publish() on itself. Returns EINVAL if 'count' is bigger than the
-// system imposed upper limit. Returns EBUSY if this function is called while
-// the driver has children attached to it. Resizing a bus is only allowed
-// while the bus driver has no children attached to it.
-extern errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count);
-
-// Returns the max child count.
-extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
-
-// Returns the number of child drivers that are currently attached to the
-// receiver.
-extern size_t Driver_GetChildCount(DriverRef _Nonnull self);
-
-
-// Returns an unowned reference to the child driver with bus slot id 'slotId'.
-// NULL is returned if the slot is empty. Note that you must retain the returned
-// driver reference explicitly if you plan to continue to use it after it has
-// been removed from the driver.
-extern DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId);
-
-// Like as Driver_GetChildAt() but returns a strong reference to the requested
-// child driver.
-extern DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId);
-
-
-// Attaches the driver 'child' as a child driver to the receiver while taking
-// ownership of the provided reference. The driver is attached at the bus slot
-// 'slotId'. EBUSY is returned if this slot already has a driver attached to it.
-// Pass -1 as the slot id to attach the child driver to the lowest numbered
-// available slot.
-extern errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
-
-// Like Driver_AttachChild() but additionally starts the driver 'child'. Driver
-// 'child' is detached if the start operation fails.
-extern errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
-
-// Stops the child at the bus slot id 'slotId' and waits for the stop to
-// complete. Does nothing if the slot contains no driver. The child is stopped
-// waited for stopped and then released and removed from the child list.
-extern void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId);
 
 #endif /* Driver_h */

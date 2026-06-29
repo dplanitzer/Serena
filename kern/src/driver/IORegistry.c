@@ -139,6 +139,31 @@ DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did
     return drv;
 }
 
+errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, IOIterator* _Nonnull iter)
+{
+    decl_try_err();
+
+    iter->drivers = NULL;
+    iter->count = 0;
+    iter->idx = 0;
+
+    mtx_lock(&self->mtx);
+    try(kalloc(sizeof(DriverRef) * self->driver_count, (void**)&iter->drivers));
+
+    deque_for_each(&self->drivers, deque_node_t, it,
+        DriverRef cdp = drv_from_ioreg_qe(it);
+
+        if (cdp->provider == provider) {
+            iter->drivers[iter->count++] = Object_Retain(cdp);
+        }
+    )
+
+catch:
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
 errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, IOIterator* _Nonnull iter)
 {
     decl_try_err();
@@ -231,6 +256,23 @@ errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _No
     mtx_unlock(&self->mtx);
 
     return err;
+}
+
+void IORegistry_AttachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, DriverRef _Nonnull client)
+{
+    mtx_lock(&self->mtx);
+    client->provider = Object_Retain(provider);
+    mtx_unlock(&self->mtx);
+}
+
+void IORegistry_DetachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull client)
+{
+    mtx_lock(&self->mtx);
+    if (client->provider) {
+        Object_Release(client->provider);
+        client->provider = NULL;
+    }
+    mtx_unlock(&self->mtx);
 }
 
 

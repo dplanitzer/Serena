@@ -30,7 +30,6 @@ static void _auto_config_bus(ZorroBusRef _Nonnull _Locked self)
 
     // Auto config the Zorro bus
     zorro_auto_config(&bus);
-    try(Driver_SetMaxChildCount((DriverRef)self, bus.count));
 
 
     // Create a ZorroDevice instance for each slot and start it
@@ -39,7 +38,7 @@ static void _auto_config_bus(ZorroBusRef _Nonnull _Locked self)
         ZorroDeviceRef dp;
         
         if (ZorroDevice_Create(cfg, &dp) == EOK) {
-            Driver_AttachStartChild((DriverRef)self, (DriverRef)dp, slotId++);
+            Driver_Launch((DriverRef)dp, (DriverRef)self);
             Object_Release(dp);
         }
     )
