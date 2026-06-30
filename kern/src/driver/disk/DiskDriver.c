@@ -9,12 +9,12 @@
 #include "DiskDriver.h"
 
 
-errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
 
-    try(Driver_Create(pClass, kDriver_Exclusive, cats, (DriverRef*)&self));
+    try(IODriver_Create(pClass, kIODriver_Exclusive, cats, (IODriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dq));
     self->driveInfo = *driveInfo;
 
@@ -26,7 +26,7 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_
     DiskDriver_NoteSensedDisk(self, NULL);
     self->flags.isDiskChangeActive = 1;
 
-    *pOutSelf = (DriverRef)self;
+    *pOutSelf = (IODriverRef)self;
     return EOK;
 
 catch:
@@ -322,7 +322,7 @@ static void _get_disk_info_async(DiskDriverRef _Nonnull self, IOGetDiskInfoComma
 
 void DiskDriver_doCommand(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
 {
-    if (!Driver_IsActive(self)) {
+    if (!IODriver_IsActive(self)) {
         req->status = ENODEV;
     }
 
@@ -516,9 +516,9 @@ errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnu
 }
 
 
-class_func_defs(DiskDriver, Driver,
+class_func_defs(DiskDriver, IODriver,
 override_func_def(deinit, DiskDriver, Object)
-override_func_def(stop, DiskDriver, Driver)
+override_func_def(stop, DiskDriver, IODriver)
 func_def(createDispatchQueue, DiskDriver)
 func_def(getBootPriority, DiskDriver)
 func_def(read, DiskDriver)

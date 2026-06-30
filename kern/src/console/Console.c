@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <string.h>
 #include <driver/hid/IOHIDManager.h>
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <driver/IORegistry.h>
 #include <ext/nanotime.h>
 #include <kern/kernlib.h>
@@ -44,7 +44,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open the framebuffer
-    try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (DriverRef*)&self->fb));
+    try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&self->fb));
     self->chb.count = 0;
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
@@ -94,7 +94,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
     mtx_deinit(&self->mtx);
 
     if (self->fb) {
-        Driver_Close(self->fb);
+        IODriver_Close(self->fb);
         Object_Release(self->fb);
         self->fb = NULL;
     }

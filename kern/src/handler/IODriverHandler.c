@@ -7,7 +7,7 @@
 //
 
 #include "IODriverHandler.h"
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <ext/math.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/Inode.h>
@@ -16,14 +16,14 @@
 errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
-    DriverRef drv = (DriverRef)Inode_GetResource(ip);
+    IODriverRef drv = (IODriverRef)Inode_GetResource(ip);
     struct IODriverHandler* self;
 
-    err = Driver_Open(drv, flags);
+    err = IODriver_Open(drv, flags);
     if (err == EOK) {
         err = Handler_Create(pClass, type, flags, (HandlerRef*)&self);
         if (err != EOK) {
-            Driver_Close(drv);
+            IODriver_Close(drv);
             return err;
         }
 
@@ -37,7 +37,7 @@ errno_t IODriverHandler_Create(Class* _Nonnull pClass, int type, InodeRef _Nonnu
 
 void IODriverHandler_deinit(struct IODriverHandler* _Nonnull self)
 {
-    Driver_Close(self->driver);
+    IODriver_Close(self->driver);
     self->driver = NULL;
 
     (void)Inode_Relinquish(self->ino);
@@ -50,14 +50,14 @@ errno_t IODriverHandler_control(struct IODriverHandler* _Nonnull self, int cmd, 
         case IOCMD_DRV_ID: {
             did_t* pdid = va_arg(ap, did_t*);
 
-            *pdid = Driver_GetId(self->driver);
+            *pdid = IODriver_GetId(self->driver);
             return EOK;
         }
 
         case IOCMD_DRV_CATEGORIES: {
             iocat_t* buf = va_arg(ap, iocat_t*);
             const size_t bufsiz = va_arg(ap, size_t);
-            const iocat_t* pcats = Driver_GetCategories(self->driver);
+            const iocat_t* pcats = IODriver_GetCategories(self->driver);
             const iocat_t* sp = pcats;
             size_t i, len = 0;
 

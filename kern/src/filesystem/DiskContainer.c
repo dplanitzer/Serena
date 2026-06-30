@@ -26,7 +26,7 @@ errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, fd_flags_t oflags, FSC
     disk_info_t info;
     uint32_t flags = 0;
 
-    try(Driver_Open(disk, oflags));
+    try(IODriver_Open(disk, oflags));
     try(DiskDriver_GetDiskInfo(disk, &info));
 
     if ((info.flags & DISK_FLAG_READ_ONLY) == DISK_FLAG_READ_ONLY) {
@@ -46,7 +46,7 @@ errno_t DiskContainer_Create(DiskDriverRef _Nonnull disk, fd_flags_t oflags, FSC
 
 catch:
     if (err != EOK && disk) {
-        Driver_Close(disk);
+        IODriver_Close(disk);
     }
     *pOutSelf = (FSContainerRef)self;
     
@@ -61,7 +61,7 @@ void DiskContainer_deinit(DiskContainerRef _Nonnull self)
     }
 
     if (self->driver) {
-        Driver_Close(self->driver);
+        IODriver_Close(self->driver);
         Object_Release(self->driver);
         self->driver = NULL;
     }
@@ -115,7 +115,7 @@ errno_t DiskContainer_getProperty(DiskContainerRef _Nonnull self, int flavor, ch
 {
     switch (flavor) {
         case FS_PROP_DISKPATH:
-            return Process_GetPathForDriver(Process_GetCurrent(), (DriverRef)self->driver, buf, bufSize);
+            return Process_GetPathForDriver(Process_GetCurrent(), (IODriverRef)self->driver, buf, bufSize);
             break;
 
         default:

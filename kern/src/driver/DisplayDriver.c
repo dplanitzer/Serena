@@ -59,7 +59,7 @@ void DisplayDriver_setCursorVisible(DisplayDriverRef _Nonnull self, bool isVisib
 }
 
 
-class_func_defs(DisplayDriver, Driver,
+class_func_defs(DisplayDriver, IODriver,
 func_def(getScreenSize, DisplayDriver)
 func_def(setScreenConfigObserver, DisplayDriver)
 func_def(setLightPenEnabled, DisplayDriver)

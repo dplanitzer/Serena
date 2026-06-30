@@ -32,7 +32,7 @@
 final_class_ivars(AmigaController, PlatformController,
 );
 
-static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver)
+static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, IODriverRef _Nullable * _Nonnull pOutDriver)
 {
     switch (type) {
         case HID_PORT_MOUSE:
@@ -61,31 +61,31 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(&fb));
-    try(Driver_Launch((DriverRef)fb, (DriverRef)self));
+    try(IODriver_Launch((IODriverRef)fb, (IODriverRef)self));
 
 
     // Keyboard
-    DriverRef kb;
+    IODriverRef kb;
     try(AmiKeyboard_Create(&kb));
-    try(Driver_Launch((DriverRef)kb, (DriverRef)self));
+    try(IODriver_Launch((IODriverRef)kb, (IODriverRef)self));
 
 
     // GamePort
     IOGPBusRef gp = NULL;
     try(IOGPBus_Create(_create_gpbus_hid_device, NULL, &gp));
-    try(Driver_Launch((DriverRef)gp, (DriverRef)self));
+    try(IODriver_Launch((IODriverRef)gp, (IODriverRef)self));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(&fdc));
-    try(Driver_Launch((DriverRef)fdc, (DriverRef)self));
+    try(IODriver_Launch((IODriverRef)fdc, (IODriverRef)self));
 
 
     // Zorro Bus
     ZorroBusRef zb = NULL;
     try(ZorroBus_Create(&zb));
-    try(Driver_Launch((DriverRef)zb, (DriverRef)self));
+    try(IODriver_Launch((IODriverRef)zb, (IODriverRef)self));
 
 catch:
     return err;
@@ -108,7 +108,7 @@ uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull 
     err = IORegistry_CopyMatchingDrivers(gIORegistry, g_ram_cats, &iter);
     if (err == EOK) {
         while (IOIterator_HasNext(&iter)) {
-            DriverRef drv = IOIterator_GetNext(&iter);
+            IODriverRef drv = IOIterator_GetNext(&iter);
 
             if (instanceof(drv, ZRamDriver)) {
                 msize += ZRamDriver_GetMemorySize((ZRamDriverRef)drv);

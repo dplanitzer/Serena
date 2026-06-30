@@ -9,7 +9,7 @@
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
 #include "KfsSpecial.h"
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <kpi/attr.h>
 
 

@@ -9,7 +9,7 @@
 #ifndef DisplayDriver_h
 #define DisplayDriver_h
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <kpi/framebuffer.h>
 #include <sched/vcpu.h>
 
@@ -27,9 +27,9 @@
 // one or more hardware sprites. A driver like this should implement the mouse
 // cursor support by using the highest priority hardware sprite available.
 //
-open_class(DisplayDriver, Driver,
+open_class(DisplayDriver, IODriver,
 );
-open_class_funcs(DisplayDriver, Driver,
+open_class_funcs(DisplayDriver, IODriver,
 
     //
     // Screens

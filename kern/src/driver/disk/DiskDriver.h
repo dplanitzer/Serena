@@ -11,7 +11,7 @@
 
 #include <diskcache/DiskCache.h>
 #include <kdispatch/kdispatch.h>
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <driver/disk/IODiskCommand.h>
 
 
@@ -73,7 +73,7 @@ typedef struct SensedDisk {
 // information about the sensed disk. This will clear disk-change-mode and queued
 // and future disk read/write/format calls will execute on the new disk as
 // expected. 
-open_class(DiskDriver, Driver,
+open_class(DiskDriver, IODriver,
     kdispatch_t _Nullable       dq;
     drive_info_t                driveInfo;
     scnt_t                      sectorsPerTrack;
@@ -92,7 +92,7 @@ open_class(DiskDriver, Driver,
         unsigned int    reserved:29;
     }                           flags;
 );
-open_class_funcs(DiskDriver, Driver,
+open_class_funcs(DiskDriver, IODriver,
 
     // Creates a dispatch queue for the driver. The default implementation creates
     // a serial queue suitable for a disk driver. A subclass may override this
@@ -281,6 +281,6 @@ extern sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_
 // Creates a disk driver instance. This function should be called from DiskDrive
 // subclass constructors.
 // \param 'options' specifies various behaviors of the disk driver.
-extern errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

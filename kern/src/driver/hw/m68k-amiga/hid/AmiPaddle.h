@@ -14,6 +14,6 @@
 
 final_class(AmiPaddle, IOHIDDevice);
 
-extern errno_t AmiPaddle_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AmiPaddle_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* AmiPaddle_h */

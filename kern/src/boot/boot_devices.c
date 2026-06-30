@@ -35,7 +35,7 @@ static Class* _Nonnull _get_platform_controller_class(void)
 errno_t init_iokit(void)
 {
     decl_try_err();
-    DriverRef dp;
+    IODriverRef dp;
 
     // Create devfs and the I/O registry
     try(devfs_init());
@@ -44,7 +44,7 @@ errno_t init_iokit(void)
 
     // Platform controller
     try(PlatformController_Create(_get_platform_controller_class(), &dp));
-    try(Driver_Launch(dp, NULL));
+    try(IODriver_Launch(dp, NULL));
     gPlatformController = (PlatformControllerRef)dp;
 
 catch:

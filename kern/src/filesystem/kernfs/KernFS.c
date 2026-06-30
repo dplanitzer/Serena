@@ -10,7 +10,7 @@
 #include "KfsDirectory.h"
 #include "KfsSpecial.h"
 #include <string.h>
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <kern/kalloc.h>
 
 

@@ -16,7 +16,7 @@
 errno_t vdm_create_disk(int type, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nullable image)
 {
     decl_try_err();
-    DriverRef dp = NULL;
+    IODriverRef dp = NULL;
     ssize_t nBytesToWrite = 0, nBytesWritten;
 
     if (sectorSize == 0 || sectorCount == 0) {
@@ -43,19 +43,19 @@ errno_t vdm_create_disk(int type, const char* _Nonnull name, size_t sectorSize, 
     if (nBytesToWrite > 0 && image) {
         const fd_flags_t oflags = O_WRONLY;
 
-        err = Driver_Open(dp, oflags);
+        err = IODriver_Open(dp, oflags);
         if (err == EOK) {
             err = DiskDriver_Write(dp, oflags, 0ll, image, sectorSize * sectorCount, &nBytesWritten);
             if (err == EOK && nBytesWritten != nBytesToWrite) {
                 err = EIO;
             }
 
-            Driver_Close(dp);
+            IODriver_Close(dp);
         }
         throw_iferr(err);
     }
 
-    try(Driver_Launch((DriverRef)dp, (DriverRef)gPlatformController));
+    try(IODriver_Launch((IODriverRef)dp, (IODriverRef)gPlatformController));
     
 
 catch:

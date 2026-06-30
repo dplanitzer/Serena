@@ -9,7 +9,7 @@
 #ifndef FloppyController_h
 #define FloppyController_h
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 
 
 typedef uint8_t   DriveState;       // Per-drive hardware state
@@ -51,7 +51,7 @@ typedef struct DriveParams {
 
 // The floppy controller. The Amiga has just one single floppy DMA channel
 // which is shared by all drives.
-final_class(FloppyController, Driver);
+final_class(FloppyController, IODriver);
 
 
 extern errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf);

@@ -9,14 +9,14 @@
 #ifndef ZorroDevice_h
 #define ZorroDevice_h
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <machine/amiga/zorro.h>
 
 
-open_class(ZorroDevice, Driver,
+open_class(ZorroDevice, IODriver,
     zorro_conf_t    cfg;
 );
-open_class_funcs(ZorroDevice, Driver,
+open_class_funcs(ZorroDevice, IODriver,
 );
 
 // Create a driver instance. 

@@ -23,7 +23,7 @@ errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, 
     decl_try_err();
     IOGPBusRef self;
 
-    try(Driver_Create(class(IOGPBus), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(IOGPBus), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
 
     mtx_init(&self->mtx);
     self->createHidDevice = func;
@@ -128,9 +128,9 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
     }
 
 
-    DriverRef oldDriver = IORegistry_CopyDriverWithId(gIORegistry, self->portDriverId[port]);
+    IODriverRef oldDriver = IORegistry_CopyDriverWithId(gIORegistry, self->portDriverId[port]);
     if (oldDriver) {
-        Driver_Terminate(oldDriver);
+        IODriver_Terminate(oldDriver);
         Object_Release(oldDriver);
 
         self->portDriverId[port] = 0;
@@ -139,13 +139,13 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 
 
     if (type != HID_PORT_NONE) {
-        DriverRef newDriver;
+        IODriverRef newDriver;
 
         err = self->createHidDevice(self->ctx, port, type, &newDriver);
         if (err == EOK) {
-            err = Driver_Launch(newDriver, (DriverRef)self);
+            err = IODriver_Launch(newDriver, (IODriverRef)self);
             if (err == EOK) {
-                self->portDriverId[port] = Driver_GetId(newDriver);
+                self->portDriverId[port] = IODriver_GetId(newDriver);
                 self->portType[port] = type;
             }
             Object_Release(newDriver);
@@ -156,8 +156,8 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 }
 
 
-class_func_defs(IOGPBus, Driver,
-override_func_def(start, IOGPBus, Driver)
+class_func_defs(IOGPBus, IODriver,
+override_func_def(start, IOGPBus, IODriver)
 );
 
 #endif

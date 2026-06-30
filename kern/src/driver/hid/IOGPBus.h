@@ -11,19 +11,19 @@
 
 #if __IOGPBUS__ > 0
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 
 
-typedef errno_t (*IOGPCreateDriverFunc)(void* _Nonnull ctx, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver);
+typedef errno_t (*IOGPCreateDriverFunc)(void* _Nonnull ctx, int port, int type, IODriverRef _Nullable * _Nonnull pOutDriver);
 
-open_class(IOGPBus, Driver,
+open_class(IOGPBus, IODriver,
     mtx_t                           mtx;
     IOGPCreateDriverFunc _Nonnull   createHidDevice;
     void* _Nullable                 ctx;
     did_t                           portDriverId[__IOGPBUS__];
     char                            portType[__IOGPBUS__];
 );
-open_class_funcs(IOGPBus, Driver,
+open_class_funcs(IOGPBus, IODriver,
 );
 
 

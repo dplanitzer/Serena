@@ -47,7 +47,7 @@ IOCATS_DEF(g_cats, IOBUS_PROPRIETARY);
 
 #define MAX_FLOPPY_DISK_DRIVES  4
 
-final_class_ivars(FloppyController, Driver,
+final_class_ivars(FloppyController, IODriver,
     mtx_t               mtx;        // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     cnd_t               cv;
     sem_t               done_sem;   // Semaphore indicating whether the DMA is done
@@ -69,7 +69,7 @@ errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSel
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), 0, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(FloppyController), 0, g_cats, (IODriverRef*)&self));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
@@ -110,7 +110,7 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
             const errno_t err = FloppyDriver_Create(slotId, ds, dp, &drive);
             
             if (err == EOK) {
-                Driver_Launch((DriverRef)drive, (DriverRef)self);
+                IODriver_Launch((IODriverRef)drive, (IODriverRef)self);
                 Object_Release(drive);
             }
         }
@@ -130,7 +130,7 @@ errno_t FloppyController_start(FloppyControllerRef _Nonnull _Locked self)
     return EOK;
 }
 
-void FloppyController_stop(DriverRef _Nonnull _Locked self)
+void FloppyController_stop(FloppyControllerRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_DISK_BLOCK);
 }
@@ -408,8 +408,8 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 }
 
 
-class_func_defs(FloppyController, Driver,
+class_func_defs(FloppyController, IODriver,
 override_func_def(deinit, FloppyController, Object)
-override_func_def(start, FloppyController, Driver)
-override_func_def(stop, FloppyController, Driver)
+override_func_def(start, FloppyController, IODriver)
+override_func_def(stop, FloppyController, IODriver)
 );

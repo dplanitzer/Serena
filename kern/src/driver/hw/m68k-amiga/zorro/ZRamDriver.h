@@ -9,16 +9,16 @@
 #ifndef ZRamDriver_h
 #define ZRamDriver_h
 
-#include "ZorroDevice.h"
+#include <driver/IODriver.h>
 
 
-open_class(ZRamDriver, Driver,
+open_class(ZRamDriver, IODriver,
 );
-open_class_funcs(ZRamDriver, Driver,
+open_class_funcs(ZRamDriver, IODriver,
 );
 
 
-extern errno_t ZRamDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZRamDriver_Create(IODriverRef _Nullable * _Nonnull pOutSelf);
 
 extern size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self);
 

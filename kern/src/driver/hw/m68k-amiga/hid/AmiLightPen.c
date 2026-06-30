@@ -28,7 +28,7 @@ final_class_ivars(AmiLightPen, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_LIGHTPEN);
 
 
-errno_t AmiLightPen_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiLightPen_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     AmiLightPenRef self;
@@ -37,7 +37,7 @@ errno_t AmiLightPen_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AmiLightPen), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(AmiLightPen), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
 
@@ -55,7 +55,7 @@ errno_t AmiLightPen_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
     self->port = (int8_t)port;
     
 catch:
-    *pOutSelf = (DriverRef)self;
+    *pOutSelf = (IODriverRef)self;
     return err;
 }
 
@@ -163,6 +163,6 @@ void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull r
 
 
 class_func_defs(AmiLightPen, IOHIDDevice,
-override_func_def(start, AmiLightPen, Driver)
+override_func_def(start, AmiLightPen, IODriver)
 override_func_def(getReport, AmiLightPen, IOHIDDevice)
 );

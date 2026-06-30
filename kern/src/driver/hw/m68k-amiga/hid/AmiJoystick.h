@@ -14,6 +14,6 @@
 
 final_class(AmiJoystick, IOHIDDevice);
 
-extern errno_t AmiJoystick_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AmiJoystick_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* AmiJoystick_h */

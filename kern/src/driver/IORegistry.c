@@ -10,13 +10,13 @@
 #include "IORegistry.h"
 #include <assert.h>
 #include <string.h>
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
 
 
 #define drv_from_ioreg_qe(__ptr) \
-(DriverRef)deque_node_as(__ptr, ioreg_qe, Driver)
+(IODriverRef)deque_node_as(__ptr, ioreg_qe, IODriver)
 
 
 struct matcher {
@@ -30,7 +30,7 @@ typedef struct matcher* matcher_t;
 
 struct IORegistry {
     mtx_t                   mtx;
-    deque_t/*Driver*/       drivers;
+    deque_t/*IODriver*/     drivers;
     queue_t/*<matcher_t*/   matchers;
     size_t                  driver_count;
 };
@@ -47,10 +47,10 @@ void IORegistry_Init(void)
     gIORegistry = &g_io_reg;
 }
 
-static void _do_match_callouts(IORegistryRef _Nonnull _Locked self, DriverRef _Nonnull driver, int notify)
+static void _do_match_callouts(IORegistryRef _Nonnull _Locked self, IODriverRef _Nonnull driver, int notify)
 {
     queue_for_each(&self->matchers, struct matcher, it,
-        if (Driver_HasSomeCategories((DriverRef)driver, it->cats)) {
+        if (IODriver_HasSomeCategories((IODriverRef)driver, it->cats)) {
             it->func(it->arg, driver, notify);
         }
     )
@@ -64,12 +64,12 @@ static errno_t _create_matching_drivers_iterator(IORegistryRef _Nonnull _Locked 
     iter->count = 0;
     iter->idx = 0;
 
-    try(kalloc(sizeof(DriverRef) * self->driver_count, (void**)&iter->drivers));
+    try(kalloc(sizeof(IODriverRef) * self->driver_count, (void**)&iter->drivers));
 
     deque_for_each(&self->drivers, deque_node_t, it,
-        DriverRef cdp = drv_from_ioreg_qe(it);
+        IODriverRef cdp = drv_from_ioreg_qe(it);
 
-        if (Driver_HasSomeCategories(cdp, cats)) {
+        if (IODriver_HasSomeCategories(cdp, cats)) {
             iter->drivers[iter->count++] = Object_Retain(cdp);
         }
     )
@@ -78,14 +78,14 @@ catch:
     return err;
 }
 
-static DriverRef _Nullable _copy_best_matching_driver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats)
+static IODriverRef _Nullable _copy_best_matching_driver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
-    DriverRef drv = NULL;
+    IODriverRef drv = NULL;
 
     deque_for_each(&self->drivers, deque_node_t, it,
-        DriverRef cdp = drv_from_ioreg_qe(it);
+        IODriverRef cdp = drv_from_ioreg_qe(it);
 
-        if (Driver_HasSomeCategories(cdp, cats)) {
+        if (IODriver_HasSomeCategories(cdp, cats)) {
             drv = Object_Retain(cdp);
             break;
         }
@@ -96,7 +96,7 @@ catch:
 }
 
 
-void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv)
+void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv)
 {
     mtx_lock(&self->mtx);
     Object_Retain(drv);
@@ -109,7 +109,7 @@ void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull d
     mtx_unlock(&self->mtx);
 }
 
-void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv)
+void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv)
 {
     mtx_lock(&self->mtx);
 
@@ -121,15 +121,15 @@ void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull
     mtx_unlock(&self->mtx);
 }
 
-DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id)
+IODriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id)
 {
-    DriverRef drv = NULL;
+    IODriverRef drv = NULL;
 
     mtx_lock(&self->mtx);
     deque_for_each(&self->drivers, deque_node_t, it,
-        DriverRef cdp = drv_from_ioreg_qe(it);
+        IODriverRef cdp = drv_from_ioreg_qe(it);
 
-        if (Driver_GetId(cdp) == id) {
+        if (IODriver_GetId(cdp) == id) {
             drv = Object_Retain(cdp);
             break;
         }
@@ -139,7 +139,7 @@ DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did
     return drv;
 }
 
-errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, IOIterator* _Nonnull iter)
+errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, IODriverRef _Nonnull provider, IOIterator* _Nonnull iter)
 {
     decl_try_err();
 
@@ -148,10 +148,10 @@ errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, DriverRef _Non
     iter->idx = 0;
 
     mtx_lock(&self->mtx);
-    try(kalloc(sizeof(DriverRef) * self->driver_count, (void**)&iter->drivers));
+    try(kalloc(sizeof(IODriverRef) * self->driver_count, (void**)&iter->drivers));
 
     deque_for_each(&self->drivers, deque_node_t, it,
-        DriverRef cdp = drv_from_ioreg_qe(it);
+        IODriverRef cdp = drv_from_ioreg_qe(it);
 
         if (cdp->provider == provider) {
             iter->drivers[iter->count++] = Object_Retain(cdp);
@@ -175,10 +175,10 @@ errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const iocat_
     return err;
 }
 
-DriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats)
+IODriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
     mtx_lock(&self->mtx);
-    DriverRef drv = _copy_best_matching_driver(self, cats);
+    IODriverRef drv = _copy_best_matching_driver(self, cats);
     mtx_unlock(&self->mtx);
 
     return drv;
@@ -233,15 +233,15 @@ void IORegistry_StopMatching(IORegistryRef _Nonnull self, IOMatchCallback _Nonnu
     mtx_unlock(&self->mtx);
 }
 
-errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, DriverRef _Nullable * _Nonnull pOutDriver)
+errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, IODriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
-    DriverRef drv;
+    IODriverRef drv;
 
     mtx_lock(&self->mtx);
     drv = _copy_best_matching_driver(self, cats);
     if (drv) {
-        err = Driver_Open(drv, oflags);
+        err = IODriver_Open(drv, oflags);
 
         if (err == EOK) {
             *pOutDriver = drv;
@@ -258,14 +258,14 @@ errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _No
     return err;
 }
 
-void IORegistry_AttachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, DriverRef _Nonnull client)
+void IORegistry_AttachProvider(IORegistryRef _Nonnull self, IODriverRef _Nonnull provider, IODriverRef _Nonnull client)
 {
     mtx_lock(&self->mtx);
     client->provider = Object_Retain(provider);
     mtx_unlock(&self->mtx);
 }
 
-void IORegistry_DetachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull client)
+void IORegistry_DetachProvider(IORegistryRef _Nonnull self, IODriverRef _Nonnull client)
 {
     mtx_lock(&self->mtx);
     if (client->provider) {

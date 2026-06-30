@@ -17,13 +17,13 @@
 #define IOMATCH_STARTED     1
 #define IOMATCH_STOPPING    2
 
-typedef void (*IOMatchCallback)(void* _Nullable arg, DriverRef _Nonnull driver, int notify);
+typedef void (*IOMatchCallback)(void* _Nullable arg, IODriverRef _Nonnull driver, int notify);
 
 
 typedef struct IOIterator {
-    DriverRef* _Nonnull drivers;
-    size_t              count;
-    size_t              idx;
+    IODriverRef* _Nonnull   drivers;
+    size_t                  count;
+    size_t                  idx;
 } IOIterator;
 
 // Returns true if a call to IOIterator_GetNext() will return a driver reference
@@ -45,16 +45,16 @@ extern IORegistryRef gIORegistry;
 
 extern void IORegistry_Init(void);
 
-extern void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv);
-extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, DriverRef _Nonnull drv);
+extern void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv);
+extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv);
 
 
 // Returns a strong reference to the driver with the driver ID 'id'. NULL is
 // returned if no such driver exists.
-extern DriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id);
+extern IODriverRef _Nullable IORegistry_CopyDriverWithId(IORegistryRef _Nonnull self, did_t id);
 
 // Returns an iterator that lists all drivers that are clients to the given provider.
-extern errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, IOIterator* _Nonnull iter);
+extern errno_t IORegistry_CopyClientDrivers(IORegistryRef _Nonnull self, IODriverRef _Nonnull provider, IOIterator* _Nonnull iter);
 
 // Returns a snapshot of strong references to all drivers that match the provided
 // categories. The caller is responsible for releasing all references and calling
@@ -64,7 +64,7 @@ extern errno_t IORegistry_CopyMatchingDrivers(IORegistryRef _Nonnull self, const
 
 // Same as above but return the best matching driver only. Returns ENODEV if
 // no matching driver could be found.
-extern DriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats);
+extern IODriverRef _Nullable IORegistry_CopyBestMatchingDriver(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
 // Registers a continuous driver matcher with the IORegistry. This matcher
@@ -83,10 +83,10 @@ extern void IORegistry_StopMatching(IORegistryRef _Nonnull self, IOMatchCallback
 
 
 // Opens the best driver that matches 'cats'.
-extern errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, DriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t IORegistry_OpenBestMatch(IORegistryRef _Nonnull self, const iocat_t* _Nonnull cats, fd_flags_t oflags, IODriverRef _Nullable * _Nonnull pOutDriver);
 
 
-extern void IORegistry_AttachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull provider, DriverRef _Nonnull client);
-extern void IORegistry_DetachProvider(IORegistryRef _Nonnull self, DriverRef _Nonnull client);
+extern void IORegistry_AttachProvider(IORegistryRef _Nonnull self, IODriverRef _Nonnull provider, IODriverRef _Nonnull client);
+extern void IORegistry_DetachProvider(IORegistryRef _Nonnull self, IODriverRef _Nonnull client);
 
 #endif /* IORegistry_h */

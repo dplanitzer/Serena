@@ -13,8 +13,8 @@
 
 
 open_class(IODriverHandler, Handler,
-    InodeRef _Nonnull   ino;
-    DriverRef _Nonnull  driver;
+    InodeRef _Nonnull       ino;
+    IODriverRef _Nonnull    driver;
 );
 open_class_funcs(IODriverHandler, Handler,
 );

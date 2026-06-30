@@ -9,7 +9,7 @@
 #ifndef ZorroBus_h
 #define ZorroBus_h
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <machine/amiga/zorro.h>
 
 
@@ -30,7 +30,7 @@
 // instead of forcing it to derive from a specific class, and thus it provides a
 // lot more flexibility.
 //
-final_class(ZorroBus, Driver);
+final_class(ZorroBus, IODriver);
 
 extern errno_t ZorroBus_Create(ZorroBusRef _Nullable * _Nonnull pOutSelf);
 

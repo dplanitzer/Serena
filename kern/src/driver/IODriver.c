@@ -1,12 +1,12 @@
 //
-//  Driver.c
+//  IODriver.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Driver.h"
+#include "IODriver.h"
 #include "IORegistry.h"
 #include <assert.h>
 #include <ext/atomic.h>
@@ -17,10 +17,10 @@
 
 static volatile atomic_int   g_next_driver_id = {.value = 1};
 
-errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DriverRef self;
+    IODriverRef self;
 
     err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
@@ -37,9 +37,9 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
 }
 
 
-void Driver_deinit(DriverRef _Nonnull self)
+void IODriver_deinit(IODriverRef _Nonnull self)
 {
-    if (Driver_IsActive(self)) {
+    if (IODriver_IsActive(self)) {
         abort();
         /* NOT REACHED */
     }
@@ -53,40 +53,40 @@ void Driver_deinit(DriverRef _Nonnull self)
 // MARK: API
 //
 
-errno_t Driver_start(DriverRef _Nonnull _Locked self)
+errno_t IODriver_start(IODriverRef _Nonnull _Locked self)
 {
     return EOK;
 }
 
 
-void Driver_stop(DriverRef _Nonnull _Locked self)
+void IODriver_stop(IODriverRef _Nonnull _Locked self)
 {
 }
 
 
-void Driver_doRegister(DriverRef _Nonnull self)
+void IODriver_doRegister(IODriverRef _Nonnull self)
 {
     IORegistry_RegisterDriver(gIORegistry, self);
 }
 
-void Driver_doDeregister(DriverRef _Nonnull self)
+void IODriver_doDeregister(IODriverRef _Nonnull self)
 {
     IORegistry_DeregisterDriver(gIORegistry, self);
 }
 
 
-void Driver_attachProvider(DriverRef _Nonnull self, DriverRef _Nonnull provider)
+void IODriver_attachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
 {
     IORegistry_AttachProvider(gIORegistry, provider, self);
 }
 
-void Driver_detachProvider(DriverRef _Nonnull self, DriverRef _Nonnull provider)
+void IODriver_detachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
 {
     IORegistry_DetachProvider(gIORegistry, self);
 }
 
 
-errno_t Driver_Publish(DriverRef _Nonnull self, const devfs_entry_t* _Nonnull en)
+errno_t IODriver_Publish(IODriverRef _Nonnull self, const devfs_entry_t* _Nonnull en)
 {
     if (self->devfs_hnd > 0) {
         return EBUSY;
@@ -95,7 +95,7 @@ errno_t Driver_Publish(DriverRef _Nonnull self, const devfs_entry_t* _Nonnull en
     return devfs_add(en, &self->devfs_hnd);
 }
 
-void Driver_Unpublish(DriverRef _Nonnull self)
+void IODriver_Unpublish(IODriverRef _Nonnull self)
 {
     if (self->devfs_hnd > 0) {
         devfs_remove(self->devfs_hnd);
@@ -103,28 +103,28 @@ void Driver_Unpublish(DriverRef _Nonnull self)
     }
 }
 
-errno_t Driver_Launch(DriverRef _Nonnull self, DriverRef _Nullable provider)
+errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    if (Driver_IsActive(self)) {
+    if (IODriver_IsActive(self)) {
         mtx_unlock(&self->mtx);
         return EOK;
     }
 
 
     if (provider) {
-        Driver_AttachProvider(self, provider);
+        IODriver_AttachProvider(self, provider);
     }
 
 
-    err = Driver_Start(self);
+    err = IODriver_Start(self);
     if (err == EOK) {
-        self->flags |= kDriverFlag_IsActive;
+        self->flags |= kIODriverFlag_IsActive;
     }
     else if (provider) {
-        Driver_DetachProvider(self, provider);
+        IODriver_DetachProvider(self, provider);
     }
 
     mtx_unlock(&self->mtx);
@@ -133,13 +133,13 @@ errno_t Driver_Launch(DriverRef _Nonnull self, DriverRef _Nullable provider)
     // Register the driver after dropping the lock since registration can trigger
     // callouts to arbitrary code.
     if (err == EOK) {
-        Driver_Register(self);
+        IODriver_Register(self);
     }
 
     return err;
 }
 
-void Driver_TerminateClients(DriverRef _Nonnull self)
+void IODriver_TerminateClients(IODriverRef _Nonnull self)
 {
     decl_try_err();
     IOIterator iter;
@@ -147,17 +147,17 @@ void Driver_TerminateClients(DriverRef _Nonnull self)
     err = IORegistry_CopyClientDrivers(gIORegistry, self, &iter);
     if (err == EOK) {
         while (IOIterator_HasNext(&iter)) {
-            Driver_Terminate(IOIterator_GetNext(&iter));
+            IODriver_Terminate(IOIterator_GetNext(&iter));
         }
         IOIterator_Destroy(&iter);
     }
 }
 
-void Driver_Terminate(DriverRef _Nonnull self)
+void IODriver_Terminate(IODriverRef _Nonnull self)
 {
     // Validate our state
     mtx_lock(&self->mtx);
-    const bool doStop = Driver_IsActive(self);
+    const bool doStop = IODriver_IsActive(self);
     mtx_unlock(&self->mtx);
 
     if (!doStop) {
@@ -165,21 +165,21 @@ void Driver_Terminate(DriverRef _Nonnull self)
     }
 
 
-    Driver_TerminateClients(self);
-    Driver_Deregister(self);
-    Driver_Unpublish(self);    
+    IODriver_TerminateClients(self);
+    IODriver_Deregister(self);
+    IODriver_Unpublish(self);    
 
 
     // Enter the stopped state
     mtx_lock(&self->mtx);
-    Driver_Stop(self);
-    Driver_DetachProvider(self, self->provider);
-    self->flags &= ~kDriverFlag_IsActive;
+    IODriver_Stop(self);
+    IODriver_DetachProvider(self, self->provider);
+    self->flags &= ~kIODriverFlag_IsActive;
     mtx_unlock(&self->mtx);
 }
 
 
-bool Driver_IsOpen(DriverRef _Nonnull self)
+bool IODriver_IsOpen(IODriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     const bool r = (self->openCount > 0) ? true : false;
@@ -188,26 +188,26 @@ bool Driver_IsOpen(DriverRef _Nonnull self)
     return r;
 }
 
-errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, fd_flags_t flags)
+errno_t IODriver_onOpen(IODriverRef _Nonnull _Locked self, int openCount, fd_flags_t flags)
 {
     return EOK;
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, fd_flags_t flags)
+errno_t IODriver_open(IODriverRef _Nonnull self, fd_flags_t flags)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
 
-    if (!Driver_IsActive(self)) {
+    if (!IODriver_IsActive(self)) {
         throw(ENODEV);
     }
-    if ((self->options & kDriver_Exclusive) == kDriver_Exclusive && self->openCount > 0) {
+    if ((self->options & kIODriver_Exclusive) == kIODriver_Exclusive && self->openCount > 0) {
         throw(EBUSY);
     }
 
 
-    try(Driver_OnOpen(self, self->openCount, flags));
+    try(IODriver_OnOpen(self, self->openCount, flags));
     self->openCount++;
 
 catch:
@@ -217,22 +217,22 @@ catch:
 }
 
 
-void Driver_onClose(DriverRef _Nonnull _Locked self, int openCount)
+void IODriver_onClose(IODriverRef _Nonnull _Locked self, int openCount)
 {
 }
 
-void Driver_close(DriverRef _Nonnull self)
+void IODriver_close(IODriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     assert(self->openCount > 0);
 
-    Driver_OnClose(self, self->openCount);
+    IODriver_OnClose(self, self->openCount);
     self->openCount--;
     mtx_unlock(&self->mtx);
 }
 
 
-bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
+bool IODriver_HasCategory(IODriverRef _Nonnull self, iocat_t cat)
 {
     // Category info is constant - no need to take a lock here
     const iocat_t* p = self->cats;
@@ -244,10 +244,10 @@ bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
     return (*p == cat) ? true : false;
 }
 
-bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull cats)
+bool IODriver_HasSomeCategories(IODriverRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
     while (*cats != IOCAT_END) {
-        if (Driver_HasCategory(self, *cats)) {
+        if (IODriver_HasCategory(self, *cats)) {
             return true;
         }
 
@@ -258,16 +258,16 @@ bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull c
 }
 
 
-class_func_defs(Driver, Object,
-override_func_def(deinit, Driver, Object)
-func_def(start, Driver)
-func_def(stop, Driver)
-func_def(doRegister, Driver)
-func_def(doDeregister, Driver)
-func_def(attachProvider, Driver)
-func_def(detachProvider, Driver)
-func_def(open, Driver)
-func_def(onOpen, Driver)
-func_def(close, Driver)
-func_def(onClose, Driver)
+class_func_defs(IODriver, Object,
+override_func_def(deinit, IODriver, Object)
+func_def(start, IODriver)
+func_def(stop, IODriver)
+func_def(doRegister, IODriver)
+func_def(doDeregister, IODriver)
+func_def(attachProvider, IODriver)
+func_def(detachProvider, IODriver)
+func_def(open, IODriver)
+func_def(onOpen, IODriver)
+func_def(close, IODriver)
+func_def(onClose, IODriver)
 );

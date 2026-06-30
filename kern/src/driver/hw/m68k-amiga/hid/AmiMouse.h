@@ -14,6 +14,6 @@
 
 final_class(AmiMouse, IOHIDDevice);
 
-extern errno_t AmiMouse_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AmiMouse_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* AmiMouse_h */

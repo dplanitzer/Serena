@@ -9,7 +9,7 @@
 #ifndef IOHIDDevice_h
 #define IOHIDDevice_h
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 #include <kpi/hid.h>
 #include <sched/vcpu.h>
 
@@ -68,9 +68,9 @@ typedef struct IOHIDReport {
 // An input driver manages a specific input device and translates actions on the
 // input device into events that it the posts to the HID manager.
 //
-open_class(IOHIDDevice, Driver,
+open_class(IOHIDDevice, IODriver,
 );
-open_class_funcs(IOHIDDevice, Driver,
+open_class_funcs(IOHIDDevice, IODriver,
 
     // Fills in the provided report structure with a report of the current HID
     // state of the device. If an input driver manages a queue of reports

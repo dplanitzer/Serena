@@ -13,9 +13,9 @@ PlatformControllerRef gPlatformController;
 IOCATS_DEF(g_cats, IOBUS_VIRTUAL);
 
 
-errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t PlatformController_Create(Class* _Nonnull pClass, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(pClass, 0, g_cats, pOutSelf);
+    return IODriver_Create(pClass, 0, g_cats, pOutSelf);
 }
 
 errno_t PlatformController_start(PlatformControllerRef _Nonnull _Locked self)
@@ -39,8 +39,8 @@ const struct SMG_Header* _Nullable PlatformController_getBootImage(PlatformContr
 }
 
 
-class_func_defs(PlatformController, Driver,
-override_func_def(start, PlatformController, Driver)
+class_func_defs(PlatformController, IODriver,
+override_func_def(start, PlatformController, IODriver)
 func_def(detectDevices, PlatformController)
 func_def(getPhysicalMemorySize, PlatformController)
 func_def(getBootImage, PlatformController)

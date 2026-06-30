@@ -9,7 +9,7 @@
 #ifndef PlatformController_h
 #define PlatformController_h
 
-#include <driver/Driver.h>
+#include <driver/IODriver.h>
 
 struct SMG_Header;
 
@@ -19,9 +19,9 @@ struct SMG_Header;
 // motherboard hardware in that sense and it kicks off the detection of hardware
 // that is part of the motherboard.
 // A platform controller is expected to implement the synchronous driver model.
-open_class(PlatformController, Driver,
+open_class(PlatformController, IODriver,
 );
-open_class_funcs(PlatformController, Driver,
+open_class_funcs(PlatformController, IODriver,
 
     // Override in a subclass to detect all relevant devices that are directly
     // connected to the motherboard and instantiate suitable driver classes for
@@ -47,7 +47,7 @@ open_class_funcs(PlatformController, Driver,
 extern PlatformControllerRef gPlatformController;
 
 // Creates a platform controller instance.
-extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t PlatformController_Create(Class* _Nonnull pClass, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 
 //

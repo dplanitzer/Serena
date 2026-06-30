@@ -25,7 +25,7 @@ final_class_ivars(AmiMouse, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_MOUSE);
 
 
-errno_t AmiMouse_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiMouse_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     AmiMouseRef self;
@@ -34,7 +34,7 @@ errno_t AmiMouse_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AmiMouse), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(AmiMouse), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -48,7 +48,7 @@ errno_t AmiMouse_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
     self->port = (int8_t)port;
 
 catch:
-    *pOutSelf = (DriverRef)self;
+    *pOutSelf = (IODriverRef)self;
     return err;
 }
 
@@ -144,6 +144,6 @@ void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
 
 
 class_func_defs(AmiMouse, IOHIDDevice,
-override_func_def(start, AmiMouse, Driver)
+override_func_def(start, AmiMouse, IODriver)
 override_func_def(getReport, AmiMouse, IOHIDDevice)
 );

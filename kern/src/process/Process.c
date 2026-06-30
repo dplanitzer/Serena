@@ -64,7 +64,7 @@ uid_t Process_GetUserId(ProcessRef _Nonnull self)
     return FileManager_GetRealUserId(&self->fm);
 }
 
-errno_t Process_GetPathForDriver(ProcessRef _Nonnull self, DriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize)
+errno_t Process_GetPathForDriver(ProcessRef _Nonnull self, IODriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
 

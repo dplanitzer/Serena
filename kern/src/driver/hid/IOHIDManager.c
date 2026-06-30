@@ -640,7 +640,7 @@ static void _post_mouse_event(IOHIDManagerRef _Nonnull _Locked self, bool hasPos
 // to the event queue.
 static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const IOHIDReport* _Nonnull report)
 {
-    did_t did = Driver_GetId(gp->drv);
+    did_t did = IODriver_GetId(gp->drv);
 
     // Generate button up/down events
     const uint32_t oldButtons = gp->buttons;
@@ -705,22 +705,22 @@ IOCATS_DEF(g_pointing_device_cats, IOHID_MOUSE, IOHID_TRACKBALL, IOHID_LIGHTPEN,
 
 // Connects the given HID input driver or framebuffer to the HID manager by
 // opening a channel to it.
-static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
+static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRef _Nonnull driver)
 {
     decl_try_err();
 
-    if (self->kb == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
-        err = Driver_Open(driver, O_RDWR);
+    if (self->kb == NULL && IODriver_HasCategory(driver, IOHID_KEYBOARD)) {
+        err = IODriver_Open(driver, O_RDWR);
         if (err == EOK) {
             self->kb = Object_Retain(driver);
         }
     }
-    else if (self->mouse.drvCount < MAX_POINTING_DEVICES && Driver_HasSomeCategories(driver, g_pointing_device_cats)) {
+    else if (self->mouse.drvCount < MAX_POINTING_DEVICES && IODriver_HasSomeCategories(driver, g_pointing_device_cats)) {
         for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
             if (self->mouse.drv[i] == NULL) {
-                err = Driver_Open(driver, O_RDWR);
+                err = IODriver_Open(driver, O_RDWR);
                 if (err == EOK) {
-                    if (Driver_HasCategory(driver, IOHID_LIGHTPEN) && self->fb) {
+                    if (IODriver_HasCategory(driver, IOHID_LIGHTPEN) && self->fb) {
                         self->mouse.lpCount++;
                         if (self->mouse.lpCount == 1) {
                             DisplayDriver_SetLightPenEnabled(self->fb, true);
@@ -734,12 +734,12 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _No
             }
         }
     }
-    else if (self->gamepadCount < MAX_GAME_PADS && Driver_HasSomeCategories(driver, g_gamepad_cats)) {
+    else if (self->gamepadCount < MAX_GAME_PADS && IODriver_HasSomeCategories(driver, g_gamepad_cats)) {
         for (int i = 0; i < MAX_GAME_PADS; i++) {
             gamepad_state_t* gp = &self->gamepad[i];
 
             if (gp->drv == NULL) {
-                err = Driver_Open(driver, O_RDWR);
+                err = IODriver_Open(driver, O_RDWR);
                 if (err == EOK) {
                     gp->drv = Object_Retain(driver);
                     gp->x = 0;
@@ -751,9 +751,9 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _No
             }
         }
     }
-    else if (self->fb == NULL && Driver_HasCategory(driver, IOVID_FB)) {
+    else if (self->fb == NULL && IODriver_HasCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
-        err = Driver_Open(driver, O_RDWR);
+        err = IODriver_Open(driver, O_RDWR);
         if (err == EOK) {
             self->fb = Object_Retain(driver);
             DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
@@ -761,7 +761,7 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _No
         }
     }
 #if __IOGPBUS__ > 0
-    else if (self->gamePortBus == NULL && Driver_HasCategory(driver, IOBUS_GP)) {
+    else if (self->gamePortBus == NULL && IODriver_HasCategory(driver, IOBUS_GP)) {
         // Pick up the game port bus controller
         err = EOK; // Driver_Open(driver, O_RDWR);
         if (err == EOK) {
@@ -772,27 +772,27 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _No
 }
 
 // Disconnects the given HID driver or framebuffer.
-static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
+static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRef _Nonnull driver)
 {
 #if __IOGPBUS__ > 0
-    if ((DriverRef)self->gamePortBus == driver) {
-        Driver_Close(driver);
+    if ((IODriverRef)self->gamePortBus == driver) {
+        IODriver_Close(driver);
         Object_Release(driver);
         self->gamePortBus = NULL;
     }
 #endif
 
-    if ((DriverRef)self->kb == driver) {
-        Driver_Close(driver);
+    if ((IODriverRef)self->kb == driver) {
+        IODriver_Close(driver);
         Object_Release(driver);
         self->kb = NULL;
         return;
     }
     
-    if ((DriverRef)self->fb == driver) {
+    if ((IODriverRef)self->fb == driver) {
         DisplayDriver_SetScreenConfigObserver(self->fb, NULL, 0);
 
-        Driver_Close(driver);
+        IODriver_Close(driver);
         Object_Release(driver);
         self->fb = NULL;
         hid_rect_set_empty(&self->screenBounds);
@@ -802,15 +802,15 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
         IOHIDDeviceRef cdp = self->mouse.drv[i];
 
-        if ((DriverRef)cdp == driver) {
-            if (self->mouse.lpCount > 0 && Driver_HasCategory((DriverRef)cdp, IOHID_LIGHTPEN)) {
+        if ((IODriverRef)cdp == driver) {
+            if (self->mouse.lpCount > 0 && IODriver_HasCategory((IODriverRef)cdp, IOHID_LIGHTPEN)) {
                 self->mouse.lpCount--;
                 if (self->mouse.lpCount == 0) {
                     DisplayDriver_SetLightPenEnabled(self->fb, false);
                 }
             }
 
-            Driver_Close(cdp);
+            IODriver_Close(cdp);
             Object_Release(cdp);
             self->mouse.drv[i] = NULL;
             self->mouse.drvCount--;
@@ -821,8 +821,8 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
     for (int i = 0; i < MAX_GAME_PADS; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if ((DriverRef)gp->drv == driver) {
-            Driver_Close(driver);
+        if ((IODriverRef)gp->drv == driver) {
+            IODriver_Close(driver);
             Object_Release(driver);
             gp->drv = NULL;
             self->gamepadCount--;
@@ -831,7 +831,7 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, DriverRef 
     }
 }
 
-static void _matching_driver(IOHIDManagerRef _Nonnull self, DriverRef _Nonnull driver, int action)
+static void _matching_driver(IOHIDManagerRef _Nonnull self, IODriverRef _Nonnull driver, int action)
 {
     mtx_lock(&self->mtx);
 

@@ -38,15 +38,15 @@ IOCATS_DEF(g_cats, IOHID_KEYBOARD);
 extern void AmiKeyboard_OnKeyboardInterrupt(AmiKeyboardRef _Nonnull self, int key);
 
 
-errno_t AmiKeyboard_Create(DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiKeyboard_Create(IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     AmiKeyboardRef self;
     
-    try(Driver_Create(class(AmiKeyboard), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(AmiKeyboard), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
     try(cbuf_init(&self->keyQueue, 16));
 
-    *pOutSelf = (DriverRef)self;
+    *pOutSelf = (IODriverRef)self;
     return EOK;
 
 catch:
@@ -60,7 +60,7 @@ static void AmiKeyboard_deinit(AmiKeyboardRef _Nonnull self)
     cbuf_deinit(&self->keyQueue);
 }
 
-errno_t AmiKeyboard_start(DriverRef _Nonnull _Locked self)
+errno_t AmiKeyboard_start(AmiKeyboardRef _Nonnull _Locked self)
 {
     // Configure the keyboard serial port
     CIAA_BASE_DECL(ciaa);
@@ -73,7 +73,7 @@ errno_t AmiKeyboard_start(DriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-void AmiKeyboard_stop(DriverRef _Nonnull _Locked self)
+void AmiKeyboard_stop(AmiKeyboardRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_CIA_A_SP);
 }
@@ -105,7 +105,7 @@ void AmiKeyboard_OnKeyboardInterrupt(AmiKeyboardRef _Nonnull self, int key)
 
 class_func_defs(AmiKeyboard, IOHIDDevice,
 override_func_def(deinit, AmiKeyboard, Object)
-override_func_def(start, AmiKeyboard, Driver)
-override_func_def(stop, AmiKeyboard, Driver)
+override_func_def(start, AmiKeyboard, IODriver)
+override_func_def(stop, AmiKeyboard, IODriver)
 override_func_def(getReport, AmiKeyboard, IOHIDDevice)
 );

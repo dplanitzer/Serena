@@ -11,7 +11,7 @@
 #include "zorro_bus.h"
 
 
-final_class_ivars(ZorroBus, Driver,
+final_class_ivars(ZorroBus, IODriver,
 );
 
 IOCATS_DEF(g_cats, IOBUS_ZORRO);
@@ -19,7 +19,7 @@ IOCATS_DEF(g_cats, IOBUS_ZORRO);
 
 errno_t ZorroBus_Create(ZorroBusRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZorroBus), 0, g_cats, (DriverRef*)pOutSelf);
+    return IODriver_Create(class(ZorroBus), 0, g_cats, (IODriverRef*)pOutSelf);
 }
 
 static void _auto_config_bus(ZorroBusRef _Nonnull _Locked self)
@@ -38,7 +38,7 @@ static void _auto_config_bus(ZorroBusRef _Nonnull _Locked self)
         ZorroDeviceRef dp;
         
         if (ZorroDevice_Create(cfg, &dp) == EOK) {
-            Driver_Launch((DriverRef)dp, (DriverRef)self);
+            IODriver_Launch((IODriverRef)dp, (IODriverRef)self);
             Object_Release(dp);
         }
     )
@@ -57,6 +57,6 @@ errno_t ZorroBus_start(ZorroBusRef _Nonnull _Locked self)
 }
 
 
-class_func_defs(ZorroBus, Driver,
-override_func_def(start, ZorroBus, Driver)
+class_func_defs(ZorroBus, IODriver,
+override_func_def(start, ZorroBus, IODriver)
 );

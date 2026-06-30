@@ -14,6 +14,6 @@
 
 final_class(AmiLightPen, IOHIDDevice);
 
-extern errno_t AmiLightPen_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AmiLightPen_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* AmiLightPen_h */

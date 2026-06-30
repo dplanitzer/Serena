@@ -94,7 +94,7 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, DiskDriverRef _No
     decl_try_err();
     bool isWaitingForDisk = false;
 
-    err = Driver_Open(disk, O_RDWR);
+    err = IODriver_Open(disk, O_RDWR);
     if (err == EOK) {
         for (;;) {
             disk_info_t info;
@@ -116,7 +116,7 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, DiskDriverRef _No
             delay_sec(3);
         }
 
-        Driver_Close(disk);
+        IODriver_Close(disk);
     } 
 
     if (isWaitingForDisk) {

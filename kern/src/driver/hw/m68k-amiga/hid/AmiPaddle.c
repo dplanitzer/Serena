@@ -26,7 +26,7 @@ final_class_ivars(AmiPaddle, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_ANALOG_JOYSTICK);
 
 
-errno_t AmiPaddle_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiPaddle_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     AmiPaddleRef self = NULL;
@@ -35,7 +35,7 @@ errno_t AmiPaddle_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AmiPaddle), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(AmiPaddle), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
 
@@ -51,7 +51,7 @@ errno_t AmiPaddle_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
     self->smoothedY = 0;
 
 catch:
-    *pOutSelf = (DriverRef)self;
+    *pOutSelf = (IODriverRef)self;
     return err;
 }
 

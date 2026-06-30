@@ -27,7 +27,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(Driver_Create(class(GraphicsDriver), 0, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(GraphicsDriver), 0, g_cats, (IODriverRef*)&self));
     self->nextGObjId = 1;
     mtx_init(&self->io_mtx);
 
@@ -80,7 +80,7 @@ static errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull _Locked self)
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
 
-    err = Driver_Publish((DriverRef)self, &en);
+    err = IODriver_Publish((IODriverRef)self, &en);
     if (err == EOK) {
         copper_start();
         vcpu_resume(self->copvp, false);
@@ -126,7 +126,7 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 
 
 class_func_defs(GraphicsDriver, DisplayDriver,
-override_func_def(start, GraphicsDriver, Driver)
+override_func_def(start, GraphicsDriver, IODriver)
 override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
 override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
 override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)

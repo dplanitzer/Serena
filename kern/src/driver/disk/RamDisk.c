@@ -50,7 +50,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     drvi.platter = DISK_DIAM_UNKNOWN;
     drvi.flags = DRIVE_FLAG_FIXED;
 
-    try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (IODriverRef*)&self));
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;
     self->sectorShift = log2_sz(sectorSize);
@@ -90,7 +90,7 @@ errno_t RamDisk_start(RamDiskRef _Nonnull self)
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
 
-    return Driver_Publish((DriverRef)self, &en);
+    return IODriver_Publish((IODriverRef)self, &en);
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk
@@ -194,7 +194,7 @@ errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
 
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
-override_func_def(start, RamDisk, Driver)
+override_func_def(start, RamDisk, IODriver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
 override_func_def(doFormatDisk, RamDisk, DiskDriver)

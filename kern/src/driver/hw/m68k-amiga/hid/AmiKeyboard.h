@@ -14,6 +14,6 @@
 
 final_class(AmiKeyboard, IOHIDDevice);
 
-extern errno_t AmiKeyboard_Create(DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AmiKeyboard_Create(IODriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* AmiKeyboard_h */

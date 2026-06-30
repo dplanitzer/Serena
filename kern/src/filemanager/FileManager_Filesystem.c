@@ -169,12 +169,12 @@ catch:
 return err;
 }
 
-errno_t FileManager_GetPathForDriver(FileManagerRef _Nonnull self, DriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize)
+errno_t FileManager_GetPathForDriver(FileManagerRef _Nonnull self, IODriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
     InodeRef ip = NULL;
 
-    try(devfs_acquire_node_for_handle(Driver_GetDevfsHandle(driver), &ip));
+    try(devfs_acquire_node_for_handle(IODriver_GetDevfsHandle(driver), &ip));
     
     //XXX getting insufficient permissions when using the user credentials 
     try(FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize));

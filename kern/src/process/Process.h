@@ -111,6 +111,6 @@ extern errno_t Process_GetVirtualProcessorIds(ProcessRef _Nonnull self, vcpuid_t
 
 // Returns the path to the driver entry in the /dev directory as seen by this
 // process.
-extern errno_t Process_GetPathForDriver(ProcessRef _Nonnull self, DriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize);
+extern errno_t Process_GetPathForDriver(ProcessRef _Nonnull self, IODriverRef _Nonnull driver, char* _Nonnull buf, size_t bufSize);
 
 #endif /* Process_h */

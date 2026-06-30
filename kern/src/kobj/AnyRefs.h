@@ -25,7 +25,7 @@ class_ref(DiskCache);
 class_ref(DiskContainer);
 class_ref(DiskDriver);
 class_ref(DisplayDriver);
-class_ref(Driver);
+class_ref(IODriver);
 class_ref(DriverHandler);
 class_ref(FileHierarchy);
 class_ref(FileManager);

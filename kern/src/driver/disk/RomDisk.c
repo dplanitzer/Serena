@@ -40,7 +40,7 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     drvi.platter = DISK_DIAM_UNKNOWN;
     drvi.flags = DRIVE_FLAG_READ_ONLY | DRIVE_FLAG_FIXED;
 
-    try(DiskDriver_Create(class(RomDisk), 0, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, g_cats, &drvi, (IODriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = log2_sz(sectorSize);
@@ -82,7 +82,7 @@ errno_t RomDisk_start(RomDiskRef _Nonnull _Locked self)
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0444);
 
-    return Driver_Publish((DriverRef)self, &en);
+    return IODriver_Publish((IODriverRef)self, &en);
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
@@ -94,6 +94,6 @@ errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, u
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
-override_func_def(start, RomDisk, Driver)
+override_func_def(start, RomDisk, IODriver)
 override_func_def(getSector, RomDisk, DiskDriver)
 );

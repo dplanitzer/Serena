@@ -40,7 +40,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(bt_screen_t));
 
-    if ((err = IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (DriverRef*)&fb)) == EOK) {
+    if ((err = IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&fb)) == EOK) {
         // Create the surface and screen
         GraphicsDriver_CreateSurface2d(fb, width, height, PIXFMT_RGB_IND_1, &srf);
         GraphicsDriver_CreateCLUT(fb, 32, &clut);
@@ -108,7 +108,7 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
         GraphicsDriver_DestroyCLUT(bscr->fb, bscr->clut);
         GraphicsDriver_DestroySurface(bscr->fb, bscr->srf);
 
-        Driver_Close(bscr->fb);
+        IODriver_Close(bscr->fb);
         Object_Release(bscr->fb);
     }
 }

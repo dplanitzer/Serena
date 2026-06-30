@@ -1,13 +1,13 @@
 //
-//  Driver.h
+//  IODriver.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Driver_h
-#define Driver_h
+#ifndef IODriver_h
+#define IODriver_h
 
 #include <stdarg.h>
 #include <ext/queue.h>
@@ -21,19 +21,19 @@
 
 // Driver instantiation option. Used by subclassers to request specific default
 // behavior from the Driver class.
-#define kDriver_Exclusive       1   // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
+#define kIODriver_Exclusive       1   // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
 
 
 // INTERNAL
-#define kDriverFlag_IsActive    1
+#define kIODriverFlag_IsActive    1
 
 
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
-open_class(Driver, Object,
+open_class(IODriver, Object,
     deque_node_t                ioreg_qe;   // dequeue is owned and managed by IORegistry
-    DriverRef _Nullable         provider;   // strong ref to the provider driver; immutable between start() and stop()
+    IODriverRef _Nullable       provider;   // strong ref to the provider driver; immutable between start() and stop()
     did_t                       id;         // globally unique driver id (> 0)
 
     mtx_t                       mtx;        // lifecycle management lock
@@ -44,7 +44,7 @@ open_class(Driver, Object,
     uint16_t                    options;
     uint16_t                    flags;
 );
-open_class_funcs(Driver, Object,
+open_class_funcs(IODriver, Object,
     
     // Invoked when a driver is made active. Subclasses should override this
     // method, reset the hardware and/or establish the basic hardware
@@ -76,13 +76,13 @@ open_class_funcs(Driver, Object,
     // Invoked after the driver has been added as a child to the driver 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*attachProvider)(void* _Nonnull self, DriverRef _Nonnull provider);
+    void (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
 
     // Invoked after the driver has been stopped, waited for stopped and right
     // before it is detached from 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*detachProvider)(void* _Nonnull self, DriverRef _Nonnull provider);
+    void (*detachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
 
 
     // Invoked by the open() function to inform the driver of another open. The
@@ -120,42 +120,42 @@ open_class_funcs(Driver, Object,
 // Attaches the driver 'self' to the provider 'provider' and then starts it and
 // registers it with the I/O registry. The driver is active once this method
 // returns and ready to receive calls to Driver_Open().
-extern errno_t Driver_Launch(DriverRef _Nonnull self, DriverRef _Nullable provider);
+extern errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider);
 
 // Terminates all clients of the driver 'self' and then 'self' itself.
-extern void Driver_Terminate(DriverRef _Nonnull self);
+extern void IODriver_Terminate(IODriverRef _Nonnull self);
 
 
 // Opens the driver for use.
-#define Driver_Open(__self, __flags) \
-invoke_n(open, Driver, __self, __flags)
+#define IODriver_Open(__self, __flags) \
+invoke_n(open, IODriver, __self, __flags)
 
 // Closes a driver.
-#define Driver_Close(__self) \
-invoke_0(close, Driver, __self)
+#define IODriver_Close(__self) \
+invoke_0(close, IODriver, __self)
 
 
 // Returns true if the driver is currently in an opened state.
-extern bool Driver_IsOpen(DriverRef _Nonnull self);
+extern bool IODriver_IsOpen(IODriverRef _Nonnull self);
 
 
 // Returns a reference to a read-only array of all the I/O categories the
 // driver supports. This array is terminated by a IOCAT_END declaration.
-#define Driver_GetCategories(__self) \
-((const iocat_t*)((DriverRef)(__self)->cats)) 
+#define IODriver_GetCategories(__self) \
+((const iocat_t*)((IODriverRef)(__self)->cats)) 
 
 // Returns true if the driver supports the given I/O category and false otherwise.
-extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
+extern bool IODriver_HasCategory(IODriverRef _Nonnull self, iocat_t cat);
 
 // Returns true if the driver supports any of the given I/O categories and false
 // otherwise.
-extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
+extern bool IODriver_HasSomeCategories(IODriverRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
 // Returns the globally unique driver id. The id is assigned when the driver is
 // published.
-#define Driver_GetId(__self) \
-((DriverRef)__self)->id
+#define IODriver_GetId(__self) \
+((IODriverRef)__self)->id
 
 
 //
@@ -166,61 +166,61 @@ extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _No
 // \param pClass the concrete driver class
 // \param options options specifying various default behaviors
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
-extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns true if the driver is in active state; false otherwise
-#define Driver_IsActive(__self) \
-((((DriverRef)__self)->flags & kDriverFlag_IsActive) != 0)
+#define IODriver_IsActive(__self) \
+((((IODriverRef)__self)->flags & kIODriverFlag_IsActive) != 0)
 
 
 // Returns the provider of the driver 'self'. A provider is another driver that
 // provides services to 'self'. E.g. if 'self' is a SCSI disk driver, then the
 // provider would be an IOSCSIDevice which provides functionality to issue SCSI
 // commands to the bus. 
-#define Driver_GetProvider(__self) \
-((void*)((DriverRef)__self)->provider)
+#define IODriver_GetProvider(__self) \
+((void*)((IODriverRef)__self)->provider)
 
-#define Driver_GetDevfsHandle(__self) \
-((DriverRef)__self)->devfs_hnd
+#define IODriver_GetDevfsHandle(__self) \
+((IODriverRef)__self)->devfs_hnd
 
 
 // Publish the receiver as a client driver to the driver catalog.
-extern errno_t Driver_Publish(DriverRef _Nonnull self, const devfs_entry_t* _Nonnull en);
+extern errno_t IODriver_Publish(IODriverRef _Nonnull self, const devfs_entry_t* _Nonnull en);
 
 // Unpublishes the driver. Should be called from the onStop() override.
-extern void Driver_Unpublish(DriverRef _Nonnull self);
+extern void IODriver_Unpublish(IODriverRef _Nonnull self);
 
 
-#define Driver_AttachProvider(__self, __provider) \
-invoke_n(attachProvider, Driver, __self, __provider)
+#define IODriver_AttachProvider(__self, __provider) \
+invoke_n(attachProvider, IODriver, __self, __provider)
 
-#define Driver_DetachProvider(__self, __provider) \
-invoke_n(detachProvider, Driver, __self, __provider)
-
-
-// Starts a driver. This function is called by the Driver_Launch() function.
-#define Driver_Start(__self) \
-invoke_0(start, Driver, __self)
-
-#define Driver_Stop(__self) \
-invoke_0(stop, Driver, __self)
+#define IODriver_DetachProvider(__self, __provider) \
+invoke_n(detachProvider, IODriver, __self, __provider)
 
 
-#define Driver_Register(__self) \
-invoke_0(doRegister, Driver, __self)
+// Starts a driver. This function is called by the IODriver_Launch() function.
+#define IODriver_Start(__self) \
+invoke_0(start, IODriver, __self)
 
-#define Driver_Deregister(__self) \
-invoke_0(doDeregister, Driver, __self)
-
-
-extern void Driver_TerminateClients(DriverRef _Nonnull self);
+#define IODriver_Stop(__self) \
+invoke_0(stop, IODriver, __self)
 
 
-#define Driver_OnOpen(__self, __openCount, __flags) \
-invoke_n(onOpen, Driver, __self, __openCount, __flags)
+#define IODriver_Register(__self) \
+invoke_0(doRegister, IODriver, __self)
 
-#define Driver_OnClose(__self, __openCount) \
-invoke_n(onClose, Driver, __self, __openCount)
+#define IODriver_Deregister(__self) \
+invoke_0(doDeregister, IODriver, __self)
 
-#endif /* Driver_h */
+
+extern void IODriver_TerminateClients(IODriverRef _Nonnull self);
+
+
+#define IODriver_OnOpen(__self, __openCount, __flags) \
+invoke_n(onOpen, IODriver, __self, __openCount, __flags)
+
+#define IODriver_OnClose(__self, __openCount) \
+invoke_n(onClose, IODriver, __self, __openCount)
+
+#endif /* IODriver_h */

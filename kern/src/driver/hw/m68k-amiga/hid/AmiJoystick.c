@@ -22,7 +22,7 @@ final_class_ivars(AmiJoystick, IOHIDDevice,
 IOCATS_DEF(g_cats, IOHID_DIGITAL_JOYSTICK);
 
 
-errno_t AmiJoystick_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AmiJoystick_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     AmiJoystickRef self;
@@ -31,7 +31,7 @@ errno_t AmiJoystick_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AmiJoystick), kDriver_Exclusive, g_cats, (DriverRef*)&self));
+    try(IODriver_Create(class(AmiJoystick), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -44,7 +44,7 @@ errno_t AmiJoystick_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
     self->port = (int8_t)port;
     
 catch:
-    *pOutSelf = (DriverRef)self;
+    *pOutSelf = (IODriverRef)self;
     return err;
 }
 
@@ -108,6 +108,6 @@ void AmiJoystick_getReport(AmiJoystickRef _Nonnull self, IOHIDReport* _Nonnull r
 
 
 class_func_defs(AmiJoystick, IOHIDDevice,
-override_func_def(start, AmiJoystick, Driver)
+override_func_def(start, AmiJoystick, IODriver)
 override_func_def(getReport, AmiJoystick, IOHIDDevice)
 );

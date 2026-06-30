@@ -24,7 +24,7 @@ errno_t IOHIDDevice_setReportTarget(IOHIDDeviceRef _Nonnull self, vcpu_t _Nullab
     return ENOTSUP;
 }
 
-class_func_defs(IOHIDDevice, Driver,
+class_func_defs(IOHIDDevice, IODriver,
 func_def(getReport, IOHIDDevice)
 func_def(setReportTarget, IOHIDDevice)
 );
