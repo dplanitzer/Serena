@@ -28,6 +28,27 @@
 #define kIODriverFlag_IsActive    1
 
 
+typedef errno_t (*IOHandlerFunc)(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
+
+// The max length of a devfs name entry (includes the trailing '\0' character).
+// The system will automatically make the name unique if necessary. It does this
+// by inserting a decimal number into the provided string. Place a '$' character
+// inside teh string to specify where the number should be inserted. The number
+// is appended to the string if no '$' is inside the string. The '$' is removed
+// from the string and the provided string is used as provided if it is already
+// unique.
+#define kIODFSMaxName   48
+
+
+typedef struct IODFSInfo {
+    char                    name[kIODFSMaxName];
+    IOHandlerFunc _Nonnull  func;
+    uid_t                   uid;
+    gid_t                   gid;
+    fs_perms_t              perms;
+} IODFSInfo;
+
+
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
@@ -46,6 +67,18 @@ open_class(IODriver, Object,
 );
 open_class_funcs(IODriver, Object,
     
+    // Invoked after the driver has been added as a child to the driver 'parent'.
+    // Override: Optional; must call super
+    // Default: Various management tasks
+    void (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
+
+    // Invoked after the driver has been stopped, waited for stopped and right
+    // before it is detached from 'parent'.
+    // Override: Optional; must call super
+    // Default: Various management tasks
+    void (*detachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
+
+
     // Invoked when a driver is made active. Subclasses should override this
     // method, reset the hardware and/or establish the basic hardware
     // configuration and allocate resources that will be needed whether a client
@@ -72,17 +105,18 @@ open_class_funcs(IODriver, Object,
     // Default: deregisters the driver from the I/O registry
     void (*doDeregister)(void* _Nonnull self);
 
-   
-    // Invoked after the driver has been added as a child to the driver 'parent'.
-    // Override: Optional; must call super
-    // Default: Various management tasks
-    void (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
 
-    // Invoked after the driver has been stopped, waited for stopped and right
-    // before it is detached from 'parent'.
-    // Override: Optional; must call super
-    // Default: Various management tasks
-    void (*detachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
+    // Invoked to get a description of the devfs entry that should be created
+    // for the driver. Return ENOTSUP if no devfs entry should be created for
+    // the driver. A devfs entry is created after the driver has been registered
+    // with the I/O registry. The returned driver name may contain a '$' character.
+    // The '$' character is used as an indication where the system should insert
+    // a number to make the entry unique if needed. If the name has no '$'
+    // character then the number to unique the entry is appended to the end of
+    // the name.
+    // Override: Optional
+    // Default: Returns ENOTSUP and no devfs entry is created
+    errno_t (*getDFSInfo)(void* _Nonnull self, IODFSInfo* _Nonnull info);
 
 
     // Invoked by the open() function to inform the driver of another open. The
@@ -181,17 +215,6 @@ extern errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const i
 #define IODriver_GetProvider(__self) \
 ((void*)((IODriverRef)__self)->provider)
 
-#define IODriver_GetDevfsHandle(__self) \
-((IODriverRef)__self)->devfs_hnd
-
-
-// Publish the receiver as a client driver to the driver catalog.
-extern errno_t IODriver_Publish(IODriverRef _Nonnull self, const devfs_entry_t* _Nonnull en);
-
-// Unpublishes the driver. Should be called from the onStop() override.
-extern void IODriver_Unpublish(IODriverRef _Nonnull self);
-
-
 #define IODriver_AttachProvider(__self, __provider) \
 invoke_n(attachProvider, IODriver, __self, __provider)
 
@@ -212,6 +235,16 @@ invoke_0(doRegister, IODriver, __self)
 
 #define IODriver_Deregister(__self) \
 invoke_0(doDeregister, IODriver, __self)
+
+
+#define IODriver_GetDFSInfo(__self, __info) \
+invoke_n(getDFSInfo, IODriver, __self, __info)
+
+#define IODriver_GetDFSHandle(__self) \
+((IODriverRef)__self)->devfs_hnd
+
+extern errno_t IODriver_CreateDFSEntry(IODriverRef _Nonnull self);
+extern void IODriver_DeleteDFSEntry(IODriverRef _Nonnull self);
 
 
 extern void IODriver_TerminateClients(IODriverRef _Nonnull self);

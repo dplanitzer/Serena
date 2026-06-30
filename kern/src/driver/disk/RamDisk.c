@@ -81,16 +81,18 @@ errno_t RamDisk_start(RamDiskRef _Nonnull self)
     info.flags = 0;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
+    return EOK;
+}
 
-    devfs_entry_t en;
-    en.name = self->name;
-    en.resource = (ObjectRef)self;
-    en.func = IODiskHandler_Create;
-    en.uid = UID_ROOT;
-    en.gid = GID_ROOT;
-    en.perms = fs_perms_from_octal(0666);
+errno_t RamDisk_getDFSInfo(RamDiskRef _Nonnull self, IODFSInfo* _Nonnull info)
+{
+    strncpy(info->name, self->name, kIODFSMaxName);
+    info->func = IODiskHandler_Create;
+    info->uid = UID_ROOT;
+    info->gid = GID_ROOT;
+    info->perms = fs_perms_from_octal(0666);
 
-    return IODriver_Publish((IODriverRef)self, &en);
+    return EOK;
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk
@@ -195,6 +197,7 @@ errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(start, RamDisk, IODriver)
+override_func_def(getDFSInfo, RamDisk, IODriver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
 override_func_def(doFormatDisk, RamDisk, DiskDriver)

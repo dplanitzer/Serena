@@ -55,7 +55,6 @@ char * _Nonnull strerror(int err_no)
         /*ETERMINATED*/     "Terminated",
         /*ENOTSUP*/         "Operation not supported",
         /*ENXIO*/           "No such device or address",
-        /*ENOTATTACHED*/    "Driver not attached",
         /*ENOFS*/           "No such filesystem",
         /*ENOVCPU*/         "No such vcpu"
     };

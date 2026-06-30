@@ -174,7 +174,7 @@ errno_t FileManager_GetPathForDriver(FileManagerRef _Nonnull self, IODriverRef _
     decl_try_err();
     InodeRef ip = NULL;
 
-    try(devfs_acquire_node_for_handle(IODriver_GetDevfsHandle(driver), &ip));
+    try(devfs_acquire_node_for_handle(IODriver_GetDFSHandle(driver), &ip));
     
     //XXX getting insufficient permissions when using the user credentials 
     try(FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, UID_ROOT, GID_ROOT /*self->ruid, self->rgid*/, buf, bufSize));

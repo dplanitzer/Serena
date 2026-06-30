@@ -52,11 +52,10 @@ EXDEV           equ 39
 ETERMINATED     equ 40
 ENOTSUP         equ 41
 ENXIO           equ 42
-ENOTATTACHED    equ 43
-ENOFS           equ 44
-ENOVCPU         equ 45
+ENOFS           equ 43
+ENOVCPU         equ 44
 
 __EFIRST    equ 1
-__ELAST     equ 45
+__ELAST     equ 44
 
         endif   ; __ERRNO_I

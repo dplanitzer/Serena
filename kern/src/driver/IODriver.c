@@ -9,6 +9,7 @@
 #include "IODriver.h"
 #include "IORegistry.h"
 #include <assert.h>
+#include <string.h>
 #include <ext/atomic.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
@@ -53,6 +54,17 @@ void IODriver_deinit(IODriverRef _Nonnull self)
 // MARK: API
 //
 
+void IODriver_attachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
+{
+    IORegistry_AttachProvider(gIORegistry, provider, self);
+}
+
+void IODriver_detachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
+{
+    IORegistry_DetachProvider(gIORegistry, self);
+}
+
+
 errno_t IODriver_start(IODriverRef _Nonnull _Locked self)
 {
     return EOK;
@@ -75,33 +87,78 @@ void IODriver_doDeregister(IODriverRef _Nonnull self)
 }
 
 
-void IODriver_attachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
+errno_t IODriver_getDFSInfo(IODriverRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
-    IORegistry_AttachProvider(gIORegistry, provider, self);
+    return ENOTSUP;
 }
 
-void IODriver_detachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
+errno_t IODriver_CreateDFSEntry(IODriverRef _Nonnull self)
 {
-    IORegistry_DetachProvider(gIORegistry, self);
-}
+    decl_try_err();
+    static mtx_t g_dfs_mtx;
+    static IODFSInfo g_dfs_info;
+    static devfs_entry_t g_dfs_entry;
+    static char g_dfs_name[kIODFSMaxName + 10];
+
+    mtx_lock(&g_dfs_mtx);
+
+    // Get the devfs entry information
+    try(IODriver_GetDFSInfo(self, &g_dfs_info));
 
 
-errno_t IODriver_Publish(IODriverRef _Nonnull self, const devfs_entry_t* _Nonnull en)
-{
-    if (self->devfs_hnd > 0) {
-        return EBUSY;
+    const size_t len = strlen(g_dfs_info.name);
+    if (len >= kIODFSMaxName - 1) {
+        throw(EINVAL);
     }
 
-    return devfs_add(en, &self->devfs_hnd);
+
+    // Figure out where we should insert a number to make teh entry unique if needed
+    const char* p = strchr(g_dfs_info.name, '$');
+    const char* dollar_p = (p) ? p : g_dfs_info.name + len;
+    const size_t base_len = dollar_p - g_dfs_info.name;
+
+
+    g_dfs_entry.name = g_dfs_name;
+    g_dfs_entry.resource = (ObjectRef)self;
+    g_dfs_entry.func = g_dfs_info.func;
+    g_dfs_entry.uid = g_dfs_info.uid;
+    g_dfs_entry.gid = g_dfs_info.gid;
+    g_dfs_entry.perms = g_dfs_info.perms;
+
+
+    // Try to add the entry. This may result in an EEXIST error. Make the entry
+    // unique by adding an integer at the '$' position. 
+    for (int i = 1; i <= 50; i++) {
+        g_dfs_name[0] = '\0';
+
+        strncat(g_dfs_name, g_dfs_info.name, base_len);
+        if (err == EEXIST) {
+            itoa(i, &g_dfs_name[base_len], 10);
+        }
+        if (base_len < len) {
+            strcat(g_dfs_name, dollar_p + 1);
+        }
+
+        err = devfs_add(&g_dfs_entry, &self->devfs_hnd);
+        if (err != EEXIST) {
+            break;
+        }
+    }
+
+catch:
+    mtx_unlock(&g_dfs_mtx);
+
+    return err;
 }
 
-void IODriver_Unpublish(IODriverRef _Nonnull self)
+void IODriver_DeleteDFSEntry(IODriverRef _Nonnull self)
 {
     if (self->devfs_hnd > 0) {
         devfs_remove(self->devfs_hnd);
         self->devfs_hnd = 0;
     }
 }
+
 
 errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider)
 {
@@ -134,6 +191,7 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
     // callouts to arbitrary code.
     if (err == EOK) {
         IODriver_Register(self);
+        IODriver_CreateDFSEntry(self);
     }
 
     return err;
@@ -165,9 +223,9 @@ void IODriver_Terminate(IODriverRef _Nonnull self)
     }
 
 
+    IODriver_DeleteDFSEntry(self);
     IODriver_TerminateClients(self);
     IODriver_Deregister(self);
-    IODriver_Unpublish(self);    
 
 
     // Enter the stopped state
@@ -260,12 +318,13 @@ bool IODriver_HasSomeCategories(IODriverRef _Nonnull self, const iocat_t* _Nonnu
 
 class_func_defs(IODriver, Object,
 override_func_def(deinit, IODriver, Object)
+func_def(attachProvider, IODriver)
+func_def(detachProvider, IODriver)
 func_def(start, IODriver)
 func_def(stop, IODriver)
 func_def(doRegister, IODriver)
 func_def(doDeregister, IODriver)
-func_def(attachProvider, IODriver)
-func_def(detachProvider, IODriver)
+func_def(getDFSInfo, IODriver)
 func_def(open, IODriver)
 func_def(onOpen, IODriver)
 func_def(close, IODriver)

@@ -149,27 +149,22 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
 
 errno_t FloppyDriver_start(FloppyDriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
-    char name[4];
+    return kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)FloppyDriver_Reset, self);
+}
 
-    name[0] = 'f';
-    name[1] = 'd';
-    name[2] = '0' + self->drive;
-    name[3] = '\0';
+errno_t FloppyDriver_getDFSInfo(FloppyDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
+{
+    info->name[0] = 'f';
+    info->name[1] = 'd';
+    info->name[2] = '0' + self->drive;
+    info->name[3] = '\0';
 
-    devfs_entry_t en;
-    en.name = name;
-    en.resource = (ObjectRef)self;
-    en.func = IODiskHandler_Create;
-    en.uid = UID_ROOT;
-    en.gid = GID_ROOT;
-    en.perms = fs_perms_from_octal(0666);
+    info->func = IODiskHandler_Create;
+    info->uid = UID_ROOT;
+    info->gid = GID_ROOT;
+    info->perms = fs_perms_from_octal(0666);
 
-    try(IODriver_Publish((IODriverRef)self, &en));
-    try(kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)FloppyDriver_Reset, self));
-
-catch:
-    return err;
+    return EOK;
 }
 
 // Called when we've detected a loss of the drive hardware
@@ -837,6 +832,7 @@ class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(getBootPriority, FloppyDriver, DiskDriver)
 override_func_def(start, FloppyDriver, IODriver)
+override_func_def(getDFSInfo, FloppyDriver, IODriver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
 override_func_def(doFormatTrack, FloppyDriver, DiskDriver)

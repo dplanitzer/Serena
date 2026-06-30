@@ -73,16 +73,18 @@ errno_t RomDisk_start(RomDiskRef _Nonnull _Locked self)
     info.flags = DISK_FLAG_READ_ONLY;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
+    return EOK;
+}
 
-    devfs_entry_t en;
-    en.name = self->name;
-    en.resource = (ObjectRef)self;
-    en.func = IODiskHandler_Create;
-    en.uid = UID_ROOT;
-    en.gid = GID_ROOT;
-    en.perms = fs_perms_from_octal(0444);
+errno_t RomDisk_getDFSInfo(RomDiskRef _Nonnull self, IODFSInfo* _Nonnull info)
+{
+    strncpy(info->name, self->name, kIODFSMaxName);
+    info->func = IODiskHandler_Create;
+    info->uid = UID_ROOT;
+    info->gid = GID_ROOT;
+    info->perms = fs_perms_from_octal(0444);
 
-    return IODriver_Publish((IODriverRef)self, &en);
+    return EOK;
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
@@ -95,5 +97,6 @@ errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, u
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
 override_func_def(start, RomDisk, IODriver)
+override_func_def(getDFSInfo, RomDisk, IODriver)
 override_func_def(getSector, RomDisk, DiskDriver)
 );

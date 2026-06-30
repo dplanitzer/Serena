@@ -8,6 +8,7 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
+#include <string.h>
 #include <hal/irq.h>
 #include <handler/IOGraphicsHandler.h>
 #include <kern/kalloc.h>
@@ -68,24 +69,23 @@ catch:
     return err;
 }
 
-static errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull _Locked self)
+errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull _Locked self)
 {
-    decl_try_err();
+    copper_start();
+    vcpu_resume(self->copvp, false);
+    
+    return EOK;
+}
 
-    devfs_entry_t en;
-    en.name = "fb";
-    en.resource = (ObjectRef)self;
-    en.func = IOGraphicsHandler_Create;
-    en.uid = UID_ROOT;
-    en.gid = GID_ROOT;
-    en.perms = fs_perms_from_octal(0666);
+errno_t GraphicsDriver_getDFSInfo(GraphicsDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
+{
+    strcpy(info->name, "fb");
+    info->func = IOGraphicsHandler_Create;
+    info->uid = UID_ROOT;
+    info->gid = GID_ROOT;
+    info->perms = fs_perms_from_octal(0666);
 
-    err = IODriver_Publish((IODriverRef)self, &en);
-    if (err == EOK) {
-        copper_start();
-        vcpu_resume(self->copvp, false);
-    }
-    return err;
+    return EOK;
 }
 
 
@@ -127,6 +127,7 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 
 class_func_defs(GraphicsDriver, DisplayDriver,
 override_func_def(start, GraphicsDriver, IODriver)
+override_func_def(getDFSInfo, GraphicsDriver, IODriver)
 override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
 override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
 override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)
