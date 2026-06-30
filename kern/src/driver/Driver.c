@@ -53,23 +53,13 @@ void Driver_deinit(DriverRef _Nonnull self)
 // MARK: API
 //
 
-errno_t Driver_Start(DriverRef _Nonnull self)
-{
-    return Driver_OnStart(self);
-}
-
-errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
+errno_t Driver_start(DriverRef _Nonnull _Locked self)
 {
     return EOK;
 }
 
 
-void Driver_Stop(DriverRef _Nonnull self)
-{
-    Driver_OnStop(self);
-}
-
-void Driver_onStop(DriverRef _Nonnull _Locked self)
+void Driver_stop(DriverRef _Nonnull _Locked self)
 {
 }
 
@@ -270,8 +260,8 @@ bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull c
 
 class_func_defs(Driver, Object,
 override_func_def(deinit, Driver, Object)
-func_def(onStart, Driver)
-func_def(onStop, Driver)
+func_def(start, Driver)
+func_def(stop, Driver)
 func_def(doRegister, Driver)
 func_def(doDeregister, Driver)
 func_def(attachProvider, Driver)

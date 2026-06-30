@@ -70,7 +70,7 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
     )
 }
 
-errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
+errno_t RamDisk_start(RamDiskRef _Nonnull self)
 {
     SensedDisk info;
     info.sectorsPerTrack = self->sectorCount;
@@ -194,7 +194,7 @@ errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
 
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
-override_func_def(onStart, RamDisk, Driver)
+override_func_def(start, RamDisk, Driver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
 override_func_def(doFormatDisk, RamDisk, DiskDriver)

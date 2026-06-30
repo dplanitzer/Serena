@@ -48,7 +48,7 @@ catch:
     return err;
 }
 
-errno_t AmiJoystick_onStart(AmiJoystickRef _Nonnull _Locked self)
+errno_t AmiJoystick_start(AmiJoystickRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -108,6 +108,6 @@ void AmiJoystick_getReport(AmiJoystickRef _Nonnull self, IOHIDReport* _Nonnull r
 
 
 class_func_defs(AmiJoystick, IOHIDDevice,
-override_func_def(onStart, AmiJoystick, Driver)
+override_func_def(start, AmiJoystick, Driver)
 override_func_def(getReport, AmiJoystick, IOHIDDevice)
 );

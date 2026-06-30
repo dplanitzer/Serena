@@ -59,7 +59,7 @@ catch:
     return err;
 }
 
-errno_t AmiLightPen_onStart(AmiLightPenRef _Nonnull _Locked self)
+errno_t AmiLightPen_start(AmiLightPenRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
 
@@ -163,6 +163,6 @@ void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull r
 
 
 class_func_defs(AmiLightPen, IOHIDDevice,
-override_func_def(onStart, AmiLightPen, Driver)
+override_func_def(start, AmiLightPen, Driver)
 override_func_def(getReport, AmiLightPen, IOHIDDevice)
 );

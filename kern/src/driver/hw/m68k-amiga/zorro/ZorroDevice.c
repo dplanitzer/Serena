@@ -26,7 +26,7 @@ errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _
     return err;
 }
 
-errno_t ZorroDevice_onStart(ZorroDeviceRef _Nonnull _Locked self)
+errno_t ZorroDevice_start(ZorroDeviceRef _Nonnull _Locked self)
 {
     decl_try_err();
     DriverRef dp;
@@ -44,5 +44,5 @@ errno_t ZorroDevice_onStart(ZorroDeviceRef _Nonnull _Locked self)
 }
 
 class_func_defs(ZorroDevice, Driver,
-override_func_def(onStart, ZorroDevice, Driver)
+override_func_def(start, ZorroDevice, Driver)
 );

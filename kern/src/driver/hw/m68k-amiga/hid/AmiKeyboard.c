@@ -60,7 +60,7 @@ static void AmiKeyboard_deinit(AmiKeyboardRef _Nonnull self)
     cbuf_deinit(&self->keyQueue);
 }
 
-errno_t AmiKeyboard_onStart(DriverRef _Nonnull _Locked self)
+errno_t AmiKeyboard_start(DriverRef _Nonnull _Locked self)
 {
     // Configure the keyboard serial port
     CIAA_BASE_DECL(ciaa);
@@ -73,7 +73,7 @@ errno_t AmiKeyboard_onStart(DriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-void AmiKeyboard_onStop(DriverRef _Nonnull _Locked self)
+void AmiKeyboard_stop(DriverRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_CIA_A_SP);
 }
@@ -105,7 +105,7 @@ void AmiKeyboard_OnKeyboardInterrupt(AmiKeyboardRef _Nonnull self, int key)
 
 class_func_defs(AmiKeyboard, IOHIDDevice,
 override_func_def(deinit, AmiKeyboard, Object)
-override_func_def(onStart, AmiKeyboard, Driver)
-override_func_def(onStop, AmiKeyboard, Driver)
+override_func_def(start, AmiKeyboard, Driver)
+override_func_def(stop, AmiKeyboard, Driver)
 override_func_def(getReport, AmiKeyboard, IOHIDDevice)
 );

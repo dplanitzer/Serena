@@ -52,7 +52,7 @@ catch:
     return err;
 }
 
-errno_t AmiMouse_onStart(AmiMouseRef _Nonnull _Locked self)
+errno_t AmiMouse_start(AmiMouseRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -144,6 +144,6 @@ void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
 
 
 class_func_defs(AmiMouse, IOHIDDevice,
-override_func_def(onStart, AmiMouse, Driver)
+override_func_def(start, AmiMouse, Driver)
 override_func_def(getReport, AmiMouse, IOHIDDevice)
 );

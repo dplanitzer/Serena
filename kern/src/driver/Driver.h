@@ -46,20 +46,20 @@ open_class(Driver, Object,
 );
 open_class_funcs(Driver, Object,
     
-    // Invoked as the result of calling Driver_Start(). A driver subclass should
-    // override this method to reset the hardware, configure it such that
-    // all components are in an idle state and to publish the driver to the
-    // driver catalog.
+    // Invoked when a driver is made active. Subclasses should override this
+    // method, reset the hardware and/or establish the basic hardware
+    // configuration and allocate resources that will be needed whether a client
+    // is actually using the driver or not.
     // Override: Recommended
     // Default: Returns EOK and does nothing
-    errno_t (*onStart)(void* _Nonnull _Locked self);
+    errno_t (*start)(void* _Nonnull _Locked self);
 
-    // Invoked as the result of calling Driver_Stop(). A driver subclass should
+    // Invoked when a driver is made inactive. A driver subclass should
     // override this method and configure the hardware such that it is in an
     // idle and (if possible) powered-down state.
     // Override: Optional
     // Default: Does nothing
-    void (*onStop)(void* _Nonnull _Locked self);
+    void (*stop)(void* _Nonnull _Locked self);
 
 
     // Registers the driver in the I/O registry.
@@ -117,54 +117,25 @@ open_class_funcs(Driver, Object,
 );
 
 
-extern errno_t Driver_Launch(DriverRef _Nonnull client, DriverRef _Nullable provider);
+// Attaches the driver 'self' to the provider 'provider' and then starts it and
+// registers it with the I/O registry. The driver is active once this method
+// returns and ready to receive calls to Driver_Open().
+extern errno_t Driver_Launch(DriverRef _Nonnull self, DriverRef _Nullable provider);
 
-extern void Driver_TerminateClients(DriverRef _Nonnull self);
-extern void Driver_Terminate(DriverRef _Nonnull driver);
-
-
-// Starts the driver. This function must be called after the driver has been
-// attached to its parent driver and before an I/O command is invoked on the
-// driver. It invokes the driver's onStart() override which finish the driver
-// initialization and publishes the driver. This function automatically
-// unpublishes the driver if its onStart() override returns with an error.
-extern errno_t Driver_Start(DriverRef _Nonnull self);
-
-// Stops the driver. 
-extern void Driver_Stop(DriverRef _Nonnull self);
-
-// Waits until the driver has finished its shutdown sequence. This specifically
-// means that the caller is guaranteed that once this function returns that:
-// *) no more I/O handlers are open referencing the driver
-// *) no more asynchronous processes are active and referencing this driver
-// The driver can be safely freed by calling Object_Release() once this function
-// has returned.
-extern void Driver_WaitForStopped(DriverRef _Nonnull self);
-
-
-#define Driver_AttachProvider(__self, __provider) \
-invoke_n(attachProvider, Driver, __self, __provider)
-
-#define Driver_DetachProvider(__self, __provider) \
-invoke_n(detachProvider, Driver, __self, __provider)
-
-#define Driver_Register(__self) \
-invoke_0(doRegister, Driver, __self)
-
-#define Driver_Deregister(__self) \
-invoke_0(doDeregister, Driver, __self)
+// Terminates all clients of the driver 'self' and then 'self' itself.
+extern void Driver_Terminate(DriverRef _Nonnull self);
 
 
 // Opens the driver for use.
 #define Driver_Open(__self, __flags) \
 invoke_n(open, Driver, __self, __flags)
 
-// Closes a driver handler.
+// Closes a driver.
 #define Driver_Close(__self) \
 invoke_0(close, Driver, __self)
 
 
-// Returns true if there are open I/O handlers referencing this driver.
+// Returns true if the driver is currently in an opened state.
 extern bool Driver_IsOpen(DriverRef _Nonnull self);
 
 
@@ -181,22 +152,17 @@ extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
 extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
-// Returns the immediate parent driver of the receiver. This is often the direct
-// bus controller. However it may be an intermediate driver that sits between
-// you and the bus controller.
-#define Driver_GetProvider(__self) \
-((void*)((DriverRef)__self)->provider)
-
-#define Driver_GetDevfsHandle(__self) \
-((DriverRef)__self)->devfs_hnd
+// Returns the globally unique driver id. The id is assigned when the driver is
+// published.
+#define Driver_GetId(__self) \
+((DriverRef)__self)->id
 
 
 //
 // Subclassers
 //
 
-// Creates a new driver instance which will be attached to a virtual or physical
-// bus.
+// Creates a new driver instance.
 // \param pClass the concrete driver class
 // \param options options specifying various default behaviors
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
@@ -207,10 +173,16 @@ extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const ioc
 #define Driver_IsActive(__self) \
 ((((DriverRef)__self)->flags & kDriverFlag_IsActive) != 0)
 
-// Returns the globally unique driver id. The id is assigned when the driver is
-// published.
-#define Driver_GetId(__self) \
-((DriverRef)__self)->id
+
+// Returns the provider of the driver 'self'. A provider is another driver that
+// provides services to 'self'. E.g. if 'self' is a SCSI disk driver, then the
+// provider would be an IOSCSIDevice which provides functionality to issue SCSI
+// commands to the bus. 
+#define Driver_GetProvider(__self) \
+((void*)((DriverRef)__self)->provider)
+
+#define Driver_GetDevfsHandle(__self) \
+((DriverRef)__self)->devfs_hnd
 
 
 // Publish the receiver as a client driver to the driver catalog.
@@ -220,11 +192,29 @@ extern errno_t Driver_Publish(DriverRef _Nonnull self, const devfs_entry_t* _Non
 extern void Driver_Unpublish(DriverRef _Nonnull self);
 
 
-#define Driver_OnStart(__self) \
-invoke_0(onStart, Driver, __self)
+#define Driver_AttachProvider(__self, __provider) \
+invoke_n(attachProvider, Driver, __self, __provider)
 
-#define Driver_OnStop(__self) \
-invoke_0(onStop, Driver, __self)
+#define Driver_DetachProvider(__self, __provider) \
+invoke_n(detachProvider, Driver, __self, __provider)
+
+
+// Starts a driver. This function is called by the Driver_Launch() function.
+#define Driver_Start(__self) \
+invoke_0(start, Driver, __self)
+
+#define Driver_Stop(__self) \
+invoke_0(stop, Driver, __self)
+
+
+#define Driver_Register(__self) \
+invoke_0(doRegister, Driver, __self)
+
+#define Driver_Deregister(__self) \
+invoke_0(doDeregister, Driver, __self)
+
+
+extern void Driver_TerminateClients(DriverRef _Nonnull self);
 
 
 #define Driver_OnOpen(__self, __openCount, __flags) \

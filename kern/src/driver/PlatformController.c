@@ -18,7 +18,7 @@ errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * 
     return Driver_Create(pClass, 0, g_cats, pOutSelf);
 }
 
-errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
+errno_t PlatformController_start(PlatformControllerRef _Nonnull _Locked self)
 {
     return PlatformController_DetectDevices(self);
 }
@@ -40,7 +40,7 @@ const struct SMG_Header* _Nullable PlatformController_getBootImage(PlatformContr
 
 
 class_func_defs(PlatformController, Driver,
-override_func_def(onStart, PlatformController, Driver)
+override_func_def(start, PlatformController, Driver)
 func_def(detectDevices, PlatformController)
 func_def(getPhysicalMemorySize, PlatformController)
 func_def(getBootImage, PlatformController)

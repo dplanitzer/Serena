@@ -81,7 +81,7 @@ static errno_t DiskDriver_DoIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonn
     return err;
 }
 
-void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
+void DiskDriver_stop(DiskDriverRef _Nonnull _Locked self)
 {
     if (self->dq) {
         kdispatch_terminate(self->dq, KDISPATCH_TERMINATE_AWAIT_ALL);
@@ -518,7 +518,7 @@ errno_t DiskDriver_WriteAsync(DiskDriverRef _Nonnull self, const iovec_t* _Nonnu
 
 class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
-override_func_def(onStop, DiskDriver, Driver)
+override_func_def(stop, DiskDriver, Driver)
 func_def(createDispatchQueue, DiskDriver)
 func_def(getBootPriority, DiskDriver)
 func_def(read, DiskDriver)

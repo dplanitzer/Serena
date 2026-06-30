@@ -147,7 +147,7 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     }
 }
 
-errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
+errno_t FloppyDriver_start(FloppyDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
     char name[4];
@@ -836,7 +836,7 @@ errno_t FloppyDriver_doFormatTrack(FloppyDriverRef _Nonnull self, const chs_t* c
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(getBootPriority, FloppyDriver, DiskDriver)
-override_func_def(onStart, FloppyDriver, Driver)
+override_func_def(start, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
 override_func_def(doFormatTrack, FloppyDriver, DiskDriver)

@@ -44,7 +44,7 @@ errno_t init_iokit(void)
 
     // Platform controller
     try(PlatformController_Create(_get_platform_controller_class(), &dp));
-    try(Driver_Start(dp));
+    try(Driver_Launch(dp, NULL));
     gPlatformController = (PlatformControllerRef)dp;
 
 catch:

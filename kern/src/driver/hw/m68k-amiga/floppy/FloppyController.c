@@ -117,7 +117,7 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
     }
 }
 
-errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
+errno_t FloppyController_start(FloppyControllerRef _Nonnull _Locked self)
 {
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
@@ -130,7 +130,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     return EOK;
 }
 
-void FloppyController_onStop(DriverRef _Nonnull _Locked self)
+void FloppyController_stop(DriverRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_DISK_BLOCK);
 }
@@ -410,6 +410,6 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 class_func_defs(FloppyController, Driver,
 override_func_def(deinit, FloppyController, Object)
-override_func_def(onStart, FloppyController, Driver)
-override_func_def(onStop, FloppyController, Driver)
+override_func_def(start, FloppyController, Driver)
+override_func_def(stop, FloppyController, Driver)
 );

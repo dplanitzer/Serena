@@ -42,7 +42,7 @@ catch:
 // Lifecycle
 //
 
-errno_t IOGPBus_onStart(IOGPBusRef _Nonnull _Locked self)
+errno_t IOGPBus_start(IOGPBusRef _Nonnull _Locked self)
 {
     return IOGPBus_SetPortDevice_Locked(self, 0, HID_PORT_MOUSE);
 }
@@ -157,7 +157,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 
 
 class_func_defs(IOGPBus, Driver,
-override_func_def(onStart, IOGPBus, Driver)
+override_func_def(start, IOGPBus, Driver)
 );
 
 #endif

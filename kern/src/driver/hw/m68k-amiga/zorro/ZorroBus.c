@@ -47,7 +47,7 @@ catch:
     zorro_destroy_bus(&bus);
 }
 
-errno_t ZorroBus_onStart(ZorroBusRef _Nonnull _Locked self)
+errno_t ZorroBus_start(ZorroBusRef _Nonnull _Locked self)
 {
     // Auto-config the bus. Discover as many cards as possible and ignore anything
     // that fails.
@@ -58,5 +58,5 @@ errno_t ZorroBus_onStart(ZorroBusRef _Nonnull _Locked self)
 
 
 class_func_defs(ZorroBus, Driver,
-override_func_def(onStart, ZorroBus, Driver)
+override_func_def(start, ZorroBus, Driver)
 );

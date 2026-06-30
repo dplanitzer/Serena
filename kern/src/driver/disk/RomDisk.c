@@ -62,7 +62,7 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
 }
 
 
-errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
+errno_t RomDisk_start(RomDiskRef _Nonnull _Locked self)
 {
     SensedDisk info;
     info.sectorsPerTrack = self->sectorCount;
@@ -94,6 +94,6 @@ errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, u
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
-override_func_def(onStart, RomDisk, Driver)
+override_func_def(start, RomDisk, Driver)
 override_func_def(getSector, RomDisk, DiskDriver)
 );

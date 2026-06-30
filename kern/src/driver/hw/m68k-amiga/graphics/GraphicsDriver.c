@@ -68,7 +68,7 @@ catch:
     return err;
 }
 
-static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
+static errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
 
@@ -126,7 +126,7 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 
 
 class_func_defs(GraphicsDriver, DisplayDriver,
-override_func_def(onStart, GraphicsDriver, Driver)
+override_func_def(start, GraphicsDriver, Driver)
 override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
 override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
 override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)
