@@ -55,22 +55,7 @@ void Driver_deinit(DriverRef _Nonnull self)
 
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
-    decl_try_err();
-
-    mtx_lock(&self->mtx);
-    if (!Driver_IsActive(self)) {
-        err = Driver_OnStart(self);
-
-        if (err == EOK) {
-            self->flags |= kDriverFlag_IsActive;
-        }
-    }
-    else {
-        err = EBUSY;
-    }
-    mtx_unlock(&self->mtx);
-
-    return err;
+    return Driver_OnStart(self);
 }
 
 errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
@@ -81,24 +66,7 @@ errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
 
 void Driver_Stop(DriverRef _Nonnull self)
 {
-    bool doStop = true;
-
-    // Validate our state
-    mtx_lock(&self->mtx);
-    doStop = Driver_IsActive(self);
-    mtx_unlock(&self->mtx);
-
-    if (!doStop) {
-        return;
-    }
-
-
-    // Enter the stopped state
-    mtx_lock(&self->mtx);
-    Driver_Unpublish(self);    
     Driver_OnStop(self);
-    self->flags &= ~kDriverFlag_IsActive;
-    mtx_unlock(&self->mtx);
 }
 
 void Driver_onStop(DriverRef _Nonnull _Locked self)
@@ -145,18 +113,37 @@ void Driver_Unpublish(DriverRef _Nonnull self)
     }
 }
 
-
-errno_t Driver_Launch(DriverRef _Nonnull client, DriverRef _Nullable provider)
+errno_t Driver_Launch(DriverRef _Nonnull self, DriverRef _Nullable provider)
 {
     decl_try_err();
 
-    if (provider) {
-        Driver_AttachProvider(client, provider);
+    mtx_lock(&self->mtx);
+    if (Driver_IsActive(self)) {
+        mtx_unlock(&self->mtx);
+        return EOK;
     }
 
-    err = Driver_Start(client);
+
+    if (provider) {
+        Driver_AttachProvider(self, provider);
+    }
+
+
+    err = Driver_Start(self);
     if (err == EOK) {
-        Driver_Register(client);
+        self->flags |= kDriverFlag_IsActive;
+    }
+    else if (provider) {
+        Driver_DetachProvider(self, provider);
+    }
+
+    mtx_unlock(&self->mtx);
+
+
+    // Register the driver after dropping the lock since registration can trigger
+    // callouts to arbitrary code.
+    if (err == EOK) {
+        Driver_Register(self);
     }
 
     return err;
@@ -178,13 +165,27 @@ void Driver_TerminateClients(DriverRef _Nonnull self)
 
 void Driver_Terminate(DriverRef _Nonnull self)
 {
+    // Validate our state
+    mtx_lock(&self->mtx);
+    const bool doStop = Driver_IsActive(self);
+    mtx_unlock(&self->mtx);
+
+    if (!doStop) {
+        return;
+    }
+
+
     Driver_TerminateClients(self);
-
     Driver_Deregister(self);
+    Driver_Unpublish(self);    
 
+
+    // Enter the stopped state
+    mtx_lock(&self->mtx);
     Driver_Stop(self);
-
     Driver_DetachProvider(self, self->provider);
+    self->flags &= ~kDriverFlag_IsActive;
+    mtx_unlock(&self->mtx);
 }
 
 
