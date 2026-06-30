@@ -21,18 +21,11 @@
 
 // Driver instantiation option. Used by subclassers to request specific default
 // behavior from the Driver class.
-enum {
-    kDriver_Exclusive = 1,  // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
-};
+#define kDriver_Exclusive       1   // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
 
 
-// Driver state. Used internally by the Driver class.
-enum {
-    kDriverState_Inactive = 0,
-    kDriverState_Active,
-    kDriverState_Stopping,
-    kDriverState_Stopped
-};
+// INTERNAL
+#define kDriverFlag_IsActive    1
 
 
 // A driver object manages a device. A device is a piece of hardware while a
@@ -295,14 +288,13 @@ open_class(Driver, Object,
     DriverRef _Nullable         provider;   // strong ref to the provider driver; immutable between start() and stop()
     did_t                       id;         // globally unique driver id (> 0)
 
-    mtx_t                       mtx;    // lifecycle management lock
-    const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
+    mtx_t                       mtx;        // lifecycle management lock
+    const iocat_t* _Nonnull     cats;       // categories the driver conforms to.
     devfs_hnd_t                 devfs_hnd;
 
-    uint16_t                    options;
-    uint8_t                     flags;
-    int8_t                      state;      //XXX should be atomic_int
     int                         openCount;
+    uint16_t                    options;
+    uint16_t                    flags;
 );
 open_class_funcs(Driver, Object,
     
@@ -320,15 +312,6 @@ open_class_funcs(Driver, Object,
     // Override: Optional
     // Default: Does nothing
     void (*onStop)(void* _Nonnull _Locked self);
-
-    // Invoked as the result of calling Driver_WaitForStopped(). A driver
-    // subclass that deploys asynchronous processes as part of its implementation
-    // should override this method and wait for those processes to be terminated.
-    // The shutdown of those processes should be triggered from an onStop()
-    // override.
-    // Override: Optional
-    // Default: Does nothing
-    void (*onWaitForStopped)(void* _Nonnull self);
 
 
     // Registers the driver in the I/O registry.
@@ -384,6 +367,12 @@ open_class_funcs(Driver, Object,
     // Default: Does nothing
     void (*close)(void* _Nonnull self);
 );
+
+
+extern errno_t Driver_Launch(DriverRef _Nonnull client, DriverRef _Nullable provider);
+
+extern void Driver_TerminateClients(DriverRef _Nonnull self);
+extern void Driver_Terminate(DriverRef _Nonnull driver);
 
 
 // Starts the driver. This function must be called after the driver has been
@@ -466,15 +455,9 @@ extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _No
 extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
-extern errno_t Driver_Launch(DriverRef _Nonnull client, DriverRef _Nullable provider);
-
-extern void Driver_TerminateClients(DriverRef _Nonnull self);
-extern void Driver_Terminate(DriverRef _Nonnull driver);
-
-
 // Returns true if the driver is in active state; false otherwise
 #define Driver_IsActive(__self) \
-(((DriverRef)__self)->state == kDriverState_Active ? true : false)
+((((DriverRef)__self)->flags & kDriverFlag_IsActive) != 0)
 
 // Returns the globally unique driver id. The id is assigned when the driver is
 // published.
@@ -494,9 +477,6 @@ invoke_0(onStart, Driver, __self)
 
 #define Driver_OnStop(__self) \
 invoke_0(onStop, Driver, __self)
-
-#define Driver_OnWaitForStopped(__self) \
-invoke_0(onWaitForStopped, Driver, __self)
 
 
 #define Driver_OnOpen(__self, __openCount, __flags) \

@@ -29,7 +29,6 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
         self->id = atomic_int_fetch_add(&g_next_driver_id, 1);
         self->cats = cats;
         self->options = options;
-        self->state = kDriverState_Inactive;
 
         *pOutSelf = self;
     }
@@ -40,14 +39,9 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
 
 void Driver_deinit(DriverRef _Nonnull self)
 {
-    switch (self->state) {
-        case kDriverState_Inactive:
-        case kDriverState_Stopped:
-            break;
-
-        default:
-            abort();
-            /* NOT REACHED */
+    if (Driver_IsActive(self)) {
+        abort();
+        /* NOT REACHED */
     }
 
     mtx_deinit(&self->mtx);
@@ -64,20 +58,15 @@ errno_t Driver_Start(DriverRef _Nonnull self)
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    switch (self->state) {
-        case kDriverState_Active:
-            err = EBUSY;
-            break;
+    if (!Driver_IsActive(self)) {
+        err = Driver_OnStart(self);
 
-        case kDriverState_Stopping:
-        case kDriverState_Stopped:
-            err = ENODEV;
-            break;
-            
-        default:
-            self->state = kDriverState_Active;
-            err = Driver_OnStart(self);
-            break;
+        if (err == EOK) {
+            self->flags |= kDriverFlag_IsActive;
+        }
+    }
+    else {
+        err = EBUSY;
     }
     mtx_unlock(&self->mtx);
 
@@ -96,15 +85,7 @@ void Driver_Stop(DriverRef _Nonnull self)
 
     // Validate our state
     mtx_lock(&self->mtx);
-    switch (self->state) {
-        case kDriverState_Stopping:
-        case kDriverState_Stopped:
-            doStop = false;
-            break;
-
-        default:
-            break;
-    }
+    doStop = Driver_IsActive(self);
     mtx_unlock(&self->mtx);
 
     if (!doStop) {
@@ -112,33 +93,15 @@ void Driver_Stop(DriverRef _Nonnull self)
     }
 
 
-    // Enter the stopping state
+    // Enter the stopped state
     mtx_lock(&self->mtx);
     Driver_Unpublish(self);    
     Driver_OnStop(self);
-    self->state = kDriverState_Stopping;
+    self->flags &= ~kDriverFlag_IsActive;
     mtx_unlock(&self->mtx);
 }
 
 void Driver_onStop(DriverRef _Nonnull _Locked self)
-{
-}
-
-
-void Driver_WaitForStopped(DriverRef _Nonnull self)
-{
-    // Let the driver subclass wait for the shutdown of whatever asynchronous
-    // processes it depends on
-    Driver_OnWaitForStopped(self);
-
-
-    // Change the state to stopped
-    mtx_lock(&self->mtx);
-    self->state = kDriverState_Stopped;
-    mtx_unlock(&self->mtx);
-}
-
-void Driver_onWaitForStopped(DriverRef _Nonnull self)
 {
 }
 
@@ -220,7 +183,6 @@ void Driver_Terminate(DriverRef _Nonnull self)
     Driver_Deregister(self);
 
     Driver_Stop(self);
-    Driver_WaitForStopped(self);
 
     Driver_DetachProvider(self, self->provider);
 }
@@ -309,7 +271,6 @@ class_func_defs(Driver, Object,
 override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
-func_def(onWaitForStopped, Driver)
 func_def(doRegister, Driver)
 func_def(doDeregister, Driver)
 func_def(attachProvider, Driver)
