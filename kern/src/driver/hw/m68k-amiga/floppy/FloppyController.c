@@ -92,7 +92,7 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
-static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
+static void FloppyController_ScanBus(FloppyControllerRef _Nonnull self)
 {
     for (size_t slotId = 0; slotId < MAX_FLOPPY_DISK_DRIVES; slotId++) {
         DriveState ds = FloppyController_ResetDrive(self, slotId);
@@ -119,15 +119,17 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
 
 errno_t FloppyController_start(FloppyControllerRef _Nonnull _Locked self)
 {
-    // Discover as many floppy drives as possible. We ignore drives that generate
-    // an error while trying to initialize them.
-    FloppyController_DetectDevices(self);
-
-
     irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_direct_func_t)_disk_block_irq, self);
     irq_enable_src(IRQ_ID_DISK_BLOCK);
 
     return EOK;
+}
+
+void FloppyController_onLaunched(FloppyControllerRef _Nonnull self)
+{
+    // Discover as many floppy drives as possible. We ignore drives that generate
+    // an error while trying to initialize them.
+    FloppyController_ScanBus(self);
 }
 
 void FloppyController_stop(FloppyControllerRef _Nonnull _Locked self)
@@ -411,5 +413,6 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 class_func_defs(FloppyController, IODriver,
 override_func_def(deinit, FloppyController, Object)
 override_func_def(start, FloppyController, IODriver)
+override_func_def(onLaunched, FloppyController, IODriver)
 override_func_def(stop, FloppyController, IODriver)
 );
