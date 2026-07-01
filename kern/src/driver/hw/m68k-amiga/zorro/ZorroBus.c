@@ -22,7 +22,7 @@ errno_t ZorroBus_Create(ZorroBusRef _Nullable * _Nonnull pOutSelf)
     return IODriver_Create(class(ZorroBus), 0, g_cats, (IODriverRef*)pOutSelf);
 }
 
-static void _auto_config_bus(ZorroBusRef _Nonnull _Locked self)
+static void ZorroBus_ScanBus(ZorroBusRef _Nonnull self)
 {
     decl_try_err();
     zorro_bus_t bus;
@@ -47,16 +47,14 @@ catch:
     zorro_destroy_bus(&bus);
 }
 
-errno_t ZorroBus_start(ZorroBusRef _Nonnull _Locked self)
+void ZorroBus_onLaunched(ZorroBusRef _Nonnull self)
 {
     // Auto-config the bus. Discover as many cards as possible and ignore anything
     // that fails.
-    _auto_config_bus(self);
-
-    return EOK;
+    ZorroBus_ScanBus(self);
 }
 
 
 class_func_defs(ZorroBus, IODriver,
-override_func_def(start, ZorroBus, IODriver)
+override_func_def(onLaunched, ZorroBus, IODriver)
 );
