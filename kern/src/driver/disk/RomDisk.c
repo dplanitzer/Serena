@@ -76,7 +76,7 @@ errno_t RomDisk_start(RomDiskRef _Nonnull _Locked self)
     return EOK;
 }
 
-errno_t RomDisk_getDFSInfo(RomDiskRef _Nonnull self, IODFSInfo* _Nonnull info)
+errno_t RomDisk_getDFSInfo(RomDiskRef _Nonnull _Locked self, IODFSInfo* _Nonnull info)
 {
     strncpy(info->name, self->name, kIODFSMaxName);
     info->func = IODiskHandler_Create;

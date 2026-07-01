@@ -149,6 +149,10 @@ void _delete_dfs_entry(IODriverRef _Nonnull self)
 }
 
 
+void IODriver_onLaunched(IODriverRef _Nonnull self)
+{
+}
+
 errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider)
 {
     decl_try_err();
@@ -180,10 +184,15 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
 
     // Do the matching callouts after we've dropped our lock to avoid deadlocks.
     if (err == EOK) {
+        IODriver_OnLaunched(self);
         IORegistry_Notify(gIORegistry, self, IOMATCH_STARTED);
     }
 
     return err;
+}
+
+void IODriver_onTerminating(IODriverRef _Nonnull self)
+{
 }
 
 static void _terminate_client_drivers(IODriverRef _Nonnull self)
@@ -202,6 +211,7 @@ static void _terminate_client_drivers(IODriverRef _Nonnull self)
 
 void IODriver_Terminate(IODriverRef _Nonnull self)
 {
+    IODriver_OnTerminating(self);
     IORegistry_Notify(gIORegistry, self, IOMATCH_STOPPING);
     _terminate_client_drivers(self);
 
@@ -224,13 +234,13 @@ void IODriver_Terminate(IODriverRef _Nonnull self)
 bool IODriver_IsOpen(IODriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    const bool r = (self->openCount > 0) ? true : false;
+    const bool r = (self->open_cnt > 0) ? true : false;
     mtx_unlock(&self->mtx);
 
     return r;
 }
 
-errno_t IODriver_onOpen(IODriverRef _Nonnull _Locked self, int openCount, fd_flags_t flags)
+errno_t IODriver_onOpen(IODriverRef _Nonnull _Locked self, int open_cnt, fd_flags_t flags)
 {
     return EOK;
 }
@@ -244,13 +254,13 @@ errno_t IODriver_open(IODriverRef _Nonnull self, fd_flags_t flags)
     if (!IODriver_IsActive(self)) {
         throw(ENODEV);
     }
-    if ((self->options & kIODriver_Exclusive) == kIODriver_Exclusive && self->openCount > 0) {
+    if ((self->options & kIODriver_Exclusive) == kIODriver_Exclusive && self->open_cnt > 0) {
         throw(EBUSY);
     }
 
 
-    try(IODriver_OnOpen(self, self->openCount, flags));
-    self->openCount++;
+    try(IODriver_OnOpen(self, self->open_cnt, flags));
+    self->open_cnt++;
 
 catch:
     mtx_unlock(&self->mtx);
@@ -259,17 +269,17 @@ catch:
 }
 
 
-void IODriver_onClose(IODriverRef _Nonnull _Locked self, int openCount)
+void IODriver_onClose(IODriverRef _Nonnull _Locked self, int open_cnt)
 {
 }
 
 void IODriver_close(IODriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    assert(self->openCount > 0);
+    assert(self->open_cnt > 0);
 
-    IODriver_OnClose(self, self->openCount);
-    self->openCount--;
+    IODriver_OnClose(self, self->open_cnt);
+    self->open_cnt--;
     mtx_unlock(&self->mtx);
 }
 
@@ -306,6 +316,8 @@ func_def(attachProvider, IODriver)
 func_def(detachProvider, IODriver)
 func_def(start, IODriver)
 func_def(stop, IODriver)
+func_def(onLaunched, IODriver)
+func_def(onTerminating, IODriver)
 func_def(getDFSInfo, IODriver)
 func_def(open, IODriver)
 func_def(onOpen, IODriver)

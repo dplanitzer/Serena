@@ -61,7 +61,7 @@ open_class(IODriver, Object,
     const iocat_t* _Nonnull     cats;       // categories the driver conforms to.
     devfs_hnd_t                 devfs_hnd;
 
-    int                         openCount;
+    int                         open_cnt;
     uint16_t                    options;
     uint16_t                    flags;
 );
@@ -70,13 +70,13 @@ open_class_funcs(IODriver, Object,
     // Invoked after the driver has been added as a child to the driver 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
+    void (*attachProvider)(void* _Nonnull _Locked self, IODriverRef _Nonnull provider);
 
     // Invoked after the driver has been stopped, waited for stopped and right
     // before it is detached from 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*detachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
+    void (*detachProvider)(void* _Nonnull _Locked self, IODriverRef _Nonnull provider);
 
 
     // Invoked when a driver is made active. Subclasses should override this
@@ -95,6 +95,22 @@ open_class_funcs(IODriver, Object,
     void (*stop)(void* _Nonnull _Locked self);
 
 
+    // Invoked at the end of IODriver_Launch(). Subclassers may override this
+    // to kick off more initialization work/commands after the driver has been
+    // started and registered. E.g. a bus driver could scan the bus for devices,
+    // create drivers and launch them as needed. The driver is no longer locked
+    // when this method is called.
+    // Override: Optional
+    // Default: Does nothing
+    void (*onLaunched)(void* _Nonnull self);
+
+    // Invoked at the beginning of IODriver_Terminate(). SUbclassers may
+    // override this to e.g. cancel queued commands.
+    // Override: Optional
+    // Default: Does nothing
+    void (*onTerminating)(void* _Nonnull self);
+
+
     // Invoked to get a description of the devfs entry that should be created
     // for the driver. Return ENOTSUP if no devfs entry should be created for
     // the driver. A devfs entry is created after the driver has been registered
@@ -105,7 +121,7 @@ open_class_funcs(IODriver, Object,
     // the name.
     // Override: Optional
     // Default: Returns ENOTSUP and no devfs entry is created
-    errno_t (*getDFSInfo)(void* _Nonnull self, IODFSInfo* _Nonnull info);
+    errno_t (*getDFSInfo)(void* _Nonnull _Locked self, IODFSInfo* _Nonnull info);
 
 
     // Invoked by the open() function to inform the driver of another open. The
@@ -217,6 +233,13 @@ invoke_0(start, IODriver, __self)
 
 #define IODriver_Stop(__self) \
 invoke_0(stop, IODriver, __self)
+
+
+#define IODriver_OnLaunched(__self) \
+invoke_0(onLaunched, IODriver, __self)
+
+#define IODriver_OnTerminating(__self) \
+invoke_0(onTerminating, IODriver, __self)
 
 
 #define IODriver_GetDFSInfo(__self, __info) \

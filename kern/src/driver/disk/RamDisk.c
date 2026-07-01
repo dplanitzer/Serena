@@ -70,7 +70,7 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
     )
 }
 
-errno_t RamDisk_start(RamDiskRef _Nonnull self)
+errno_t RamDisk_start(RamDiskRef _Nonnull _Locked self)
 {
     SensedDisk info;
     info.sectorsPerTrack = self->sectorCount;
@@ -84,7 +84,7 @@ errno_t RamDisk_start(RamDiskRef _Nonnull self)
     return EOK;
 }
 
-errno_t RamDisk_getDFSInfo(RamDiskRef _Nonnull self, IODFSInfo* _Nonnull info)
+errno_t RamDisk_getDFSInfo(RamDiskRef _Nonnull _Locked self, IODFSInfo* _Nonnull info)
 {
     strncpy(info->name, self->name, kIODFSMaxName);
     info->func = IODiskHandler_Create;
