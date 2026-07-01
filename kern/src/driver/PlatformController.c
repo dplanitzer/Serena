@@ -18,16 +18,6 @@ errno_t PlatformController_Create(Class* _Nonnull pClass, IODriverRef _Nullable 
     return IODriver_Create(pClass, 0, g_cats, pOutSelf);
 }
 
-errno_t PlatformController_start(PlatformControllerRef _Nonnull _Locked self)
-{
-    return PlatformController_DetectDevices(self);
-}
-
-errno_t PlatformController_detectDevices(PlatformControllerRef _Nonnull _Locked self)
-{
-    return EOK;
-}
-
 uint64_t PlatformController_getPhysicalMemorySize(PlatformControllerRef _Nonnull self)
 {
     return 0ull;
@@ -40,8 +30,6 @@ const struct SMG_Header* _Nullable PlatformController_getBootImage(PlatformContr
 
 
 class_func_defs(PlatformController, IODriver,
-override_func_def(start, PlatformController, IODriver)
-func_def(detectDevices, PlatformController)
 func_def(getPhysicalMemorySize, PlatformController)
 func_def(getBootImage, PlatformController)
 );

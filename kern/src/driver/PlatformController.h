@@ -18,17 +18,11 @@ struct SMG_Header;
 // direct or indirect children of the platform controller. It represents the
 // motherboard hardware in that sense and it kicks off the detection of hardware
 // that is part of the motherboard.
-// A platform controller is expected to implement the synchronous driver model.
+// Subclasses should override onLaunched(), detect motherboard devices there,
+// create suitable drivers and launch them.
 open_class(PlatformController, IODriver,
 );
 open_class_funcs(PlatformController, IODriver,
-
-    // Override in a subclass to detect all relevant devices that are directly
-    // connected to the motherboard and instantiate suitable driver classes for
-    // them.
-    // Override: Required
-    // Default: Does nothing and returns EOK
-    errno_t (*detectDevices)(void* _Nonnull self);
 
     // Override in a subclass to return the amount of physical RAM in the machine.
     // This is the RAM o the motherboard and all expansion boards that is useable
@@ -53,9 +47,6 @@ extern errno_t PlatformController_Create(Class* _Nonnull pClass, IODriverRef _Nu
 //
 // Subclassers
 //
-
-#define PlatformController_DetectDevices(__self) \
-invoke_0(detectDevices, PlatformController, __self)
 
 #define PlatformController_GetPhysicalMemorySize(__self) \
 invoke_0(getPhysicalMemorySize, PlatformController, __self)

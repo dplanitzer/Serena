@@ -25,6 +25,7 @@
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 #include <kpi/hid.h>
 #include <kpi/smg.h>
 
@@ -54,7 +55,7 @@ static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int ty
 
 // This function effectively "leaks" drivers when it fails. This doesn't matter
 // because this platform controller never frees its children anyway.
-errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked self)
+void AmigaController_onLaunched(struct AmigaController* _Nonnull self)
 {
     decl_try_err();
 
@@ -87,8 +88,10 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
     try(ZorroBus_Create(&zb));
     try(IODriver_Launch((IODriverRef)zb, (IODriverRef)self));
 
+    return;
+
 catch:
-    return err;
+    abort();
 }
 
 uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull self)
@@ -146,7 +149,7 @@ const struct SMG_Header* _Nullable AmigaController_getBootImage(struct AmigaCont
 }
 
 class_func_defs(AmigaController, PlatformController,
-override_func_def(detectDevices, AmigaController, PlatformController)
+override_func_def(onLaunched, AmigaController, IODriver)
 override_func_def(getPhysicalMemorySize, AmigaController, PlatformController)
 override_func_def(getBootImage, AmigaController, PlatformController)
 );
