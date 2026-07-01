@@ -95,17 +95,6 @@ open_class_funcs(IODriver, Object,
     void (*stop)(void* _Nonnull _Locked self);
 
 
-    // Registers the driver in the I/O registry.
-    // Override: Optional
-    // Default: registers the driver with the I/O registry
-    void (*doRegister)(void* _Nonnull self);
-
-    // Deregisters the driver from the I/O registry.
-    // Override: Optional
-    // Default: deregisters the driver from the I/O registry
-    void (*doDeregister)(void* _Nonnull self);
-
-
     // Invoked to get a description of the devfs entry that should be created
     // for the driver. Return ENOTSUP if no devfs entry should be created for
     // the driver. A devfs entry is created after the driver has been registered
@@ -230,24 +219,11 @@ invoke_0(start, IODriver, __self)
 invoke_0(stop, IODriver, __self)
 
 
-#define IODriver_Register(__self) \
-invoke_0(doRegister, IODriver, __self)
-
-#define IODriver_Deregister(__self) \
-invoke_0(doDeregister, IODriver, __self)
-
-
 #define IODriver_GetDFSInfo(__self, __info) \
 invoke_n(getDFSInfo, IODriver, __self, __info)
 
 #define IODriver_GetDFSHandle(__self) \
 ((IODriverRef)__self)->devfs_hnd
-
-extern errno_t IODriver_CreateDFSEntry(IODriverRef _Nonnull self);
-extern void IODriver_DeleteDFSEntry(IODriverRef _Nonnull self);
-
-
-extern void IODriver_TerminateClients(IODriverRef _Nonnull self);
 
 
 #define IODriver_OnOpen(__self, __openCount, __flags) \

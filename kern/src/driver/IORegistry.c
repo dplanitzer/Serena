@@ -99,12 +99,11 @@ catch:
 void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv)
 {
     mtx_lock(&self->mtx);
+    
     Object_Retain(drv);
     assert(drv->ioreg_qe.next == NULL && drv->ioreg_qe.prev == NULL);
     deque_add_last(&self->drivers, &drv->ioreg_qe);
     self->driver_count++;
-
-    _do_match_callouts(self, drv, IOMATCH_STARTED);
 
     mtx_unlock(&self->mtx);
 }
@@ -113,11 +112,17 @@ void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnu
 {
     mtx_lock(&self->mtx);
 
-    _do_match_callouts(self, drv, IOMATCH_STOPPING);
-
     self->driver_count--;
     deque_remove(&self->drivers, &drv->ioreg_qe);
     Object_Release(drv);
+    
+    mtx_unlock(&self->mtx);
+}
+
+void IORegistry_Notify(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv, int op)
+{
+    mtx_lock(&self->mtx);
+    _do_match_callouts(self, drv, IOMATCH_STARTED);
     mtx_unlock(&self->mtx);
 }
 

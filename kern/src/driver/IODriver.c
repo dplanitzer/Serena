@@ -76,23 +76,12 @@ void IODriver_stop(IODriverRef _Nonnull _Locked self)
 }
 
 
-void IODriver_doRegister(IODriverRef _Nonnull self)
-{
-    IORegistry_RegisterDriver(gIORegistry, self);
-}
-
-void IODriver_doDeregister(IODriverRef _Nonnull self)
-{
-    IORegistry_DeregisterDriver(gIORegistry, self);
-}
-
-
 errno_t IODriver_getDFSInfo(IODriverRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
     return ENOTSUP;
 }
 
-errno_t IODriver_CreateDFSEntry(IODriverRef _Nonnull self)
+static errno_t _create_dfs_entry(IODriverRef _Nonnull self)
 {
     decl_try_err();
     static mtx_t g_dfs_mtx;
@@ -151,7 +140,7 @@ catch:
     return err;
 }
 
-void IODriver_DeleteDFSEntry(IODriverRef _Nonnull self)
+void _delete_dfs_entry(IODriverRef _Nonnull self)
 {
     if (self->devfs_hnd > 0) {
         devfs_remove(self->devfs_hnd);
@@ -179,6 +168,8 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
     err = IODriver_Start(self);
     if (err == EOK) {
         self->flags |= kIODriverFlag_IsActive;
+        IORegistry_RegisterDriver(gIORegistry, self);
+        _create_dfs_entry(self);
     }
     else if (provider) {
         IODriver_DetachProvider(self, provider);
@@ -187,17 +178,15 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
     mtx_unlock(&self->mtx);
 
 
-    // Register the driver after dropping the lock since registration can trigger
-    // callouts to arbitrary code.
+    // Do the matching callouts after we've dropped our lock to avoid deadlocks.
     if (err == EOK) {
-        IODriver_Register(self);
-        IODriver_CreateDFSEntry(self);
+        IORegistry_Notify(gIORegistry, self, IOMATCH_STARTED);
     }
 
     return err;
 }
 
-void IODriver_TerminateClients(IODriverRef _Nonnull self)
+static void _terminate_client_drivers(IODriverRef _Nonnull self)
 {
     decl_try_err();
     IOIterator iter;
@@ -213,23 +202,18 @@ void IODriver_TerminateClients(IODriverRef _Nonnull self)
 
 void IODriver_Terminate(IODriverRef _Nonnull self)
 {
-    // Validate our state
-    mtx_lock(&self->mtx);
-    const bool doStop = IODriver_IsActive(self);
-    mtx_unlock(&self->mtx);
+    IORegistry_Notify(gIORegistry, self, IOMATCH_STOPPING);
+    _terminate_client_drivers(self);
 
-    if (!doStop) {
+
+    mtx_lock(&self->mtx);
+    if (!IODriver_IsActive(self)) {
+        mtx_unlock(&self->mtx);
         return;
     }
 
-
-    IODriver_DeleteDFSEntry(self);
-    IODriver_TerminateClients(self);
-    IODriver_Deregister(self);
-
-
-    // Enter the stopped state
-    mtx_lock(&self->mtx);
+    _delete_dfs_entry(self);
+    IORegistry_DeregisterDriver(gIORegistry, self);
     IODriver_Stop(self);
     IODriver_DetachProvider(self, self->provider);
     self->flags &= ~kIODriverFlag_IsActive;
@@ -322,8 +306,6 @@ func_def(attachProvider, IODriver)
 func_def(detachProvider, IODriver)
 func_def(start, IODriver)
 func_def(stop, IODriver)
-func_def(doRegister, IODriver)
-func_def(doDeregister, IODriver)
 func_def(getDFSInfo, IODriver)
 func_def(open, IODriver)
 func_def(onOpen, IODriver)

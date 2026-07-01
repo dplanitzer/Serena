@@ -48,6 +48,8 @@ extern void IORegistry_Init(void);
 extern void IORegistry_RegisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv);
 extern void IORegistry_DeregisterDriver(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv);
 
+extern void IORegistry_Notify(IORegistryRef _Nonnull self, IODriverRef _Nonnull drv, int op);
+
 
 // Returns a strong reference to the driver with the driver ID 'id'. NULL is
 // returned if no such driver exists.
