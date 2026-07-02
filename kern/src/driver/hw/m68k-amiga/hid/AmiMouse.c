@@ -52,7 +52,7 @@ catch:
     return err;
 }
 
-errno_t AmiMouse_start(AmiMouseRef _Nonnull _Locked self)
+errno_t AmiMouse_start(AmiMouseRef _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);

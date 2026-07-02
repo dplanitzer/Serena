@@ -19,7 +19,7 @@ errno_t ZRamDriver_Create(IODriverRef _Nullable * _Nonnull pOutSelf)
     return IODriver_Create(class(ZRamDriver), 0, g_cats, pOutSelf);
 }
 
-errno_t ZRamDriver_start(ZRamDriverRef _Nonnull _Locked self)
+errno_t ZRamDriver_start(ZRamDriverRef _Nonnull self)
 {
     ZorroDeviceRef zdp = IODriver_GetProvider(self);
     const zorro_conf_t* cfg = ZorroDevice_GetConfiguration(zdp);

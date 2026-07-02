@@ -24,10 +24,6 @@
 #define kIODriver_Exclusive       1   // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
 
 
-// INTERNAL
-#define kIODriverFlag_IsActive    1
-
-
 typedef errno_t (*IOHandlerFunc)(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
 
 // The max length of a devfs name entry (includes the trailing '\0' character).
@@ -70,13 +66,13 @@ open_class_funcs(IODriver, Object,
     // Invoked after the driver has been added as a child to the driver 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*attachProvider)(void* _Nonnull _Locked self, IODriverRef _Nonnull provider);
+    void (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
 
     // Invoked after the driver has been stopped, waited for stopped and right
     // before it is detached from 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*detachProvider)(void* _Nonnull _Locked self, IODriverRef _Nonnull provider);
+    void (*detachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
 
 
     // Invoked when a driver is made active. Subclasses should override this
@@ -85,14 +81,14 @@ open_class_funcs(IODriver, Object,
     // is actually using the driver or not.
     // Override: Recommended
     // Default: Returns EOK and does nothing
-    errno_t (*start)(void* _Nonnull _Locked self);
+    errno_t (*start)(void* _Nonnull self);
 
     // Invoked when a driver is made inactive. A driver subclass should
     // override this method and configure the hardware such that it is in an
     // idle and (if possible) powered-down state.
     // Override: Optional
     // Default: Does nothing
-    void (*stop)(void* _Nonnull _Locked self);
+    void (*stop)(void* _Nonnull self);
 
 
     // Invoked at the end of IODriver_Launch(). Subclassers may override this
@@ -121,7 +117,7 @@ open_class_funcs(IODriver, Object,
     // the name.
     // Override: Optional
     // Default: Returns ENOTSUP and no devfs entry is created
-    errno_t (*getDFSInfo)(void* _Nonnull _Locked self, IODFSInfo* _Nonnull info);
+    errno_t (*getDFSInfo)(void* _Nonnull self, IODFSInfo* _Nonnull info);
 
 
     // Invoked by the open() function to inform the driver of another open. The
@@ -206,11 +202,6 @@ extern bool IODriver_HasSomeCategories(IODriverRef _Nonnull self, const iocat_t*
 // \param options options specifying various default behaviors
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
 extern errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf);
-
-
-// Returns true if the driver is in active state; false otherwise
-#define IODriver_IsActive(__self) \
-((((IODriverRef)__self)->flags & kIODriverFlag_IsActive) != 0)
 
 
 // Returns the provider of the driver 'self'. A provider is another driver that

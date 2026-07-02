@@ -60,7 +60,7 @@ static void AmiKeyboard_deinit(AmiKeyboardRef _Nonnull self)
     cbuf_deinit(&self->keyQueue);
 }
 
-errno_t AmiKeyboard_start(AmiKeyboardRef _Nonnull _Locked self)
+errno_t AmiKeyboard_start(AmiKeyboardRef _Nonnull self)
 {
     // Configure the keyboard serial port
     CIAA_BASE_DECL(ciaa);
@@ -73,7 +73,7 @@ errno_t AmiKeyboard_start(AmiKeyboardRef _Nonnull _Locked self)
     return EOK;
 }
 
-void AmiKeyboard_stop(AmiKeyboardRef _Nonnull _Locked self)
+void AmiKeyboard_stop(AmiKeyboardRef _Nonnull self)
 {
     irq_disable_src(IRQ_ID_CIA_A_SP);
 }

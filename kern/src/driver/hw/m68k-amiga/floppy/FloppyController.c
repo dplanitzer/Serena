@@ -117,7 +117,7 @@ static void FloppyController_ScanBus(FloppyControllerRef _Nonnull self)
     }
 }
 
-errno_t FloppyController_start(FloppyControllerRef _Nonnull _Locked self)
+errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
 {
     irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_direct_func_t)_disk_block_irq, self);
     irq_enable_src(IRQ_ID_DISK_BLOCK);

@@ -69,7 +69,7 @@ catch:
     return err;
 }
 
-errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull _Locked self)
+errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
 {
     copper_start();
     vcpu_resume(self->copvp, false);
@@ -77,7 +77,7 @@ errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-errno_t GraphicsDriver_getDFSInfo(GraphicsDriverRef _Nonnull _Locked self, IODFSInfo* _Nonnull info)
+errno_t GraphicsDriver_getDFSInfo(GraphicsDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
     strcpy(info->name, "fb");
     info->func = IOGraphicsHandler_Create;

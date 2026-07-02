@@ -59,7 +59,7 @@ catch:
     return err;
 }
 
-errno_t AmiLightPen_start(AmiLightPenRef _Nonnull _Locked self)
+errno_t AmiLightPen_start(AmiLightPenRef _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
 

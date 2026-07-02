@@ -147,12 +147,12 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     }
 }
 
-errno_t FloppyDriver_start(FloppyDriverRef _Nonnull _Locked self)
+errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
 {
     return kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)FloppyDriver_Reset, self);
 }
 
-errno_t FloppyDriver_getDFSInfo(FloppyDriverRef _Nonnull _Locked self, IODFSInfo* _Nonnull info)
+errno_t FloppyDriver_getDFSInfo(FloppyDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
     info->name[0] = 'f';
     info->name[1] = 'd';

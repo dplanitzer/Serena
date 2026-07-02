@@ -48,7 +48,7 @@ catch:
     return err;
 }
 
-errno_t AmiJoystick_start(AmiJoystickRef _Nonnull _Locked self)
+errno_t AmiJoystick_start(AmiJoystickRef _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);

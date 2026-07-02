@@ -322,47 +322,40 @@ static void _get_disk_info_async(DiskDriverRef _Nonnull self, IOGetDiskInfoComma
 
 void DiskDriver_doCommand(DiskDriverRef _Nonnull self, IODiskCommand* _Nonnull req)
 {
-    if (!IODriver_IsActive(self)) {
-        req->status = ENODEV;
-    }
+    switch (req->type) {
+        case kIODiskCommand_Read:
+        case kIODiskCommand_Write:
+            _do_rw(self, (IORWCommand*)req, false);
+            break;
 
+        case kIODiskCommand_ReadAsync:
+        case kIODiskCommand_WriteAsync:
+            _do_rw(self, (IORWCommand*)req, true);
+            break;
 
-    if (req->status == EOK) {
-        switch (req->type) {
-            case kIODiskCommand_Read:
-            case kIODiskCommand_Write:
-                _do_rw(self, (IORWCommand*)req, false);
-                break;
+        case kIODiskCommand_FormatDisk:
+            req->status = DiskDriver_DoFormatDisk(self, ((IOFormatDiskCommand*)req)->fillByte);
+            break;
 
-            case kIODiskCommand_ReadAsync:
-            case kIODiskCommand_WriteAsync:
-                _do_rw(self, (IORWCommand*)req, true);
-                break;
+        case kIODiskCommand_FormatTrack:
+            _format_track_async(self, (IOFormatTrackCommand*)req);
+            break;
 
-            case kIODiskCommand_FormatDisk:
-                req->status = DiskDriver_DoFormatDisk(self, ((IOFormatDiskCommand*)req)->fillByte);
-                break;
+        case kIODiskCommand_GetDriveInfo:
+            _get_drive_info_async(self, (IOGetDriveInfoCommand*)req);
+            break;
 
-            case kIODiskCommand_FormatTrack:
-                _format_track_async(self, (IOFormatTrackCommand*)req);
-                break;
+        case kIODiskCommand_GetDiskInfo:
+            _get_disk_info_async(self, (IOGetDiskInfoCommand*)req);
+            break;
 
-            case kIODiskCommand_GetDriveInfo:
-                _get_drive_info_async(self, (IOGetDriveInfoCommand*)req);
-                break;
+        case kIODiskCommand_SenseDisk:
+            DiskDriver_DoSenseDisk(self, (IOSenseDiskCommand*)req);
+            break;
 
-            case kIODiskCommand_GetDiskInfo:
-                _get_disk_info_async(self, (IOGetDiskInfoCommand*)req);
-                break;
-
-            case kIODiskCommand_SenseDisk:
-                DiskDriver_DoSenseDisk(self, (IOSenseDiskCommand*)req);
-                break;
-
-            default:
-                req->status = EINVAL;
-                break;
-        }
+        default:
+            req->status = EINVAL;
+            break;
     }
 }
 

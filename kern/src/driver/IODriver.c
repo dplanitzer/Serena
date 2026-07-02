@@ -15,6 +15,9 @@
 #include <kern/kernlib.h>
 #include <kpi/file.h>
 
+// Flags
+#define kIODriverFlag_Inactive  1   /* terminate() has been called on the driver. Either its already done or still in the process of shutting down the driver */
+
 
 static volatile atomic_int   g_next_driver_id = {.value = 1};
 
@@ -40,7 +43,7 @@ errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t*
 
 void IODriver_deinit(IODriverRef _Nonnull self)
 {
-    if (IODriver_IsActive(self)) {
+    if ((self->flags & kIODriverFlag_Inactive) == 0) {
         abort();
         /* NOT REACHED */
     }
@@ -65,13 +68,13 @@ void IODriver_detachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull pro
 }
 
 
-errno_t IODriver_start(IODriverRef _Nonnull _Locked self)
+errno_t IODriver_start(IODriverRef _Nonnull self)
 {
     return EOK;
 }
 
 
-void IODriver_stop(IODriverRef _Nonnull _Locked self)
+void IODriver_stop(IODriverRef _Nonnull self)
 {
 }
 
@@ -157,10 +160,14 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
 {
     decl_try_err();
 
+    // Protect against restart attempts. Concurrent launch() and terminate() are
+    // not allowed anyway.
     mtx_lock(&self->mtx);
-    if (IODriver_IsActive(self)) {
-        mtx_unlock(&self->mtx);
-        return EOK;
+    const bool isInactive = (self->flags & kIODriverFlag_Inactive) != 0;
+    mtx_unlock(&self->mtx);
+
+    if (isInactive) {
+        return ENODEV;
     }
 
 
@@ -171,15 +178,12 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
 
     err = IODriver_Start(self);
     if (err == EOK) {
-        self->flags |= kIODriverFlag_IsActive;
         IORegistry_RegisterDriver(gIORegistry, self);
         _create_dfs_entry(self);
     }
     else if (provider) {
         IODriver_DetachProvider(self, provider);
     }
-
-    mtx_unlock(&self->mtx);
 
 
     // Do the matching callouts after we've dropped our lock to avoid deadlocks.
@@ -211,23 +215,27 @@ static void _terminate_client_drivers(IODriverRef _Nonnull self)
 
 void IODriver_Terminate(IODriverRef _Nonnull self)
 {
-    IODriver_OnTerminating(self);
-    IORegistry_Notify(gIORegistry, self, IOMATCH_STOPPING);
-    _terminate_client_drivers(self);
-
-
     mtx_lock(&self->mtx);
-    if (!IODriver_IsActive(self)) {
-        mtx_unlock(&self->mtx);
+    const bool isInactive = (self->flags & kIODriverFlag_Inactive) != 0;
+    self->flags |= kIODriverFlag_Inactive;
+    mtx_unlock(&self->mtx);
+
+    if (isInactive) {
         return;
     }
 
+
+    IODriver_OnTerminating(self);
+    _terminate_client_drivers(self);
+
+
+    IORegistry_Notify(gIORegistry, self, IOMATCH_STOPPING);
     _delete_dfs_entry(self);
     IORegistry_DeregisterDriver(gIORegistry, self);
+
+
     IODriver_Stop(self);
     IODriver_DetachProvider(self, self->provider);
-    self->flags &= ~kIODriverFlag_IsActive;
-    mtx_unlock(&self->mtx);
 }
 
 
@@ -251,7 +259,7 @@ errno_t IODriver_open(IODriverRef _Nonnull self, fd_flags_t flags)
 
     mtx_lock(&self->mtx);
 
-    if (!IODriver_IsActive(self)) {
+    if ((self->flags & kIODriverFlag_Inactive) != 0) {
         throw(ENODEV);
     }
     if ((self->options & kIODriver_Exclusive) == kIODriver_Exclusive && self->open_cnt > 0) {

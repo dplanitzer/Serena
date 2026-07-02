@@ -26,7 +26,7 @@ errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _
     return err;
 }
 
-errno_t ZorroDevice_start(ZorroDeviceRef _Nonnull _Locked self)
+errno_t ZorroDevice_start(ZorroDeviceRef _Nonnull self)
 {
     decl_try_err();
     IODriverRef dp;
