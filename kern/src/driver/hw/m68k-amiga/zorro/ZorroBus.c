@@ -38,7 +38,7 @@ static void ZorroBus_ScanBus(ZorroBusRef _Nonnull self)
         ZorroDeviceRef dp;
         
         if (ZorroDevice_Create(cfg, &dp) == EOK) {
-            IODriver_Launch((IODriverRef)dp, (IODriverRef)self);
+            IODriver_Launch(dp, (IODriverRef)self);
             Object_Release(dp);
         }
     )

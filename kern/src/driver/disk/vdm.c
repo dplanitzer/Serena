@@ -55,7 +55,7 @@ errno_t vdm_create_disk(int type, const char* _Nonnull name, size_t sectorSize, 
         throw_iferr(err);
     }
 
-    try(IODriver_Launch((IODriverRef)dp, (IODriverRef)gPlatformController));
+    try(IODriver_Launch(dp, (IODriverRef)gPlatformController));
     
 
 catch:

@@ -62,31 +62,31 @@ void AmigaController_onLaunched(struct AmigaController* _Nonnull self)
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(&fb));
-    try(IODriver_Launch((IODriverRef)fb, (IODriverRef)self));
+    try(IODriver_Launch(fb, (IODriverRef)self));
 
 
     // Keyboard
     IODriverRef kb;
     try(AmiKeyboard_Create(&kb));
-    try(IODriver_Launch((IODriverRef)kb, (IODriverRef)self));
+    try(IODriver_Launch(kb, (IODriverRef)self));
 
 
     // GamePort
     IOGPBusRef gp = NULL;
     try(IOGPBus_Create(_create_gpbus_hid_device, NULL, &gp));
-    try(IODriver_Launch((IODriverRef)gp, (IODriverRef)self));
+    try(IODriver_Launch(gp, (IODriverRef)self));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(&fdc));
-    try(IODriver_Launch((IODriverRef)fdc, (IODriverRef)self));
+    try(IODriver_Launch(fdc, (IODriverRef)self));
 
 
     // Zorro Bus
     ZorroBusRef zb = NULL;
     try(ZorroBus_Create(&zb));
-    try(IODriver_Launch((IODriverRef)zb, (IODriverRef)self));
+    try(IODriver_Launch(zb, (IODriverRef)self));
 
     return;
 

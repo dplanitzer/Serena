@@ -187,7 +187,7 @@ void IODriver_onLaunched(IODriverRef _Nonnull self)
 {
 }
 
-errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider)
+errno_t IODriver_launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider)
 {
     decl_try_err();
 
@@ -257,7 +257,7 @@ static void _finalize_termination(IODriverRef _Nonnull self)
     _set_state(self, kIODriverState_Terminated);
 }
 
-void IODriver_Terminate(IODriverRef _Nonnull self)
+void IODriver_terminate(IODriverRef _Nonnull self)
 {
     switch (_set_state(self, kIODriverState_Terminating)) {
         case kIODriverState_Terminating:
@@ -401,7 +401,9 @@ func_def(attachProvider, IODriver)
 func_def(detachProvider, IODriver)
 func_def(start, IODriver)
 func_def(stop, IODriver)
+func_def(launch, IODriver)
 func_def(onLaunched, IODriver)
+func_def(terminate, IODriver)
 func_def(onTerminating, IODriver)
 func_def(getDFSInfo, IODriver)
 func_def(open, IODriver)

@@ -110,7 +110,7 @@ static void FloppyController_ScanBus(FloppyControllerRef _Nonnull self)
             const errno_t err = FloppyDriver_Create(slotId, ds, dp, &drive);
             
             if (err == EOK) {
-                IODriver_Launch((IODriverRef)drive, (IODriverRef)self);
+                IODriver_Launch(drive, (IODriverRef)self);
                 Object_Release(drive);
             }
         }

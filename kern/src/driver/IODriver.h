@@ -131,6 +131,11 @@ open_class_funcs(IODriver, Object,
     bool (*stop)(void* _Nonnull self);
 
 
+    // Attaches the driver 'self' to the provider 'provider' and then starts it and
+    // registers it with the I/O registry. The driver is active once this method
+    // returns and ready to receive calls to Driver_Open().
+    errno_t (*launch)(void* _Nonnull self, IODriverRef _Nullable provider);
+
     // Invoked at the end of IODriver_Launch(). Subclassers may override this
     // to kick off more initialization work/commands after the driver has been
     // started and registered. E.g. a bus driver could scan the bus for devices,
@@ -139,6 +144,13 @@ open_class_funcs(IODriver, Object,
     // Override: Optional
     // Default: Does nothing
     void (*onLaunched)(void* _Nonnull self);
+
+
+    // Terminates all clients of the driver 'self' and then 'self' itself. Note that
+    // the termination may run asynchronously. Thus this function may return before
+    // the termination has completed. Use the IODriver_AwaitTermination() function
+    // to await the completion of the termination if this matters to you.
+    void (*terminate)(void* _Nonnull self);
 
     // Invoked at the beginning of IODriver_Terminate(). Subclassers may
     // override this to e.g. cancel queued commands.
@@ -192,16 +204,14 @@ open_class_funcs(IODriver, Object,
 );
 
 
-// Attaches the driver 'self' to the provider 'provider' and then starts it and
-// registers it with the I/O registry. The driver is active once this method
-// returns and ready to receive calls to Driver_Open().
-extern errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider);
+// Launch a driver.
+#define IODriver_Launch(__self, __provider) \
+invoke_n(launch, IODriver, __self, __provider)
 
-// Terminates all clients of the driver 'self' and then 'self' itself. Note that
-// the termination may run asynchronously. Thus this function may return before
-// the termination has completed. Use the IODriver_AwaitTermination() function
-// to await the completion of the termination if this matters to you.
-extern void IODriver_Terminate(IODriverRef _Nonnull self);
+// Terminate a driver.
+#define IODriver_Terminate(__self) \
+invoke_0(terminate, IODriver, __self)
+
 
 // Awaits the termination of the driver by blocing the caller until teh driver
 // has reached terminated state.
