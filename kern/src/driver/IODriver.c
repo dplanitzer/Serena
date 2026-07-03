@@ -15,11 +15,40 @@
 #include <kern/kernlib.h>
 #include <kpi/file.h>
 
-// Flags
-#define kIODriverFlag_Inactive  1   /* terminate() has been called on the driver. Either its already done or still in the process of shutting down the driver */
+// Lifecycle states
+#define kIODriverState_Initialized  0
+#define kIODriverState_Launching    1
+#define kIODriverState_Launched     2
+#define kIODriverState_Terminating  3
+#define kIODriverState_Terminated   4
+
 
 
 static volatile atomic_int   g_next_driver_id = {.value = 1};
+
+
+static int _set_state(IODriverRef _Nonnull self, int newState)
+{
+    mtx_lock(&self->mtx);
+    const int oldState = self->state;
+    
+    if (newState > oldState) {
+        self->state = newState;
+    }
+    mtx_unlock(&self->mtx);
+
+    return oldState;
+}
+
+static int _get_state(IODriverRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const int curState = self->state;
+    mtx_unlock(&self->mtx);
+
+    return curState;
+}
+
 
 errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
@@ -43,7 +72,7 @@ errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t*
 
 void IODriver_deinit(IODriverRef _Nonnull self)
 {
-    if ((self->flags & kIODriverFlag_Inactive) == 0) {
+    if (_get_state(self) < kIODriverState_Terminated) {
         abort();
         /* NOT REACHED */
     }
@@ -162,12 +191,17 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
 
     // Protect against restart attempts. Concurrent launch() and terminate() are
     // not allowed anyway.
-    mtx_lock(&self->mtx);
-    const bool isInactive = (self->flags & kIODriverFlag_Inactive) != 0;
-    mtx_unlock(&self->mtx);
+    switch (_set_state(self, kIODriverState_Launching)) {
+        case kIODriverState_Launching:
+        case kIODriverState_Launched:
+            return EBUSY;
 
-    if (isInactive) {
-        return ENODEV;
+        case kIODriverState_Terminating:
+        case kIODriverState_Terminated:
+            return ENODEV;
+
+        default:
+            break;
     }
 
 
@@ -180,6 +214,7 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
     if (err == EOK) {
         IORegistry_RegisterDriver(gIORegistry, self);
         _create_dfs_entry(self);
+        _set_state(self, kIODriverState_Launched);
     }
     else if (provider) {
         IODriver_DetachProvider(self, provider);
@@ -215,13 +250,17 @@ static void _terminate_client_drivers(IODriverRef _Nonnull self)
 
 void IODriver_Terminate(IODriverRef _Nonnull self)
 {
-    mtx_lock(&self->mtx);
-    const bool isInactive = (self->flags & kIODriverFlag_Inactive) != 0;
-    self->flags |= kIODriverFlag_Inactive;
-    mtx_unlock(&self->mtx);
+    switch (_set_state(self, kIODriverState_Terminating)) {
+        case kIODriverState_Terminating:
+        case kIODriverState_Terminated:
+            return;
 
-    if (isInactive) {
-        return;
+        case kIODriverState_Initialized:
+        case kIODriverState_Launching:
+            abort();    //XXX potentially rethink, though good enough for now
+
+        default:
+            break;
     }
 
 
@@ -236,6 +275,8 @@ void IODriver_Terminate(IODriverRef _Nonnull self)
 
     IODriver_Stop(self);
     IODriver_DetachProvider(self, self->provider);
+
+    _set_state(self, kIODriverState_Terminated);
 }
 
 
@@ -259,7 +300,7 @@ errno_t IODriver_open(IODriverRef _Nonnull self, fd_flags_t flags)
 
     mtx_lock(&self->mtx);
 
-    if ((self->flags & kIODriverFlag_Inactive) != 0) {
+    if (self->state != kIODriverState_Launched) {
         throw(ENODEV);
     }
     if ((self->options & kIODriver_Exclusive) == kIODriver_Exclusive && self->open_cnt > 0) {

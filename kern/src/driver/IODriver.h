@@ -59,7 +59,8 @@ open_class(IODriver, Object,
 
     int                         open_cnt;
     uint16_t                    options;
-    uint16_t                    flags;
+    uint8_t                     flags;
+    int8_t                      state;
 );
 open_class_funcs(IODriver, Object,
     
