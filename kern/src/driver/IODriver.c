@@ -86,9 +86,14 @@ void IODriver_deinit(IODriverRef _Nonnull self)
 // MARK: API
 //
 
-void IODriver_attachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
+errno_t IODriver_attachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
 {
+    if (_get_state(provider) >= kIODriverState_Terminating) {
+        return ENODEV;
+    }
+
     IORegistry_AttachProvider(gIORegistry, provider, self);
+    return EOK;
 }
 
 void IODriver_detachProvider(IODriverRef _Nonnull self, IODriverRef _Nonnull provider)
@@ -207,7 +212,10 @@ errno_t IODriver_launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
 
 
     if (provider) {
-        IODriver_AttachProvider(self, provider);
+        err = IODriver_AttachProvider(self, provider);
+        if (err != EOK) {
+            return err;
+        }
     }
 
 

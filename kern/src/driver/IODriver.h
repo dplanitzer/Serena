@@ -97,7 +97,7 @@ open_class_funcs(IODriver, Object,
     // Invoked after the driver has been added as a child to the driver 'parent'.
     // Override: Optional; must call super
     // Default: Various management tasks
-    void (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
+    errno_t (*attachProvider)(void* _Nonnull self, IODriverRef _Nonnull provider);
 
     // Invoked after the driver has been stopped, waited for stopped and right
     // before it is detached from 'parent'.
