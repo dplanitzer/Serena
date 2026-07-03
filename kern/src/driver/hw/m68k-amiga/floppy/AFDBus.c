@@ -1,13 +1,13 @@
 //
-//  FloppyController.c
+//  AFDBus.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyController.h"
-#include "FloppyDriverPriv.h"
+#include "AFDBus.h"
+#include "AFDDevicePriv.h"
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
@@ -47,7 +47,7 @@ IOCATS_DEF(g_cats, IOBUS_PROPRIETARY);
 
 #define MAX_FLOPPY_DISK_DRIVES  4
 
-final_class_ivars(FloppyController, IODriver,
+final_class_ivars(AFDBus, IODriver,
     mtx_t               mtx;        // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     cnd_t               cv;
     sem_t               done_sem;   // Semaphore indicating whether the DMA is done
@@ -58,18 +58,18 @@ final_class_ivars(FloppyController, IODriver,
 );
 
 
-static void FloppyController_Destroy(FloppyControllerRef _Nullable self);
-static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
-static void _disk_block_irq(FloppyControllerRef _Nonnull self);
+static void AFDBus_Destroy(AFDBusRef _Nullable self);
+static void _AFDBus_SetMotor(AFDBusRef _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
+static void _disk_block_irq(AFDBusRef _Nonnull self);
 
 
 // Creates the floppy controller
-errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t AFDBus_Create(AFDBusRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    FloppyControllerRef self;
+    AFDBusRef self;
     
-    try(IODriver_Create(class(FloppyController), g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(AFDBus), g_cats, (IODriverRef*)&self));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
@@ -85,20 +85,20 @@ catch:
 }
 
 // Destroys the floppy controller.
-static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
+static void AFDBus_deinit(AFDBusRef _Nonnull self)
 {
     sem_deinit(&self->done_sem);
     cnd_deinit(&self->cv);
     mtx_deinit(&self->mtx);
 }
 
-static void FloppyController_ScanBus(FloppyControllerRef _Nonnull self)
+static void AFDBus_ScanBus(AFDBusRef _Nonnull self)
 {
     for (size_t slotId = 0; slotId < MAX_FLOPPY_DISK_DRIVES; slotId++) {
-        DriveState ds = FloppyController_ResetDrive(self, slotId);
-        const uint32_t dt = FloppyController_GetDriveType(self, &ds);
+        DriveState ds = AFDBus_ResetDrive(self, slotId);
+        const uint32_t dt = AFDBus_GetDriveType(self, &ds);
         const DriveParams* dp = NULL;
-        FloppyDriverRef drive;
+        AFDDeviceRef drive;
         
         switch (dt) {
             case kDriveType_3_5:    dp = &kDriveParams_3_5; break;
@@ -107,7 +107,7 @@ static void FloppyController_ScanBus(FloppyControllerRef _Nonnull self)
         }
 
         if (dp) {
-            const errno_t err = FloppyDriver_Create(slotId, ds, dp, &drive);
+            const errno_t err = AFDDevice_Create(slotId, ds, dp, &drive);
             
             if (err == EOK) {
                 IODriver_Launch(drive, (IODriverRef)self);
@@ -117,7 +117,7 @@ static void FloppyController_ScanBus(FloppyControllerRef _Nonnull self)
     }
 }
 
-errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
+errno_t AFDBus_start(AFDBusRef _Nonnull self)
 {
     irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_direct_func_t)_disk_block_irq, self);
     irq_enable_src(IRQ_ID_DISK_BLOCK);
@@ -125,25 +125,25 @@ errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
     return EOK;
 }
 
-void FloppyController_onLaunched(FloppyControllerRef _Nonnull self)
+void AFDBus_onLaunched(AFDBusRef _Nonnull self)
 {
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
-    FloppyController_ScanBus(self);
+    AFDBus_ScanBus(self);
 }
 
-bool FloppyController_stop(FloppyControllerRef _Nonnull _Locked self)
+bool AFDBus_stop(AFDBusRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_DISK_BLOCK);
     return true;
 }
 
-bool FloppyController_isExclusive(FloppyControllerRef _Nonnull self)
+bool AFDBus_isExclusive(AFDBusRef _Nonnull self)
 {
     return false;
 }
 
-DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)
+DriveState AFDBus_ResetDrive(AFDBusRef _Nonnull self, int drive)
 {
     CIAB_BASE_DECL(ciab);
     uint8_t r;
@@ -165,7 +165,7 @@ DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int dr
 }
 
 // Detects and returns the drive type
-uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb)
+uint32_t AFDBus_GetDriveType(AFDBusRef _Nonnull self, DriveState* _Nonnull cb)
 {
     CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
@@ -174,9 +174,9 @@ uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveS
     mtx_lock(&self->mtx);
 
     // Reset the drive's serial register
-    _FloppyController_SetMotor(self, cb, true);
+    _AFDBus_SetMotor(self, cb, true);
     delay_us(1);
-    _FloppyController_SetMotor(self, cb, false);
+    _AFDBus_SetMotor(self, cb, false);
 
     // Read the bits from MSB to LSB
     uint8_t r = *cb;
@@ -196,7 +196,7 @@ uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveS
 }
 
 // Returns the current drive status
-uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState cb)
+uint8_t AFDBus_GetStatus(AFDBusRef _Nonnull self, DriveState cb)
 {
     CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
@@ -214,7 +214,7 @@ uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
 // the motor to reach its final speed.
-static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self, DriveState* _Nonnull cb, bool onoff)
+static void _AFDBus_SetMotor(AFDBusRef _Nonnull _Locked self, DriveState* _Nonnull cb, bool onoff)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -237,14 +237,14 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
 // the motor to reach its final speed.
-void FloppyController_SetMotor(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, bool onoff)
+void AFDBus_SetMotor(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, bool onoff)
 {
     mtx_lock(&self->mtx);
-    _FloppyController_SetMotor(self, cb, onoff);
+    _AFDBus_SetMotor(self, cb, onoff);
     mtx_unlock(&self->mtx);
 }
 
-void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, int head)
+void AFDBus_SelectHead(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, int head)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -265,7 +265,7 @@ void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* 
 
 // Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
 // of the drive.
-void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb, int delta)
+void AFDBus_StepHead(AFDBusRef _Nonnull self, DriveState cb, int delta)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -296,7 +296,7 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     mtx_unlock(&self->mtx);
 }
 
-static void _disk_block_irq(FloppyControllerRef _Nonnull self)
+static void _disk_block_irq(AFDBusRef _Nonnull self)
 {
     sem_post(&self->done_sem);
 }
@@ -305,7 +305,7 @@ static void _disk_block_irq(FloppyControllerRef _Nonnull self)
 // Blocks the caller until the DMA is available and all words have been
 // transferred from disk. Returns EOK on success and EDISKChANGE if a disk change
 // has been detected.
-errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
+errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
     CIAA_BASE_DECL(ciaa);
@@ -416,10 +416,10 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 }
 
 
-class_func_defs(FloppyController, IODriver,
-override_func_def(deinit, FloppyController, Object)
-override_func_def(start, FloppyController, IODriver)
-override_func_def(onLaunched, FloppyController, IODriver)
-override_func_def(stop, FloppyController, IODriver)
-override_func_def(isExclusive, FloppyController, IODriver)
+class_func_defs(AFDBus, IODriver,
+override_func_def(deinit, AFDBus, Object)
+override_func_def(start, AFDBus, IODriver)
+override_func_def(onLaunched, AFDBus, IODriver)
+override_func_def(stop, AFDBus, IODriver)
+override_func_def(isExclusive, AFDBus, IODriver)
 );

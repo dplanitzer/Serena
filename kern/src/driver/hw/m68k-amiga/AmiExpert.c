@@ -11,7 +11,7 @@
 #include <ext/math.h>
 #include <driver/IORegistry.h>
 #include <driver/hid/IOGPBus.h>
-#include <driver/hw/m68k-amiga/floppy/FloppyController.h>
+#include <driver/hw/m68k-amiga/floppy/AFDBus.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
 #include <driver/hw/m68k-amiga/hid/AmiJoystick.h>
 #include <driver/hw/m68k-amiga/hid/AmiKeyboard.h>
@@ -109,8 +109,8 @@ void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
 
 
     // Floppy Bus
-    FloppyControllerRef fdc = NULL;
-    try(FloppyController_Create(&fdc));
+    AFDBusRef fdc = NULL;
+    try(AFDBus_Create(&fdc));
     try(IODriver_Launch(fdc, (IODriverRef)self));
 
 

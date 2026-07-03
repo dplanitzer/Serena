@@ -1,13 +1,13 @@
 //
-//  FloppyDriver.h
+//  AFDDevice.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef FloppyDriver_h
-#define FloppyDriver_h
+#ifndef AFDDevice_h
+#define AFDDevice_h
 
 #include <driver/disk/DiskDriver.h>
 
@@ -23,8 +23,8 @@
 extern const char* const kFloppyDrive0Name;
 
 
-final_class(FloppyDriver, DiskDriver);
+final_class(AFDDevice, DiskDriver);
 
-extern bool FloppyDriver_HasDisk(FloppyDriverRef _Nonnull self);
+extern bool AFDDevice_HasDisk(AFDDeviceRef _Nonnull self);
 
-#endif /* FloppyDriver_h */
+#endif /* AFDDevice_h */

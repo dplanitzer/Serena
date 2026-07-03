@@ -1,12 +1,12 @@
 //
-//  FloppyDriver.c
+//  AFDDevice.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyDriverPriv.h"
+#include "AFDDevicePriv.h"
 #include <assert.h>
 #include <string.h>
 #include <ext/math.h>
@@ -24,15 +24,15 @@ IOCATS_DEF(g_cats, IODISK_FLOPPY);
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
+errno_t AFDDevice_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, AFDDeviceRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
-    FloppyDriverRef self;
+    AFDDeviceRef self;
     drive_info_t dinf;
 
     dinf.platter = (params->driveType == kDriveType_3_5) ? DISK_DIAM_3_5 : DISK_DIAM_5_25;
     dinf.flags = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, g_cats, &dinf, (IODriverRef*)&self));
+    try(DiskDriver_Create(class(AFDDevice), 0, g_cats, &dinf, (IODriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;
@@ -52,10 +52,10 @@ catch:
     return err;
 }
 
-static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
+static void AFDDevice_deinit(AFDDeviceRef _Nonnull self)
 {
-    FloppyDriver_MotorOff(self);
-    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
+    AFDDevice_MotorOff(self);
+    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)AFDDevice_CheckDiskChange, self);
 
     kfree(self->dmaBuffer);
     self->dmaBuffer = NULL;
@@ -64,26 +64,26 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
     self->trackBuffer = NULL;
 }
 
-int FloppyDriver_getBootPriority(FloppyDriverRef _Nonnull self)
+int AFDDevice_getBootPriority(AFDDeviceRef _Nonnull self)
 {
     return 1000 - self->drive;
 }
 
-static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
+static void _AFDDevice_doSenseDisk(AFDDeviceRef _Nonnull self)
 {
     bool hasPhysDiskChange = false;
 
     self->tbTrackNo = -1;
 
 
-    if ((FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState) & kDriveStatus_DiskChanged) != 0) {
-        FloppyDriver_ResetDriveDiskChange(self);
+    if ((AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState) & kDriveStatus_DiskChanged) != 0) {
+        AFDDevice_ResetDriveDiskChange(self);
         hasPhysDiskChange = true;
     }
 
 
     if (hasPhysDiskChange || DiskDriver_IsDiskChangePending(self)) {
-        const uint8_t status = FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState);
+        const uint8_t status = AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState);
         const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
         if (hasDisk) {
@@ -103,16 +103,16 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
         else {
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
         }
-        FloppyDriver_SetDiskChangeCounter(self);
+        AFDDevice_SetDiskChangeCounter(self);
     }
 }
 
-void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, IOSenseDiskCommand* _Nonnull req)
+void AFDDevice_doSenseDisk(AFDDeviceRef _Nonnull self, IOSenseDiskCommand* _Nonnull req)
 {
-    _FloppyDriver_doSenseDisk(self);
+    _AFDDevice_doSenseDisk(self);
 }
 
-static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
+static void AFDDevice_Reset(AFDDeviceRef _Nonnull self)
 {
     decl_try_err();
     nanotime_t interval;
@@ -135,24 +135,24 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
 
     // Move the head to track 0 so that we know where the head is and figure out
     // whether we're actually able to talk to the hardware successfully.
-    err = FloppyDriver_SeekToTrack_0(self);
+    err = AFDDevice_SeekToTrack_0(self);
     if (err == EOK) {
         self->flags.isOnline = 1;
-        _FloppyDriver_doSenseDisk(self);
-        kdispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &NANOTIME_ZERO, &interval, (kdispatch_async_func_t)FloppyDriver_CheckDiskChange, self);
+        _AFDDevice_doSenseDisk(self);
+        kdispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &NANOTIME_ZERO, &interval, (kdispatch_async_func_t)AFDDevice_CheckDiskChange, self);
     }
     else {
         self->flags.isOnline = 0;
-        FloppyDriver_OnHardwareLost(self);
+        AFDDevice_OnHardwareLost(self);
     }
 }
 
-errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
+errno_t AFDDevice_start(AFDDeviceRef _Nonnull self)
 {
-    return kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)FloppyDriver_Reset, self);
+    return kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)AFDDevice_Reset, self);
 }
 
-errno_t FloppyDriver_getDFSInfo(FloppyDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
+errno_t AFDDevice_getDFSInfo(AFDDeviceRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
     info->name[0] = 'f';
     info->name[1] = 'd';
@@ -168,16 +168,16 @@ errno_t FloppyDriver_getDFSInfo(FloppyDriverRef _Nonnull self, IODFSInfo* _Nonnu
 }
 
 // Called when we've detected a loss of the drive hardware
-static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
+static void AFDDevice_OnHardwareLost(AFDDeviceRef _Nonnull self)
 {
-    FloppyDriver_MotorOff(self);
-    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
+    AFDDevice_MotorOff(self);
+    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)AFDDevice_CheckDiskChange, self);
     self->tbTrackNo = -1;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
     self->flags.isOnline = 0;
 }
 
-static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self)
+static void AFDDevice_CheckDiskChange(AFDDeviceRef _Nonnull self)
 {
     if (DiskDriver_IsDiskChangePending(self)) {
         return;
@@ -187,10 +187,10 @@ static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self)
     if (self->flags.dkCount == 0) {
         self->flags.dkCount = self->flags.dkCountMax;
 
-        if ((FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState) & kDriveStatus_DiskChanged) != 0) {
-            FloppyDriver_ResetDriveDiskChange(self);
+        if ((AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState) & kDriveStatus_DiskChanged) != 0) {
+            AFDDevice_ResetDriveDiskChange(self);
 
-            const uint8_t status = FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState);
+            const uint8_t status = AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState);
             const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
             if (hasDisk) {
@@ -199,12 +199,12 @@ static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self)
             else {
                 DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
             }
-            FloppyDriver_SetDiskChangeCounter(self);
+            AFDDevice_SetDiskChangeCounter(self);
         }
     }
 }
 
-static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self)
+static void AFDDevice_SetDiskChangeCounter(AFDDeviceRef _Nonnull self)
 {
     self->flags.dkCountMax = (DiskDriver_HasDisk(self)) ? 1 : 5;
     self->flags.dkCount = self->flags.dkCountMax;
@@ -215,45 +215,45 @@ static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self)
 // Motor Control
 ////////////////////////////////////////////////////////////////////////////////
 
-static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
+static void AFDDevice_CancelDelayedMotorOff(AFDDeviceRef _Nonnull self)
 {
-    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)FloppyDriver_MotorOff, self);
+    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)AFDDevice_MotorOff, self);
 }
 
 // Turns the drive motor off.
-static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self)
+static void AFDDevice_MotorOff(AFDDeviceRef _Nonnull self)
 {
     // Note: may be called if the motor went off on us without our doing. We call
     // this function in this case to resync out software state with the hardware
     // state.
     if (self->flags.isOnline) {
-        FloppyController_SetMotor(IODriver_GetProvider(self), &self->driveState, false);
+        AFDBus_SetMotor(IODriver_GetProvider(self), &self->driveState, false);
     }
     self->flags.motorState = kMotor_Off;
 
-    FloppyDriver_CancelDelayedMotorOff(self);
+    AFDDevice_CancelDelayedMotorOff(self);
 }
 
 // Turns the drive motor on and schedules an auto-motor-off in 4 seconds.
-static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
+static void AFDDevice_MotorOn(AFDDeviceRef _Nonnull self)
 {
     if (self->flags.motorState == kMotor_Off) {
-        FloppyController_SetMotor(IODriver_GetProvider(self), &self->driveState, true);
+        AFDBus_SetMotor(IODriver_GetProvider(self), &self->driveState, true);
         self->flags.motorState = kMotor_SpinningUp;
     }
 
-    FloppyDriver_CancelDelayedMotorOff(self);
+    AFDDevice_CancelDelayedMotorOff(self);
     
     nanotime_t dly; 
     nanotime_from_sec(&dly, 4);
-    kdispatch_after(DiskDriver_GetDispatchQueue(self), 0, &dly, (kdispatch_async_func_t)FloppyDriver_MotorOff, self);
+    kdispatch_after(DiskDriver_GetDispatchQueue(self), 0, &dly, (kdispatch_async_func_t)AFDDevice_MotorOff, self);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
 // waits for at most 500ms for the disk to become ready.
 // Returns EOK if the drive is ready; ETIMEDOUT if the drive failed to become
 // ready in time.
-static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
+static errno_t AFDDevice_WaitForDiskReady(AFDDeviceRef _Nonnull self)
 {
     if (self->flags.motorState == kMotor_AtTargetSpeed) {
         return EOK;
@@ -262,7 +262,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
         // Waits for at most 500ms for the motor to reach its target speed
 
         for (int i = 0; i < 50; i++) {
-            const uint8_t status = FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState);
+            const uint8_t status = AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState);
 
             if ((status & kDriveStatus_DiskChanged) == kDriveStatus_DiskChanged) {
                 return EDISKCHANGE;
@@ -277,7 +277,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 
         // Timed out. Turn the motor off for now so that another I/O request can
         // try spinning the motor up to its target speed again.
-        FloppyDriver_MotorOff(self);
+        AFDDevice_MotorOff(self);
         return ETIMEDOUT;
     }
     else if (self->flags.motorState == kMotor_Off) {
@@ -292,7 +292,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 
 // Seeks to track #0 and selects head #0. Returns ETIMEDOUT if the seek failed
 // because there's probably no drive connected.
-static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
+static errno_t AFDDevice_SeekToTrack_0(AFDDeviceRef _Nonnull self)
 {
     int steps = 0;
 
@@ -303,13 +303,13 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
     delay_ms(18);
     
     while (true) {
-        const uint8_t status = FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState);
+        const uint8_t status = AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState);
 
         if ((status & kDriveStatus_AtTrack0) == kDriveStatus_AtTrack0) {
             break;
         }
 
-        FloppyController_StepHead(IODriver_GetProvider(self), self->driveState, -1);
+        AFDBus_StepHead(IODriver_GetProvider(self), self->driveState, -1);
         
         steps++;
         if (steps > 80) {
@@ -318,7 +318,7 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 
         delay_ms(3);
     }
-    FloppyController_SelectHead(IODriver_GetProvider(self), &self->driveState, 0);
+    AFDBus_SelectHead(IODriver_GetProvider(self), &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
     delay_ms(15);
@@ -332,7 +332,7 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 
 // Seeks to the specified cylinder and selects the specified drive head.
 // (0: outermost, 79: innermost, +: inward, -: outward).
-static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head)
+static void AFDDevice_SeekTo(AFDDeviceRef _Nonnull self, int cylinder, int head)
 {
     const int diff = cylinder - self->cylinder;
     const int cur_dir = (diff >= 0) ? 1 : -1;
@@ -354,7 +354,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
     // Seek if necessary
     if (nSteps > 0) {
         for (int i = nSteps; i > 0; i--) {
-            FloppyController_StepHead(IODriver_GetProvider(self), self->driveState, cur_dir);     
+            AFDBus_StepHead(IODriver_GetProvider(self), self->driveState, cur_dir);     
             
             self->cylinder += cur_dir;
             
@@ -370,7 +370,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
     
     // Switch heads if necessary
     if (change_side) {
-        FloppyController_SelectHead(IODriver_GetProvider(self), &self->driveState, head);
+        AFDBus_SelectHead(IODriver_GetProvider(self), &self->driveState, head);
         self->head = head;
     }
     
@@ -385,7 +385,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
     }
 }
 
-static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
+static void AFDDevice_ResetDriveDiskChange(AFDDeviceRef _Nonnull self)
 {
     // We have to step the disk head to trigger a reset of the disk change bit.
     // We do this in a smart way in the sense that we step back and forth while
@@ -403,7 +403,7 @@ static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
         self->flags.shouldResetDiskChangeStepInward = 1;
     }
 
-    FloppyDriver_SeekTo(self, c, self->head);
+    AFDDevice_SeekTo(self, c, self->head);
     self->flags.shouldResetDiskChangeStepInward = !self->flags.shouldResetDiskChangeStepInward;
 }
 
@@ -414,7 +414,7 @@ static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
 
 // Invoked at the beginning of a disk read/write operation to prepare the drive
 // state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
-static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
+static errno_t AFDDevice_PrepareIO(AFDDeviceRef _Nonnull self, const chs_t* _Nonnull chs)
 {
     decl_try_err();
 
@@ -426,18 +426,18 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t
 
 
     // Make sure that the motor is turned on
-    FloppyDriver_MotorOn(self);
+    AFDDevice_MotorOn(self);
 
 
     // Seek to the required cylinder and select the required head
     if (self->cylinder != chs->c || self->head != chs->h) {
-        FloppyDriver_SeekTo(self, chs->c, chs->h);
+        AFDDevice_SeekTo(self, chs->c, chs->h);
     }
 
 
     // Wait until the motor has reached its target speed
     if (err == EOK) {
-        err = FloppyDriver_WaitForDiskReady(self);
+        err = AFDDevice_WaitForDiskReady(self);
     }
 
     return err;
@@ -446,7 +446,7 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t
 // Invoked to do the actual read/write operation. Also validates that the disk
 // hasn't been yanked out of the drive or changed on us while doing the I/O.
 // Expects that the track buffer is properly prepared for the I/O.
-static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
+static errno_t AFDDevice_DoSyncIO(AFDDeviceRef _Nonnull self, bool bWrite)
 {
     uint16_t precomp;
     int16_t nWords;
@@ -471,13 +471,13 @@ static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
         nWords = self->dmaReadWordCount;
     }
 
-    return FloppyController_Dma(IODriver_GetProvider(self), self->driveState, precomp, self->dmaBuffer, nWords, bWrite);
+    return AFDBus_Dma(IODriver_GetProvider(self), self->driveState, precomp, self->dmaBuffer, nWords, bWrite);
 }
 
 // Invoked at the end of a disk I/O operation. Potentially translates the provided
 // internal error code to an external one and kicks of disk-change related flow
 // control and initiates a delayed motor-off operation.
-static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err)
+static errno_t AFDDevice_FinalizeIO(AFDDeviceRef _Nonnull self, errno_t err)
 {
     switch (err) {
         case EOK:
@@ -488,14 +488,14 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
             // - no drive connected
             // - no disk in drive
             // - electro-mechanical problem
-            FloppyDriver_OnHardwareLost(self);
+            AFDDevice_OnHardwareLost(self);
             err = ENODEV;
             break;
 
         case EDISKCHANGE:
-            FloppyDriver_MotorOff(self);
-            FloppyDriver_ResetDriveDiskChange(self);
-            const uint8_t status = FloppyController_GetStatus(IODriver_GetProvider(self), self->driveState);
+            AFDDevice_MotorOff(self);
+            AFDDevice_ResetDriveDiskChange(self);
+            const uint8_t status = AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState);
             if ((status & kDriveStatus_DiskChanged) == 0) {
                 DiskDriver_NoteDiskChanged((DiskDriverRef)self);
             }
@@ -503,7 +503,7 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
                 DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
                 err = ENOMEDIUM;
             }
-            FloppyDriver_SetDiskChangeCounter(self);
+            AFDDevice_SetDiskChangeCounter(self);
             break;
 
         default:
@@ -515,7 +515,7 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 }
 
 
-static void FloppyDriver_DecodeSector(FloppyDriverRef _Nonnull self, int16_t offset, uint8_t targetTrack)
+static void AFDDevice_DecodeSector(AFDDeviceRef _Nonnull self, int16_t offset, uint8_t targetTrack)
 {
     const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->dmaBuffer[offset];
     ADF_SectorInfo info;
@@ -576,7 +576,7 @@ static void FloppyDriver_DecodeSector(FloppyDriverRef _Nonnull self, int16_t off
     *pst = (diskChecksum == myChecksum) ? kSectorState_Ok : kSectorState_BadDataChecksum;
 }
 
-static errno_t FloppyDriver_DecodeTrack(FloppyDriverRef _Nonnull self, uint8_t targetTrack)
+static errno_t AFDDevice_DecodeTrack(AFDDeviceRef _Nonnull self, uint8_t targetTrack)
 {
     const uint16_t* pt = self->dmaBuffer;
     const uint16_t* pt_start = pt;
@@ -617,7 +617,7 @@ static errno_t FloppyDriver_DecodeTrack(FloppyDriverRef _Nonnull self, uint8_t t
 
 
         // Pick up the sector
-        FloppyDriver_DecodeSector(self, pt - pt_start, targetTrack);
+        AFDDevice_DecodeSector(self, pt - pt_start, targetTrack);
         pt += ADF_MFM_SECTOR_SIZE/2;
     }
 
@@ -641,7 +641,7 @@ static errno_t FloppyDriver_DecodeTrack(FloppyDriverRef _Nonnull self, uint8_t t
     }
 }
 
-static void FloppyDriver_EncodeSector(FloppyDriverRef _Nonnull self, struct ADF_MFMPhysicalSector* _Nonnull dma_buf, const ADF_Sector* _Nonnull s)
+static void AFDDevice_EncodeSector(AFDDeviceRef _Nonnull self, struct ADF_MFMPhysicalSector* _Nonnull dma_buf, const ADF_Sector* _Nonnull s)
 {
     uint32_t checksum;
 
@@ -680,7 +680,7 @@ static void FloppyDriver_EncodeSector(FloppyDriverRef _Nonnull self, struct ADF_
 }
 
 // Encodes the currently cached track and stores the result in the DMA buffer.
-static void FloppyDriver_EncodeTrack(FloppyDriverRef _Nonnull self)
+static void AFDDevice_EncodeTrack(AFDDeviceRef _Nonnull self)
 {
     assert(self->tbTrackNo != -1);
 
@@ -693,7 +693,7 @@ static void FloppyDriver_EncodeTrack(FloppyDriverRef _Nonnull self)
     const ADF_Sector* ps = &self->trackBuffer[0];
 
     for (int i = 0; i < self->sectorsPerTrack; i++) {
-        FloppyDriver_EncodeSector(self, pt, ps);
+        AFDDevice_EncodeSector(self, pt, ps);
         pt++;
         ps++;
     }
@@ -720,21 +720,21 @@ static void FloppyDriver_EncodeTrack(FloppyDriverRef _Nonnull self)
     }
 }
 
-static errno_t FloppyDriver_EnsureTrackBuffered(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
+static errno_t AFDDevice_EnsureTrackBuffered(AFDDeviceRef _Nonnull self, const chs_t* _Nonnull chs)
 {
     decl_try_err();
-    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
+    const uint8_t targetTrack = AFDDevice_TrackFromCylinderAndHead(chs);
 
     if (self->tbTrackNo == targetTrack) {
         return EOK;
     }
 
-    err = FloppyDriver_PrepareIO(self, chs);
+    err = AFDDevice_PrepareIO(self, chs);
     if (err == EOK) {
         for (int8_t retry = 0; retry < self->params->retryCount; retry++) {
-            err = FloppyDriver_DoSyncIO(self, false);
+            err = AFDDevice_DoSyncIO(self, false);
             if (err == EOK) {
-                err = FloppyDriver_DecodeTrack(self, targetTrack);
+                err = AFDDevice_DecodeTrack(self, targetTrack);
             }
             
             if (err == EOK || err != EIO) {
@@ -749,38 +749,38 @@ static errno_t FloppyDriver_EnsureTrackBuffered(FloppyDriverRef _Nonnull self, c
     return err;
 }
 
-errno_t FloppyDriver_getSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
+errno_t AFDDevice_getSector(AFDDeviceRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
 {
-    const errno_t err = FloppyDriver_EnsureTrackBuffered(self, chs);
+    const errno_t err = AFDDevice_EnsureTrackBuffered(self, chs);
 
     if (err == EOK) {
         memcpy(data, self->trackBuffer[chs->s].data, ADF_SECTOR_DATA_SIZE);
     }
 
-    return FloppyDriver_FinalizeIO(self, err);
+    return AFDDevice_FinalizeIO(self, err);
 }
 
-errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize)
+errno_t AFDDevice_putSector(AFDDeviceRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize)
 {
     decl_try_err();
-    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
+    const uint8_t targetTrack = AFDDevice_TrackFromCylinderAndHead(chs);
 
-    try(FloppyDriver_EnsureTrackBuffered(self, chs));
+    try(AFDDevice_EnsureTrackBuffered(self, chs));
 
 
     memcpy(self->trackBuffer[chs->s].data, data, ADF_SECTOR_DATA_SIZE);
 
 
-    FloppyDriver_EncodeTrack(self);
+    AFDDevice_EncodeTrack(self);
 
 
-    err = FloppyDriver_PrepareIO(self, chs);
+    err = AFDDevice_PrepareIO(self, chs);
     if (err == EOK) {
-        err = FloppyDriver_DoSyncIO(self, true);
+        err = AFDDevice_DoSyncIO(self, true);
     }
 
 catch:
-    return FloppyDriver_FinalizeIO(self, err);
+    return AFDDevice_FinalizeIO(self, err);
 }
 
 
@@ -788,10 +788,10 @@ catch:
 // Formatting
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t FloppyDriver_doFormatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
+errno_t AFDDevice_doFormatTrack(AFDDeviceRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
 {
     decl_try_err();
-    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
+    const uint8_t targetTrack = AFDDevice_TrackFromCylinderAndHead(chs);
     const int sectorCount = self->sectorsPerTrack;
     ADF_Sector* ps = self->trackBuffer;
     int8_t* pst = self->tbSectorState;
@@ -816,25 +816,25 @@ errno_t FloppyDriver_doFormatTrack(FloppyDriverRef _Nonnull self, const chs_t* c
     self->tbTrackNo = targetTrack;
 
 
-    FloppyDriver_EncodeTrack(self);
+    AFDDevice_EncodeTrack(self);
 
 
-    err = FloppyDriver_PrepareIO(self, chs);
+    err = AFDDevice_PrepareIO(self, chs);
     if (err == EOK) {
-        err = FloppyDriver_DoSyncIO(self, true);
+        err = AFDDevice_DoSyncIO(self, true);
     }
 
-    return FloppyDriver_FinalizeIO(self, err);
+    return AFDDevice_FinalizeIO(self, err);
 }
 
 
-class_func_defs(FloppyDriver, DiskDriver,
-override_func_def(deinit, FloppyDriver, Object)
-override_func_def(getBootPriority, FloppyDriver, DiskDriver)
-override_func_def(start, FloppyDriver, IODriver)
-override_func_def(getDFSInfo, FloppyDriver, IODriver)
-override_func_def(getSector, FloppyDriver, DiskDriver)
-override_func_def(putSector, FloppyDriver, DiskDriver)
-override_func_def(doFormatTrack, FloppyDriver, DiskDriver)
-override_func_def(doSenseDisk, FloppyDriver, DiskDriver)
+class_func_defs(AFDDevice, DiskDriver,
+override_func_def(deinit, AFDDevice, Object)
+override_func_def(getBootPriority, AFDDevice, DiskDriver)
+override_func_def(start, AFDDevice, IODriver)
+override_func_def(getDFSInfo, AFDDevice, IODriver)
+override_func_def(getSector, AFDDevice, DiskDriver)
+override_func_def(putSector, AFDDevice, DiskDriver)
+override_func_def(doFormatTrack, AFDDevice, DiskDriver)
+override_func_def(doSenseDisk, AFDDevice, DiskDriver)
 );

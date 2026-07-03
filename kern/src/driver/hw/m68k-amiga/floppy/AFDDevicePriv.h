@@ -1,16 +1,16 @@
 //
-//  FloppyDriverPriv.h
+//  AFDDevicePriv.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 6/17/24.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef FloppyDriverPriv_h
-#define FloppyDriverPriv_h
+#ifndef AFDDevicePriv_h
+#define AFDDevicePriv_h
 
-#include "FloppyDriver.h"
-#include "FloppyController.h"
+#include "AFDBus.h"
+#include "AFDDevice.h"
 #include <machine/amiga/adf.h>
 
 
@@ -39,7 +39,7 @@ enum {
 
 
 // Stores the state of a single floppy drive.
-final_class_ivars(FloppyDriver, DiskDriver,
+final_class_ivars(AFDDevice, DiskDriver,
 
     // DMA buffer
     uint16_t* _Nonnull      dmaBuffer;
@@ -57,8 +57,8 @@ final_class_ivars(FloppyDriver, DiskDriver,
 
     int                     readErrorCount;                     // Number of read errors since last disk driver reset / disk change
 
-    int8_t                  head;                               // currently selected drive head; -1 means unknown -> need to call FloppyDriver_ResetDrive()
-    int8_t                  cylinder;                           // currently selected drive cylinder; -1 means unknown -> need to call FloppyDriver_ResetDrive()
+    int8_t                  head;                               // currently selected drive head; -1 means unknown -> need to call AFDDevice_ResetDrive()
+    int8_t                  cylinder;                           // currently selected drive cylinder; -1 means unknown -> need to call AFDDevice_ResetDrive()
     int8_t                  drive;                              // drive number that this fd object represents
     DriveState              driveState;                         // current drive hardware state as maintained by the floppy controller
 
@@ -74,28 +74,28 @@ final_class_ivars(FloppyDriver, DiskDriver,
 );
 
 
-extern errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
-static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
+extern errno_t AFDDevice_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, AFDDeviceRef _Nullable * _Nonnull pOutDisk);
+static void AFDDevice_EstablishInitialDriveState(AFDDeviceRef _Nonnull self);
+static void AFDDevice_OnMediaChanged(AFDDeviceRef _Nonnull self);
+static void AFDDevice_OnHardwareLost(AFDDeviceRef _Nonnull self);
 
-static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self);
-static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_DelayedMotorOff(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self);
+static void AFDDevice_MotorOn(AFDDeviceRef _Nonnull self);
+static void AFDDevice_MotorOff(AFDDeviceRef _Nonnull self);
+static errno_t AFDDevice_WaitForDiskReady(AFDDeviceRef _Nonnull self);
+static void AFDDevice_DelayedMotorOff(AFDDeviceRef _Nonnull self);
+static void AFDDevice_CancelDelayedMotorOff(AFDDeviceRef _Nonnull self);
 
-static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head);
+static errno_t AFDDevice_SeekToTrack_0(AFDDeviceRef _Nonnull self);
+static void AFDDevice_SeekTo(AFDDeviceRef _Nonnull self, int cylinder, int head);
 
-static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self);
+static void AFDDevice_ResetDriveDiskChange(AFDDeviceRef _Nonnull self);
+static void AFDDevice_CheckDiskChange(AFDDeviceRef _Nonnull self);
+static void AFDDevice_SetDiskChangeCounter(AFDDeviceRef _Nonnull self);
 
-static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs);
-static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
-static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err);
+static errno_t AFDDevice_PrepareIO(AFDDeviceRef _Nonnull self, const chs_t* _Nonnull chs);
+static errno_t AFDDevice_DoSyncIO(AFDDeviceRef _Nonnull self, bool bWrite);
+static errno_t AFDDevice_FinalizeIO(AFDDeviceRef _Nonnull self, errno_t err);
 
-#define FloppyDriver_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))
+#define AFDDevice_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))
 
-#endif /* FloppyDriverPriv_h */
+#endif /* AFDDevicePriv_h */

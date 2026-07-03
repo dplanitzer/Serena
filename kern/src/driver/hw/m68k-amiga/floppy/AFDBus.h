@@ -1,13 +1,13 @@
 //
-//  FloppyController.h
+//  AFDBus.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef FloppyController_h
-#define FloppyController_h
+#ifndef AFDBus_h
+#define AFDBus_h
 
 #include <driver/IODriver.h>
 
@@ -51,10 +51,10 @@ typedef struct DriveParams {
 
 // The floppy controller. The Amiga has just one single floppy DMA channel
 // which is shared by all drives.
-final_class(FloppyController, IODriver);
+final_class(AFDBus, IODriver);
 
 
-extern errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AFDBus_Create(AFDBusRef _Nullable * _Nonnull pOutSelf);
 
 
 //
@@ -64,15 +64,15 @@ extern errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull 
 extern const DriveParams   kDriveParams_3_5;
 extern const DriveParams   kDriveParams_5_25;
 
-extern DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive);
+extern DriveState AFDBus_ResetDrive(AFDBusRef _Nonnull self, int drive);
 
-extern uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb);
-extern uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState cb);
+extern uint32_t AFDBus_GetDriveType(AFDBusRef _Nonnull self, DriveState* _Nonnull cb);
+extern uint8_t AFDBus_GetStatus(AFDBusRef _Nonnull self, DriveState cb);
 
-extern void FloppyController_SetMotor(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, bool onoff);
-extern void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, int head);
-extern void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb, int delta);
+extern void AFDBus_SetMotor(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, bool onoff);
+extern void AFDBus_SelectHead(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, int head);
+extern void AFDBus_StepHead(AFDBusRef _Nonnull self, DriveState cb, int delta);
 
-extern errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite);
+extern errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite);
 
-#endif /* FloppyController_h */
+#endif /* AFDBus_h */
