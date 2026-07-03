@@ -18,16 +18,14 @@ IOCATS_DEF(g_cats, IOBUS_GP);
 static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, int port, int type);
 
 
-errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, IOGPBusRef _Nullable * _Nonnull pOutSelf)
+errno_t IOGPBus_Create(Class* _Nonnull pClass, IOGPBusRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     IOGPBusRef self;
 
-    try(IODriver_Create(class(IOGPBus), g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(pClass, g_cats, (IODriverRef*)&self));
 
     mtx_init(&self->mtx);
-    self->createHidDevice = func;
-    self->ctx = ctx;
 
     for (int i = 0; i < __IOGPBUS__; i++) {
         self->portType[i] = HID_PORT_NONE;
@@ -112,6 +110,11 @@ errno_t IOGPBus_GetPortForDeviceId(IOGPBusRef _Nonnull self, did_t id, int* _Non
 // Private
 //
 
+errno_t IOGPBus_createPortDriver(IOGPBusRef _Nonnull self, int port, int type, IODriverRef _Nullable * _Nonnull pOutDriver)
+{
+    return EINVAL;
+}
+
 static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, int port, int type)
 {
     decl_try_err();
@@ -146,7 +149,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
     if (type != HID_PORT_NONE) {
         IODriverRef newDriver;
 
-        err = self->createHidDevice(self->ctx, port, type, &newDriver);
+        err = IOGPBus_CreatePortDriver(self, port, type, &newDriver);
         if (err == EOK) {
             err = IODriver_Launch(newDriver, (IODriverRef)self);
             if (err == EOK) {
@@ -164,6 +167,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 class_func_defs(IOGPBus, IODriver,
 override_func_def(onLaunched, IOGPBus, IODriver)
 override_func_def(isExclusive, IOGPBus, IODriver)
+func_def(createPortDriver, IOGPBus)
 );
 
 #endif

@@ -10,14 +10,10 @@
 #include <ext/endian.h>
 #include <ext/math.h>
 #include <driver/IORegistry.h>
-#include <driver/hid/IOGPBus.h>
 #include <driver/hw/m68k-amiga/floppy/AFDBus.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
-#include <driver/hw/m68k-amiga/hid/AmiJoystick.h>
+#include <driver/hw/m68k-amiga/hid/AmiGPBus.h>
 #include <driver/hw/m68k-amiga/hid/AmiKeyboard.h>
-#include <driver/hw/m68k-amiga/hid/AmiLightPen.h>
-#include <driver/hw/m68k-amiga/hid/AmiMouse.h>
-#include <driver/hw/m68k-amiga/hid/AmiPaddle.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroBus.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroDevice.h>
 #include <driver/hw/m68k-amiga/zorro/ZRamDriver.h>
@@ -35,26 +31,6 @@ IOCATS_DEF(g_ram_cats, IOMEM_RAM);
 
 final_class_ivars(AmiExpert, IOPlatformExpert,
 );
-
-static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, IODriverRef _Nullable * _Nonnull pOutDriver)
-{
-    switch (type) {
-        case HID_PORT_MOUSE:
-            return AmiMouse_Create(port, pOutDriver);
-
-        case HID_PORT_LIGHT_PEN:
-            return AmiLightPen_Create(port, pOutDriver);
-
-        case HID_PORT_PADDLE:
-            return AmiPaddle_Create(port, pOutDriver);
-
-        case HID_PORT_JOYSTICK:
-            return AmiJoystick_Create(port, pOutDriver);
-
-        default:
-            return EINVAL;
-    }
-}
 
 static void _on_ram_exp_detected(struct AmiExpert* _Nonnull self, IODriverRef _Nonnull driver, int action)
 {
@@ -103,8 +79,8 @@ void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
 
 
     // GamePort
-    IOGPBusRef gp = NULL;
-    try(IOGPBus_Create(_create_gpbus_hid_device, NULL, &gp));
+    AmiGPBusRef gp = NULL;
+    try(IOGPBus_Create(class(AmiGPBus), (IOGPBusRef*)&gp));
     try(IODriver_Launch(gp, (IODriverRef)self));
 
 
