@@ -73,9 +73,10 @@ errno_t AmiKeyboard_start(AmiKeyboardRef _Nonnull self)
     return EOK;
 }
 
-void AmiKeyboard_stop(AmiKeyboardRef _Nonnull self)
+bool AmiKeyboard_stop(AmiKeyboardRef _Nonnull self)
 {
     irq_disable_src(IRQ_ID_CIA_A_SP);
+    return true;
 }
 
 void AmiKeyboard_getReport(AmiKeyboardRef _Nonnull self, IOHIDReport* _Nonnull report)

@@ -81,11 +81,13 @@ static errno_t DiskDriver_DoIO(DiskDriverRef _Nonnull self, IODiskCommand* _Nonn
     return err;
 }
 
-void DiskDriver_stop(DiskDriverRef _Nonnull _Locked self)
+bool DiskDriver_stop(DiskDriverRef _Nonnull _Locked self)
 {
     if (self->dq) {
         kdispatch_terminate(self->dq, KDISPATCH_TERMINATE_AWAIT_ALL);
     }
+
+    return true;
 }
 
 

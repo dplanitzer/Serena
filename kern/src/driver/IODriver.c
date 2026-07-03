@@ -14,6 +14,7 @@
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/file.h>
+#include <sched/cnd.h>
 
 // Lifecycle states
 #define kIODriverState_Initialized  0
@@ -23,8 +24,8 @@
 #define kIODriverState_Terminated   4
 
 
-
-static volatile atomic_int   g_next_driver_id = {.value = 1};
+static cnd_t                g_await_termination;
+static volatile atomic_int  g_next_driver_id = {.value = 1};
 
 
 static int _set_state(IODriverRef _Nonnull self, int newState)
@@ -103,8 +104,9 @@ errno_t IODriver_start(IODriverRef _Nonnull self)
 }
 
 
-void IODriver_stop(IODriverRef _Nonnull self)
+bool IODriver_stop(IODriverRef _Nonnull self)
 {
+    return true;
 }
 
 
@@ -230,6 +232,7 @@ errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provide
     return err;
 }
 
+
 void IODriver_onTerminating(IODriverRef _Nonnull self)
 {
 }
@@ -246,6 +249,12 @@ static void _terminate_client_drivers(IODriverRef _Nonnull self)
         }
         IOIterator_Destroy(&iter);
     }
+}
+
+static void _finalize_termination(IODriverRef _Nonnull self)
+{
+    IODriver_DetachProvider(self, self->provider);
+    _set_state(self, kIODriverState_Terminated);
 }
 
 void IODriver_Terminate(IODriverRef _Nonnull self)
@@ -270,13 +279,40 @@ void IODriver_Terminate(IODriverRef _Nonnull self)
 
     IORegistry_Notify(gIORegistry, self, IOMATCH_STOPPING);
     _delete_dfs_entry(self);
+
+    Object_Retain(self);
     IORegistry_DeregisterDriver(gIORegistry, self);
 
 
-    IODriver_Stop(self);
-    IODriver_DetachProvider(self, self->provider);
+    if (IODriver_Stop(self)) {
+        _finalize_termination(self);
+        Object_Release(self);
+    }
+    // else we'll stay in terminating state until a call to TerminationCompleted()
+    // since termination is async
+}
 
-    _set_state(self, kIODriverState_Terminated);
+void IODriver_AwaitTermination(IODriverRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    while (self->state < kIODriverState_Terminated) {
+        cnd_wait(&g_await_termination, &self->mtx);
+    }
+    mtx_unlock(&self->mtx);
+
+    // Balance the tmp retain we did before removing ourselves from the I/O
+    // registry in IODriver_Terminate().
+    Object_Release(self);
+}
+
+void IODriver_TerminationCompleted(IODriverRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    if (self->state == kIODriverState_Terminating) {
+        _finalize_termination(self);
+        cnd_broadcast(&g_await_termination);
+    }
+    mtx_unlock(&self->mtx);
 }
 
 

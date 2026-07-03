@@ -48,6 +48,42 @@ typedef struct IODFSInfo {
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
+// A driver may manage some piece of hardware directly or it may employ the help
+// of another driver to do this. This other driver is called a provider and the
+// driver that is using the provider is called a client driver.
+//
+// The IODriver base class implements a lifecycle mechanism. The lifecycle of a
+// driver looks like this:
+//
+// - Driver_Create()            driver is created
+// - Driver_Launch()            driver is started
+//     - Driver_Start()         driver start() override is invoked
+//     - Driver_OnLaunched()    driver onLaunched() override is invoked
+// - Driver_Open()              user app, kernel or another driver is opening the driver for use
+// - Commands                   driver user is issuing I/O commands to the driver
+// - Driver_Close()             driver user is no longer interested in using the driver
+// - Driver_Terminate()         driver is told to shut down and stop accessing its provider/hardware
+//     - Driver_OnTerminating() driver onTerminating() override is invoked
+//     - Driver_Stop()          driver stop() override is invoked
+// - Driver_AwaitTermination()  driver user is potentially waiting for driver termination to complete
+//
+// Every driver implements a set of I/O commands that require that the driver either
+// uses the services of its provider or that it programs the hardware that it manages.
+// 
+// A driver is allowed to access and program its hardware from the beginning of
+// its start() override until it either returns true from its stop() override
+// or until it calls IODriver_TerminationCompleted().
+// 
+// Once a driver has terminated and before it has launched, it may not access nor
+// program its hardware. A driver client that call IODriver_Terminate() on a driver
+// and that needs to know when the driver has stopped accessing and programming
+// its hardware must call IODriver_AwaitTermination() after IODriver_Terminate()
+// has returned. Then and only then is it safe to access the hardware in question.
+//
+// A driver must be launched before it can be opened and a driver can not be
+// opened anymore once IODriver_Terminate() has been called on it. However, you
+// can still call IODriver_Close() even after a driver has been terminated.
+//
 open_class(IODriver, Object,
     deque_node_t                ioreg_qe;   // dequeue is owned and managed by IORegistry
     IODriverRef _Nullable       provider;   // strong ref to the provider driver; immutable between start() and stop()
@@ -84,12 +120,15 @@ open_class_funcs(IODriver, Object,
     // Default: Returns EOK and does nothing
     errno_t (*start)(void* _Nonnull self);
 
-    // Invoked when a driver is made inactive. A driver subclass should
-    // override this method and configure the hardware such that it is in an
-    // idle and (if possible) powered-down state.
+    // Invoked when a driver is terminated. Subclassers should stop accepting
+    // new I/O commands and either let the currently active command finish or
+    // cancel it. This function should return true if it has stopped the driver
+    // and the driver is no longer accessing its provider or hardware. It should
+    // return false if the stopping process must be done asynchronously. It should
+    // call IODriver_TerminationCompleted() once the stop process has finished.
     // Override: Optional
-    // Default: Does nothing
-    void (*stop)(void* _Nonnull self);
+    // Default: Does nothing and returns true
+    bool (*stop)(void* _Nonnull self);
 
 
     // Invoked at the end of IODriver_Launch(). Subclassers may override this
@@ -101,7 +140,7 @@ open_class_funcs(IODriver, Object,
     // Default: Does nothing
     void (*onLaunched)(void* _Nonnull self);
 
-    // Invoked at the beginning of IODriver_Terminate(). SUbclassers may
+    // Invoked at the beginning of IODriver_Terminate(). Subclassers may
     // override this to e.g. cancel queued commands.
     // Override: Optional
     // Default: Does nothing
@@ -158,8 +197,15 @@ open_class_funcs(IODriver, Object,
 // returns and ready to receive calls to Driver_Open().
 extern errno_t IODriver_Launch(IODriverRef _Nonnull self, IODriverRef _Nullable provider);
 
-// Terminates all clients of the driver 'self' and then 'self' itself.
+// Terminates all clients of the driver 'self' and then 'self' itself. Note that
+// the termination may run asynchronously. Thus this function may return before
+// the termination has completed. Use the IODriver_AwaitTermination() function
+// to await the completion of the termination if this matters to you.
 extern void IODriver_Terminate(IODriverRef _Nonnull self);
+
+// Awaits the termination of the driver by blocing the caller until teh driver
+// has reached terminated state.
+extern void IODriver_AwaitTermination(IODriverRef _Nonnull self);
 
 
 // Opens the driver for use.
@@ -203,6 +249,10 @@ extern bool IODriver_HasSomeCategories(IODriverRef _Nonnull self, const iocat_t*
 // \param options options specifying various default behaviors
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
 extern errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf);
+
+// Notifies the framework that the driver 'self' has completed termination. This
+// call will wake up a blocked IODriver_AwaitTermination() call.
+extern void IODriver_TerminationCompleted(IODriverRef _Nonnull self);
 
 
 // Returns the provider of the driver 'self'. A provider is another driver that

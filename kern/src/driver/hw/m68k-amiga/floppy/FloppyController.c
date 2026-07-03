@@ -132,9 +132,10 @@ void FloppyController_onLaunched(FloppyControllerRef _Nonnull self)
     FloppyController_ScanBus(self);
 }
 
-void FloppyController_stop(FloppyControllerRef _Nonnull _Locked self)
+bool FloppyController_stop(FloppyControllerRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_DISK_BLOCK);
+    return true;
 }
 
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)
