@@ -26,23 +26,18 @@ errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _
     return err;
 }
 
-errno_t ZorroDevice_start(ZorroDeviceRef _Nonnull self)
+void ZorroDevice_onLaunched(ZorroDeviceRef _Nonnull self)
 {
-    decl_try_err();
     IODriverRef dp;
 
     if (self->cfg.type == ZORRO_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
-        err = ZRamDriver_Create(&dp);
-        
-        if (err == EOK) {
-            err = IODriver_Launch(dp, (IODriverRef)self);
+        if (ZRamDriver_Create(&dp) == EOK) {
+            IODriver_Launch(dp, (IODriverRef)self);
             Object_Release(dp);
         }
     }
-
-    return err;
 }
 
 class_func_defs(ZorroDevice, IODriver,
-override_func_def(start, ZorroDevice, IODriver)
+override_func_def(onLaunched, ZorroDevice, IODriver)
 );

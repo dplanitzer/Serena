@@ -13,6 +13,7 @@
 #include <ext/queue.h>
 #include <kobj/Object.h>
 #include <kern/devfs.h>
+#include <kpi/fd.h>
 #include <kpi/file.h>
 #include <kpi/ioctl.h>
 #include <kpi/uid.h>

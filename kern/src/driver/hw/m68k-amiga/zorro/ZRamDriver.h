@@ -20,6 +20,7 @@ open_class_funcs(ZRamDriver, IODriver,
 
 extern errno_t ZRamDriver_Create(IODriverRef _Nullable * _Nonnull pOutSelf);
 
+extern void* _Nonnull ZRamDriver_GetPhysicalBaseAddress(ZRamDriverRef _Nonnull self);
 extern size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self);
 
 #endif /* ZRamDriver_h */

@@ -53,11 +53,40 @@ static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int ty
     }
 }
 
+static void _on_ram_exp_detected(struct AmigaController* _Nonnull self, IODriverRef _Nonnull driver, int action)
+{
+    if (action != IOMATCH_STARTED) {
+        return;
+    }
+
+    ZRamDriverRef zram = dynamiccast(driver, ZRamDriver);
+    if (zram == NULL) {
+        return;
+    }
+    if (IODriver_Open(zram, O_RDWR) != EOK) {
+        return;
+    }
+    // We'll keep the RAM expansion driver open so that host_info() can get its
+    // size any time.
+
+
+    mem_desc_t md = {0};
+
+    md.lower = ZRamDriver_GetPhysicalBaseAddress(zram);
+    md.upper = md.lower + ZRamDriver_GetMemorySize(zram);
+    md.type = MEM_TYPE_MEMORY;
+    (void) kalloc_add_memory_region(&md);
+}
+
 // This function effectively "leaks" drivers when it fails. This doesn't matter
 // because this platform controller never frees its children anyway.
 void AmigaController_onLaunched(struct AmigaController* _Nonnull self)
 {
     decl_try_err();
+    IOCATS_DEF(g_ram_exp_cats, IOMEM_RAM);
+
+    IORegistry_StartMatching(gIORegistry, g_ram_exp_cats, (IOMatchCallback)_on_ram_exp_detected, self);
+
 
     // Graphics Driver
     GraphicsDriverRef fb = NULL;

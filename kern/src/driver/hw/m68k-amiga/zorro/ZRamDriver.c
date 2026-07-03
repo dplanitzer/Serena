@@ -8,8 +8,6 @@
 
 #include "ZRamDriver.h"
 #include "ZorroDevice.h"
-#include <hal/sys_desc.h>
-#include <kern/kalloc.h>
 
 IOCATS_DEF(g_cats, IOMEM_RAM);
 
@@ -21,16 +19,18 @@ errno_t ZRamDriver_Create(IODriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t ZRamDriver_start(ZRamDriverRef _Nonnull self)
 {
-    ZorroDeviceRef zdp = IODriver_GetProvider(self);
-    const zorro_conf_t* cfg = ZorroDevice_GetConfiguration(zdp);
-    mem_desc_t md = {0};
+    return IODriver_Open(IODriver_GetProvider(self), O_RDWR);
+}
 
-    md.lower = cfg->start;
-    md.upper = cfg->start + cfg->logicalSize;
-    md.type = MEM_TYPE_MEMORY;
-    (void) kalloc_add_memory_region(&md);
+bool ZRamDriver_stop(ZRamDriverRef _Nonnull self)
+{
+    IODriver_Close(IODriver_GetProvider(self));
+    return true;
+}
 
-    return EOK;
+void* _Nonnull ZRamDriver_GetPhysicalBaseAddress(ZRamDriverRef _Nonnull self)
+{
+    return ZorroDevice_GetConfiguration(IODriver_GetProvider(self))->start;
 }
 
 size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self)
@@ -40,4 +40,5 @@ size_t ZRamDriver_GetMemorySize(ZRamDriverRef _Nonnull self)
 
 class_func_defs(ZRamDriver, IODriver,
 override_func_def(start, ZRamDriver, IODriver)
+override_func_def(stop, ZRamDriver, IODriver)
 );
