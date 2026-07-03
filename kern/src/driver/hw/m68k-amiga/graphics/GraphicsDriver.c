@@ -28,7 +28,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(IODriver_Create(class(GraphicsDriver), 0, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(GraphicsDriver), g_cats, (IODriverRef*)&self));
     self->nextGObjId = 1;
     mtx_init(&self->io_mtx);
 
@@ -75,6 +75,11 @@ errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
     vcpu_resume(self->copvp, false);
     
     return EOK;
+}
+
+bool GraphicsDriver_isExclusive(GraphicsDriverRef _Nonnull self)
+{
+    return false;
 }
 
 errno_t GraphicsDriver_getDFSInfo(GraphicsDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
@@ -127,6 +132,7 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 
 class_func_defs(GraphicsDriver, DisplayDriver,
 override_func_def(start, GraphicsDriver, IODriver)
+override_func_def(isExclusive, GraphicsDriver, IODriver)
 override_func_def(getDFSInfo, GraphicsDriver, IODriver)
 override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
 override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)

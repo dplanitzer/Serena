@@ -35,7 +35,7 @@ errno_t AmiPaddle_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(IODriver_Create(class(AmiPaddle), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(AmiPaddle), g_cats, (IODriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
 

@@ -19,7 +19,7 @@ IOCATS_DEF(g_cats, IOBUS_ZORRO);
 
 errno_t ZorroBus_Create(ZorroBusRef _Nullable * _Nonnull pOutSelf)
 {
-    return IODriver_Create(class(ZorroBus), 0, g_cats, (IODriverRef*)pOutSelf);
+    return IODriver_Create(class(ZorroBus), g_cats, (IODriverRef*)pOutSelf);
 }
 
 static void ZorroBus_ScanBus(ZorroBusRef _Nonnull self)
@@ -55,6 +55,13 @@ void ZorroBus_onLaunched(ZorroBusRef _Nonnull self)
 }
 
 
+bool ZorroBus_isExclusive(ZorroBusRef _Nonnull self)
+{
+    return false;
+}
+
+
 class_func_defs(ZorroBus, IODriver,
 override_func_def(onLaunched, ZorroBus, IODriver)
+override_func_def(isExclusive, ZorroBus, IODriver)
 );

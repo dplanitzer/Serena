@@ -51,7 +51,7 @@ static int _get_state(IODriverRef _Nonnull self)
 }
 
 
-errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf)
+errno_t IODriver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     IODriverRef self;
@@ -62,7 +62,6 @@ errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t*
 
         self->id = atomic_int_fetch_add(&g_next_driver_id, 1);
         self->cats = cats;
-        self->options = options;
 
         *pOutSelf = self;
     }
@@ -349,9 +348,14 @@ void IODriver_close(IODriverRef _Nonnull self)
 }
 
 
+bool IODriver_isExclusive(IODriverRef _Nonnull self)
+{
+    return true;
+}
+
 errno_t IODriver_doOpen(IODriverRef _Nonnull _Locked self, fd_flags_t flags)
 {
-    if ((self->options & kIODriver_Exclusive) == kIODriver_Exclusive && self->open_cnt > 0) {
+    if (IODriver_IsExclusive(self) && self->open_cnt > 0) {
         return EBUSY;
     }
     else {
@@ -412,6 +416,7 @@ func_def(getDFSInfo, IODriver)
 func_def(isOpen, IODriver)
 func_def(open, IODriver)
 func_def(close, IODriver)
+func_def(isExclusive, IODriver)
 func_def(doIsOpen, IODriver)
 func_def(doOpen, IODriver)
 func_def(doClose, IODriver)

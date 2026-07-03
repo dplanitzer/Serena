@@ -31,7 +31,7 @@ errno_t AmiJoystick_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(IODriver_Create(class(AmiJoystick), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(AmiJoystick), g_cats, (IODriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);

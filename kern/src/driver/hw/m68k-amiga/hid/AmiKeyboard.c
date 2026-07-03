@@ -43,7 +43,7 @@ errno_t AmiKeyboard_Create(IODriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     AmiKeyboardRef self;
     
-    try(IODriver_Create(class(AmiKeyboard), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(AmiKeyboard), g_cats, (IODriverRef*)&self));
     try(cbuf_init(&self->keyQueue, 16));
 
     *pOutSelf = (IODriverRef)self;

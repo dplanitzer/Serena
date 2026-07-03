@@ -37,7 +37,7 @@ errno_t AmiLightPen_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(IODriver_Create(class(AmiLightPen), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(AmiLightPen), g_cats, (IODriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
 

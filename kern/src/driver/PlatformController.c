@@ -15,7 +15,7 @@ IOCATS_DEF(g_cats, IOBUS_VIRTUAL);
 
 errno_t PlatformController_Create(Class* _Nonnull pClass, IODriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return IODriver_Create(pClass, 0, g_cats, pOutSelf);
+    return IODriver_Create(pClass, g_cats, pOutSelf);
 }
 
 uint64_t PlatformController_getPhysicalMemorySize(PlatformControllerRef _Nonnull self)

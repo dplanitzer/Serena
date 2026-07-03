@@ -18,7 +18,7 @@ errno_t ZorroDevice_Create(const zorro_conf_t* _Nonnull config, ZorroDeviceRef _
     decl_try_err();
     ZorroDeviceRef self;
 
-    if ((err = IODriver_Create(class(ZorroDevice), 0, g_cats, (IODriverRef*)&self)) == EOK) {
+    if ((err = IODriver_Create(class(ZorroDevice), g_cats, (IODriverRef*)&self)) == EOK) {
         self->cfg = *config;
     }
 

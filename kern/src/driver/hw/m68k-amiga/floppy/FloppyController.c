@@ -69,7 +69,7 @@ errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSel
     decl_try_err();
     FloppyControllerRef self;
     
-    try(IODriver_Create(class(FloppyController), 0, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(FloppyController), g_cats, (IODriverRef*)&self));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
@@ -136,6 +136,11 @@ bool FloppyController_stop(FloppyControllerRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_DISK_BLOCK);
     return true;
+}
+
+bool FloppyController_isExclusive(FloppyControllerRef _Nonnull self)
+{
+    return false;
 }
 
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)
@@ -416,4 +421,5 @@ override_func_def(deinit, FloppyController, Object)
 override_func_def(start, FloppyController, IODriver)
 override_func_def(onLaunched, FloppyController, IODriver)
 override_func_def(stop, FloppyController, IODriver)
+override_func_def(isExclusive, FloppyController, IODriver)
 );

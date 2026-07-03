@@ -23,7 +23,7 @@ errno_t IOGPBus_Create(IOGPCreateDriverFunc _Nonnull func, void* _Nullable ctx, 
     decl_try_err();
     IOGPBusRef self;
 
-    try(IODriver_Create(class(IOGPBus), kIODriver_Exclusive, g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(IOGPBus), g_cats, (IODriverRef*)&self));
 
     mtx_init(&self->mtx);
     self->createHidDevice = func;
@@ -45,6 +45,11 @@ catch:
 void IOGPBus_onLaunched(IOGPBusRef _Nonnull self)
 {
     IOGPBus_SetPortDevice_Locked(self, 0, HID_PORT_MOUSE);
+}
+
+bool IOGPBus_isExclusive(IOGPBusRef _Nonnull self)
+{
+    return false;
 }
 
 
@@ -158,6 +163,7 @@ static errno_t IOGPBus_SetPortDevice_Locked(IOGPBusRef _Nonnull _Locked self, in
 
 class_func_defs(IOGPBus, IODriver,
 override_func_def(onLaunched, IOGPBus, IODriver)
+override_func_def(isExclusive, IOGPBus, IODriver)
 );
 
 #endif

@@ -19,11 +19,6 @@
 #include <sched/mtx.h>
 
 
-// Driver instantiation option. Used by subclassers to request specific default
-// behavior from the Driver class.
-#define kIODriver_Exclusive       1   // At most one I/O handler can be open at any given time. Attempts to open more will generate a EBUSY error
-
-
 typedef errno_t (*IOHandlerFunc)(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nullable pOutHandler);
 
 // The max length of a devfs name entry (includes the trailing '\0' character).
@@ -94,9 +89,8 @@ open_class(IODriver, Object,
     devfs_hnd_t                 devfs_hnd;
 
     int                         open_cnt;
-    uint16_t                    options;
-    uint8_t                     flags;
-    int8_t                      state;
+    uint16_t                    flags;
+    int16_t                     state;
 );
 open_class_funcs(IODriver, Object,
     
@@ -172,6 +166,12 @@ open_class_funcs(IODriver, Object,
     errno_t (*getDFSInfo)(void* _Nonnull self, IODFSInfo* _Nonnull info);
 
 
+    // Returns true if the driver can be opened at most once and false if it
+    // allows more than a single open call.
+    // Override: Optional and recommended
+    // Default: returns true
+    bool (*isExclusive)(void* _Nonnull self);
+
     // Opens the driver for use. You need to call this function first before
     // calling any of the driver commands. Locks the driver for lifecycle
     // management and then calls doOpen().
@@ -195,7 +195,7 @@ open_class_funcs(IODriver, Object,
     // function should implement the actual open/close policy of the driver.
     // Override: Optional
     // Default: implements exclusive or non-exclusive access based on the result
-    //          of invoking isExcluseUse()
+    //          of invoking isExcluse()
     errno_t (*doOpen)(void* _Nonnull _Locked self, fd_flags_t flags);
 
     // Invoked by the close() function to balance a previous open(). This
@@ -263,9 +263,8 @@ extern bool IODriver_HasSomeCategories(IODriverRef _Nonnull self, const iocat_t*
 
 // Creates a new driver instance.
 // \param pClass the concrete driver class
-// \param options options specifying various default behaviors
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
-extern errno_t IODriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t IODriver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 // Notifies the framework that the driver 'self' has completed termination. This
 // call will wake up a blocked IODriver_AwaitTermination() call.
@@ -307,6 +306,9 @@ invoke_n(getDFSInfo, IODriver, __self, __info)
 #define IODriver_GetDFSHandle(__self) \
 ((IODriverRef)__self)->devfs_hnd
 
+
+#define IODriver_IsExclusive(__self) \
+invoke_0(isExclusive, IODriver, __self)
 
 #define IODriver_DoOpen(__self, __flags) \
 invoke_n(doOpen, IODriver, __self, __flags)
