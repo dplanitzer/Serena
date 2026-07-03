@@ -30,6 +30,9 @@
 #include <kpi/smg.h>
 
 
+IOCATS_DEF(g_ram_cats, IOMEM_RAM);
+
+
 final_class_ivars(AmiExpert, IOPlatformExpert,
 );
 
@@ -66,8 +69,8 @@ static void _on_ram_exp_detected(struct AmiExpert* _Nonnull self, IODriverRef _N
     if (IODriver_Open(zram, O_RDWR) != EOK) {
         return;
     }
-    // We'll keep the RAM expansion driver open so that host_info() can get its
-    // size any time.
+    // We'll keep the RAM expansion driver open so that getPhysicalMemorySize()
+    // below can get its size any time.
 
 
     mem_desc_t md = {0};
@@ -83,9 +86,8 @@ static void _on_ram_exp_detected(struct AmiExpert* _Nonnull self, IODriverRef _N
 void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
 {
     decl_try_err();
-    IOCATS_DEF(g_ram_exp_cats, IOMEM_RAM);
 
-    IORegistry_StartMatching(gIORegistry, g_ram_exp_cats, (IOMatchCallback)_on_ram_exp_detected, self);
+    IORegistry_StartMatching(gIORegistry, g_ram_cats, (IOMatchCallback)_on_ram_exp_detected, self);
 
 
     // Graphics Driver
@@ -128,7 +130,6 @@ uint64_t AmiExpert_getPhysicalMemorySize(struct AmiExpert* _Nonnull self)
     decl_try_err();
     uint64_t msize = 0ull;
     IOIterator iter;
-    IOCATS_DEF(g_ram_cats, IOMEM_RAM);
 
     // Get the motherboard RAM
     msize += sys_desc_getramsize(g_sys_desc);
@@ -140,10 +141,10 @@ uint64_t AmiExpert_getPhysicalMemorySize(struct AmiExpert* _Nonnull self)
     err = IORegistry_CopyMatchingDrivers(gIORegistry, g_ram_cats, &iter);
     if (err == EOK) {
         while (IOIterator_HasNext(&iter)) {
-            IODriverRef drv = IOIterator_GetNext(&iter);
+            ZRamDriverRef zram = dynamiccast(IOIterator_GetNext(&iter), ZRamDriver);
 
-            if (instanceof(drv, ZRamDriver)) {
-                msize += ZRamDriver_GetMemorySize((ZRamDriverRef)drv);
+            if (zram) {
+                msize += ZRamDriver_GetMemorySize(zram);
             }
         }
         IOIterator_Destroy(&iter);
