@@ -17,35 +17,33 @@
 #include <kpi/fs_perms.h>
 #include <kpi/uid.h>
 #ifdef MACHINE_AMIGA
-#include <driver/hw/m68k-amiga/AmigaController.h>
+#include <driver/hw/m68k-amiga/AmiExpert.h>
 #else
 #error "unknown platform"
 #endif
 
 
-static Class* _Nonnull _get_platform_controller_class(void)
-{
-#ifdef MACHINE_AMIGA
-    return class(AmigaController);
-#else
-    abort();
-#endif
-}
-
 errno_t init_iokit(void)
 {
     decl_try_err();
     IODriverRef dp;
+    Class* pcls;
 
     // Create devfs and the I/O registry
     try(devfs_init());
     IORegistry_Init();
 
 
-    // Platform controller
-    try(PlatformController_Create(_get_platform_controller_class(), &dp));
+#ifdef MACHINE_AMIGA
+    pcls = class(AmiExpert);
+#else
+    abort();
+#endif
+
+    // Platform expert
+    try(IOPlatformExpert_Create(pcls, &dp));
     try(IODriver_Launch(dp, NULL));
-    gPlatformController = (PlatformControllerRef)dp;
+    gIOPlatformExpert = (IOPlatformExpertRef)dp;
 
 catch:
     return err;

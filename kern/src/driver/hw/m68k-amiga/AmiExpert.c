@@ -1,12 +1,12 @@
 //
-//  AmigaController.c
+//  AmiExpert.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/17/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "AmigaController.h"
+#include "AmiExpert.h"
 #include <ext/endian.h>
 #include <ext/math.h>
 #include <driver/IORegistry.h>
@@ -30,7 +30,7 @@
 #include <kpi/smg.h>
 
 
-final_class_ivars(AmigaController, PlatformController,
+final_class_ivars(AmiExpert, IOPlatformExpert,
 );
 
 static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int type, IODriverRef _Nullable * _Nonnull pOutDriver)
@@ -53,7 +53,7 @@ static errno_t _create_gpbus_hid_device(void* _Nullable ignore, int port, int ty
     }
 }
 
-static void _on_ram_exp_detected(struct AmigaController* _Nonnull self, IODriverRef _Nonnull driver, int action)
+static void _on_ram_exp_detected(struct AmiExpert* _Nonnull self, IODriverRef _Nonnull driver, int action)
 {
     if (action != IOMATCH_STARTED) {
         return;
@@ -80,7 +80,7 @@ static void _on_ram_exp_detected(struct AmigaController* _Nonnull self, IODriver
 
 // This function effectively "leaks" drivers when it fails. This doesn't matter
 // because this platform controller never frees its children anyway.
-void AmigaController_onLaunched(struct AmigaController* _Nonnull self)
+void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
 {
     decl_try_err();
     IOCATS_DEF(g_ram_exp_cats, IOMEM_RAM);
@@ -123,7 +123,7 @@ catch:
     abort();
 }
 
-uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull self)
+uint64_t AmiExpert_getPhysicalMemorySize(struct AmiExpert* _Nonnull self)
 {
     decl_try_err();
     uint64_t msize = 0ull;
@@ -154,7 +154,7 @@ uint64_t AmigaController_getPhysicalMemorySize(struct AmigaController* _Nonnull 
 
 // Scans the ROM area following the end of the kernel looking for an embedded
 // Serena disk image with a root filesystem.
-const struct SMG_Header* _Nullable AmigaController_getBootImage(struct AmigaController* _Nonnull self)
+const struct SMG_Header* _Nullable AmiExpert_getBootImage(struct AmiExpert* _Nonnull self)
 {
     extern char _text, _etext, _data, _edata;
     const size_t txt_size = &_etext - &_text;
@@ -177,8 +177,8 @@ const struct SMG_Header* _Nullable AmigaController_getBootImage(struct AmigaCont
     return smg_hdr;
 }
 
-class_func_defs(AmigaController, PlatformController,
-override_func_def(onLaunched, AmigaController, IODriver)
-override_func_def(getPhysicalMemorySize, AmigaController, PlatformController)
-override_func_def(getBootImage, AmigaController, PlatformController)
+class_func_defs(AmiExpert, IOPlatformExpert,
+override_func_def(onLaunched, AmiExpert, IODriver)
+override_func_def(getPhysicalMemorySize, AmiExpert, IOPlatformExpert)
+override_func_def(getBootImage, AmiExpert, IOPlatformExpert)
 );

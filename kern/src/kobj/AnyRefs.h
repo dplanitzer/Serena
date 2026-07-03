@@ -39,6 +39,7 @@ class_ref(IOGPBus);
 #endif
 class_ref(IOHIDDevice);
 class_ref(IOHIDManager);
+class_ref(IOPlatformExpert);
 class_ref(IORegistry);
 class_ref(Handler);
 class_ref(KernFS);
@@ -49,7 +50,6 @@ class_ref(LogDriver);
 class_ref(NullDriver);
 class_ref(PipeHandler);
 class_ref(Pipe);
-class_ref(PlatformController);
 class_ref(Process);
 class_ref(ProcessManager);
 class_ref(RamDisk);

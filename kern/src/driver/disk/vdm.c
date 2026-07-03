@@ -7,7 +7,7 @@
 //
 
 #include "vdm.h"
-#include <driver/PlatformController.h>
+#include <driver/IOPlatformExpert.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
 #include <kpi/fd.h>
@@ -55,7 +55,7 @@ errno_t vdm_create_disk(int type, const char* _Nonnull name, size_t sectorSize, 
         throw_iferr(err);
     }
 
-    try(IODriver_Launch(dp, (IODriverRef)gPlatformController));
+    try(IODriver_Launch(dp, (IODriverRef)gIOPlatformExpert));
     
 
 catch:

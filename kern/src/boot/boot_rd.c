@@ -7,7 +7,7 @@
 //
 
 #include <string.h>
-#include <driver/PlatformController.h>
+#include <driver/IOPlatformExpert.h>
 #include <driver/disk/vdm.h>
 #include <kpi/fd.h>
 #include <kpi/smg.h>
@@ -19,7 +19,7 @@
 void auto_discover_boot_rd(void)
 {
     decl_try_err();
-    const SMG_Header* _Nonnull smg_hdr = PlatformController_GetBootImage(gPlatformController);
+    const SMG_Header* _Nonnull smg_hdr = IOPlatformExpert_GetBootImage(gIOPlatformExpert);
 
     if (smg_hdr == NULL) {
         return;
