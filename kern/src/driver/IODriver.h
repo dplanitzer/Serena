@@ -172,35 +172,42 @@ open_class_funcs(IODriver, Object,
     errno_t (*getDFSInfo)(void* _Nonnull self, IODFSInfo* _Nonnull info);
 
 
-    // Invoked by the open() function to inform the driver of another open. The
-    // 'openCount' reflects the number of times the driver has been opened so
-    // far. A count of 0 indicates that this is the first open. A driver
-    // subclass can use this information to eg power up the hardware if necessary.
-    // Override: Optional
-    // Default: returns EOK
-    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, fd_flags_t flags);
-
-    // Invoked by the close() function to close an open I/O handler. The
-    // 'openCount' reflects the number of I/O handlers that are currently open
-    // and this number does include the handler that should be closed. A driver
-    // subclass can use this information to eg put the hardware to sleep if the
-    // last open handler is closed. The 'openCount' for the last open handler is
-    // 1.
-    // Override: Optional
-    // Default: does nothing
-    void (*onClose)(void* _Nonnull _Locked self, int openCount);
-
-
     // Opens the driver for use. You need to call this function first before
-    // calling any of the driver commands.
+    // calling any of the driver commands. Locks the driver for lifecycle
+    // management and then calls doOpen().
     // Override: Optional
-    // Default: returns a handler instance
+    // Default: invokes doOpen()
     errno_t (*open)(void* _Nonnull self, fd_flags_t flags);
 
-    // Closes the driver.
+    // Closes the driver. Locks the driver for lifecycle management and then
+    // invokes doClose().
     // Override: Optional
-    // Default: Does nothing
+    // Default: Invokes doClose
     void (*close)(void* _Nonnull self);
+
+    // Returns true if the driver is currently open and false otherwise.
+    // Override: Optional
+    // Default: Invokes doIsOpen()
+    bool (*isOpen)(void* _Nonnull self);
+
+
+    // Invoked by the open() function to inform the driver of another open. This
+    // function should implement the actual open/close policy of the driver.
+    // Override: Optional
+    // Default: implements exclusive or non-exclusive access based on the result
+    //          of invoking isExcluseUse()
+    errno_t (*doOpen)(void* _Nonnull _Locked self, fd_flags_t flags);
+
+    // Invoked by the close() function to balance a previous open(). This
+    // function should implement the actual open/close policy of the driver.
+    // Override: Optional
+    // Default: does nothing
+    void (*doClose)(void* _Nonnull _Locked self);
+
+    // Returns true if the driver is currently open and false otherwise.
+    // Override: Optional
+    // Default: returns true if open; false otherwise
+    bool (*doIsOpen)(void* _Nonnull _Locked self);
 );
 
 
@@ -226,9 +233,9 @@ invoke_n(open, IODriver, __self, __flags)
 #define IODriver_Close(__self) \
 invoke_0(close, IODriver, __self)
 
-
 // Returns true if the driver is currently in an opened state.
-extern bool IODriver_IsOpen(IODriverRef _Nonnull self);
+#define IODriver_IsOpen(__self) \
+invoke_0(isOpen, IODriver, __self)
 
 
 // Returns a reference to a read-only array of all the I/O categories the
@@ -301,10 +308,14 @@ invoke_n(getDFSInfo, IODriver, __self, __info)
 ((IODriverRef)__self)->devfs_hnd
 
 
-#define IODriver_OnOpen(__self, __openCount, __flags) \
-invoke_n(onOpen, IODriver, __self, __openCount, __flags)
+#define IODriver_DoOpen(__self, __flags) \
+invoke_n(doOpen, IODriver, __self, __flags)
 
-#define IODriver_OnClose(__self, __openCount) \
-invoke_n(onClose, IODriver, __self, __openCount)
+#define IODriver_DoClose(__self) \
+invoke_0(doClose, IODriver, __self)
+
+// Returns true if the driver is currently in an opened state.
+#define IODriver_DoIsOpen(__self) \
+invoke_0(doIsOpen, IODriver, __self)
 
 #endif /* IODriver_h */
