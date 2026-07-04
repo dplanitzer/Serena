@@ -25,6 +25,29 @@
 #include <kpi/hid.h>
 #include <kpi/smg.h>
 
+//
+// Amiga platform resource use table
+//
+// CIA timers:
+// - CIA A, timer A: keyboard ack
+// - CIA A, timer B: monotonic clock
+// - CIA B, timer A: -
+// - CIA B, timer B: -
+//
+// Interrupts:
+//
+// - Level 1, disk block:           AFDBus/AFDDevice
+// - Level 2, CIA A, timer B:       monotonic clock timer services
+// - Level 2, CIA A, serial port:   AmiKeyboard
+// - Level 2, ports:                available for Zorro devices
+// - Level 3, vertical blank:       GraphicsDriver
+// - Level 6, external:             available for Zorro devices
+//
+// DMA:
+//
+// - Disk DMA:                      AFDBus/AFDDevice
+//
+
 
 IOCATS_DEF(g_ram_cats, IOMEM_RAM);
 
