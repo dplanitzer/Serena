@@ -26,7 +26,7 @@
 #include <kpi/smg.h>
 
 //
-// Amiga platform resource use table
+// Amiga platform resource usage table
 //
 // CIA timers:
 // - CIA A, timer A: keyboard ack
