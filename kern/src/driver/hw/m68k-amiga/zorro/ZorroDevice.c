@@ -8,7 +8,6 @@
 
 #include "ZorroDevice.h"
 #include "ZRamDriver.h"
-#include "zorro_bus.h"
 
 IOCATS_NONE(g_cats);
 

@@ -9,13 +9,13 @@
 #include "AFDDevicePriv.h"
 #include <assert.h>
 #include <string.h>
+#include <driver/IOLib.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <handler/IODiskHandler.h>
 #include <kern/kalloc.h>
 #include <kern/log.h>
-#include <sched/delay.h>
 #include <sched/vcpu.h>
 #include "mfm.h"
 
@@ -272,7 +272,7 @@ static errno_t AFDDevice_WaitForDiskReady(AFDDeviceRef _Nonnull self)
                 return EOK;
             }
 
-            delay_ms(10);
+            IOSleep(10);
         }
 
         // Timed out. Turn the motor off for now so that another I/O request can
@@ -300,7 +300,7 @@ static errno_t AFDDevice_SeekToTrack_0(AFDDeviceRef _Nonnull self)
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
-    delay_ms(18);
+    IOSleep(18);
     
     while (true) {
         const uint8_t status = AFDBus_GetStatus(IODriver_GetProvider(self), self->driveState);
@@ -316,12 +316,12 @@ static errno_t AFDDevice_SeekToTrack_0(AFDDeviceRef _Nonnull self)
             return ETIMEDOUT;
         }
 
-        delay_ms(3);
+        IOSleep(3);
     }
     AFDBus_SelectHead(IODriver_GetProvider(self), &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
-    delay_ms(15);
+    IOSleep(15);
     
     self->head = 0;
     self->cylinder = 0;
@@ -347,7 +347,7 @@ static void AFDDevice_SeekTo(AFDDeviceRef _Nonnull self, int cylinder, int head)
     const int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
     
     if (pre_wait_ms > 0) {
-        delay_ms(pre_wait_ms);
+        IOSleep(pre_wait_ms);
     }
     
     
@@ -364,7 +364,7 @@ static void AFDDevice_SeekTo(AFDDeviceRef _Nonnull self, int cylinder, int head)
                 self->flags.wasMostRecentSeekInward = 0;
             }
             
-            delay_ms(3);
+            IOSleep(3);
         }
     }
     
@@ -374,14 +374,15 @@ static void AFDDevice_SeekTo(AFDDeviceRef _Nonnull self, int cylinder, int head)
         self->head = head;
     }
     
-    // Seek settle time: 15ms
-    // Head select settle time: 100us
-    const int seek_settle_us = (nSteps > 0) ? 15*1000 : 0;
-    const int side_settle_us = (change_side) ? 100 : 0;
-    const int settle_us = __max(seek_settle_us, side_settle_us);
 
-    if (settle_us > 0) {
-        delay_us(settle_us);
+    if (nSteps > 0) {
+        // Seek settle time: 15ms.
+        // We add 1ms in case we switched heads too.
+        IOSleep(15 + 1);
+    }
+    else if (change_side) {
+        // Head select settle time: 100us
+        IODelay(100);
     }
 }
 

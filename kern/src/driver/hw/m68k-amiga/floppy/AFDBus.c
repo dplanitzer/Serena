@@ -8,13 +8,13 @@
 
 #include "AFDBus.h"
 #include "AFDDevicePriv.h"
+#include <driver/IOLib.h>
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
 #include <machine/amiga/adf.h>
 #include <sched/cnd.h>
-#include <sched/delay.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
 #include <sched/vcpu.h>
@@ -157,7 +157,7 @@ DriveState AFDBus_ResetDrive(AFDBusRef _Nonnull self, int drive)
     // Make sure that the motor is off and then deselect the drive
     mtx_lock(&self->mtx);
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    delay_us(1);
+    IODelay(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     mtx_unlock(&self->mtx);
 
@@ -175,18 +175,18 @@ uint32_t AFDBus_GetDriveType(AFDBusRef _Nonnull self, DriveState* _Nonnull cb)
 
     // Reset the drive's serial register
     _AFDBus_SetMotor(self, cb, true);
-    delay_us(1);
+    IODelay(1);
     _AFDBus_SetMotor(self, cb, false);
 
     // Read the bits from MSB to LSB
     uint8_t r = *cb;
     for (int bit = 31; bit >= 0; bit--) {
         *CIA_REG_8(ciab, CIA_PRB) = r;
-        delay_us(1);
+        IODelay(1);
         const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
         const uint32_t rdy = (~(r >> CIAA_PRAB_DSKRDY)) & 1u;
         dt |= (rdy << (uint32_t)bit);
-        delay_us(1);
+        IODelay(1);
         *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     }
 
@@ -203,9 +203,9 @@ uint8_t AFDBus_GetStatus(AFDBusRef _Nonnull self, DriveState cb)
 
     mtx_lock(&self->mtx);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
-    delay_us(1);
+    IODelay(1);
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-    delay_us(1);
+    IODelay(1);
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
     mtx_unlock(&self->mtx);
 
@@ -221,7 +221,7 @@ static void _AFDBus_SetMotor(AFDBusRef _Nonnull _Locked self, DriveState* _Nonnu
     // Make sure that none of the drives are selected since a drive latches the
     // motor state when it is selected 
     *CIA_REG_8(ciab, CIA_PRB) = *CIA_REG_8(ciab, CIA_PRB) | CIAB_PRBF_DSKSELALL;
-    delay_us(1);
+    IODelay(1);
 
 
     // Turn the motor on/off
@@ -231,7 +231,7 @@ static void _AFDBus_SetMotor(AFDBusRef _Nonnull _Locked self, DriveState* _Nonnu
 
 
     // Deselect all drives
-    delay_us(1);
+    IODelay(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 }
 
@@ -257,7 +257,7 @@ void AFDBus_SelectHead(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, int hea
 
 
     // Deselect all drives
-    delay_us(1);
+    IODelay(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 
     mtx_unlock(&self->mtx);
@@ -279,15 +279,15 @@ void AFDBus_StepHead(AFDBusRef _Nonnull self, DriveState cb, int delta)
     // Execute the step pulse
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    delay_us(1);
+    IODelay(1);
 
     r &= ~CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    delay_us(1);
+    IODelay(1);
 
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    delay_us(1);
+    IODelay(1);
 
 
     // Deselect all drives
@@ -329,7 +329,7 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
     // Select the drive and turn off the DMA
     *CIA_REG_8(ciab, CIA_PRB) = cb;
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
-    delay_ms(1);
+    IODelay(1000);  //1ms
 
 
     // Check for disk change
@@ -404,7 +404,7 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
 
     // Wait for everything to settle if we just completed a write
     if (bWrite) {
-        delay_ms(2);
+        IOSleep(2);  // 2ms
     }
 
 

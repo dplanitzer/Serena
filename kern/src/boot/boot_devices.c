@@ -7,7 +7,6 @@
 //
 
 #include <console/Console.h>
-#include <driver/IORegistry.h>
 #include <driver/hid/IOHIDManager.h>
 #include <handler/ConsoleHandler.h>
 #include <handler/IOHIDHandler.h>
@@ -16,38 +15,6 @@
 #include <kern/devfs.h>
 #include <kpi/fs_perms.h>
 #include <kpi/uid.h>
-#ifdef MACHINE_AMIGA
-#include <driver/hw/m68k-amiga/AmiExpert.h>
-#else
-#error "unknown platform"
-#endif
-
-
-errno_t init_iokit(void)
-{
-    decl_try_err();
-    IODriverRef dp;
-    Class* pcls;
-
-    // Create devfs and the I/O registry
-    try(devfs_init());
-    IORegistry_Init();
-
-
-#ifdef MACHINE_AMIGA
-    pcls = class(AmiExpert);
-#else
-    abort();
-#endif
-
-    // Platform expert
-    try(IOPlatformExpert_Create(pcls, &dp));
-    try(IODriver_Launch(dp, NULL));
-    gIOPlatformExpert = (IOPlatformExpertRef)dp;
-
-catch:
-    return err;
-}
 
 
 errno_t init_pseudo_devices(void)

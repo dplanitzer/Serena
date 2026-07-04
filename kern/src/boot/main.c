@@ -9,6 +9,7 @@
 #include <string.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
+#include <driver/IOLib.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/kernfs/KernFS.h>
@@ -20,7 +21,6 @@
 #include <kpi/filesystem.h>
 #include <process/kerneld.h>
 #include <process/ProcessManager.h>
-#include <sched/delay.h>
 #include <sched/sched.h>
 #include <sched/vcpu_pool.h>
 #include <kern/kalloc.h>
@@ -30,7 +30,6 @@
 extern char _text, _etext, _data, _edata, _bss, _ebss;
 
 extern errno_t kerneld_init(void);
-extern errno_t init_iokit(void);
 extern errno_t init_pseudo_devices(void);
 extern errno_t init_console(void);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(bt_screen_t* _Nonnull bscr);
@@ -108,10 +107,6 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     try_bang(kalloc_init(pSysDesc, gInitialHeapBottom, gInitialHeapTop));
 
     
-    // Initialize the kernel delay service
-    delay_init();
-
-
     // Initialize the monotonic clock
     clock_init_mono(g_mono_clock);
 
@@ -149,7 +144,7 @@ static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Detect hardware and initialize boot-time drivers
-    try(init_iokit());
+    try(IOInit());
 
 
     // Create pseudo devices

@@ -11,7 +11,6 @@
 #include <string.h>
 #include <ext/bit.h>
 #include <kern/kernlib.h>
-#include <sched/delay.h>
 #include <sched/vcpu.h>
 
 
@@ -63,7 +62,7 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
             // XXX however we don't want to have to introduce extra calls on it
             // XXX since unmap() calls happen a lot more than session closes. 
             mtx_unlock(&self->interlock);
-            delay_ms(1);
+            vcpu_yield();
             mtx_lock(&self->interlock);
         }
 

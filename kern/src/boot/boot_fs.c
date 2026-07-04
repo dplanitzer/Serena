@@ -6,6 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <driver/IOLib.h>
 #include <driver/IORegistry.h>
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
@@ -17,7 +18,6 @@
 #include <kern/log.h>
 #include <kpi/fd.h>
 #include <kpi/file.h>
-#include <sched/delay.h>
 #include <sched/vcpu.h>
 #include <limits.h>
 #include "boot_screen.h"
@@ -113,7 +113,7 @@ static void wait_for_disk_inserted(bt_screen_t* _Nonnull bscr, DiskDriverRef _No
                 isWaitingForDisk = true;
             }
 
-            delay_sec(3);
+            IOSleep(3000);  // 3secs
         }
 
         IODriver_Close(disk);
