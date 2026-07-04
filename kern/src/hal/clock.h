@@ -34,10 +34,10 @@ typedef struct clock_deadline {
 
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 struct clock {
-    volatile ticks_t            tick_count;         // Current scheduler time in terms of ticks quantums since clock start
+    volatile ticks_t            tick_count;             // current clock time in terms of ticks since clock start
     clock_deadline_t* _Nullable deadline_queue;
-    int32_t                     ns_per_tick;        // duration of a clock tick in terms of nanoseconds
-    int16_t                     cia_cycles_per_tick;    // duration of a clock tick in terms of CIA chip cycles 
+    int32_t                     ns_per_tick;            // duration of a single clock tick in terms of nanoseconds
+    int16_t                     cia_cycles_per_tick;    // duration of a single clock tick in terms of CIA chip cycles 
     int16_t                     ns_per_cia_cycle;       // length of a CIA cycle in nanoseconds
 };
 typedef struct clock* clock_ref_t;

@@ -15,7 +15,7 @@
 #include <sched/sched.h>
 
 struct ticks_ns {
-    ticks_t  ticks;
+    ticks_t ticks;
     long    ns;
 };
 
