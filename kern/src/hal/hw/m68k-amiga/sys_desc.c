@@ -10,6 +10,7 @@
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/gary5719.h>
 #include <kern/kernlib.h>
 
 
@@ -206,9 +207,8 @@ static void ramsey_configure(const sys_desc_t* _Nonnull pSysDesc)
 
 static void gary_configure(void)
 {
-    GARY_BASE_DECL(cp);
-    *GARY_REG_8(cp, GARY_COLDSTART) = *GARY_REG_8(cp, GARY_COLDSTART) & ~GARY_REGF_BIT;
-    *GARY_REG_8(cp, GARY_TIMEOUT) = *GARY_REG_8(cp, GARY_TIMEOUT) | GARY_REGF_BIT;
+    hw_gary->coldstart &= ~GARY_REGF_BIT;
+    hw_gary->timeout |= GARY_REGF_BIT;
 }
 
 // Initializes the system description which contains basic information about the

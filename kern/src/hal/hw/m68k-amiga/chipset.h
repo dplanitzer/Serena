@@ -26,35 +26,6 @@
 
 
 //
-// GARY Chip
-//
-
-// Reading / Writing registers
-#define GARY_BASE_DECL(cp) \
-    volatile uint8_t* cp = (volatile uint8_t*) GARY_BASE
-
-#define GARY_REG_8(cp, r) \
-    ((volatile uint8_t*)(cp + r))
-
-
-// GARY chip versions (32bit Amigas only. Like A3000 / A4000)
-#define GARY_rev0       0x00
-#define GARY_revPlus    0x90
-
-
-// Registers
-#define GARY_TIMEOUT    0x0000
-#define GARY_TOENB      0x0001
-#define GARY_COLDSTART  0x0002
-#define GARY_DSPRST     0x1000
-#define GARY_KBRSTEN    0x1001
-#define GARY_ID         0x1002
-
-// Register Bit
-#define GARY_REGF_BIT   0x80
-
-
-//
 // RAMSEY Chip
 //
 
