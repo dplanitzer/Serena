@@ -71,13 +71,3 @@ char* chipset_get_upper_dma_limit(int agnus_version)
 
     return p;
 }
-
-uint32_t chipset_get_hsync_counter(void)
-{
-    CIAB_BASE_DECL(cp);
-    const uint32_t h = *CIA_REG_8(cp, CIA_TODHI);
-    const uint32_t m = *CIA_REG_8(cp, CIA_TODMID);
-    const uint32_t l = *CIA_REG_8(cp, CIA_TODLO);
-
-    return (h << 16) | (m << 8) | l; 
-}

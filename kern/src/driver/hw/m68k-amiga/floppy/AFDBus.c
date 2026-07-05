@@ -12,6 +12,7 @@
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/cia8520.h>
 #include <hal/irq.h>
 #include <machine/amiga/adf.h>
 #include <sched/cnd.h>
@@ -145,7 +146,6 @@ bool AFDBus_isExclusive(AFDBusRef _Nonnull self)
 
 DriveState AFDBus_ResetDrive(AFDBusRef _Nonnull self, int drive)
 {
-    CIAB_BASE_DECL(ciab);
     uint8_t r;
 
     // motor off; all drives deselected; head 0; stepping off
@@ -156,9 +156,9 @@ DriveState AFDBus_ResetDrive(AFDBusRef _Nonnull self, int drive)
 
     // Make sure that the motor is off and then deselect the drive
     mtx_lock(&self->mtx);
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     IODelay(1);
-    *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
+    hw_cia_b->prb = r | CIAB_PRBF_DSKSELALL;
     mtx_unlock(&self->mtx);
 
     return r;
@@ -167,8 +167,6 @@ DriveState AFDBus_ResetDrive(AFDBusRef _Nonnull self, int drive)
 // Detects and returns the drive type
 uint32_t AFDBus_GetDriveType(AFDBusRef _Nonnull self, DriveState* _Nonnull cb)
 {
-    CIAA_BASE_DECL(ciaa);
-    CIAB_BASE_DECL(ciab);
     uint32_t dt = 0;
 
     mtx_lock(&self->mtx);
@@ -181,13 +179,13 @@ uint32_t AFDBus_GetDriveType(AFDBusRef _Nonnull self, DriveState* _Nonnull cb)
     // Read the bits from MSB to LSB
     uint8_t r = *cb;
     for (int bit = 31; bit >= 0; bit--) {
-        *CIA_REG_8(ciab, CIA_PRB) = r;
+        hw_cia_b->prb = r;
         IODelay(1);
-        const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
+        const uint8_t r = hw_cia_a->pra;
         const uint32_t rdy = (~(r >> CIAA_PRAB_DSKRDY)) & 1u;
         dt |= (rdy << (uint32_t)bit);
         IODelay(1);
-        *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
+        hw_cia_b->prb = r | CIAB_PRBF_DSKSELALL;
     }
 
     mtx_unlock(&self->mtx);
@@ -198,15 +196,12 @@ uint32_t AFDBus_GetDriveType(AFDBusRef _Nonnull self, DriveState* _Nonnull cb)
 // Returns the current drive status
 uint8_t AFDBus_GetStatus(AFDBusRef _Nonnull self, DriveState cb)
 {
-    CIAA_BASE_DECL(ciaa);
-    CIAB_BASE_DECL(ciab);
-
     mtx_lock(&self->mtx);
-    *CIA_REG_8(ciab, CIA_PRB) = cb;
+    hw_cia_b->prb = cb;
     IODelay(1);
-    const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
+    const uint8_t r = hw_cia_a->pra;
     IODelay(1);
-    *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
+    hw_cia_b->prb = cb | CIAB_PRBF_DSKSELALL;
     mtx_unlock(&self->mtx);
 
     return ~r & (CIAA_PRAF_DSKRDY | CIAA_PRAF_DSKTK0 | CIAA_PRAF_DSKWPRO | CIAA_PRAF_DSKCHNG);
@@ -216,23 +211,21 @@ uint8_t AFDBus_GetStatus(AFDBusRef _Nonnull self, DriveState cb)
 // the motor to reach its final speed.
 static void _AFDBus_SetMotor(AFDBusRef _Nonnull _Locked self, DriveState* _Nonnull cb, bool onoff)
 {
-    CIAB_BASE_DECL(ciab);
-
     // Make sure that none of the drives are selected since a drive latches the
-    // motor state when it is selected 
-    *CIA_REG_8(ciab, CIA_PRB) = *CIA_REG_8(ciab, CIA_PRB) | CIAB_PRBF_DSKSELALL;
+    // motor state when it is selected
+    hw_cia_b->prb |= CIAB_PRBF_DSKSELALL;
     IODelay(1);
 
 
     // Turn the motor on/off
     const uint8_t r = (onoff) ? *cb & ~CIAB_PRBF_DSKMTR : *cb | CIAB_PRBF_DSKMTR;
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     *cb = r;
 
 
     // Deselect all drives
     IODelay(1);
-    *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
+    hw_cia_b->prb = r | CIAB_PRBF_DSKSELALL;
 }
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
@@ -246,19 +239,17 @@ void AFDBus_SetMotor(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, bool onof
 
 void AFDBus_SelectHead(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, int head)
 {
-    CIAB_BASE_DECL(ciab);
-
     mtx_lock(&self->mtx);
 
     // Update the disk side bit
     const uint8_t r = (head == 0) ? *cb | CIAB_PRBF_DSKSIDE : *cb & ~CIAB_PRBF_DSKSIDE;
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     *cb = r;
 
 
     // Deselect all drives
     IODelay(1);
-    *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
+    hw_cia_b->prb = r | CIAB_PRBF_DSKSELALL;
 
     mtx_unlock(&self->mtx);
 }
@@ -267,31 +258,29 @@ void AFDBus_SelectHead(AFDBusRef _Nonnull self, DriveState* _Nonnull cb, int hea
 // of the drive.
 void AFDBus_StepHead(AFDBusRef _Nonnull self, DriveState cb, int delta)
 {
-    CIAB_BASE_DECL(ciab);
-
     mtx_lock(&self->mtx);
 
     // Update the seek direction bit
     uint8_t r = (delta < 0) ? cb | CIAB_PRBF_DSKDIR : cb & ~CIAB_PRBF_DSKDIR;
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     
 
     // Execute the step pulse
     r |= CIAB_PRBF_DSKSTEP;
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     IODelay(1);
 
     r &= ~CIAB_PRBF_DSKSTEP;
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     IODelay(1);
 
     r |= CIAB_PRBF_DSKSTEP;
-    *CIA_REG_8(ciab, CIA_PRB) = r;
+    hw_cia_b->prb = r;
     IODelay(1);
 
 
     // Deselect all drives
-    *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
+    hw_cia_b->prb = cb | CIAB_PRBF_DSKSELALL;
 
     mtx_unlock(&self->mtx);
 }
@@ -308,8 +297,6 @@ static void _disk_block_irq(AFDBusRef _Nonnull self)
 errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
-    CIAA_BASE_DECL(ciaa);
-    CIAB_BASE_DECL(ciab);
     CHIPSET_BASE_DECL(cs);
     uint8_t status;
 
@@ -327,13 +314,13 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
 
 
     // Select the drive and turn off the DMA
-    *CIA_REG_8(ciab, CIA_PRB) = cb;
+    hw_cia_b->prb = cb;
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     IODelay(1000);  //1ms
 
 
     // Check for disk change
-    status = ~(*CIA_REG_8(ciaa, CIA_PRA));
+    status = ~(hw_cia_a->pra);
     if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
         mtx_unlock(&self->mtx);
         return EDISKCHANGE;
@@ -392,14 +379,14 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
 
 
     // Check for disk change
-    status = ~(*CIA_REG_8(ciaa, CIA_PRA));
+    status = ~(hw_cia_a->pra);
     if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
         err = EDISKCHANGE;
     }
 
 
     // Deselect all drives
-    *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
+    hw_cia_b->prb = cb | CIAB_PRBF_DSKSELALL;
 
 
     // Wait for everything to settle if we just completed a write

@@ -8,6 +8,7 @@
 
 #include "AmiLightPen.h"
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/cia8520.h>
 
 
 final_class_ivars(AmiLightPen, IOHIDDevice,
@@ -69,6 +70,19 @@ errno_t AmiLightPen_start(AmiLightPenRef _Nonnull self)
     return EOK;
 }
 
+static void _wait_for_next_scanline(void)
+{
+    const uint8_t oh = hw_cia_b->todhi;
+    const uint8_t om = hw_cia_b->todmid;
+    const uint8_t ol = hw_cia_b->todlo;
+
+    for (;;) {
+        if (hw_cia_b->todlo != ol || hw_cia_b->todmid != om || hw_cia_b->todhi != oh) {
+            break;
+        }
+    }
+}
+
 // Returns the current position of the light pen if the light pen triggered.
 static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
 {
@@ -80,9 +94,8 @@ static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
 
 
     // Wait for scanline microseconds
-    const uint32_t hsync0 = chipset_get_hsync_counter();
     const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
-    while (chipset_get_hsync_counter() == hsync0);
+    _wait_for_next_scanline();
     
 
     // Read VHPOSR a second time

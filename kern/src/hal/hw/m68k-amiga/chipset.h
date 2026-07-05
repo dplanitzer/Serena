@@ -13,8 +13,6 @@
 #include <stdint.h>
 
 
-#define CIAA_BASE           0xbfe001
-#define CIAB_BASE           0xbfd000
 #define RTC_BASE            0xdc0000
 #define GARY_BASE           0xde0000
 #define RAMSEY_BASE         0xde0000
@@ -25,95 +23,6 @@
 #define EXT_ROM_SIZE        0x40000
 #define BOOT_ROM_BASE       0xfc0000
 #define BOOT_ROM_SIZE       0x40000
-
-
-//
-// CIA
-//
-
-// Reading / Writing CIA A/B registers
-#define CIAA_BASE_DECL(cp) \
-    volatile uint8_t* cp = (volatile uint8_t*) CIAA_BASE
-
-#define CIAB_BASE_DECL(cp) \
-    volatile uint8_t* cp = (volatile uint8_t*) CIAB_BASE
-
-#define CIA_REG_8(cp, r) \
-    ((volatile uint8_t*)(cp + r))
-
-
-#define CIA_PRA     0x000
-#define CIA_PRB     0x100
-#define CIA_DDRA    0x200
-#define CIA_DDRB    0x300
-#define CIA_TALO    0x400
-#define CIA_TAHI    0x500
-#define CIA_TBLO    0x600
-#define CIA_TBHI    0x700
-#define CIA_TODLO   0x800
-#define CIA_TODMID  0x900
-#define CIA_TODHI   0xa00
-#define CIA_SDR     0xc00
-#define CIA_ICR     0xd00
-#define CIA_CRA     0xe00
-#define CIA_CRB     0xf00
-
-#define CIAA_PRAF_OVL       0x01
-#define CIAA_PRAF_LED       0x02
-#define CIAA_PRAF_DSKCHNG   0x04
-#define CIAA_PRAF_DSKWPRO   0x08
-#define CIAA_PRAF_DSKTK0    0x10
-#define CIAA_PRAF_DSKRDY    0x20
-#define CIAA_PRAF_FIR0      0x40
-#define CIAA_PRAF_FIR1      0x80
-
-#define CIAA_PRAB_DSKRDY    5
-
-#define CIAB_PRAF_BUSY  0x01
-#define CIAB_PRAF_POUT  0x02
-#define CIAB_PRAF_SEL   0x04
-#define CIAB_PRAF_DSR   0x08
-#define CIAB_PRAF_CTS   0x10
-#define CIAB_PRAF_CD    0x20
-#define CIAB_PRAF_RTS   0x40
-#define CIAB_PRAF_DTR   0x80
-
-#define CIAB_PRBF_DSKSTEP   0x01
-#define CIAB_PRBF_DSKDIR    0x02
-#define CIAB_PRBF_DSKSIDE   0x04
-#define CIAB_PRBF_DSKSEL0   0x08
-#define CIAB_PRBF_DSKSEL1   0x10
-#define CIAB_PRBF_DSKSEL2   0x20
-#define CIAB_PRBF_DSKSEL3   0x40
-#define CIAB_PRBF_DSKSELALL (CIAB_PRBF_DSKSEL0 | CIAB_PRBF_DSKSEL1 | CIAB_PRBF_DSKSEL2 | CIAB_PRBF_DSKSEL3)
-#define CIAB_PRBF_DSKMTR    0x80
-
-#define CIAB_PRBB_DSKSEL0   3
-
-#define CIA_IRCF_IR         0x80
-#define CIA_IRCF_SC         0x80
-#define CIA_IRCF_FLG        0x10
-#define CIA_IRCF_SP         0x08
-#define CIA_IRCF_ALRM       0x04
-#define CIA_IRCF_TB         0x02
-#define CIA_IRCF_TA         0x01
-
-#define CIA_CRAF_START      0x01
-#define CIA_CRAF_PBON       0x02
-#define CIA_CRAF_OUTMODE    0x04
-#define CIA_CRAF_RUNMODE    0x08
-#define CIA_CRAF_LOAD       0x10
-#define CIA_CRAF_INMODE     0x20
-#define CIA_CRAF_SPMODE     0x40
-#define CIA_CRAF_UNUSED     0x80
-
-#define CIA_CRBF_START          0x01
-#define CIA_CRBF_PBON           0x02
-#define CIA_CRBF_OUTMODE        0x04
-#define CIA_CRBF_RUNMODE        0x08
-#define CIA_CRBF_LOAD           0x10
-#define CIA_CRBF_INMODE_MASK    0x60
-#define CIA_CRBF_ALARM          0x80
 
 
 //

@@ -8,7 +8,7 @@
 
 #include "AmiKeyboard.h"
 #include <hal/irq.h>
-#include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/cia8520.h>
 #include <kern/cbuf.h>
 
 
@@ -63,9 +63,7 @@ static void AmiKeyboard_deinit(AmiKeyboardRef _Nonnull self)
 errno_t AmiKeyboard_start(AmiKeyboardRef _Nonnull self)
 {
     // Configure the keyboard serial port
-    CIAA_BASE_DECL(ciaa);
-
-    *CIA_REG_8(ciaa, CIA_CRA) = 0;
+    hw_cia_a->cra = 0;
 
     irq_set_direct_handler(IRQ_ID_KEYBOARD, (irq_direct_func_t)AmiKeyboard_OnKeyboardInterrupt, self);
     irq_enable_src(IRQ_ID_CIA_A_SP);

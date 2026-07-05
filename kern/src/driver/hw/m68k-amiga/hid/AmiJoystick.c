@@ -8,12 +8,12 @@
 
 #include "AmiJoystick.h"
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/cia8520.h>
 
 
 final_class_ivars(AmiJoystick, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
-    volatile uint8_t* _Nonnull  reg_ciaa_pra;
     uint16_t                    right_button_mask;
     uint8_t                     fire_button_mask;
     int8_t                      port;
@@ -34,11 +34,9 @@ errno_t AmiJoystick_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     try(IODriver_Create(class(AmiJoystick), g_cats, (IODriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
-    CIAA_BASE_DECL(ciaa);
 
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
-    self->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
     self->fire_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
     self->port = (int8_t)port;
@@ -51,10 +49,9 @@ catch:
 errno_t AmiJoystick_start(AmiJoystickRef _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
-    CIAA_BASE_DECL(ciaa);
 
     // Switch bit 7 and 6 to input
-    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
+    hw_cia_a->ddra &= 0x3f;
     
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
     *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
@@ -64,14 +61,13 @@ errno_t AmiJoystick_start(AmiJoystickRef _Nonnull self)
 
 void AmiJoystick_getReport(AmiJoystickRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
-    register uint8_t pra = *(self->reg_ciaa_pra);
     register uint16_t joydat = *(self->reg_joydat);
     int16_t x, y;
     uint8_t buttons = 0;
 
     
     // Left fire button
-    if ((pra & self->fire_button_mask) == 0) {
+    if ((hw_cia_a->pra & self->fire_button_mask) == 0) {
         buttons |= 0x01;
     }
     

@@ -8,12 +8,12 @@
 
 #include "AmiMouse.h"
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/cia8520.h>
 
 
 final_class_ivars(AmiMouse, IOHIDDevice,
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
-    volatile uint8_t* _Nonnull  reg_ciaa_pra;
     int16_t                     old_hcount;
     int16_t                     old_vcount;
     uint16_t                    right_button_mask;
@@ -37,11 +37,9 @@ errno_t AmiMouse_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     try(IODriver_Create(class(AmiMouse), g_cats, (IODriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
-    CIAA_BASE_DECL(ciaa);
 
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
-    self->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
     self->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
     self->left_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
@@ -55,10 +53,9 @@ catch:
 errno_t AmiMouse_start(AmiMouseRef _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
-    CIAA_BASE_DECL(ciaa);
 
     // Switch CIA PRA bit 7 and 6 to input for the left mouse button
-    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
+    hw_cia_a->ddra &= 0x3f;
     
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
     *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
@@ -117,8 +114,7 @@ void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
     
     // Left mouse button
     register uint32_t buttons = 0;
-    register uint8_t pra = *(self->reg_ciaa_pra);
-    if ((pra & self->left_button_mask) == 0) {
+    if ((hw_cia_a->pra & self->left_button_mask) == 0) {
         buttons |= 0x01;
     }
     
