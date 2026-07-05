@@ -41,21 +41,6 @@ uint8_t chipset_get_agnus_version(void)
     return (*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x6f;
 }
 
-uint8_t chipset_get_ramsey_version(void)
-{
-    RAMSEY_BASE_DECL(cp);
-    const uint8_t v = *RAMSEY_REG_8(cp, RAMSEY_VERSION);
-
-    switch (v) {
-        case RAMSEY_rev4:
-        case RAMSEY_rev7:
-            return v;
-            
-        default:
-            return 0;
-    }
-}
-
 char* chipset_get_upper_dma_limit(int agnus_version)
 {
     char* p;

@@ -11,6 +11,7 @@
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/hw/m68k-amiga/gary5719.h>
+#include <hal/hw/m68k-amiga/ramsey390541.h>
 #include <kern/kernlib.h>
 
 
@@ -108,28 +109,6 @@ static void mem_size_motherboard(sys_desc_t* pSysDesc, char* _Nullable pBootServ
     }
 }
 
-static void ramsey_set_page_mode_enabled(bool flag)
-{
-    RAMSEY_BASE_DECL(cp);
-    volatile uint8_t* p_cr = RAMSEY_REG_8(cp, RAMSEY_CR);
-    uint8_t ref, r = *p_cr;
-
-    if (flag) {
-        r |= RAMSEY_CRF_PAGE_MODE;
-        ref = 0;
-    } else {
-        r &= ~RAMSEY_CRF_PAGE_MODE;
-        ref = RAMSEY_CRF_PAGE_MODE;
-    }
-    *p_cr = r;
-
-
-    // Wait for the change to take effect
-    do {
-        r = *p_cr;
-    } while ((r & RAMSEY_CRF_PAGE_MODE) == ref);
-}
-
 static bool mem_check_page_burst_compat(const mem_desc_t* _Nonnull pMemDesc, bool isA3000)
 {
 #define PAT0 0x5ac35ac3
@@ -185,24 +164,7 @@ static void ramsey_configure(const sys_desc_t* _Nonnull pSysDesc)
     }
 
     
-    // Note that the refresh delay needs to be < 10us. However RAMSEY automatically
-    // selects the right refresh mode by default. So we just leave the refresh
-    // setting alone.
-    RAMSEY_BASE_DECL(cp);
-    volatile uint8_t* p_cr = RAMSEY_REG_8(cp, RAMSEY_CR);
-    uint8_t r = *p_cr;
-
-    r |= RAMSEY_CRF_PAGE_MODE;
-    r |= RAMSEY_CRF_BURST_MODE;
-    r &= ~RAMSEY_CRF_WRAP;  // Needs to be off for the 68040
-
-    *p_cr = r;
-
-
-    // Wait for the change to take effect
-    do {
-        r = *p_cr;
-    } while ((r & RAMSEY_CRF_BURST_MODE) == 0);
+    ramsey_enable_page_burst_mode();
 }
 
 static void gary_configure(void)
@@ -225,7 +187,7 @@ void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesM
     pSysDesc->cpu_subtype = _CPU_68K_DEF(cpu_family, fpu);
 
     pSysDesc->chipset_version = (int8_t)chipset_get_agnus_version();
-    pSysDesc->chipset_ramsey_version = (int8_t)chipset_get_ramsey_version();
+    pSysDesc->chipset_ramsey_version = (int8_t)ramsey_version();
     pSysDesc->chipset_upper_dma_limit = chipset_get_upper_dma_limit(pSysDesc->chipset_version);
         
 

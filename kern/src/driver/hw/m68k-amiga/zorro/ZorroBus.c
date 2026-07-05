@@ -11,6 +11,7 @@
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/ramsey390541.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <machine/amiga/zorro.h>
@@ -333,7 +334,7 @@ static uint8_t* _Nullable z_calc_base_address_for_board(const zorro_conf_t* _Non
             board_base_addr = z_calc_base_address_for_board_in_range(cfg, bus, ZORRO_2_MEMORY_LOW, ZORRO_2_MEMORY_HIGH);
         } else {
             board_base_addr = z_calc_base_address_for_board_in_range(cfg, bus, ZORRO_2_IO_LOW, ZORRO_2_IO_HIGH);
-            if (board_base_addr == NULL && chipset_get_ramsey_version() > 0) {
+            if (board_base_addr == NULL && ramsey_version() > 0) {
                 // Zorro 3 based machines support an extra Zorro 2 I/O address range
                 board_base_addr = z_calc_base_address_for_board_in_range(cfg, bus, ZORRO_2_EXTRA_IO_LOW, ZORRO_2_EXTRA_IO_HIGH);
             }
@@ -367,7 +368,7 @@ static size_t z3_auto_size_memory_board(zorro_conf_t* _Nonnull cfg)
 static zorro_bus_t* _Nullable _auto_config_bus(void)
 {
     zorro_bus_t* bus;
-    const bool isZorro3 = chipset_get_ramsey_version() > 0;
+    const bool isZorro3 = ramsey_version() > 0;
 
     if (kalloc_cleared(sizeof(zorro_bus_t), (void**)&bus) != EOK) {
         return NULL;

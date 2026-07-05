@@ -14,8 +14,6 @@
 
 
 #define RTC_BASE            0xdc0000
-#define GARY_BASE           0xde0000
-#define RAMSEY_BASE         0xde0000
 #define CUSTOM_BASE         0xdff000
 #define DIAGNOSTIC_ROM_BASE 0xf00000
 #define DIAGNOSTIC_ROM_SIZE 0x80000
@@ -23,43 +21,6 @@
 #define EXT_ROM_SIZE        0x40000
 #define BOOT_ROM_BASE       0xfc0000
 #define BOOT_ROM_SIZE       0x40000
-
-
-//
-// RAMSEY Chip
-//
-
-// Reading / Writing registers
-#define RAMSEY_BASE_DECL(cp) \
-    volatile uint8_t* cp = (volatile uint8_t*) RAMSEY_BASE
-
-#define RAMSEY_REG_8(cp, r) \
-    ((volatile uint8_t*)(cp + r))
-
-
-// RAMSEY chip versions (32bit Amigas only. Like A3000 / A4000)
-#define RAMSEY_rev4 0x0d
-#define RAMSEY_rev7 0x0f
-
-
-// Registers
-#define RAMSEY_CR       0x03
-#define RAMSEY_VERSION  0x43
-
-// Control Register
-#define RAMSEY_CRF_PAGE_MODE    0x01
-#define RAMSEY_CRF_BURST_MODE   0x02
-#define RAMSEY_CRF_WRAP         0x04
-#define RAMSEY_CRF_RAM_SIZE     0x08
-#define RAMSEY_CRF_RAM_WIDTH    0x10
-#define RAMSEY_CRF_SKIP         0x20
-#define RAMSEY_CRF_REFRESH_RATE 0x60    /* mask(5..6) */
-#define RAMSEY_CRF_TEST         0x80
-
-#define RAMSEY_REFRESH_154      0x00    /* 16MHz: 9.24us,  25MHz: 6.16us; Default for 16MHz systems */
-#define RAMSEY_REFRESH_238      0x01    /* 16MHz: 14.28us, 25MHz: 9.52us; Default for 25MHz systems */
-#define RAMSEY_REFRESH_380      0x02    /* 16MHz: 22.8us,  25MHz: 15.2us */
-#define RAMSEY_REFRESH_OFF      0x03
 
 
 //
@@ -578,7 +539,6 @@
 // Stops all hardware timers and DMAs and stops all interrupts of the platform's
 // motherboard chipset.
 extern uint8_t chipset_get_agnus_version(void);
-extern uint8_t chipset_get_ramsey_version(void);
 extern void chipset_wait_bof(void);
 extern bool chipset_is_ntsc(void);
 extern char* chipset_get_upper_dma_limit(int agnus_version);
