@@ -12,18 +12,17 @@
 
 
 final_class_ivars(AmiLightPen, IOHIDDevice,
-    volatile uint16_t* _Nonnull reg_potgor;
-    uint16_t                    right_button_mask;
-    uint16_t                    middle_button_mask;
-    int16_t                     smoothedX;
-    int16_t                     smoothedY;
-    bool                        hasSmoothedPosition;    // True if the light pen position is available (pen triggered the position latching hardware); false otherwise
-    int16_t                     sumX;
-    int16_t                     sumY;
-    int8_t                      sampleCount;    // How many samples to average to produce a smoothed value
-    int8_t                      sampleIndex;    // Current sample in the range 0..<sampleCount
-    int8_t                      triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
-    int8_t                      port;
+    uint16_t    right_button_mask;
+    uint16_t    middle_button_mask;
+    int16_t     smoothedX;
+    int16_t     smoothedY;
+    bool        hasSmoothedPosition;    // True if the light pen position is available (pen triggered the position latching hardware); false otherwise
+    int16_t     sumX;
+    int16_t     sumY;
+    int8_t      sampleCount;    // How many samples to average to produce a smoothed value
+    int8_t      sampleIndex;    // Current sample in the range 0..<sampleCount
+    int8_t      triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
+    int8_t      port;
 );
 
 IOCATS_DEF(g_cats, IOHID_LIGHTPEN);
@@ -39,20 +38,6 @@ errno_t AmiLightPen_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     }
     
     try(IODriver_Create(class(AmiLightPen), g_cats, (IODriverRef*)&self));
-    
-    CHIPSET_BASE_DECL(cp);
-
-    self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
-    self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
-    self->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
-    self->smoothedX = 0;
-    self->smoothedY = 0;
-    self->sumX = 0;
-    self->sumY = 0;
-    self->hasSmoothedPosition = false;
-    self->sampleCount = 4;
-    self->sampleIndex = 0;
-    self->triggerCount = 0;
     self->port = (int8_t)port;
     
 catch:
@@ -62,10 +47,27 @@ catch:
 
 errno_t AmiLightPen_start(AmiLightPenRef _Nonnull self)
 {
-    CHIPSET_BASE_DECL(cp);
-
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+    hw_chips->potgo &= 0x0f00;
+
+
+    if (self->port == 0) {
+        self->right_button_mask = POTGORF_DATLY;
+        self->middle_button_mask = POTGORF_DATLX;
+    }
+    else {
+        self->right_button_mask = POTGORF_DATRY;
+        self->middle_button_mask = POTGORF_DATRX;
+    }
+
+    self->smoothedX = 0;
+    self->smoothedY = 0;
+    self->sumX = 0;
+    self->sumY = 0;
+    self->hasSmoothedPosition = false;
+    self->sampleCount = 4;
+    self->sampleIndex = 0;
+    self->triggerCount = 0;
 
     return EOK;
 }
@@ -86,20 +88,18 @@ static void _wait_for_next_scanline(void)
 // Returns the current position of the light pen if the light pen triggered.
 static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
 {
-    CHIPSET_BASE_DECL(cp);
     bool r = false;
 
     // Read VHPOSR first time
-    const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
+    const uint32_t posr0 = hw_chips->vposr;
 
 
     // Wait for scanline microseconds
-    const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
     _wait_for_next_scanline();
     
 
     // Read VHPOSR a second time
-    const uint32_t posr1 = *CHIPSET_REG_32(cp, VPOSR);
+    const uint32_t posr1 = hw_chips->vposr;
     
 
     
@@ -110,7 +110,7 @@ static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
             *x = (posr0 & 0x000000ff) << 1;
             *y = (posr0 & 0x1ff00) >> 8;
             
-            if ((bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
+            if ((hw_chips->bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
                 // long frame (odd field) is offset in Y by one
                 *y += 1;
             }
@@ -155,14 +155,14 @@ void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull r
 
     
     // Button #0
-    register uint16_t potgor = *(self->reg_potgor);
-    if ((potgor & self->right_button_mask) == 0) {
+    register const uint16_t potinp = hw_chips->potinp;
+    if ((potinp & self->right_button_mask) == 0) {
         buttons |= 0x02;
     }
     
     
     // Button # 1
-    if ((potgor & self->middle_button_mask) == 0) {
+    if ((potinp & self->middle_button_mask) == 0) {
         buttons |= 0x04;
     }
     

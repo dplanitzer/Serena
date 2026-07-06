@@ -56,13 +56,11 @@ catch:
 void copper_start(void)
 {
     // Let the Copper run our null program
-    CHIPSET_BASE_DECL(cp);
-
-    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_COPEN | DMACONF_SPREN | DMACONF_BPLEN);
+    hw_chips->dmacon = DMACONF_COPEN | DMACONF_SPREN | DMACONF_BPLEN;
     chipset_wait_bof();
-    *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)g_copper_running_prog->odd_entry;
-    *CHIPSET_REG_16(cp, COPJMP1) = 0;
-    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
+    hw_chips->cop1lc = g_copper_running_prog->odd_entry;
+    hw_chips->copjmp1 = 0;
+    hw_chips->dmacon = DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN;
 
 
     // Activate the Copper context switcher
@@ -141,8 +139,7 @@ copper_prog_t _Nullable copper_unschedule(void)
 // the Copper state and triggers the first run of the Copper program
 static void copper_csw(void)
 {
-    CHIPSET_BASE_DECL(cp);
-    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_COPEN | DMACONF_BPLEN | DMACONF_SPREN);
+    hw_chips->dmacon = DMACONF_COPEN | DMACONF_BPLEN | DMACONF_SPREN;
 
 
     // Retire the currently running program
@@ -168,15 +165,15 @@ static void copper_csw(void)
     if (g_copper_is_running_interlaced) {
         // Handle interlaced (dual field) programs. Which program to activate depends
         // on whether the current field is the even or the odd one
-        const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
+        const uint16_t isLongFrame = hw_chips->vposr & 0x8000;
 
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
+        hw_chips->cop1lc = (isLongFrame) ? prog->odd_entry : prog->even_entry;
     } else {
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)prog->odd_entry;
+        hw_chips->cop1lc = prog->odd_entry;
     }
 
-    *CHIPSET_REG_16(cp, COPJMP1) = 0;
-    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
+    hw_chips->copjmp1 = 0;
+    hw_chips->dmacon = DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN;
 
 
     if (g_retire_vcpu) {
@@ -216,11 +213,10 @@ void vbl_irq(void)
     // applied at the time of the odd field to ensure that we don't change
     // things in the "middle" of a frame.
     if (g_copper_is_running_interlaced) {
-        CHIPSET_BASE_DECL(cp);
-        const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
+        const uint16_t isLongFrame = hw_chips->vposr & 0x8000;
 
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
-        *CHIPSET_REG_16(cp, COPJMP1) = 0;
+        hw_chips->cop1lc = (isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry;
+        hw_chips->copjmp1 = 0;
     }
 }
 

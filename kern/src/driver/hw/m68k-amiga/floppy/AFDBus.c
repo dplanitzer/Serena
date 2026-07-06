@@ -297,7 +297,6 @@ static void _disk_block_irq(AFDBusRef _Nonnull self)
 errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
-    CHIPSET_BASE_DECL(cs);
     uint8_t status;
 
     mtx_lock(&self->mtx);
@@ -315,7 +314,7 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
 
     // Select the drive and turn off the DMA
     hw_cia_b->prb = cb;
-    *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
+    hw_chips->dsklen = 0x4000;
     IODelay(1000);  //1ms
 
 
@@ -337,16 +336,16 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
 
 
     // Prepare the DMA
-    *CHIPSET_REG_32(cs, DSKPT) = (uint32_t)pData;
-    *CHIPSET_REG_16(cs, ADKCON) = 0x7f00;
+    hw_chips->dskpt = pData;
+    hw_chips->adkcon = 0x7f00;
     if (bWrite) {
-        *CHIPSET_REG_16(cs, ADKCON) = 0x9100 | ((precompensation & 0x03) << 13);
+        hw_chips->adkcon = 0x9100 | ((precompensation & 0x03) << 13);
     }
     else {
-        *CHIPSET_REG_16(cs, ADKCON) = 0x9500;
-        *CHIPSET_REG_16(cs, DSKSYNC) = ADF_MFM_SYNC;
+        hw_chips->adkcon = 0x9500;
+        hw_chips->dsksync = ADF_MFM_SYNC;
     }
-    *CHIPSET_REG_16(cs, DMACON) = 0x8210;
+    hw_chips->dmacon = 0x8210;
 
     uint16_t dlen = 0x8000 | (nWords & 0x3fff);
     if (bWrite) {
@@ -355,8 +354,8 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
 
 
     // Turn DMA on
-    *CHIPSET_REG_16(cs, DSKLEN) = dlen;
-    *CHIPSET_REG_16(cs, DSKLEN) = dlen;
+    hw_chips->dsklen = dlen;
+    hw_chips->dsklen = dlen;
 
     mtx_unlock(&self->mtx);
 
@@ -373,9 +372,9 @@ errno_t AFDBus_Dma(AFDBusRef _Nonnull self, DriveState cb, uint16_t precompensat
     mtx_lock(&self->mtx);
 
     // Turn DMA off
-    *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;   // Floppy DMA off
-    *CHIPSET_REG_16(cs, DMACON) = 0x10;     // Floppy DMA off
-    *CHIPSET_REG_16(cs, ADKCON) = 0x400;    // Sync detection off
+    hw_chips->dsklen = 0x4000;   // Floppy DMA off
+    hw_chips->dmacon = 0x10;     // Floppy DMA off
+    hw_chips->adkcon = 0x400;    // Sync detection off
 
 
     // Check for disk change

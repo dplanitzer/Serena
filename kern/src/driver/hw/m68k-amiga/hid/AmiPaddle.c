@@ -11,16 +11,13 @@
 
 
 final_class_ivars(AmiPaddle, IOHIDDevice,
-    volatile uint16_t* _Nonnull reg_joydat;
-    volatile uint16_t* _Nonnull reg_potdat;
-    volatile uint16_t* _Nonnull reg_potgo;
-    int16_t                     smoothedX;
-    int16_t                     smoothedY;
-    int16_t                     sumX;
-    int16_t                     sumY;
-    int8_t                      sampleCount;    // How many samples to average to produce a smoothed value
-    int8_t                      sampleIndex;    // Current sample in the range 0..<sampleCount
-    int8_t                      port;
+    int16_t smoothedX;
+    int16_t smoothedY;
+    int16_t sumX;
+    int16_t sumY;
+    int8_t  sampleCount;    // How many samples to average to produce a smoothed value
+    int8_t  sampleIndex;    // Current sample in the range 0..<sampleCount
+    int8_t  port;
 );
 
 IOCATS_DEF(g_cats, IOHID_ANALOG_JOYSTICK);
@@ -36,13 +33,15 @@ errno_t AmiPaddle_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     }
     
     try(IODriver_Create(class(AmiPaddle), g_cats, (IODriverRef*)&self));
-
-    CHIPSET_BASE_DECL(cp);
-
-    self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
-    self->reg_potdat = (port == 0) ? CHIPSET_REG_16(cp, POT0DAT) : CHIPSET_REG_16(cp, POT1DAT);
-    self->reg_potgo = CHIPSET_REG_16(cp, POTGO);
     self->port = (int8_t)port;
+
+catch:
+    *pOutSelf = (IODriverRef)self;
+    return err;
+}
+
+errno_t AmiPaddle_start(AmiPaddleRef _Nonnull self)
+{
     self->sampleCount = 4;
     self->sampleIndex = 0;
     self->sumX = 0;
@@ -50,15 +49,13 @@ errno_t AmiPaddle_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     self->smoothedX = 0;
     self->smoothedY = 0;
 
-catch:
-    *pOutSelf = (IODriverRef)self;
-    return err;
+    return EOK;
 }
 
 void AmiPaddle_getReport(AmiPaddleRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
-    register uint16_t potdat = *(self->reg_potdat);
-    register uint16_t joydat = *(self->reg_joydat);
+    register const uint16_t potdat = (self->port == 0) ? hw_chips->joy0dat : hw_chips->joy1dat;
+    register const uint16_t joydat = (self->port == 0) ? hw_chips->pot0dat : hw_chips->pot1dat;
 
     // Return the smoothed value
     const int16_t x = self->smoothedX;
@@ -101,7 +98,7 @@ void AmiPaddle_getReport(AmiPaddleRef _Nonnull self, IOHIDReport* _Nonnull repor
     
     
     // Restart the counter for the next frame
-    *(self->reg_potgo) = 0x0001;
+    hw_chips->potgo = 0x0001;
     
     
     report->type = kIOHIDReportType_GamePad;
@@ -112,5 +109,6 @@ void AmiPaddle_getReport(AmiPaddleRef _Nonnull self, IOHIDReport* _Nonnull repor
 
 
 class_func_defs(AmiPaddle, IOHIDDevice,
+override_func_def(start, AmiPaddle, IODriver)
 override_func_def(getReport, AmiPaddle, IOHIDDevice)
 );

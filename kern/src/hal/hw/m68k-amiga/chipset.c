@@ -13,11 +13,10 @@
 // video frame.
 void chipset_wait_bof(void)
 {
-    CHIPSET_BASE_DECL(cp);
     const uint32_t ll = (chipset_is_ntsc()) ? 253 : 303;
 
     for (;;) {
-        const uint32_t vposr = (*CHIPSET_REG_32(cp, VPOSR) & 0x1ff00) >> 8;
+        const uint32_t vposr = ((hw_chips->vposr & 0x7) << 8) | (hw_chips->vhposr >> 8);
 
         if (vposr == ll) {
             break;
@@ -28,17 +27,13 @@ void chipset_wait_bof(void)
 // Returns true if the machine is a NTSC machine; false if it is a PAL machine
 bool chipset_is_ntsc(void)
 {
-    CHIPSET_BASE_DECL(cp);
-
-    return ((*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x10) != 0;
+    return ((hw_chips->vposr >> 8) & 0x10) != 0;
 }
 
 // See: <https://eab.abime.net/showthread.php?t=34838>
 uint8_t chipset_get_agnus_version(void)
 {
-    CHIPSET_BASE_DECL(cp);
-
-    return (*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x6f;
+    return (hw_chips->vposr >> 8) & 0x6f;
 }
 
 char* chipset_get_upper_dma_limit(int agnus_version)

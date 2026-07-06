@@ -12,11 +12,9 @@
 
 
 final_class_ivars(AmiJoystick, IOHIDDevice,
-    volatile uint16_t* _Nonnull reg_joydat;
-    volatile uint16_t* _Nonnull reg_potgor;
-    uint16_t                    right_button_mask;
-    uint8_t                     fire_button_mask;
-    int8_t                      port;
+    uint16_t    right_button_mask;
+    uint8_t     fire_button_mask;
+    int8_t      port;
 );
 
 IOCATS_DEF(g_cats, IOHID_DIGITAL_JOYSTICK);
@@ -32,13 +30,6 @@ errno_t AmiJoystick_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     }
     
     try(IODriver_Create(class(AmiJoystick), g_cats, (IODriverRef*)&self));
-    
-    CHIPSET_BASE_DECL(cp);
-
-    self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
-    self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
-    self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
-    self->fire_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
     self->port = (int8_t)port;
     
 catch:
@@ -48,20 +39,28 @@ catch:
 
 errno_t AmiJoystick_start(AmiJoystickRef _Nonnull self)
 {
-    CHIPSET_BASE_DECL(cp);
-
     // Switch bit 7 and 6 to input
     hw_cia_a->ddra &= 0x3f;
     
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+    hw_chips->potgo &= 0x0f00;
+
+
+    if (self->port == 0) {
+        self->right_button_mask = POTGORF_DATLY;
+        self->fire_button_mask = CIAA_PRAF_FIR0;
+    }
+    else {
+        self->right_button_mask = POTGORF_DATRY;
+        self->fire_button_mask = CIAA_PRAF_FIR1;
+    }
 
     return EOK;
 }
 
 void AmiJoystick_getReport(AmiJoystickRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
-    register uint16_t joydat = *(self->reg_joydat);
+    register const uint16_t joydat = (self->port == 0) ? hw_chips->joy0dat : hw_chips->joy1dat;
     int16_t x, y;
     uint8_t buttons = 0;
 
@@ -73,8 +72,7 @@ void AmiJoystick_getReport(AmiJoystickRef _Nonnull self, IOHIDReport* _Nonnull r
     
     
     // Right fire button
-    register uint16_t potgor = *(self->reg_potgor);
-    if ((potgor & self->right_button_mask) == 0) {
+    if ((hw_chips->potinp & self->right_button_mask) == 0) {
         buttons |= 0x02;
     }
 

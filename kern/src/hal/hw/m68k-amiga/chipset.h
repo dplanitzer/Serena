@@ -13,29 +13,165 @@
 #include <stdint.h>
 
 
-#define RTC_BASE            0xdc0000
-#define CUSTOM_BASE         0xdff000
-#define DIAGNOSTIC_ROM_BASE 0xf00000
-#define DIAGNOSTIC_ROM_SIZE 0x80000
-#define EXT_ROM_BASE        0xf80000
-#define EXT_ROM_SIZE        0x40000
-#define BOOT_ROM_BASE       0xfc0000
-#define BOOT_ROM_SIZE       0x40000
+#define RTC_BASE            0xdc0000u
+#define DIAGNOSTIC_ROM_BASE 0xf00000u
+#define DIAGNOSTIC_ROM_SIZE 0x80000u
+#define EXT_ROM_BASE        0xf80000u
+#define EXT_ROM_SIZE        0x40000u
+#define BOOT_ROM_BASE       0xfc0000u
+#define BOOT_ROM_SIZE       0x40000u
 
 
 //
 // Amiga Chipset
 //
 
-// Reading / Writing chipset registers
-#define CHIPSET_BASE_DECL(cp) \
-    volatile uint8_t* cp = (volatile uint8_t*) CUSTOM_BASE
+#define hw_chips    ((volatile struct chipset*)0xdff000u)
 
-#define CHIPSET_REG_16(cp, r) \
-    ((volatile uint16_t*)(cp + r))
 
-#define CHIPSET_REG_32(cp, r) \
-    ((volatile uint32_t*)(cp + r))
+struct chipset_aud {
+    void*       lc;     // 0x0a0
+    uint16_t    len;    // 0x0a4
+    uint16_t    per;    // 0x0a6
+    uint16_t    vol;    // 0x0a8
+    uint16_t    dat;    // 0x0aa
+};
+
+struct chipset_spr {
+    uint16_t    pos;    // 0x140
+    uint16_t    ctl;    // 0x142
+    uint16_t    data;   // 0x144
+    uint16_t    datb;   // 0x146
+};
+
+struct chipset {
+    uint16_t    bltddat;        // 0x000
+    uint16_t    dmaconr;        // 0x002
+    uint16_t    vposr;          // 0x004
+    uint16_t    vhposr;         // 0x006
+    uint16_t    dskdatr;        // 0x008
+    uint16_t    joy0dat;        // 0x00a
+    uint16_t    joy1dat;        // 0x00c
+    uint16_t    clxdat;         // 0x00e
+    uint16_t    adkconr;        // 0x010
+    uint16_t    pot0dat;        // 0x012
+    uint16_t    pot1dat;        // 0x014
+    uint16_t    potinp;         // 0x016
+    uint16_t    serdatr;        // 0x018
+    uint16_t    dskbytr;        // 0x01a
+    uint16_t    intenar;        // 0x01c
+    uint16_t    intreqr;        // 0x01e
+    void*       dskpt;          // 0x020
+    uint16_t    dsklen;         // 0x024
+    uint16_t    dskdat;         // 0x026
+    uint16_t    refptr;         // 0x028
+    uint16_t    vposw;          // 0x02a
+    uint16_t    vhposw;         // 0x02c
+    uint16_t    copcon;         // 0x02e
+    uint16_t    serdat;         // 0x030
+    uint16_t    serper;         // 0x032
+    uint16_t    potgo;          // 0x034
+    uint16_t    joytest;        // 0x036
+    uint16_t    strequ;         // 0x038
+    uint16_t    strvbl;         // 0x03a
+    uint16_t    strhor;         // 0x03c
+    uint16_t    strlong;        // 0x03e
+    uint16_t    bltcon0;        // 0x040
+    uint16_t    bltcon1;        // 0x042
+    uint16_t    bltafwm;        // 0x044
+    uint16_t    bltalwm;        // 0x046
+    void*       bltcpt;         // 0x048
+    void*       bltbpt;         // 0x04c
+    void*       bltapt;         // 0x050
+    void*       bltdpt;         // 0x054
+    uint16_t    bltsize;        // 0x058
+    uint16_t    bltcon0l;       // 0x05a
+    uint16_t    bltsizv;        // 0x05c
+    uint16_t    bltsizh;        // 0x05e
+    uint16_t    bltcmod;        // 0x060
+    uint16_t    bltbmod;        // 0x062
+    uint16_t    bltamod;        // 0x064
+    uint16_t    bltdmod;        // 0x066
+    uint16_t    rsv0;           // 0x068
+    uint16_t    rsv1;           // 0x06a
+    uint16_t    rsv2;           // 0x06c
+    uint16_t    rsv3;           // 0x06e
+    uint16_t    bltcdat;        // 0x070
+    uint16_t    bltbdat;        // 0x072
+    uint16_t    bltadat;        // 0x074
+    uint16_t    rsv4;           // 0x076
+    uint16_t    sprhdat;        // 0x078
+    uint16_t    bplhdat;        // 0x07a
+    uint16_t    deniseid;       // 0x07c
+    uint16_t    dsksync;        // 0x07e
+    void*       cop1lc;         // 0x080
+    void*       cop2lc;         // 0x084
+    uint16_t    copjmp1;        // 0x088
+    uint16_t    copjmp2;        // 0x08a
+    uint16_t    copins;         // 0x08c
+    uint16_t    diwstart;       // 0x08e
+    uint16_t    diwstop;        // 0x090
+    uint16_t    ddfstart;       // 0x092
+    uint16_t    ddfstop;        // 0x094
+    uint16_t    dmacon;         // 0x096
+    uint16_t    clxcon;         // 0x098
+    uint16_t    intena;         // 0x09a
+    uint16_t    intreq;         // 0x09c
+    uint16_t    adkcon;         // 0x09e
+    struct chipset_aud  aud0;   // 0x0a0
+    uint16_t    rsv5;           // 0x0ac
+    uint16_t    rsv6;           // 0x0ae
+    struct chipset_aud  aud1;   // 0x0b0
+    uint16_t    rsv7;           // 0x0bc
+    uint16_t    rsv8;           // 0x0be
+    struct chipset_aud  aud2;   // 0x0c0
+    uint16_t    rsv9;           // 0x0cc
+    uint16_t    rsv10;          // 0x0ce
+    struct chipset_aud  aud3;   // 0x0d0
+    void*       bplpt[8];       // 0x0e0
+    uint16_t    bplcon0;        // 0x100
+    uint16_t    bplcon1;        // 0x102
+    uint16_t    bplcon2;        // 0x104
+    uint16_t    bplcon3;        // 0x106
+    uint16_t    bpl1mod;        // 0x108
+    uint16_t    bpl2mod;        // 0x10a
+    uint16_t    bplcon4;        // 0x10c
+    uint16_t    clxcon2;        // 0x10e
+    uint16_t    bpldat[8];      // 0x110
+    void*       sprpt[8];       // 0x120
+    struct chipset_spr  spr[8]; // 0x140
+    uint16_t    color[32];      // 0x180
+    uint16_t    htotal;         // 0x1c0
+    uint16_t    hsstop;         // 0x1c2
+    uint16_t    hbstrt;         // 0x1c4
+    uint16_t    hbstop;         // 0x1c6
+    uint16_t    vtotal;         // 0x1c8
+    uint16_t    vsstop;         // 0x1ca
+    uint16_t    vbstrt;         // 0x1cc
+    uint16_t    vbstop;         // 0x1ce
+    uint16_t    sprhstrt;       // 0x1d0
+    uint16_t    sprhstop;       // 0x1d2
+    uint16_t    bplhstrt;       // 0x1d4
+    uint16_t    bplhstop;       // 0x1d6
+    uint16_t    hhposw;         // 0x1d8
+    uint16_t    hhposr;         // 0x1da
+    uint16_t    beamcon0;       // 0x1dc
+    uint16_t    hsstrt;         // 0x1de
+    uint16_t    vsstrt;         // 0x1e0
+    uint16_t    hcenter;        // 0x1e2
+    uint16_t    diwhigh;        // 0x1e4
+    uint16_t    bplhmod;        // 0x1e6
+    void*       sprhpt;         // 0x1e8
+    void*       bplhpt;         // 0x1ec
+    uint16_t    rsv11;          // 0x1f0
+    uint16_t    rsv12;          // 0x1f2
+    uint16_t    rsv13;          // 0x1f4
+    uint16_t    rsv14;          // 0x1f6
+    uint16_t    rsv15;          // 0x1f8
+    uint16_t    rsv16;          // 0x1fa
+    uint16_t    fmode;          // 0x1fc
+    uint16_t    noop;           // 0x1fe
+};
 
 
 #define AGNUS_8371      0x00    /* Also: 8361/8367 Agnus, 8370/8371 Fat Agnus */
@@ -56,7 +192,6 @@
 #define POT0DAT     0x012
 #define POT1DAT     0x014
 #define POTINP      0x016
-#define POTGOR      0x016
 #define SERDATR     0x018
 #define DSKBYTR     0x01a
 
@@ -332,6 +467,7 @@
 #define BPLHPTH     0x1ec
 #define BPLHPTL     0x1ee
 #define FMODE       0x1fc
+
 
 #define ADKCONF_USE0V1      0x0001
 #define ADKCONF_USE1V2      0x0002

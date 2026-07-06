@@ -12,14 +12,12 @@
 
 
 final_class_ivars(AmiMouse, IOHIDDevice,
-    volatile uint16_t* _Nonnull reg_joydat;
-    volatile uint16_t* _Nonnull reg_potgor;
-    int16_t                     old_hcount;
-    int16_t                     old_vcount;
-    uint16_t                    right_button_mask;
-    uint16_t                    middle_button_mask;
-    uint8_t                     left_button_mask;
-    int8_t                      port;
+    int16_t     old_hcount;
+    int16_t     old_vcount;
+    uint16_t    right_button_mask;
+    uint16_t    middle_button_mask;
+    uint8_t     left_button_mask;
+    int8_t      port;
 );
 
 IOCATS_DEF(g_cats, IOHID_MOUSE);
@@ -35,14 +33,6 @@ errno_t AmiMouse_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
     }
     
     try(IODriver_Create(class(AmiMouse), g_cats, (IODriverRef*)&self));
-
-    CHIPSET_BASE_DECL(cp);
-
-    self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
-    self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
-    self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
-    self->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
-    self->left_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
     self->port = (int8_t)port;
 
 catch:
@@ -52,13 +42,23 @@ catch:
 
 errno_t AmiMouse_start(AmiMouseRef _Nonnull self)
 {
-    CHIPSET_BASE_DECL(cp);
-
     // Switch CIA PRA bit 7 and 6 to input for the left mouse button
     hw_cia_a->ddra &= 0x3f;
     
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+    hw_chips->potgo &= 0x0f00;
+
+
+    if (self->port == 0) {
+        self->right_button_mask = POTGORF_DATLY;
+        self->middle_button_mask = POTGORF_DATLX;
+        self->left_button_mask = CIAA_PRAF_FIR0;
+    }
+    else {
+        self->right_button_mask = POTGORF_DATRY;
+        self->middle_button_mask = POTGORF_DATRX;
+        self->left_button_mask = CIAA_PRAF_FIR1;
+    }
 
     return EOK;
 }
@@ -66,11 +66,11 @@ errno_t AmiMouse_start(AmiMouseRef _Nonnull self)
 // Based on <https://www.markwrobel.dk/post/amiga-machine-code-letter11/>
 void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
 {
-    register uint16_t new_state = *(self->reg_joydat);
+    register const uint16_t new_state = (self->port == 0) ? hw_chips->joy0dat : hw_chips->joy1dat;
     
     // X delta
-    register int16_t old_x = self->old_hcount;
-    register int16_t new_x = (int16_t)(new_state & 0x00ff);
+    register const int16_t old_x = self->old_hcount;
+    register const int16_t new_x = (int16_t)(new_state & 0x00ff);
     register int16_t dx = new_x - old_x;
     self->old_hcount = new_x;
     
@@ -91,8 +91,8 @@ void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
     
     
     // Y delta
-    register int16_t old_y = self->old_vcount;
-    register int16_t new_y = (int16_t)((new_state & 0xff00) >> 8);
+    register const int16_t old_y = self->old_vcount;
+    register const int16_t new_y = (int16_t)((new_state & 0xff00) >> 8);
     register int16_t dy = new_y - old_y;
     self->old_vcount = new_y;
 
@@ -120,14 +120,14 @@ void AmiMouse_getReport(AmiMouseRef _Nonnull self, IOHIDReport* _Nonnull report)
     
     
     // Right mouse button
-    register uint16_t potgor = *(self->reg_potgor);
-    if ((potgor & self->right_button_mask) == 0) {
+    register const uint16_t potinp = hw_chips->potinp;
+    if ((potinp & self->right_button_mask) == 0) {
         buttons |= 0x02;
     }
 
     
     // Middle mouse button
-    if ((potgor & self->middle_button_mask) == 0) {
+    if ((potinp & self->middle_button_mask) == 0) {
         buttons |= 0x04;
     }
 
