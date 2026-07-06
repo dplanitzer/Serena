@@ -32,6 +32,18 @@ errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf)
     self->nextGObjId = 1;
     mtx_init(&self->io_mtx);
 
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    Object_Release(self);
+    *pOutSelf = NULL;
+    return err;
+}
+
+errno_t AGADriver_start(AGADriverRef _Nonnull self)
+{
+    decl_try_err();
 
     // Create a null Copper program and null sprite
     copper_prog_t nullCopperProg;
@@ -59,26 +71,17 @@ errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf)
     
     // Initialize the Copper scheduler
     copper_init(nullCopperProg, SIGCOPRUN, self->copvp);
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
-    return err;
-}
-
-errno_t AGADriver_start(AGADriverRef _Nonnull self)
-{
     copper_start();
+
     vcpu_resume(self->copvp, false);
     
-    return EOK;
+catch:
+    return err;
 }
 
 bool AGADriver_isExclusive(AGADriverRef _Nonnull self)
 {
+    //XXX tmp as long as the console is still inside the kernel
     return false;
 }
 
