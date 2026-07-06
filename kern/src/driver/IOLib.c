@@ -13,11 +13,14 @@
 #include <hal/clock.h>
 #include <sched/waitqueue.h>
 #include <kern/devfs.h>
+#include <process/kerneld.h>
+
 #ifdef MACHINE_AMIGA
 #include <driver/hw/m68k-amiga/AmiExpert.h>
 #else
 #error "unknown platform"
 #endif
+
 
 static struct waitqueue g_sleep_wq; // VPs which block in a delay_xx() call wait on this wait queue
 
@@ -75,3 +78,22 @@ void IOSleep(mseconds_t ms)
     preempt_restore(sps);
 }
 
+errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nonnull pOutVp)
+{
+    vcpu_attr_t attr;
+
+    attr.version = sizeof(vcpu_attr_t);
+    attr.stack_size = 0;
+    attr.group_id = VCPUID_DEFAULT_GROUP;
+    attr.policy.version = sizeof(vcpu_policy_t);
+    attr.policy.qos.grade = qos;
+    attr.policy.qos.priority = priority;
+    attr.flags = 0;
+
+    return Process_AcquireVirtualProcessor(gKernelProcess, func, arg, &attr, 0, pOutVp);
+}
+
+void IOResumeVirtualProcessor(vcpu_t _Nonnull vcpu)
+{
+    vcpu_resume(vcpu, false);
+}

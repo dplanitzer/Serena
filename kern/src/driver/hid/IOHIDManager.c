@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <driver/hw/m68k-amiga/graphics/AGADriver.h>
+#include <driver/IOLib.h>
 #include <driver/IORegistry.h>
 #include <ext/bit.h>
 #include <ext/math.h>
@@ -82,15 +83,8 @@ errno_t IOHIDManager_Start(IOHIDManagerRef _Nonnull self)
     decl_try_err();
 
     // Create the event vcpu
-    vcpu_attr_t attr;
-    attr.version = sizeof(vcpu_attr_t);
-    attr.stack_size = 0;
-    attr.group_id = VCPUID_MAIN_GROUP;
-    attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos.grade = VCPU_QOS_REALTIME;
-    attr.policy.qos.priority = VCPU_PRI_HIGHEST - 1;
-    attr.flags = _VCPU_RESUMED;
-    try(Process_AcquireVirtualProcessor(gKernelProcess, (vcpu_func_t)_reports_collector_loop, self, &attr, 0, &self->reportsCollector));
+    try(IOAcquireVirtualProcessor((vcpu_func_t)_reports_collector_loop, self, VCPU_QOS_REALTIME, VCPU_PRI_HIGHEST - 1, &self->reportsCollector));
+    IOResumeVirtualProcessor(self->reportsCollector);
 
 
     // Enable VBL interrupts

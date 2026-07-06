@@ -11,6 +11,7 @@
 
 #include <ext/try.h>
 #include <kpi/_time.h>
+#include <kpi/vcpu.h>
 
 extern errno_t IOInit(void);
 
@@ -24,5 +25,17 @@ extern void IODelay(useconds_t us);
 // a true idle wait. Consequently the wait may be up to a few milliseconds longer
 // than what was specified. This is the preferred way to wait.
 extern void IOSleep(mseconds_t ms);
+
+
+// Acquires a virtual processor for IO work. 'qos' is the quality of service
+// level, 'priority' is the priority, 'func' the function that will be invoked
+// on the acquired vcpu and 'arg' is the argument that will be passed to the
+// new vcpu. The virtual processor will be relinquished when 'func' returns.
+extern errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nonnull pOutVp);
+
+// Resume the I/O virtual processor 'vcpu'. Call this function on a newly acquired
+// virtual processor after you've finished initializing teh data on which the
+// vcpu will depend.
+extern void IOResumeVirtualProcessor(vcpu_t _Nonnull vcpu);
 
 #endif /* IOLib_h */

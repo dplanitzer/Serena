@@ -9,12 +9,9 @@
 #include "AGADriverPriv.h"
 #include "copper.h"
 #include <string.h>
+#include <driver/IOLib.h>
 #include <hal/irq.h>
 #include <handler/IOGraphicsHandler.h>
-#include <kern/kalloc.h>
-#include <kpi/file.h>
-#include <kpi/hid.h>
-#include <process/kerneld.h>
 
 IOCATS_DEF(g_cats, IOVID_FB);
 
@@ -58,22 +55,14 @@ errno_t AGADriver_start(AGADriverRef _Nonnull self)
     wq_init(&self->copvpWaitQueue);
     self->copvpSigs = sig_bit(SIGCOPRUN);
 
-    vcpu_attr_t attr;
-    attr.version = sizeof(vcpu_attr_t);
-    attr.stack_size = 0;
-    attr.group_id = VCPUID_MAIN_GROUP;
-    attr.policy.version = sizeof(vcpu_policy_t);
-    attr.policy.qos.grade = VCPU_QOS_URGENT;
-    attr.policy.qos.priority = VCPU_PRI_NORMAL;
-    attr.flags = 0;
-    try(Process_AcquireVirtualProcessor(gKernelProcess, (vcpu_func_t)AGADriver_CopperManager, self, &attr, 0, &self->copvp));
+    try(IOAcquireVirtualProcessor((vcpu_func_t)AGADriver_CopperManager, self, VCPU_QOS_URGENT, VCPU_PRI_NORMAL, &self->copvp));
 
     
     // Initialize the Copper scheduler
     copper_init(nullCopperProg, SIGCOPRUN, self->copvp);
     copper_start();
 
-    vcpu_resume(self->copvp, false);
+    IOResumeVirtualProcessor(self->copvp);
     
 catch:
     return err;
