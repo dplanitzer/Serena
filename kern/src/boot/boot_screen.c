@@ -7,7 +7,7 @@
 //
 
 #include "boot_screen.h"
-#include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
+#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
 #include <driver/IORegistry.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kpi/fd.h>
@@ -20,7 +20,7 @@ IOCATS_DEF(g_fb_cats, IOVID_FB);
 void bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
-    GraphicsDriverRef fb = NULL;
+    AGADriverRef fb = NULL;
     int width, height;
     int srf = -1, clut = -1;
 
@@ -42,8 +42,8 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     if ((err = IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&fb)) == EOK) {
         // Create the surface and screen
-        GraphicsDriver_CreateSurface2d(fb, width, height, PIXFMT_RGB_IND_1, &srf);
-        GraphicsDriver_CreateCLUT(fb, 32, &clut);
+        AGADriver_CreateSurface2d(fb, width, height, PIXFMT_RGB_IND_1, &srf);
+        AGADriver_CreateCLUT(fb, 32, &clut);
 
 
         // Define the screen colors
@@ -51,7 +51,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
-        GraphicsDriver_SetCLUTEntries(fb, clut, 0, 2, clrs);
+        AGADriver_SetCLUTEntries(fb, clut, 0, 2, clrs);
 
         bscr->fb = fb;
         bscr->clut = clut;
@@ -59,8 +59,8 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         bscr->width = width;
         bscr->height = height;
 
-        GraphicsDriver_ClearPixels(fb, bscr->srf);
-        GraphicsDriver_MapSurface(fb, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
+        AGADriver_ClearPixels(fb, bscr->srf);
+        AGADriver_MapSurface(fb, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -74,7 +74,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         sc[2] = SCREEN_CONF_CLUT;
         sc[3] = bscr->clut;
         sc[4] = SCREEN_CONF_END;
-        GraphicsDriver_SetScreenConfig(fb, &sc[0]);
+        AGADriver_SetScreenConfig(fb, &sc[0]);
     }
 }
 
@@ -102,11 +102,11 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->fb) {
-        GraphicsDriver_UnmapSurface(bscr->fb, bscr->srf);
+        AGADriver_UnmapSurface(bscr->fb, bscr->srf);
 
-        GraphicsDriver_SetScreenConfig(bscr->fb, NULL);
-        GraphicsDriver_DestroyCLUT(bscr->fb, bscr->clut);
-        GraphicsDriver_DestroySurface(bscr->fb, bscr->srf);
+        AGADriver_SetScreenConfig(bscr->fb, NULL);
+        AGADriver_DestroyCLUT(bscr->fb, bscr->clut);
+        AGADriver_DestroySurface(bscr->fb, bscr->srf);
 
         IODriver_Close(bscr->fb);
         Object_Release(bscr->fb);

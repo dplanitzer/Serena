@@ -177,7 +177,7 @@ final_class_ivars(Console, Object,
     CharBuffer                  chb;
     cbuf_t                      reportsQueue;
 
-    GraphicsDriverRef _Nonnull  fb;
+    AGADriverRef _Nonnull  fb;
     int                         clutId;
     int                         surfaceId;
     surface_mapping_t           pixels;

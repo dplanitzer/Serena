@@ -1,12 +1,12 @@
 //
-//  GraphicsDriver.c
+//  AGADriver.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/7/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "GraphicsDriverPriv.h"
+#include "AGADriverPriv.h"
 #include "copper.h"
 #include <ext/math.h>
 #include <kern/kalloc.h>
@@ -42,7 +42,7 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
     return (hw << 16) | lw;
 }
 
-static errno_t _bind_sprite(GraphicsDriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf)
+static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf)
 {
     bool doEditCopperProg = false;
 
@@ -95,7 +95,7 @@ static errno_t _bind_sprite(GraphicsDriverRef _Nonnull _Locked self, int unit, S
 
 
     if (doEditCopperProg) {
-        copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+        copper_prog_t prog = _AGADriver_GetEditableCopperProg(self);
         
         if (prog) {
             copper_prog_sprptr_changed(prog, unit, (spr->surface && spr->isVisible) ? spr->surface : self->nullSpriteSurface);
@@ -106,7 +106,7 @@ static errno_t _bind_sprite(GraphicsDriverRef _Nonnull _Locked self, int unit, S
     return EOK;
 }
 
-static errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int unit, int x, int y)
+static errno_t _set_sprite_pos(AGADriverRef _Nonnull _Locked self, int unit, int x, int y)
 {
     if (unit < 0 || unit >= SPRITE_COUNT) {
         return EINVAL;
@@ -130,7 +130,7 @@ static errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int unit
     return EOK;
 }
 
-static errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int unit, bool isVisible)
+static errno_t _set_sprite_vis(AGADriverRef _Nonnull _Locked self, int unit, bool isVisible)
 {
     decl_try_err();
 
@@ -143,7 +143,7 @@ static errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int unit
         spr->isVisible = isVisible;
 
         if (spr->surface) {
-            copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+            copper_prog_t prog = _AGADriver_GetEditableCopperProg(self);
         
             if (prog) {
                 Surface* srf = (isVisible) ? spr->surface : self->nullSpriteSurface;
@@ -163,7 +163,7 @@ static errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int unit
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t _GraphicsDriver_BindSprite(GraphicsDriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf)
+errno_t _AGADriver_BindSprite(AGADriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf)
 {
     if (unit == MOUSE_SPRITE_PRI && self->flags.isMouseCursorObtained) {
         return EBUSY;
@@ -173,7 +173,7 @@ errno_t _GraphicsDriver_BindSprite(GraphicsDriverRef _Nonnull _Locked self, int 
     }
 }
 
-errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int spriteId, int x, int y)
+errno_t AGADriver_SetSpritePosition(AGADriverRef _Nonnull self, int spriteId, int x, int y)
 {
     decl_try_err();
 
@@ -188,7 +188,7 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
     return err;
 }
 
-errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spriteId, bool isVisible)
+errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int spriteId, bool isVisible)
 {
     decl_try_err();
 
@@ -203,7 +203,7 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
     return err;
 }
 
-void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, sprite_caps_t* _Nonnull cp)
+void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, sprite_caps_t* _Nonnull cp)
 {
     mtx_lock(&self->io_mtx);
     const video_conf_t* vcp = g_copper_running_prog->video_conf;
@@ -225,7 +225,7 @@ void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, sprite_caps_t
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_obtainCursor(GraphicsDriverRef _Nonnull self)
+errno_t AGADriver_obtainCursor(AGADriverRef _Nonnull self)
 {
     mtx_lock(&self->io_mtx);
     self->flags.isMouseCursorObtained = 1;
@@ -236,7 +236,7 @@ errno_t GraphicsDriver_obtainCursor(GraphicsDriverRef _Nonnull self)
     return EOK;
 }
 
-void GraphicsDriver_releaseCursor(GraphicsDriverRef _Nonnull self)
+void AGADriver_releaseCursor(AGADriverRef _Nonnull self)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
@@ -248,13 +248,13 @@ void GraphicsDriver_releaseCursor(GraphicsDriverRef _Nonnull self)
     mtx_unlock(&self->io_mtx);
 }
 
-errno_t GraphicsDriver_bindCursor(GraphicsDriverRef _Nonnull self, int id)
+errno_t AGADriver_bindCursor(AGADriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
-       Surface* srf = (id != 0) ? _GraphicsDriver_GetSurfaceForId(self, id) : NULL;
+       Surface* srf = (id != 0) ? _AGADriver_GetSurfaceForId(self, id) : NULL;
         if (srf || id == 0) {
             err = _bind_sprite(self, MOUSE_SPRITE_PRI, srf);
         }
@@ -269,7 +269,7 @@ errno_t GraphicsDriver_bindCursor(GraphicsDriverRef _Nonnull self, int id)
     return err;
 }
 
-void GraphicsDriver_setCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
+void AGADriver_setCursorPosition(AGADriverRef _Nonnull self, int x, int y)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
@@ -278,7 +278,7 @@ void GraphicsDriver_setCursorPosition(GraphicsDriverRef _Nonnull self, int x, in
     mtx_unlock(&self->io_mtx);
 }
 
-void GraphicsDriver_setCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
+void AGADriver_setCursorVisible(AGADriverRef _Nonnull self, bool isVisible)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {

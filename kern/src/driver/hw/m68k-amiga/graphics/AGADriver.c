@@ -1,12 +1,12 @@
 //
-//  GraphicsDriver.c
+//  AGADriver.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/7/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "GraphicsDriverPriv.h"
+#include "AGADriverPriv.h"
 #include "copper.h"
 #include <string.h>
 #include <hal/irq.h>
@@ -23,12 +23,12 @@ IOCATS_DEF(g_cats, IOVID_FB);
 // We assume that video is turned off at the time this function is called and
 // video remains turned off until a screen has been created and is made the
 // current screen.
-errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    GraphicsDriverRef self;
+    AGADriverRef self;
     
-    try(IODriver_Create(class(GraphicsDriver), g_cats, (IODriverRef*)&self));
+    try(IODriver_Create(class(AGADriver), g_cats, (IODriverRef*)&self));
     self->nextGObjId = 1;
     mtx_init(&self->io_mtx);
 
@@ -36,7 +36,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     // Create a null Copper program and null sprite
     copper_prog_t nullCopperProg;
     try(Surface_CreateNullSprite(&self->nullSpriteSurface));
-    try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
+    try(AGADriver_CreateNullCopperProg(self, &nullCopperProg));
     for (int i = 0; i < SPRITE_COUNT; i++) {
         self->spriteChannel[i].isVisible = true;
     }
@@ -54,7 +54,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     attr.policy.qos.grade = VCPU_QOS_URGENT;
     attr.policy.qos.priority = VCPU_PRI_NORMAL;
     attr.flags = 0;
-    try(Process_AcquireVirtualProcessor(gKernelProcess, (vcpu_func_t)GraphicsDriver_CopperManager, self, &attr, 0, &self->copvp));
+    try(Process_AcquireVirtualProcessor(gKernelProcess, (vcpu_func_t)AGADriver_CopperManager, self, &attr, 0, &self->copvp));
 
     
     // Initialize the Copper scheduler
@@ -69,7 +69,7 @@ catch:
     return err;
 }
 
-errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
+errno_t AGADriver_start(AGADriverRef _Nonnull self)
 {
     copper_start();
     vcpu_resume(self->copvp, false);
@@ -77,12 +77,12 @@ errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
     return EOK;
 }
 
-bool GraphicsDriver_isExclusive(GraphicsDriverRef _Nonnull self)
+bool AGADriver_isExclusive(AGADriverRef _Nonnull self)
 {
     return false;
 }
 
-errno_t GraphicsDriver_getDFSInfo(GraphicsDriverRef _Nonnull self, IODFSInfo* _Nonnull info)
+errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
     strcpy(info->name, "fb");
     info->func = IOGraphicsHandler_Create;
@@ -94,7 +94,7 @@ errno_t GraphicsDriver_getDFSInfo(GraphicsDriverRef _Nonnull self, IODFSInfo* _N
 }
 
 
-int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
+int _AGADriver_GetNewGObjId(AGADriverRef _Nonnull _Locked self)
 {
     bool hasCollision = true;
     int id;
@@ -113,7 +113,7 @@ int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
     return id;
 }
 
-void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked self, int id, int type)
+void* _Nullable _AGADriver_GetGObjForId(AGADriverRef _Nonnull _Locked self, int id, int type)
 {
     deque_for_each(&self->gobjs, GObject, it,
         if (GObject_GetId(it) == id) {
@@ -123,23 +123,23 @@ void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked 
     return NULL;
 }
 
-void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj)
+void _AGADriver_DestroyGObj(AGADriverRef _Nonnull _Locked self, void* gobj)
 {
     deque_remove(&self->gobjs, GObject_GetChainPtr(gobj));
     GObject_DelRef(gobj);
 }
 
 
-class_func_defs(GraphicsDriver, DisplayDriver,
-override_func_def(start, GraphicsDriver, IODriver)
-override_func_def(isExclusive, GraphicsDriver, IODriver)
-override_func_def(getDFSInfo, GraphicsDriver, IODriver)
-override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
-override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
-override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)
-override_func_def(obtainCursor, GraphicsDriver, DisplayDriver)
-override_func_def(releaseCursor, GraphicsDriver, DisplayDriver)
-override_func_def(bindCursor, GraphicsDriver, DisplayDriver)
-override_func_def(setCursorPosition, GraphicsDriver, DisplayDriver)
-override_func_def(setCursorVisible, GraphicsDriver, DisplayDriver)
+class_func_defs(AGADriver, DisplayDriver,
+override_func_def(start, AGADriver, IODriver)
+override_func_def(isExclusive, AGADriver, IODriver)
+override_func_def(getDFSInfo, AGADriver, IODriver)
+override_func_def(getScreenSize, AGADriver, DisplayDriver)
+override_func_def(setScreenConfigObserver, AGADriver, DisplayDriver)
+override_func_def(setLightPenEnabled, AGADriver, DisplayDriver)
+override_func_def(obtainCursor, AGADriver, DisplayDriver)
+override_func_def(releaseCursor, AGADriver, DisplayDriver)
+override_func_def(bindCursor, AGADriver, DisplayDriver)
+override_func_def(setCursorPosition, AGADriver, DisplayDriver)
+override_func_def(setCursorVisible, AGADriver, DisplayDriver)
 );

@@ -85,7 +85,7 @@ final_class_ivars(IOHIDManager, Object,
 
 
     // Framebuffer interface
-    GraphicsDriverRef _Nullable fb;
+    AGADriverRef _Nullable fb;
 
 
     // HID reports collector

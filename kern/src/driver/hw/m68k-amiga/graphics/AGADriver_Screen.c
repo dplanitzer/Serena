@@ -1,12 +1,12 @@
 //
-//  GraphicsDriver_Screen.c
+//  AGADriver_Screen.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/31/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "GraphicsDriverPriv.h"
+#include "AGADriverPriv.h"
 #include "copper.h"
 #include <hal/irq.h>
 
@@ -25,14 +25,14 @@ static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t 
 
 // Parses the given 'icfg' in order to get a CLUT that is suitable for the
 // screen configuration.
-static errno_t _get_clut_from_config(GraphicsDriverRef _Nonnull self, const intptr_t* _Nonnull icfg, ColorTable* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
+static errno_t _get_clut_from_config(AGADriverRef _Nonnull self, const intptr_t* _Nonnull icfg, ColorTable* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
 {
     decl_try_err();
     ColorTable* clut = NULL;
     const int clut_id = _get_config_value(icfg, SCREEN_CONF_CLUT, -1);
     
     if (clut_id != -1) {
-        clut = _GraphicsDriver_GetClutForId(self, clut_id);
+        clut = _AGADriver_GetClutForId(self, clut_id);
         if (clut == NULL) {
             return EINVAL;
         }
@@ -44,7 +44,7 @@ static errno_t _get_clut_from_config(GraphicsDriverRef _Nonnull self, const intp
         *pOutCreated = false;
     }
     else {
-        err = _GraphicsDriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_Black, &clut);
+        err = _AGADriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_Black, &clut);
         if (err != EOK) {
             return err;
         }
@@ -58,7 +58,7 @@ static errno_t _get_clut_from_config(GraphicsDriverRef _Nonnull self, const intp
 
 // Parses the given 'icfg' in order to get a surface that can be used as a
 // framebuffer for the screen configuration.
-static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, const intptr_t* _Nonnull icfg, Surface* _Nullable * _Nonnull pOutSurface, const video_conf_t* _Nullable * _Nonnull pOutVc, bool* _Nonnull pOutCreated)
+static errno_t _get_framebuffer_from_config(AGADriverRef _Nonnull self, const intptr_t* _Nonnull icfg, Surface* _Nullable * _Nonnull pOutSurface, const video_conf_t* _Nullable * _Nonnull pOutVc, bool* _Nonnull pOutCreated)
 {
     decl_try_err();
     Surface* fb = NULL;
@@ -66,7 +66,7 @@ static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, con
     const fb_id = _get_config_value(icfg, SCREEN_CONF_FRAMEBUFFER, -1);
 
     if (fb_id != -1) {
-        fb = _GraphicsDriver_GetSurfaceForId(self, fb_id);
+        fb = _AGADriver_GetSurfaceForId(self, fb_id);
         if (fb == NULL) {
             return EINVAL;
         }
@@ -92,7 +92,7 @@ static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, con
             return ENOTSUP;
         }
 
-        err = _GraphicsDriver_CreateSurface2d(self, w, h, fmt, &fb);
+        err = _AGADriver_CreateSurface2d(self, w, h, fmt, &fb);
         if (err != EOK) {
             return err;
         }
@@ -108,7 +108,7 @@ static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, con
 
 // Sets the given screen as the current screen on the graphics driver. All graphics
 // command apply to this new screen once this function has returned.
-static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull _Locked self, const intptr_t* _Nullable icfg)
+static errno_t AGADriver_SetScreenConfig_Locked(AGADriverRef _Nonnull _Locked self, const intptr_t* _Nullable icfg)
 {
     decl_try_err();
     Surface* fb = NULL;
@@ -124,10 +124,10 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         try(_get_clut_from_config(self, icfg, &clut, &bClutCreated));
         try(_get_framebuffer_from_config(self, icfg, &fb, &vc, &bFbCreated));
 
-        try(GraphicsDriver_CreateScreenCopperProg(self, vc, fb, clut, &prog));
+        try(AGADriver_CreateScreenCopperProg(self, vc, fb, clut, &prog));
     }
     else {
-        try(GraphicsDriver_CreateNullCopperProg(self, &prog));
+        try(AGADriver_CreateNullCopperProg(self, &prog));
     } 
 
 
@@ -139,27 +139,27 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
 catch:
     if (err != EOK) {
         if (bFbCreated) {
-            _GraphicsDriver_DestroyGObj(self, fb);
+            _AGADriver_DestroyGObj(self, fb);
         }
         if (bClutCreated) {
-            _GraphicsDriver_DestroyGObj(self, clut);
+            _AGADriver_DestroyGObj(self, clut);
         }
     }
 
     return err;
 }
 
-errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const intptr_t* _Nullable conf)
+errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf)
 {
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    err = GraphicsDriver_SetScreenConfig_Locked(self, conf);
+    err = AGADriver_SetScreenConfig_Locked(self, conf);
     mtx_unlock(&self->io_mtx);
     return err;
 }
 
-errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz)
+errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz)
 {
     decl_try_err();
     size_t i = 0;
@@ -202,7 +202,7 @@ catch:
     return err;
 }
 
-errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
+errno_t AGADriver_SetScreenCLUTEntries(AGADriverRef _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
 {
     decl_try_err();
 
@@ -219,7 +219,7 @@ errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, siz
     return err;
 }
 
-void GraphicsDriver_getScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+void AGADriver_getScreenSize(AGADriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     const video_conf_t* vc = g_copper_running_prog->video_conf;
 
@@ -227,7 +227,7 @@ void GraphicsDriver_getScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull
     *pOutHeight = vc->height;
 }
 
-void GraphicsDriver_setScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+void AGADriver_setScreenConfigObserver(AGADriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
     mtx_lock(&self->io_mtx);
     self->screenConfigObserver = vp;
@@ -236,13 +236,13 @@ void GraphicsDriver_setScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcp
 }
 
 
-void GraphicsDriver_setLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
+void AGADriver_setLightPenEnabled(AGADriverRef _Nonnull self, bool enabled)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isLightPenEnabled != enabled) {
         self->flags.isLightPenEnabled = enabled;
 
-        copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+        copper_prog_t prog = _AGADriver_GetEditableCopperProg(self);
         if (prog) {
             copper_prog_set_lp_enabled(prog, enabled);
             copper_schedule(prog, 0);

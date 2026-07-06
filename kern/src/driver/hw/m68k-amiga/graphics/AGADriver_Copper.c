@@ -1,12 +1,12 @@
 //
-//  GraphicsDriver_Copper.c
+//  AGADriver_Copper.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/27/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "GraphicsDriverPriv.h"
+#include "AGADriverPriv.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -14,7 +14,7 @@
 // MARK: Copper Management
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)
+static errno_t _create_copper_prog(AGADriverRef _Nonnull _Locked self, size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     copper_prog_t prog = NULL;
@@ -60,7 +60,7 @@ static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size
     return EOK;
 }
 
-static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nonnull prog)
+static void _cache_copper_prog(AGADriverRef _Nonnull _Locked self, copper_prog_t _Nonnull prog)
 {
     ColorTable* clut = (ColorTable*)prog->res.clut;
     Surface* fb = (Surface*)prog->res.fb;
@@ -93,7 +93,7 @@ static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_p
 }
 
 
-void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
+void AGADriver_CopperManager(AGADriverRef _Nonnull self)
 {
     mtx_lock(&self->io_mtx);
 
@@ -127,26 +127,26 @@ void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
 // MARK: Copper Program Generators
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t AGADriver_CreateNullCopperProg(AGADriverRef _Nonnull _Locked self, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     ColorTable* clut;
 
-    err = _GraphicsDriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_White, &clut);
+    err = _AGADriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_White, &clut);
     if (err != EOK) {
         return err;
     }
 
-    err = GraphicsDriver_CreateScreenCopperProg(self, get_null_video_conf(), NULL, clut, pOutProg);
+    err = AGADriver_CreateScreenCopperProg(self, get_null_video_conf(), NULL, clut, pOutProg);
     if (err != EOK) {
-        _GraphicsDriver_DestroyGObj(self, clut);
+        _AGADriver_DestroyGObj(self, clut);
         return err;
     }
 
     return EOK;
 }
 
-errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t AGADriver_CreateScreenCopperProg(AGADriverRef _Nonnull _Locked self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = calc_copper_prog_instruction_count(vc);
@@ -162,7 +162,7 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
     return err;
 }
 
-copper_prog_t _Nullable _GraphicsDriver_GetEditableCopperProg(GraphicsDriverRef _Nonnull _Locked self)
+copper_prog_t _Nullable _AGADriver_GetEditableCopperProg(AGADriverRef _Nonnull _Locked self)
 {
     copper_prog_t prog = copper_unschedule();
 

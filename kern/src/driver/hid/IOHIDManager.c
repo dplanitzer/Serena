@@ -9,7 +9,7 @@
 #include "IOHIDManagerPriv.h"
 #include <assert.h>
 #include <limits.h>
-#include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
+#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
 #include <driver/IORegistry.h>
 #include <ext/bit.h>
 #include <ext/math.h>
@@ -216,7 +216,7 @@ void IOHIDManager_ReleaseCursor(IOHIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->fb) {
         DisplayDriver_ReleaseCursor(self->fb);
-        GraphicsDriver_DestroySurface(self->fb, self->cursorSurfaceId);
+        AGADriver_DestroySurface(self->fb, self->cursorSurfaceId);
         self->cursorSurfaceId = 0;
     }
     mtx_unlock(&self->mtx);
@@ -243,17 +243,17 @@ errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nulla
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(GraphicsDriver_CreateSurface2d(self->fb, width, height, PIXFMT_RGB_SPRITE_2, &newId));
+        try(AGADriver_CreateSurface2d(self->fb, width, height, PIXFMT_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
         if (self->cursorSurfaceId) {
-            GraphicsDriver_DestroySurface(self->fb, self->cursorSurfaceId);
+            AGADriver_DestroySurface(self->fb, self->cursorSurfaceId);
         }
         self->cursorSurfaceId = newId;
     }
 
-    try(GraphicsDriver_WritePixels(self->fb, self->cursorSurfaceId, planes, bytesPerRow, format));
+    try(AGADriver_WritePixels(self->fb, self->cursorSurfaceId, planes, bytesPerRow, format));
     try(DisplayDriver_BindCursor(self->fb, self->cursorSurfaceId));
     self->hotSpotX = hotSpotX;
     self->hotSpotY = hotSpotY;

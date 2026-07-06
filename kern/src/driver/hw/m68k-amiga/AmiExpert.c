@@ -11,7 +11,7 @@
 #include <ext/math.h>
 #include <driver/IORegistry.h>
 #include <driver/hw/m68k-amiga/floppy/AFDBus.h>
-#include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
+#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
 #include <driver/hw/m68k-amiga/hid/AmiGPBus.h>
 #include <driver/hw/m68k-amiga/hid/AmiKeyboard.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroBus.h>
@@ -40,11 +40,13 @@
 // - Level 2, CIA A, timer B:       monotonic clock timer services
 // - Level 2, CIA A, serial port:   AmiKeyboard
 // - Level 2, ports:                available for Zorro devices
-// - Level 3, vertical blank:       GraphicsDriver
+// - Level 3, vertical blank:       AGADriver
 // - Level 6, external:             available for Zorro devices
 //
 // DMA:
 //
+// - Bitplane DMA:                  AGADriver
+// - Copper DMA:                    AGADriver
 // - Disk DMA:                      AFDBus/AFDDevice
 //
 
@@ -90,8 +92,8 @@ void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
 
 
     // Graphics Driver
-    GraphicsDriverRef fb = NULL;
-    try(GraphicsDriver_Create(&fb));
+    AGADriverRef fb = NULL;
+    try(AGADriver_Create(&fb));
     try(IODriver_Launch(fb, (IODriverRef)self));
 
 

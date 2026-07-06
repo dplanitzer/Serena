@@ -63,7 +63,7 @@ class_ref(VirtualDiskManager);
 // Amiga
 class_ref(AFDBus);
 class_ref(AFDDevice);
-class_ref(GraphicsDriver);
+class_ref(AGADriver);
 class_ref(AmiGPBus);
 class_ref(AmiJoystick);
 class_ref(AmiKeyboard);

@@ -15,7 +15,7 @@
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {
-    GraphicsDriverRef _Nullable fb;
+    AGADriverRef _Nullable fb;
     int                         clut;
     int                         srf;
     size_t                      width;
