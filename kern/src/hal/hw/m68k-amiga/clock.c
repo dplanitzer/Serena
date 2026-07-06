@@ -10,6 +10,7 @@
 #include <ext/nanotime.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/cia8520.h>
 #include <hal/irq.h>
 #include <kern/kernlib.h>
 #include <sched/sched.h>
@@ -19,8 +20,6 @@ struct ticks_ns {
     long    ns;
 };
 
-extern void _clock_start_ticker(const clock_ref_t _Nonnull self);
-extern void _clock_stop_ticker(void);
 extern void _clock_getticks_ns(const clock_ref_t _Nonnull self, struct ticks_ns* _Nonnull tnp);
 void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
@@ -70,7 +69,11 @@ void clock_start(clock_ref_t _Nonnull self)
 {
     irq_set_direct_handler(IRQ_ID_MONOTONIC_CLOCK, (irq_direct_func_t)clock_irq, self);
     irq_enable_src(IRQ_ID_CIA_A_TIMER_B);
-    _clock_start_ticker(self);
+
+    // Start the clock timer
+    hw_cia_a->tblo = self->cia_cycles_per_tick & 0xff;
+    hw_cia_a->tbhi = self->cia_cycles_per_tick >> 8;
+    hw_cia_a->crb = 0x11;
 }
 
 void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)

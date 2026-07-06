@@ -10,49 +10,10 @@
     include <hal/hw/m68k/lowmem.i>
 
 
-    xdef __clock_start_ticker
-    xdef __clock_stop_ticker
     xdef __clock_getticks_ns
     xdef _clock_time2ticks_floor
     xdef _clock_time2ticks_ceil
     xdef _clock_ticks2time
-
-
-;-------------------------------------------------------------------------------
-; void _clock_start_ticker(const clock_ref_t _Nonnull self)
-; Starts the clock running. A hardware timer is used to provide the clock
-; heartbeat which is used to increment the clock tick counter.
-__clock_start_ticker:
-    cargs csqt_clock_ptr.l
-
-    move.l  csqt_clock_ptr(sp), a0
-
-    ; stop the timer
-    jsr     __clock_stop_ticker
-
-    ; load the timer with the new ticks value
-    move.w  mtc_cia_cycles_per_tick(a0), d0
-    move.b  d0, CIAATBLO
-    lsr.w   #8, d0
-    move.b  d0, CIAATBHI
-
-    ; start the timer
-    move.b  CIAACRB, d0
-    or.b    #%00010001, d0
-    and.b   #%10010001, d0
-    move.b  d0, CIAACRB
-
-    rts
-
-
-;-------------------------------------------------------------------------------
-; void _clock_stop_ticker(void)
-; Stops the clock.
-__clock_stop_ticker:
-    move.b  CIAACRB, d1
-    and.b   #%11101110, d1
-    move.b  d1, CIAACRB
-    rts
 
 
 ;-------------------------------------------------------------------------------
