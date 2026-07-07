@@ -9,35 +9,46 @@
 #ifndef Surface_h
 #define Surface_h
 
-#include "GObject.h"
 #include <ext/try.h>
+#include <ext/queue.h>
 #include <kpi/framebuffer.h>
 
 
 enum {
     kSurfaceFlag_ClusteredPlanes = 0x01,    // Surface is planar and all planes share a single kalloc() memory block. Ptr of this memory block is in planes[0]
     kSurfaceFlag_IsMapped = 0x02,
+    kSurfaceFlag_IsRegistered = 0x04,
 };
 
 typedef struct Surface {
-    GObject             super;
+    deque_node_t        chain;
+    int                 id;
+    int                 refCount;
     uint8_t* _Nullable  plane[8];
     int                 width;
     int                 height;
     size_t              bytesPerRow;
-    pixfmt_t         pixelFormat;
+    pixfmt_t            pixelFormat;
     int8_t              planeCount;
     uint8_t             flags;
 } Surface;
 
 
-extern errno_t Surface_Create(int id, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern errno_t Surface_Create(int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
 
 // Create a surface that represents a null sprite.
 extern errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf);
 
-extern void Surface_Destroy(Surface* _Nullable self);
+#define Surface_AddRef(__self) \
+(((Surface*)(__self))->refCount++)
 
+extern void Surface_DelRef(Surface* _Nullable self);
+
+extern Surface* _Nullable Surface_GetForId(int id);
+
+
+#define Surface_GetId(__self) \
+(((Surface*)(__self))->id)
 
 // Returns the pixel width of the surface.
 #define Surface_GetWidth(__self) \

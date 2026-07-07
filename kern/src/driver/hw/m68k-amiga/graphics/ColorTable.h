@@ -9,9 +9,14 @@
 #ifndef ColorTable_h
 #define ColorTable_h
 
-#include "GObject.h"
 #include <ext/try.h>
+#include <ext/queue.h>
 #include <kpi/framebuffer.h>
+
+
+enum {
+    kColorTableFlag_IsRegistered = 0x01,
+};
 
 
 typedef struct CLUTEntry {
@@ -23,15 +28,27 @@ typedef struct CLUTEntry {
 
 
 typedef struct ColorTable {
-    GObject     super;
-    size_t      entryCount;
-    uint16_t    entry[1];
+    deque_node_t    chain;
+    int             id;
+    int             refCount;
+    uint16_t        flags;
+    uint16_t        entryCount;
+    uint16_t        entry[1];
 } ColorTable;
 
 
-extern errno_t ColorTable_Create(int id, size_t entryCount, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf);
-extern void ColorTable_Destroy(ColorTable* _Nullable self);
+extern errno_t ColorTable_Create(size_t entryCount, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf);
 
+#define ColorTable_AddRef(__self) \
+(((ColorTable*)(__self))->refCount++)
+
+extern void ColorTable_DelRef(ColorTable* _Nullable self);
+
+extern ColorTable* _Nullable ColorTable_GetForId(int id);
+
+
+#define ColorTable_GetId(__self) \
+(((ColorTable*)(__self))->id)
 
 extern errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, color_rgb32_t color);
 extern errno_t ColorTable_SetEntries(ColorTable* _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries);

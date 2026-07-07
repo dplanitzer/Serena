@@ -54,13 +54,13 @@ void copper_prog_destroy(copper_prog_t _Nullable prog)
         prog->even_entry = NULL;
         prog->odd_entry = NULL;
 
-        GObject_DelRef(prog->res.fb);
+        Surface_DelRef(prog->res.fb);
         prog->res.fb = NULL;
-        GObject_DelRef(prog->res.clut);
+        ColorTable_DelRef(prog->res.clut);
         prog->res.clut = NULL;
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
-            GObject_DelRef(prog->res.spr[i]);
+            Surface_DelRef(prog->res.spr[i]);
             prog->res.spr[i] = NULL;
         }
     }
@@ -241,15 +241,18 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     self->video_conf = vc;
 
     self->res.fb = fb;
-    if (fb) GObject_AddRef(self->res.fb);
+    if (fb) {
+        Surface_AddRef(self->res.fb);
+    }
+
     self->res.clut = clut;
-    GObject_AddRef(self->res.clut);
+    ColorTable_AddRef(self->res.clut);
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
         Surface* srf = (spr[i].surface && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
 
         self->res.spr[i] = srf;
-        GObject_AddRef(srf);
+        Surface_AddRef(srf);
     }
 }
 
@@ -309,8 +312,8 @@ void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface
     }
 
     if (self->res.spr[spridx] != srf) {
-        GObject_AddRef(srf);
-        GObject_DelRef(self->res.spr[spridx]);
+        Surface_AddRef(srf);
+        Surface_DelRef(self->res.spr[spridx]);
         self->res.spr[spridx] = srf;
     }
 }

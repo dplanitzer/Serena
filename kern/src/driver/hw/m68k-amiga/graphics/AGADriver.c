@@ -26,7 +26,6 @@ errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf)
     AGADriverRef self;
     
     try(IODriver_Create(class(AGADriver), g_cats, (IODriverRef*)&self));
-    self->nextGObjId = 1;
     mtx_init(&self->io_mtx);
 
     *pOutSelf = self;
@@ -83,42 +82,6 @@ errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull inf
     info->perms = fs_perms_from_octal(0666);
 
     return EOK;
-}
-
-
-int _AGADriver_GetNewGObjId(AGADriverRef _Nonnull _Locked self)
-{
-    bool hasCollision = true;
-    int id;
-
-    while (hasCollision) {
-        hasCollision = false;
-        id = self->nextGObjId++;
-
-        deque_for_each(&self->gobjs, GObject, it,
-            if (GObject_GetId(it) == id) {
-                hasCollision = true;
-                break;
-            }
-        )
-    }
-    return id;
-}
-
-void* _Nullable _AGADriver_GetGObjForId(AGADriverRef _Nonnull _Locked self, int id, int type)
-{
-    deque_for_each(&self->gobjs, GObject, it,
-        if (GObject_GetId(it) == id) {
-            return (GObject_GetType(it) == type) ? it : NULL;
-        }
-    )
-    return NULL;
-}
-
-void _AGADriver_DestroyGObj(AGADriverRef _Nonnull _Locked self, void* gobj)
-{
-    deque_remove(&self->gobjs, GObject_GetChainPtr(gobj));
-    GObject_DelRef(gobj);
 }
 
 

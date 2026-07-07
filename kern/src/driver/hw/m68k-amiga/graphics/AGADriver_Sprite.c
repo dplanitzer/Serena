@@ -75,7 +75,7 @@ static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surfac
         // Drop the sprite channel reference. Note that the currently running Copper
         // program still holds a reference on the sprite surface. This one will be
         // freed after the Copper program has been retired
-        GObject_DelRef(spr->surface);
+        Surface_DelRef(spr->surface);
         spr->surface = NULL;
 
         doEditCopperProg = true;
@@ -85,7 +85,7 @@ static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surfac
     // Bind the new surface if there is one
     if (srf) {
         spr->surface = srf;
-        GObject_AddRef(srf);
+        Surface_AddRef(srf);
 
         uint32_t* sprptr = (uint32_t*)Surface_GetPlane(srf, 0);
         *sprptr = _calc_sprite_ctl(spr);
@@ -254,7 +254,8 @@ errno_t AGADriver_bindCursor(AGADriverRef _Nonnull self, int id)
 
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
-       Surface* srf = (id != 0) ? _AGADriver_GetSurfaceForId(self, id) : NULL;
+       Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
+
         if (srf || id == 0) {
             err = _bind_sprite(self, MOUSE_SPRITE_PRI, srf);
         }

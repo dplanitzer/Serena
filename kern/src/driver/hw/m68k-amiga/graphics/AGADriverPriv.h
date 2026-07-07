@@ -44,9 +44,6 @@ final_class_ivars(AGADriver, DisplayDriver,
     Surface* _Nonnull       nullSpriteSurface;
     sprite_channel_t        spriteChannel[SPRITE_COUNT];
 
-    deque_t/*<GObject>*/    gobjs;
-    int                     nextGObjId;
-
     struct __GDFlags {
         unsigned int    isLightPenEnabled:1;
         unsigned int    isMouseCursorObtained:1;
@@ -54,8 +51,6 @@ final_class_ivars(AGADriver, DisplayDriver,
     }                       flags;
 );
 
-
-extern int _AGADriver_GetNewGObjId(AGADriverRef _Nonnull _Locked self);
 
 extern errno_t _AGADriver_CreateSurface2d(AGADriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
 extern errno_t _AGADriver_CreateCLUT(AGADriverRef _Nonnull _Locked self, size_t colorDepth, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutClut);
@@ -74,16 +69,6 @@ extern errno_t AGADriver_CreateScreenCopperProg(AGADriverRef _Nonnull _Locked se
 
 extern copper_prog_t _Nullable _AGADriver_GetEditableCopperProg(AGADriverRef _Nonnull _Locked self);
 
-
-extern void* _Nullable _AGADriver_GetGObjForId(AGADriverRef _Nonnull _Locked self, int id, int type);
-
-#define _AGADriver_GetSurfaceForId(__self, __id) \
-(Surface*)_AGADriver_GetGObjForId(__self, __id, kGObject_Surface)
-
-#define _AGADriver_GetClutForId(__self, __id) \
-(ColorTable*)_AGADriver_GetGObjForId(__self, __id, kGObject_ColorTable)
-
-extern void _AGADriver_DestroyGObj(AGADriverRef _Nonnull _Locked self, void* gobj);
 
 extern errno_t _AGADriver_BindSprite(AGADriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf);
 

@@ -12,6 +12,9 @@
 #include <string.h>
 #include <kern/kalloc.h>
 
+static int      g_next_surface_id = 1;
+static deque_t  g_surface_table;
+
 
 static errno_t _alloc_single_plane(Surface* _Nonnull self)
 {
@@ -76,13 +79,32 @@ static errno_t _alloc_multi_plane(Surface* _Nonnull self)
     return err;
 }
 
+static void _destroy(Surface* _Nonnull self)
+{
+    if ((self->flags & kSurfaceFlag_IsRegistered) != 0) {
+        deque_remove(&g_surface_table, &self->chain);
+    }
+
+    if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
+        kfree(self->plane[0]);
+    }
+    else {
+        for (int i = 0; i < self->planeCount; i++) {
+            kfree(self->plane[i]);
+        }
+    }
+
+    kfree(self);
+}
+
+
 // Allocates a new surface with the given pixel width and height and pixel
 // format.
 // \param width the width in pixels
 // \param height the height in pixels
 // \param pixelFormat the pixel format
 // \return the surface; NULL on failure
-errno_t Surface_Create(int id, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
+errno_t Surface_Create(int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Surface* self;
@@ -94,9 +116,8 @@ errno_t Surface_Create(int id, int width, int height, pixfmt_t pixelFormat, Surf
 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
-    self->super.type = kGObject_Surface;
-    self->super.id = id;
-    self->super.refCount = 1;
+    self->id = g_next_surface_id++;
+    self->refCount = 1;
     self->pixelFormat = pixelFormat;
     self->width = width;
     self->height = height;
@@ -112,11 +133,14 @@ errno_t Surface_Create(int id, int width, int height, pixfmt_t pixelFormat, Surf
     }
     
 
+    deque_add_first(&g_surface_table, &self->chain);
+    self->flags |= kSurfaceFlag_IsRegistered;
+
     *pOutSelf = self;
     return EOK;
     
 catch:
-    Surface_Destroy(self);
+    _destroy(self);
     *pOutSelf = NULL;
     return err;
 }
@@ -124,7 +148,7 @@ catch:
 errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf)
 {
     Surface* self;
-    const errno_t err = Surface_Create(0, 16, 1, PIXFMT_RGB_SPRITE_2, &self);
+    const errno_t err = Surface_Create(16, 1, PIXFMT_RGB_SPRITE_2, &self);
 
     if (err == EOK) {
         uint16_t* pp = (uint16_t*)self->plane[0];
@@ -141,25 +165,24 @@ errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf)
     return err;
 }
 
-// Deallocates the given surface.
-// \param pSurface the surface
-void Surface_Destroy(Surface* _Nonnull self)
+void Surface_DelRef(Surface* _Nullable self)
 {
     if (self) {
-        if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
-            kfree(self->plane[0]);
+        self->refCount--;
+        if (self->refCount == 0) {
+            _destroy(self);
         }
-        else {
-            for (int i = 0; i < self->planeCount; i++) {
-                kfree(self->plane[i]);
-            }
-        }
-        for (int i = 0; i < self->planeCount; i++) {
-            self->plane[i] = NULL;
-        }
-
-        kfree(self);
     }
+}
+
+Surface* _Nullable Surface_GetForId(int id)
+{
+    deque_for_each(&g_surface_table, Surface, it,
+        if (it->id == id) {
+            return it;
+        }
+    )
+    return NULL;
 }
 
 errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format)

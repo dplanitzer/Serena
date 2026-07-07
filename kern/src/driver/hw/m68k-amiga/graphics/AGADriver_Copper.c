@@ -65,13 +65,13 @@ static void _cache_copper_prog(AGADriverRef _Nonnull _Locked self, copper_prog_t
     ColorTable* clut = (ColorTable*)prog->res.clut;
     Surface* fb = (Surface*)prog->res.fb;
 
-    GObject_DelRef(clut);
+    ColorTable_DelRef(clut);
     prog->res.clut = NULL;
-    GObject_DelRef(fb);
+    Surface_DelRef(fb);
     prog->res.fb = NULL;
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        GObject_DelRef(prog->res.spr[i]);
+        Surface_DelRef(prog->res.spr[i]);
         prog->res.spr[i] = NULL;
     }
 
@@ -132,14 +132,14 @@ errno_t AGADriver_CreateNullCopperProg(AGADriverRef _Nonnull _Locked self, coppe
     decl_try_err();
     ColorTable* clut;
 
-    err = _AGADriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_White, &clut);
+    err = ColorTable_Create(COLOR_COUNT, kRGBColor32_White, &clut);
     if (err != EOK) {
         return err;
     }
 
     err = AGADriver_CreateScreenCopperProg(self, get_null_video_conf(), NULL, clut, pOutProg);
     if (err != EOK) {
-        _AGADriver_DestroyGObj(self, clut);
+        ColorTable_DelRef(clut);
         return err;
     }
 
@@ -193,11 +193,13 @@ copper_prog_t _Nullable _AGADriver_GetEditableCopperProg(AGADriverRef _Nonnull _
         prog->video_conf = run_prog->video_conf;
         prog->res = run_prog->res;
 
-        GObject_AddRef(prog->res.clut);
-        if (prog->res.fb) GObject_AddRef(prog->res.fb);
+        ColorTable_AddRef(prog->res.clut);
+        if (prog->res.fb) {
+            Surface_AddRef(prog->res.fb);
+        }
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
-            GObject_AddRef(prog->res.spr[i]);
+            Surface_AddRef(prog->res.spr[i]);
         }
     }
     return prog;

@@ -9,10 +9,26 @@
 #include "ColorTable.h"
 #include <kern/kalloc.h>
 
-static uint16_t _convert_color(color_rgb32_t color);
+static int      g_next_clut_id = 1;
+static deque_t  g_clut_table;
 
 
-errno_t ColorTable_Create(int id, size_t entryCount, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf)
+static uint16_t _convert_color(color_rgb32_t color)
+{
+    const uint16_t r = RGBColor32_GetRed(color);
+    const uint16_t g = RGBColor32_GetGreen(color);
+    const uint16_t b = RGBColor32_GetBlue(color);
+    
+    return (r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
+}
+
+static void _destroy(ColorTable* _Nullable self)
+{
+    kfree(self);
+}
+
+
+errno_t ColorTable_Create(size_t entryCount, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ColorTable* self;
@@ -33,35 +49,44 @@ errno_t ColorTable_Create(int id, size_t entryCount, color_rgb32_t defaultColor,
     }
 
     try(kalloc(sizeof(ColorTable) + (entryCount - 1) * sizeof(uint16_t), (void**) &self));
-    self->super.chain.next = NULL;
-    self->super.chain.prev = NULL;
-    self->super.type = kGObject_ColorTable;
-    self->super.id = id;
-    self->super.refCount = 1;
+    self->chain.next = NULL;
+    self->chain.prev = NULL;
+    self->id = g_next_clut_id++;
+    self->refCount = 1;
     self->entryCount = entryCount;
 
     const uint16_t rgb444 = _convert_color(defaultColor);
     for (size_t i = 0; i < entryCount; i++) {
         self->entry[i] = rgb444;
     }
+    
+
+    deque_add_first(&g_clut_table, &self->chain);
+    self->flags |= kColorTableFlag_IsRegistered;
 
 catch:
     *pOutSelf = self;
     return err;
 }
 
-void ColorTable_Destroy(ColorTable* _Nullable self)
+void ColorTable_DelRef(ColorTable* _Nullable self)
 {
-    kfree(self);
+    if (self) {
+        self->refCount--;
+        if (self->refCount == 0) {
+            _destroy(self);
+        }
+    }
 }
 
-static uint16_t _convert_color(color_rgb32_t color)
+ColorTable* _Nullable ColorTable_GetForId(int id)
 {
-    const uint16_t r = RGBColor32_GetRed(color);
-    const uint16_t g = RGBColor32_GetGreen(color);
-    const uint16_t b = RGBColor32_GetBlue(color);
-    
-    return (r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
+    deque_for_each(&g_clut_table, ColorTable, it,
+        if (it->id == id) {
+            return it;
+        }
+    )
+    return NULL;
 }
 
 // Writes the given RGB color to the color register at index idx

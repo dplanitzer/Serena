@@ -9,27 +9,14 @@
 #include "AGADriverPriv.h"
 
 
-errno_t _AGADriver_CreateSurface2d(AGADriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
-{
-    Surface* srf;
-
-    const errno_t err = Surface_Create(_AGADriver_GetNewGObjId(self), width, height, pixelFormat, &srf);
-    if (err == EOK) {
-        deque_add_first(&self->gobjs, GObject_GetChainPtr(srf));
-        *pOutSurface = srf;
-    }
-
-    return err;
-}
-
 errno_t AGADriver_CreateSurface2d(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     Surface* srf;
 
     mtx_lock(&self->io_mtx);
-    const errno_t err = _AGADriver_CreateSurface2d(self, width, height, pixelFormat, &srf);
+    const errno_t err = Surface_Create(width, height, pixelFormat, &srf);
     if (err == EOK) {
-        *pOutId = GObject_GetId(srf);
+        *pOutId = Surface_GetId(srf);
     }
     mtx_unlock(&self->io_mtx);
     return err;
@@ -44,7 +31,7 @@ errno_t AGADriver_DestroySurface(AGADriverRef _Nonnull self, int id)
     }
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = _AGADriver_GetSurfaceForId(self, id);
+    Surface* srf = Surface_GetForId(id);
 
     if (srf == NULL) {
         throw(EINVAL);
@@ -59,7 +46,7 @@ errno_t AGADriver_DestroySurface(AGADriverRef _Nonnull self, int id)
         }
     }
 
-    _AGADriver_DestroyGObj(self, srf);
+    Surface_DelRef(srf);
 
 catch:
     mtx_unlock(&self->io_mtx);
@@ -71,7 +58,8 @@ errno_t AGADriver_BindSurface(AGADriverRef _Nonnull self, int target, int id)
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = (id != 0) ? _AGADriver_GetSurfaceForId(self, id) : NULL;
+    Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
+    
     if (srf || id == 0) {
         switch (target & 0xffff0000) {
             case TARGET_SPRITE_0:
@@ -95,7 +83,7 @@ errno_t AGADriver_GetSurfaceInfo(AGADriverRef _Nonnull self, int id, surface_inf
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = _AGADriver_GetSurfaceForId(self, id);
+    Surface* srf = Surface_GetForId(id);
 
     if (srf) {
         pOutInfo->width = Surface_GetWidth(srf);
@@ -114,7 +102,7 @@ errno_t AGADriver_MapSurface(AGADriverRef _Nonnull self, int id, int mode, surfa
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = _AGADriver_GetSurfaceForId(self, id);
+    Surface* srf = Surface_GetForId(id);
 
     if (srf == NULL) {
         throw(EINVAL);
@@ -145,7 +133,7 @@ errno_t AGADriver_UnmapSurface(AGADriverRef _Nonnull self, int id)
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = _AGADriver_GetSurfaceForId(self, id);
+    Surface* srf = Surface_GetForId(id);
     if (srf) {
         if (Surface_IsMapped(srf)) {
             srf->flags &= ~kSurfaceFlag_IsMapped;
@@ -166,7 +154,7 @@ errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _N
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = _AGADriver_GetSurfaceForId(self, id);
+    Surface* srf = Surface_GetForId(id);
     if (srf) {
         Surface_WritePixels(srf, planes, bytesPerRow, format);
     }
@@ -182,7 +170,7 @@ errno_t AGADriver_ClearPixels(AGADriverRef _Nonnull self, int id)
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Surface* srf = _AGADriver_GetSurfaceForId(self, id);
+    Surface* srf = Surface_GetForId(id);
     if (srf) {
         Surface_ClearPixels(srf);
     }

@@ -32,7 +32,7 @@ static errno_t _get_clut_from_config(AGADriverRef _Nonnull self, const intptr_t*
     const int clut_id = _get_config_value(icfg, SCREEN_CONF_CLUT, -1);
     
     if (clut_id != -1) {
-        clut = _AGADriver_GetClutForId(self, clut_id);
+        clut = ColorTable_GetForId(clut_id);
         if (clut == NULL) {
             return EINVAL;
         }
@@ -44,7 +44,7 @@ static errno_t _get_clut_from_config(AGADriverRef _Nonnull self, const intptr_t*
         *pOutCreated = false;
     }
     else {
-        err = _AGADriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_Black, &clut);
+        err = ColorTable_Create(COLOR_COUNT, kRGBColor32_Black, &clut);
         if (err != EOK) {
             return err;
         }
@@ -66,7 +66,7 @@ static errno_t _get_framebuffer_from_config(AGADriverRef _Nonnull self, const in
     const fb_id = _get_config_value(icfg, SCREEN_CONF_FRAMEBUFFER, -1);
 
     if (fb_id != -1) {
-        fb = _AGADriver_GetSurfaceForId(self, fb_id);
+        fb = Surface_GetForId(fb_id);
         if (fb == NULL) {
             return EINVAL;
         }
@@ -92,7 +92,7 @@ static errno_t _get_framebuffer_from_config(AGADriverRef _Nonnull self, const in
             return ENOTSUP;
         }
 
-        err = _AGADriver_CreateSurface2d(self, w, h, fmt, &fb);
+        err = Surface_Create(w, h, fmt, &fb);
         if (err != EOK) {
             return err;
         }
@@ -139,10 +139,10 @@ static errno_t AGADriver_SetScreenConfig_Locked(AGADriverRef _Nonnull _Locked se
 catch:
     if (err != EOK) {
         if (bFbCreated) {
-            _AGADriver_DestroyGObj(self, fb);
+            Surface_DelRef(fb);
         }
         if (bClutCreated) {
-            _AGADriver_DestroyGObj(self, clut);
+            ColorTable_DelRef(clut);
         }
     }
 
@@ -186,9 +186,9 @@ errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull
     irq_restore_mask(sim);
 
     conf[i++] = SCREEN_CONF_FRAMEBUFFER;
-    conf[i++] = (fb) ? GObject_GetId(fb) : 0;
+    conf[i++] = (fb) ? Surface_GetId(fb) : 0;
     conf[i++] = SCREEN_CONF_CLUT;
-    conf[i++] = (clut) ? GObject_GetId(clut) : 0;
+    conf[i++] = (clut) ? ColorTable_GetId(clut) : 0;
     conf[i++] = SCREEN_CONF_WIDTH;
     conf[i++] = vc->width;
     conf[i++] = SCREEN_CONF_HEIGHT;
