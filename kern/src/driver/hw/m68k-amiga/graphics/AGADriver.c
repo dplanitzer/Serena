@@ -2,8 +2,8 @@
 //  AGADriver.c
 //  kernel
 //
-//  Created by Dietmar Planitzer on 2/7/21.
-//  Copyright © 2021 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 7/7/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include "AGADriverPriv.h"
@@ -192,49 +192,6 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, sprite_caps_t* _Nonnull
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Mouse Cursor
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t AGADriver_obtainCursor(AGADriverRef _Nonnull self)
-{
-    gdLock();
-    const errno_t err = gdObtainCursor();
-    gdUnlock();
-    return err;
-}
-
-void AGADriver_releaseCursor(AGADriverRef _Nonnull self)
-{
-    gdLock();
-    gdReleaseCursor();
-    gdUnlock();
-}
-
-errno_t AGADriver_bindCursor(AGADriverRef _Nonnull self, int id)
-{
-    gdLock();
-    const errno_t err = gdBindCursor(id);
-    gdUnlock();
-    return err;
-}
-
-void AGADriver_setCursorPosition(AGADriverRef _Nonnull self, int x, int y)
-{
-    gdLock();
-    gdSetCursorPos(x, y);
-    gdUnlock();
-}
-
-void AGADriver_setCursorVisible(AGADriverRef _Nonnull self, bool isVisible)
-{
-    gdLock();
-    gdSetCursorVis(isVisible);
-    gdUnlock();
-}
-
-
 //
 // Screen
 //
@@ -263,37 +220,9 @@ errno_t AGADriver_SetScreenCLUTEntries(AGADriverRef _Nonnull self, size_t idx, s
     return err;
 }
 
-void AGADriver_getScreenSize(AGADriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
-{
-    gdGetScreenSize(pOutWidth, pOutHeight);
-}
 
-void AGADriver_setScreenConfigObserver(AGADriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
-{
-    gdLock();
-    gdSetScreenConfigObserver(vp, signo);
-    gdUnlock();
-}
-
-
-void AGADriver_setLightPenEnabled(AGADriverRef _Nonnull self, bool enabled)
-{
-    gdLock();
-    gdSetLightPenEnabled(enabled);
-    gdUnlock();
-}
-
-
-class_func_defs(AGADriver, DisplayDriver,
+class_func_defs(AGADriver, IODriver,
 override_func_def(start, AGADriver, IODriver)
 override_func_def(isExclusive, AGADriver, IODriver)
 override_func_def(getDFSInfo, AGADriver, IODriver)
-override_func_def(getScreenSize, AGADriver, DisplayDriver)
-override_func_def(setScreenConfigObserver, AGADriver, DisplayDriver)
-override_func_def(setLightPenEnabled, AGADriver, DisplayDriver)
-override_func_def(obtainCursor, AGADriver, DisplayDriver)
-override_func_def(releaseCursor, AGADriver, DisplayDriver)
-override_func_def(bindCursor, AGADriver, DisplayDriver)
-override_func_def(setCursorPosition, AGADriver, DisplayDriver)
-override_func_def(setCursorVisible, AGADriver, DisplayDriver)
 );

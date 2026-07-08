@@ -1,35 +1,26 @@
 //
-//  DisplayDriver.h
+//  IOHIDDisplay.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/11/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef DisplayDriver_h
-#define DisplayDriver_h
+#ifndef IOHIDDisplay_h
+#define IOHIDDisplay_h
 
 #include <driver/IODriver.h>
 #include <kpi/framebuffer.h>
 #include <sched/vcpu.h>
 
 
-// A display driver is responsible for managing framebuffers,  offscreen pixel
-// buffers, CLUTs, sprites and the mouse cursor.
+// A HID display is an abstraction over a video/graphics card which is used by
+// the HID manager to manage the mouse cursor. It provides support for a
+// hardware (preferable) or software mouse cursor.
 //
-// A display driver may be dumb - meaning that it does not support any form of
-// hardware accelerated pixel processing nor any sprites. A display driver like
-// this is however still required to implement support for a mouse cursor. It
-// must implement this support in software.
-//
-// A display driver may be smart - meaning that it is able to offload certain or
-// all pixel processing operations to dedicated hardware. It may also support
-// one or more hardware sprites. A driver like this should implement the mouse
-// cursor support by using the highest priority hardware sprite available.
-//
-open_class(DisplayDriver, IODriver,
+open_class(IOHIDDisplay, IODriver,
 );
-open_class_funcs(DisplayDriver, IODriver,
+open_class_funcs(IOHIDDisplay, IODriver,
 
     //
     // Screens
@@ -77,10 +68,10 @@ open_class_funcs(DisplayDriver, IODriver,
     // Default: Does nothing
     void (*releaseCursor)(void* _Nonnull self);
 
-    // Binds the given surface to the mouse cursor.
+    // Sets the pixel image of the mouse cursor.
     // Override: Required
     // Default: Does nothing and returns ENOTSUP
-    errno_t (*bindCursor)(void* _Nonnull self, int id);
+    errno_t (*setCursor)(void* _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, pixfmt_t format);
 
     // Sets the position of the mouse cursor. Note that the mouse cursor is only
     // visible as long as at least some part of it is inside the display window
@@ -102,30 +93,30 @@ open_class_funcs(DisplayDriver, IODriver,
 // Subclassers
 //
 
-#define DisplayDriver_GetScreenSize(__self, __w, __h) \
-invoke_n(getScreenSize, DisplayDriver, __self, __w, __h)
+#define IOHIDDisplay_GetScreenSize(__self, __w, __h) \
+invoke_n(getScreenSize, IOHIDDisplay, __self, __w, __h)
 
-#define DisplayDriver_SetScreenConfigObserver(__self, __vp, __signo) \
-invoke_n(setScreenConfigObserver, DisplayDriver, __self, __vp, __signo)
-
-
-#define DisplayDriver_SetLightPenEnabled(__self, __enabled) \
-invoke_n(setLightPenEnabled, DisplayDriver, __self, __enabled)
+#define IOHIDDisplay_SetScreenConfigObserver(__self, __vp, __signo) \
+invoke_n(setScreenConfigObserver, IOHIDDisplay, __self, __vp, __signo)
 
 
-#define DisplayDriver_ObtainCursor(__self) \
-invoke_0(obtainCursor, DisplayDriver, __self)
+#define IOHIDDisplay_SetLightPenEnabled(__self, __enabled) \
+invoke_n(setLightPenEnabled, IOHIDDisplay, __self, __enabled)
 
-#define DisplayDriver_ReleaseCursor(__self) \
-invoke_0(releaseCursor, DisplayDriver, __self)
 
-#define DisplayDriver_BindCursor(__self, __id) \
-invoke_n(bindCursor, DisplayDriver, __self, __id)
+#define IOHIDDisplay_ObtainCursor(__self) \
+invoke_0(obtainCursor, IOHIDDisplay, __self)
 
-#define DisplayDriver_SetCursorPosition(__self, __x, __y) \
-invoke_n(setCursorPosition, DisplayDriver, __self, __x, __y)
+#define IOHIDDisplay_ReleaseCursor(__self) \
+invoke_0(releaseCursor, IOHIDDisplay, __self)
 
-#define DisplayDriver_SetCursorVisible(__self, __vis) \
-invoke_n(setCursorVisible, DisplayDriver, __self, __vis)
+#define IOHIDDisplay_SetCursor(__self, __planes, __bytesPerRow, __width, __height, __format) \
+invoke_n(setCursor, IOHIDDisplay, __self, __planes, __bytesPerRow, __width, __height, __format)
 
-#endif /* DisplayDriver_h */
+#define IOHIDDisplay_SetCursorPosition(__self, __x, __y) \
+invoke_n(setCursorPosition, IOHIDDisplay, __self, __x, __y)
+
+#define IOHIDDisplay_SetCursorVisible(__self, __vis) \
+invoke_n(setCursorVisible, IOHIDDisplay, __self, __vis)
+
+#endif /* IOHIDDisplay_h */

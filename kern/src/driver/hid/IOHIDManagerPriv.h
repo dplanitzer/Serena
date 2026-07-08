@@ -15,7 +15,7 @@
 #include "IOGPBus.h"
 #endif
 #include "IOHIDDevice.h"
-#include <driver/DisplayDriver.h>
+#include "IOHIDDisplay.h"
 #include <hal/clock.h>
 #include <hal/irq.h>
 #include <kpi/hid_keys.h>
@@ -84,8 +84,8 @@ final_class_ivars(IOHIDManager, Object,
 //#endif
 
 
-    // Framebuffer interface
-    AGADriverRef _Nullable fb;
+    // HID display interface
+    IOHIDDisplayRef _Nullable   hidDisplay;
 
 
     // HID reports collector
@@ -106,7 +106,7 @@ final_class_ivars(IOHIDManager, Object,
     uint16_t                    evqReadIdx;
     uint16_t                    evqWriteIdx;
     size_t                      evqOverflowCount;
-    hid_event_t* _Nonnull          evqQueue;
+    hid_event_t* _Nonnull       evqQueue;
 
 
     // Keyboard Configuration
@@ -117,7 +117,6 @@ final_class_ivars(IOHIDManager, Object,
     hid_rect_t                  screenBounds;
     hid_rect_t                  shieldRect;
     hid_rect_t                  cursorBounds;   // updated only when needed
-    int                         cursorSurfaceId;
     int16_t                     cursorWidth;
     int16_t                     cursorHeight;
     int16_t                     hotSpotX;

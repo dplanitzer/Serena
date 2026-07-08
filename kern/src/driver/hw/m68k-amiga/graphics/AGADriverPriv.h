@@ -2,8 +2,8 @@
 //  AGADriverPriv.h
 //  kernel
 //
-//  Created by Dietmar Planitzer on 9/23/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 7/7/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #ifndef AGADriverPriv_h
@@ -21,7 +21,7 @@
 #include "gd.h"
 
 
-final_class_ivars(AGADriver, DisplayDriver,
+final_class_ivars(AGADriver, IODriver,
 );
 
 extern errno_t _AGADriver_CreateSurface2d(AGADriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);

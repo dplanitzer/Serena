@@ -9,7 +9,6 @@
 #include "IOHIDManagerPriv.h"
 #include <assert.h>
 #include <limits.h>
-#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
 #include <driver/IOLib.h>
 #include <driver/IORegistry.h>
 #include <ext/bit.h>
@@ -184,8 +183,8 @@ errno_t IOHIDManager_ObtainCursor(IOHIDManagerRef _Nonnull self)
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    if (self->fb) {
-        err = DisplayDriver_ObtainCursor(self->fb);
+    if (self->hidDisplay) {
+        err = IOHIDDisplay_ObtainCursor(self->hidDisplay);
         if (err == EOK) {
             self->cursorWidth = 0;
             self->cursorHeight = 0;
@@ -208,10 +207,8 @@ errno_t IOHIDManager_ObtainCursor(IOHIDManagerRef _Nonnull self)
 void IOHIDManager_ReleaseCursor(IOHIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    if (self->fb) {
-        DisplayDriver_ReleaseCursor(self->fb);
-        AGADriver_DestroySurface(self->fb, self->cursorSurfaceId);
-        self->cursorSurfaceId = 0;
+    if (self->hidDisplay) {
+        IOHIDDisplay_ReleaseCursor(self->hidDisplay);
     }
     mtx_unlock(&self->mtx);
 }
@@ -220,41 +217,24 @@ errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nulla
 {
     decl_try_err();
 
-    if ((planes && bytesPerRow == 0) || width != kCursor_Width || height != kCursor_Height || format != kCursor_PixelFormat) {
-        return EINVAL;
-    }
     if (hotSpotX < 0 || hotSpotX >= width || hotSpotY < 0 || hotSpotY >= height) {
         return EINVAL;
     }
 
 
     mtx_lock(&self->mtx);
-    if (self->fb == NULL) {
+    if (self->hidDisplay == NULL) {
         throw(ENODEV);
     }
 
 
-    if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
-        int newId;
-
-        try(AGADriver_CreateSurface2d(self->fb, width, height, PIXFMT_RGB_SPRITE_2, &newId));
-        self->cursorWidth = width;
-        self->cursorHeight = height;
-
-        if (self->cursorSurfaceId) {
-            AGADriver_DestroySurface(self->fb, self->cursorSurfaceId);
-        }
-        self->cursorSurfaceId = newId;
-    }
-
-    try(AGADriver_WritePixels(self->fb, self->cursorSurfaceId, planes, bytesPerRow, format));
-    try(DisplayDriver_BindCursor(self->fb, self->cursorSurfaceId));
+    try(IOHIDDisplay_SetCursor(self->hidDisplay, planes, bytesPerRow, width, height, format));
     self->hotSpotX = hotSpotX;
     self->hotSpotY = hotSpotY;
 
     // Update the framebuffer mouse cursor position to line it up with our position
     // and the new hot spot offset.
-    DisplayDriver_SetCursorPosition(self->fb, self->mouse.x - hotSpotX, self->mouse.y - hotSpotY);
+    IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - hotSpotX, self->mouse.y - hotSpotY);
 
 catch:
     mtx_unlock(&self->mtx);
@@ -269,8 +249,8 @@ static bool _show_cursor(IOHIDManagerRef _Nonnull _Locked self)
     }
 
     if (self->hiddenCount == 0) {
-        DisplayDriver_SetCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
-        DisplayDriver_SetCursorVisible(self->fb, true);
+        IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        IOHIDDisplay_SetCursorVisible(self->hidDisplay, true);
         return true;
     }
     else {
@@ -291,7 +271,7 @@ void IOHIDManager_ShowCursor(IOHIDManagerRef _Nonnull self)
 static void _hide_cursor(IOHIDManagerRef _Nonnull _Locked self)
 {
     if (self->hiddenCount == 0) {
-        DisplayDriver_SetCursorVisible(self->fb, false);
+        IOHIDDisplay_SetCursorVisible(self->hidDisplay, false);
     }
     if (self->hiddenCount < INT_MAX) {
         self->hiddenCount++;
@@ -310,7 +290,7 @@ void IOHIDManager_ObscureCursor(IOHIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->hiddenCount == 0) {
         self->isMouseObscured = true;
-        DisplayDriver_SetCursorVisible(self->fb, false);
+        IOHIDDisplay_SetCursorVisible(self->hidDisplay, false);
     }
     mtx_unlock(&self->mtx);
 }
@@ -689,7 +669,7 @@ static void _post_gamepad_event(IOHIDManagerRef _Nonnull _Locked self, gamepad_s
 
 IOCATS_DEF(g_hid_cats, IOHID_KEYBOARD, IOHID_KEYPAD, IOHID_MOUSE, IOHID_LIGHTPEN,
     IOHID_STYLUS, IOHID_TRACKBALL, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK,
-    IOVID_FB, IOBUS_GP);
+    IOHID_DISPLAY, IOBUS_GP);
 
 IOCATS_DEF(g_gamepad_cats, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK);
 
@@ -714,10 +694,10 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRef _
             if (self->mouse.drv[i] == NULL) {
                 err = IODriver_Open(driver, O_RDWR);
                 if (err == EOK) {
-                    if (IODriver_HasCategory(driver, IOHID_LIGHTPEN) && self->fb) {
+                    if (IODriver_HasCategory(driver, IOHID_LIGHTPEN) && self->hidDisplay) {
                         self->mouse.lpCount++;
                         if (self->mouse.lpCount == 1) {
-                            DisplayDriver_SetLightPenEnabled(self->fb, true);
+                            IOHIDDisplay_SetLightPenEnabled(self->hidDisplay, true);
                         }
                     }
 
@@ -745,12 +725,12 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRef _
             }
         }
     }
-    else if (self->fb == NULL && IODriver_HasCategory(driver, IOVID_FB)) {
-        // Open a channel to the framebuffer
+    else if (self->hidDisplay == NULL && IODriver_HasCategory(driver, IOHID_DISPLAY)) {
+        // Open a connection to the newly discovered HID display
         err = IODriver_Open(driver, O_RDWR);
         if (err == EOK) {
-            self->fb = Object_Retain(driver);
-            DisplayDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
+            self->hidDisplay = Object_Retain(driver);
+            IOHIDDisplay_SetScreenConfigObserver(self->hidDisplay, self->reportsCollector, SIGSCR);
             _collect_framebuffer_size(self);
         }
     }
@@ -783,12 +763,12 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRe
         return;
     }
     
-    if ((IODriverRef)self->fb == driver) {
-        DisplayDriver_SetScreenConfigObserver(self->fb, NULL, 0);
+    if ((IODriverRef)self->hidDisplay == driver) {
+        IOHIDDisplay_SetScreenConfigObserver(self->hidDisplay, NULL, 0);
 
         IODriver_Close(driver);
         Object_Release(driver);
-        self->fb = NULL;
+        self->hidDisplay = NULL;
         hid_rect_set_empty(&self->screenBounds);
         return;
     }
@@ -800,7 +780,7 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRe
             if (self->mouse.lpCount > 0 && IODriver_HasCategory((IODriverRef)cdp, IOHID_LIGHTPEN)) {
                 self->mouse.lpCount--;
                 if (self->mouse.lpCount == 0) {
-                    DisplayDriver_SetLightPenEnabled(self->fb, false);
+                    IOHIDDisplay_SetLightPenEnabled(self->hidDisplay, false);
                 }
             }
 
@@ -931,7 +911,7 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
 
     // Move the mouse cursor image on screen if the mouse position has changed
     if (hasPositionChange) {
-        if (self->isMouseShieldEnabled && self->fb) {
+        if (self->isMouseShieldEnabled && self->hidDisplay) {
             if (_shield_intersects_cursor(self)) {
                 if (!self->isMouseShielded) {
                     _shield_cursor(self);
@@ -944,10 +924,10 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
             }
         }
 
-        if (self->hiddenCount == 0 && self->fb) {
-            DisplayDriver_SetCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        if (self->hiddenCount == 0 && self->hidDisplay) {
+            IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
             if (self->isMouseObscured) {
-                DisplayDriver_SetCursorVisible(self->fb, true);
+                IOHIDDisplay_SetCursorVisible(self->hidDisplay, true);
                 self->isMouseObscured = false;
             }
         }
@@ -981,7 +961,7 @@ static void _collect_framebuffer_size(IOHIDManagerRef _Nonnull self)
 {
     bool hasChanged = false;
     int w, h;
-    DisplayDriver_GetScreenSize(self->fb, &w, &h);
+    IOHIDDisplay_GetScreenSize(self->hidDisplay, &w, &h);
 
     self->screenBounds.l = 0;
     self->screenBounds.t = 0;
@@ -998,7 +978,7 @@ static void _collect_framebuffer_size(IOHIDManagerRef _Nonnull self)
     }
 
     if (hasChanged) {
-        DisplayDriver_SetCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
     }
 }
 
