@@ -36,6 +36,7 @@ class_ref(IODriver);
 #if __IOGPBUS__ > 0
 class_ref(IOGPBus);
 #endif
+class_ref(IOHIDBeamDevice);
 class_ref(IOHIDDevice);
 class_ref(IOHIDDisplay);
 class_ref(IOHIDManager);
@@ -64,6 +65,7 @@ class_ref(VirtualDiskManager);
 class_ref(AFDBus);
 class_ref(AFDDevice);
 class_ref(AGADriver);
+class_ref(AmiBeamDevice);
 class_ref(AmiGPBus);
 class_ref(AmiHIDDisplay);
 class_ref(AmiJoystick);

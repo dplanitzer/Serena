@@ -40,6 +40,7 @@ typedef uint16_t iocat_t;
 #define IOHID_ANALOG_JOYSTICK   _IOCAT(IOCAT_HID, 7)
 #define IOHID_DIGITAL_JOYSTICK  _IOCAT(IOCAT_HID, 8)
 #define IOHID_DISPLAY       _IOCAT(IOCAT_HID, 9)
+#define IOHID_BEAM          _IOCAT(IOCAT_HID, 10)
 
 // Disk Category
 #define IODISK_FLOPPY       _IOCAT(IOCAT_DISK, 1)

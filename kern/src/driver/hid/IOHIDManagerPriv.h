@@ -47,10 +47,9 @@ typedef struct hid_rect {
 typedef struct logical_mouse {
     IOHIDDeviceRef _Nullable    drv[MAX_POINTING_DEVICES];
     int16_t                     drvCount;
-    int16_t                     lpCount;
+    uint32_t                    buttons;
     int16_t                     x;
     int16_t                     y;
-    uint32_t                    buttons;
 } logical_mouse_t;
 
 

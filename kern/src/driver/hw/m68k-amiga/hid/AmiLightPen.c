@@ -7,11 +7,14 @@
 //
 
 #include "AmiLightPen.h"
+#include <driver/IORegistry.h>
+#include <driver/hid/IOHIDBeamDevice.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/hw/m68k-amiga/cia8520.h>
 
 
 final_class_ivars(AmiLightPen, IOHIDDevice,
+    IODriverRef beamDevice;
     uint16_t    right_button_mask;
     uint16_t    middle_button_mask;
     int16_t     smoothedX;
@@ -26,6 +29,7 @@ final_class_ivars(AmiLightPen, IOHIDDevice,
 );
 
 IOCATS_DEF(g_cats, IOHID_LIGHTPEN);
+IOCATS_DEF(g_hid_beam_cats, IOHID_BEAM);
 
 
 errno_t AmiLightPen_Create(int port, IODriverRef _Nullable * _Nonnull pOutSelf)
@@ -47,6 +51,22 @@ catch:
 
 errno_t AmiLightPen_start(AmiLightPenRef _Nonnull self)
 {
+    decl_try_err();
+
+    //XXX guess we should look for all beam devices? Probably with live matching?
+    self->beamDevice = IORegistry_CopyBestMatchingDriver(gIORegistry, g_hid_beam_cats);
+    if (self->beamDevice) {
+        err = IODriver_Open(self->beamDevice, O_RDONLY);
+    }
+    else {
+        err = ENODEV;
+    }
+
+    if (err != EOK) {
+        return err;
+    }
+
+
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
     hw_chips->potgo &= 0x0f00;
 
@@ -72,53 +92,15 @@ errno_t AmiLightPen_start(AmiLightPenRef _Nonnull self)
     return EOK;
 }
 
-static void _wait_for_next_scanline(void)
+bool AmiLightPen_stop(AmiLightPenRef _Nonnull self)
 {
-    const uint8_t oh = hw_cia_b->todhi;
-    const uint8_t om = hw_cia_b->todmid;
-    const uint8_t ol = hw_cia_b->todlo;
-
-    for (;;) {
-        if (hw_cia_b->todlo != ol || hw_cia_b->todmid != om || hw_cia_b->todhi != oh) {
-            break;
-        }
-    }
-}
-
-// Returns the current position of the light pen if the light pen triggered.
-static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
-{
-    bool r = false;
-
-    // Read VHPOSR first time
-    const uint32_t posr0 = hw_chips->vposr;
-
-
-    // Wait for scanline microseconds
-    _wait_for_next_scanline();
-    
-
-    // Read VHPOSR a second time
-    const uint32_t posr1 = hw_chips->vposr;
-    
-
-    
-    // Check whether the light pen triggered
-    // See Amiga Reference Hardware Manual p233.
-    if (posr0 == posr1) {
-        if ((posr0 & 0x0000ffff) < 0x10500) {
-            *x = (posr0 & 0x000000ff) << 1;
-            *y = (posr0 & 0x1ff00) >> 8;
-            
-            if ((hw_chips->bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
-                // long frame (odd field) is offset in Y by one
-                *y += 1;
-            }
-            r = true;
-        }
+    if (self->beamDevice) {
+        IODriver_Close(self->beamDevice);
+        Object_Release(self->beamDevice);
+        self->beamDevice = NULL;
     }
 
-    return r;
+    return true;
 }
 
 void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull report)
@@ -146,7 +128,7 @@ void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull r
         // Get the position
         int16_t xPos, yPos;
 
-        if (_get_lp_position(&xPos, &yPos)) {
+        if (IOHIDBeamDevice_GetBeamPosition(self->beamDevice, &xPos, &yPos)) {
             self->triggerCount++;
             self->sumX += xPos;
             self->sumY += yPos;
@@ -155,7 +137,7 @@ void AmiLightPen_getReport(AmiLightPenRef _Nonnull self, IOHIDReport* _Nonnull r
 
     
     // Button #0
-    register const uint16_t potinp = hw_chips->potinp;
+    const uint16_t potinp = hw_chips->potinp;
     if ((potinp & self->right_button_mask) == 0) {
         buttons |= 0x02;
     }

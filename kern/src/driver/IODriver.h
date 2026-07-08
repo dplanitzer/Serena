@@ -321,4 +321,14 @@ invoke_0(doClose, IODriver, __self)
 #define IODriver_DoIsOpen(__self) \
 invoke_0(doIsOpen, IODriver, __self)
 
+
+#define IODriver_Super_DoOpen(__selfClass, __flags) \
+super_n(doOpen, IODriver, __selfClass, self, __flags)
+
+#define IODriver_Super_DoClose(__selfClass) \
+super_0(doClose, IODriver, __selfClass, self)
+
+#define IODriver_Super_DoIsOpen(__selfClass) \
+super_0(doIsOpen, IODriver, __selfClass, self)
+
 #endif /* IODriver_h */

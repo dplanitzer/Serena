@@ -694,13 +694,6 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRef _
             if (self->mouse.drv[i] == NULL) {
                 err = IODriver_Open(driver, O_RDWR);
                 if (err == EOK) {
-                    if (IODriver_HasCategory(driver, IOHID_LIGHTPEN) && self->hidDisplay) {
-                        self->mouse.lpCount++;
-                        if (self->mouse.lpCount == 1) {
-                            IOHIDDisplay_SetLightPenEnabled(self->hidDisplay, true);
-                        }
-                    }
-
                     self->mouse.drv[i] = Object_Retain(driver);
                     self->mouse.drvCount++;
                 }
@@ -777,13 +770,6 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRe
         IOHIDDeviceRef cdp = self->mouse.drv[i];
 
         if ((IODriverRef)cdp == driver) {
-            if (self->mouse.lpCount > 0 && IODriver_HasCategory((IODriverRef)cdp, IOHID_LIGHTPEN)) {
-                self->mouse.lpCount--;
-                if (self->mouse.lpCount == 0) {
-                    IOHIDDisplay_SetLightPenEnabled(self->hidDisplay, false);
-                }
-            }
-
             IODriver_Close(cdp);
             Object_Release(cdp);
             self->mouse.drv[i] = NULL;

@@ -12,6 +12,7 @@
 #include <driver/IORegistry.h>
 #include <driver/hw/m68k-amiga/floppy/AFDBus.h>
 #include <driver/hw/m68k-amiga/graphics/AGADriver.h>
+#include <driver/hw/m68k-amiga/graphics/AmiBeamDevice.h>
 #include <driver/hw/m68k-amiga/graphics/AmiHIDDisplay.h>
 #include <driver/hw/m68k-amiga/hid/AmiGPBus.h>
 #include <driver/hw/m68k-amiga/hid/AmiKeyboard.h>
@@ -100,6 +101,10 @@ void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
     AmiHIDDisplayRef hid_disp = NULL;
     try(AmiHIDDisplay_Create(&hid_disp));
     try(IODriver_Launch(hid_disp, (IODriverRef)self));
+
+    AmiBeamDeviceRef hid_beam = NULL;
+    try(AmiBeamDevice_Create(&hid_beam));
+    try(IODriver_Launch(hid_beam, (IODriverRef)self));
 
 
     // Keyboard

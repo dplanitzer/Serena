@@ -24,15 +24,6 @@ void IOHIDDisplay_setScreenConfigObserver(IOHIDDisplayRef _Nonnull self, vcpu_t 
 
 
 //
-// Light Pens
-//
-
-void IOHIDDisplay_setLightPenEnabled(IOHIDDisplayRef _Nonnull self, bool enabled)
-{
-}
-
-
-//
 // Mouse Cursor
 //
 
@@ -62,7 +53,6 @@ void IOHIDDisplay_setCursorVisible(IOHIDDisplayRef _Nonnull self, bool isVisible
 class_func_defs(IOHIDDisplay, IODriver,
 func_def(getScreenSize, IOHIDDisplay)
 func_def(setScreenConfigObserver, IOHIDDisplay)
-func_def(setLightPenEnabled, IOHIDDisplay)
 func_def(obtainCursor, IOHIDDisplay)
 func_def(releaseCursor, IOHIDDisplay)
 func_def(setCursor, IOHIDDisplay)

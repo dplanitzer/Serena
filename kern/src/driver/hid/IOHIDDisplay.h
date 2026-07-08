@@ -18,6 +18,8 @@
 // the HID manager to manage the mouse cursor. It provides support for a
 // hardware (preferable) or software mouse cursor.
 //
+// A HID display is an exclusive device.
+//
 open_class(IOHIDDisplay, IODriver,
 );
 open_class_funcs(IOHIDDisplay, IODriver,
@@ -38,16 +40,6 @@ open_class_funcs(IOHIDDisplay, IODriver,
     // Override: Required
     // Default: Does nothing
     void (*setScreenConfigObserver)(void* _Nonnull self, vcpu_t _Nullable vp, int signo);
-
-
-    //
-    // Light Pens
-    //
-
-    // Enables or disables support for a light pen.
-    // Override: Optional
-    // Default: Does nothing
-    void (*setLightPenEnabled)(void* _Nonnull self, bool enabled);
 
 
     //
@@ -98,10 +90,6 @@ invoke_n(getScreenSize, IOHIDDisplay, __self, __w, __h)
 
 #define IOHIDDisplay_SetScreenConfigObserver(__self, __vp, __signo) \
 invoke_n(setScreenConfigObserver, IOHIDDisplay, __self, __vp, __signo)
-
-
-#define IOHIDDisplay_SetLightPenEnabled(__self, __enabled) \
-invoke_n(setLightPenEnabled, IOHIDDisplay, __self, __enabled)
 
 
 #define IOHIDDisplay_ObtainCursor(__self) \

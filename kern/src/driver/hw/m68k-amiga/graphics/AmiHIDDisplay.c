@@ -13,10 +13,6 @@
 IOCATS_DEF(g_cats, IOHID_DISPLAY);
 
 
-// Creates a graphics driver instance which manages the on-board video hardware.
-// We assume that video is turned off at the time this function is called and
-// video remains turned off until a screen has been created and is made the
-// current screen.
 errno_t AmiHIDDisplay_Create(AmiHIDDisplayRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
@@ -113,19 +109,10 @@ void AmiHIDDisplay_setScreenConfigObserver(AmiHIDDisplayRef _Nonnull self, vcpu_
 }
 
 
-void AmiHIDDisplay_setLightPenEnabled(AmiHIDDisplayRef _Nonnull self, bool enabled)
-{
-    gdLock();
-    gdSetLightPenEnabled(enabled);
-    gdUnlock();
-}
-
-
 class_func_defs(AmiHIDDisplay, IOHIDDisplay,
 override_func_def(start, AmiHIDDisplay, IODriver)
 override_func_def(getScreenSize, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setScreenConfigObserver, AmiHIDDisplay, IOHIDDisplay)
-override_func_def(setLightPenEnabled, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(obtainCursor, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(releaseCursor, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setCursor, AmiHIDDisplay, IOHIDDisplay)
