@@ -1,13 +1,12 @@
 //
-//  AGADriver.c
+//  gd_sprite.c
 //  kernel
 //
-//  Created by Dietmar Planitzer on 2/7/21.
-//  Copyright © 2021 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 7/7/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "AGADriverPriv.h"
-#include "copper.h"
+#include "gd.h"
 #include <ext/math.h>
 #include <kern/kalloc.h>
 #include <kpi/hid.h>
@@ -42,7 +41,7 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
     return (hw << 16) | lw;
 }
 
-static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf)
+static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
 {
     bool doEditCopperProg = false;
 
@@ -58,7 +57,7 @@ static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surfac
         }
     }
 
-    sprite_channel_t* spr = &self->spriteChannel[unit];
+    sprite_channel_t* spr = &g_sprite[unit];
 
 
     // Nothing to do if the surface doesn't actually change
@@ -95,10 +94,10 @@ static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surfac
 
 
     if (doEditCopperProg) {
-        copper_prog_t prog = _AGADriver_GetEditableCopperProg(self);
+        copper_prog_t prog = copper_get_editable_prog();
         
         if (prog) {
-            copper_prog_sprptr_changed(prog, unit, (spr->surface && spr->isVisible) ? spr->surface : self->nullSpriteSurface);
+            copper_prog_sprptr_changed(prog, unit, (spr->surface && spr->isVisible) ? spr->surface : g_null_sprite_surface);
             copper_schedule(prog, 0);
         }
     }
@@ -106,14 +105,14 @@ static errno_t _bind_sprite(AGADriverRef _Nonnull _Locked self, int unit, Surfac
     return EOK;
 }
 
-static errno_t _set_sprite_pos(AGADriverRef _Nonnull _Locked self, int unit, int x, int y)
+static errno_t _set_sprite_pos(int unit, int x, int y)
 {
     if (unit < 0 || unit >= SPRITE_COUNT) {
         return EINVAL;
     }
 
 
-    sprite_channel_t* spr = &self->spriteChannel[unit];
+    sprite_channel_t* spr = &g_sprite[unit];
     spr->x = x;
     spr->y = y;
     if (spr->surface) {
@@ -130,7 +129,7 @@ static errno_t _set_sprite_pos(AGADriverRef _Nonnull _Locked self, int unit, int
     return EOK;
 }
 
-static errno_t _set_sprite_vis(AGADriverRef _Nonnull _Locked self, int unit, bool isVisible)
+static errno_t _set_sprite_vis(int unit, bool isVisible)
 {
     decl_try_err();
 
@@ -138,15 +137,15 @@ static errno_t _set_sprite_vis(AGADriverRef _Nonnull _Locked self, int unit, boo
         return EINVAL;
     }
 
-    sprite_channel_t* spr = &self->spriteChannel[unit];
+    sprite_channel_t* spr = &g_sprite[unit];
     if (spr->isVisible != isVisible) {
         spr->isVisible = isVisible;
 
         if (spr->surface) {
-            copper_prog_t prog = _AGADriver_GetEditableCopperProg(self);
+            copper_prog_t prog = copper_get_editable_prog();
         
             if (prog) {
-                Surface* srf = (isVisible) ? spr->surface : self->nullSpriteSurface;
+                Surface* srf = (isVisible) ? spr->surface : g_null_sprite_surface;
 
                 copper_prog_sprptr_changed(prog, unit, srf);
                 copper_schedule(prog, 0);
@@ -163,60 +162,48 @@ static errno_t _set_sprite_vis(AGADriverRef _Nonnull _Locked self, int unit, boo
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t _AGADriver_BindSprite(AGADriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf)
+errno_t _gdBindSprite(int unit, Surface* _Nullable srf)
 {
-    if (unit == MOUSE_SPRITE_PRI && self->flags.isMouseCursorObtained) {
+    if (unit == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
         return EBUSY;
     }
     else {
-        return _bind_sprite(self, unit, srf);
+        return _bind_sprite(unit, srf);
     }
 }
 
-errno_t AGADriver_SetSpritePosition(AGADriverRef _Nonnull self, int spriteId, int x, int y)
+errno_t gdSetSpritePos(int spriteId, int x, int y)
 {
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    if (spriteId == MOUSE_SPRITE_PRI && self->flags.isMouseCursorObtained) {
-        err = EBUSY;
+    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
+        return EBUSY;
     }
     else {
-        err = _set_sprite_pos(self, spriteId, x, y);
+        return _set_sprite_pos(spriteId, x, y);
     }
-    mtx_unlock(&self->io_mtx);
-    return err;
 }
 
-errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int spriteId, bool isVisible)
+errno_t gdSetSpriteVis(int spriteId, bool isVisible)
 {
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    if (spriteId == MOUSE_SPRITE_PRI && self->flags.isMouseCursorObtained) {
-        err = EBUSY;
+    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
+        return EBUSY;
     }
     else {
-        err = _set_sprite_vis(self, spriteId, isVisible);
+        return _set_sprite_vis(spriteId, isVisible);
     }
-    mtx_unlock(&self->io_mtx);
-    return err;
 }
 
-void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, sprite_caps_t* _Nonnull cp)
+void gdGetSpriteCaps(sprite_caps_t* _Nonnull cp)
 {
-    mtx_lock(&self->io_mtx);
     const video_conf_t* vcp = g_copper_running_prog->video_conf;
 
     cp->minWidth = 16;
     cp->maxWidth = 16;
     cp->minHeight = 1;
     cp->maxHeight = 256;
-    cp->lowSpriteNum = (self->flags.isMouseCursorObtained) ? 1 : 0;
+    cp->lowSpriteNum = (g_mouse_cursor_active) ? 1 : 0;
     cp->highSpriteNum = 7;
     cp->xScale = 1 << vcp->hSprScale;
     cp->yScale = 1 << vcp->vSprScale;
-    mtx_unlock(&self->io_mtx);
 }
 
 
@@ -225,65 +212,53 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, sprite_caps_t* _Nonnull
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t AGADriver_obtainCursor(AGADriverRef _Nonnull self)
+errno_t gdObtainCursor(void)
 {
-    mtx_lock(&self->io_mtx);
-    self->flags.isMouseCursorObtained = 1;
-    _bind_sprite(self, MOUSE_SPRITE_PRI, NULL);
-    _set_sprite_pos(self, MOUSE_SPRITE_PRI, 0, 0);
-    _set_sprite_vis(self, MOUSE_SPRITE_PRI, true);
-    mtx_unlock(&self->io_mtx);
+    g_mouse_cursor_active = 1;
+    _bind_sprite(MOUSE_SPRITE_PRI, NULL);
+    _set_sprite_pos(MOUSE_SPRITE_PRI, 0, 0);
+    _set_sprite_vis(MOUSE_SPRITE_PRI, true);
+
     return EOK;
 }
 
-void AGADriver_releaseCursor(AGADriverRef _Nonnull self)
+void gdReleaseCursor()
 {
-    mtx_lock(&self->io_mtx);
-    if (self->flags.isMouseCursorObtained) {
-        _bind_sprite(self, MOUSE_SPRITE_PRI, NULL);
-        _set_sprite_pos(self, MOUSE_SPRITE_PRI, 0, 0);
-        _set_sprite_vis(self, MOUSE_SPRITE_PRI, true);
-        self->flags.isMouseCursorObtained = 0;
+    if (g_mouse_cursor_active) {
+        _bind_sprite(MOUSE_SPRITE_PRI, NULL);
+        _set_sprite_pos(MOUSE_SPRITE_PRI, 0, 0);
+        _set_sprite_vis(MOUSE_SPRITE_PRI, true);
+        g_mouse_cursor_active = 0;
     }
-    mtx_unlock(&self->io_mtx);
 }
 
-errno_t AGADriver_bindCursor(AGADriverRef _Nonnull self, int id)
+errno_t gdBindCursor(int id)
 {
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    if (self->flags.isMouseCursorObtained) {
+    if (g_mouse_cursor_active) {
        Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
 
         if (srf || id == 0) {
-            err = _bind_sprite(self, MOUSE_SPRITE_PRI, srf);
+            return _bind_sprite(MOUSE_SPRITE_PRI, srf);
         }
         else {
-            err = EINVAL;
+            return EINVAL;
         }
     }
     else {
-        err = EBUSY;
+        return EBUSY;
     }
-    mtx_unlock(&self->io_mtx);
-    return err;
 }
 
-void AGADriver_setCursorPosition(AGADriverRef _Nonnull self, int x, int y)
+void gdSetCursorPos(int x, int y)
 {
-    mtx_lock(&self->io_mtx);
-    if (self->flags.isMouseCursorObtained) {
-        _set_sprite_pos(self, MOUSE_SPRITE_PRI, x, y);
+    if (g_mouse_cursor_active) {
+        _set_sprite_pos(MOUSE_SPRITE_PRI, x, y);
     }
-    mtx_unlock(&self->io_mtx);
 }
 
-void AGADriver_setCursorVisible(AGADriverRef _Nonnull self, bool isVisible)
+void gdSetCursorVis(bool isVisible)
 {
-    mtx_lock(&self->io_mtx);
-    if (self->flags.isMouseCursorObtained) {
-        _set_sprite_vis(self, MOUSE_SPRITE_PRI, isVisible);
+    if (g_mouse_cursor_active) {
+        _set_sprite_vis(MOUSE_SPRITE_PRI, isVisible);
     }
-    mtx_unlock(&self->io_mtx);
 }
