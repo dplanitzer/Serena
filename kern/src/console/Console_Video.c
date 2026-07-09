@@ -17,7 +17,7 @@
 static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer);
 
 
-static const color_rgb32_t gANSIColors[8] = {
+static const vio_rgb32_t gANSIColors[8] = {
     0xff000000,     // Black
     0xffff0000,     // Red
     0xff00ff00,     // Green
@@ -50,7 +50,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
         //height = 512;
     }
 
-    try(AGADriver_CreateBuffer(self->fb, width, height, PIXFMT_RGB_IND_3, &self->pixelBufferId));
+    try(AGADriver_CreateBuffer(self->fb, width, height, VIO_COLOR_INDEX3, &self->pixelBufferId));
     try(AGADriver_CreateCLUT(self->fb, 32, &self->clutId));
 
 
@@ -60,16 +60,16 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
     // Clear & map the framebuffer before we activate the new screen config
     try(AGADriver_ClearPixels(self->fb, self->pixelBufferId));
-    try(AGADriver_MapBuffer(self->fb, self->pixelBufferId, BUFFER_MAP_RW, &self->pixels));
+    try(AGADriver_MapBuffer(self->fb, self->pixelBufferId, VIO_MAP_RW, &self->pixels));
 
 
     // Make our screen the current screen
     intptr_t sc[5];
-    sc[0] = SCREEN_CONF_FRAMEBUFFER;
+    sc[0] = VIO_SCR_FRAMEBUFFER;
     sc[1] = self->pixelBufferId;
-    sc[2] = SCREEN_CONF_CLUT;
+    sc[2] = VIO_SCR_CLUT;
     sc[3] = self->clutId;
-    sc[4] = SCREEN_CONF_END;
+    sc[4] = VIO_SCR_END;
     try(AGADriver_SetScreenConfig(self->fb, &sc[0]));
 
 
@@ -87,10 +87,10 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(AGADriver_CreateBuffer(self->fb, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
-    try(AGADriver_WritePixels(self->fb, self->textCursorSurface, (void**)textCursorPlanes, 2, PIXFMT_RGB_IND_2));
+    try(AGADriver_CreateBuffer(self->fb, textCursorWidth, textCursorHeight, VIO_RGB_SPRITE_2, &self->textCursorSurface));
+    try(AGADriver_WritePixels(self->fb, self->textCursorSurface, (void**)textCursorPlanes, 2, VIO_COLOR_INDEX2));
     try(AGADriver_SetSpriteVisible(self->fb, self->textCursorSprite, 0));
-    try(AGADriver_BindBuffer(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
+    try(AGADriver_BindBuffer(self->fb, VIO_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
 
     // Initialize the text cursor timer
     self->textCursorTimer.item = KDISPATCH_ITEM_INIT((kdispatch_item_func_t)Console_OnTextCursorBlink, NULL);
@@ -110,7 +110,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 
     AGADriver_SetScreenConfig(self->fb, NULL);
 
-    AGADriver_BindBuffer(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, 0);
+    AGADriver_BindBuffer(self->fb, VIO_SPRITE_0 + self->textCursorSprite, 0);
     AGADriver_DestroyCLUT(self->fb, self->clutId);
     AGADriver_DestroyBuffer(self->fb, self->pixelBufferId);    
 }
@@ -123,7 +123,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     self->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    color_rgb32_t clr[8];
+    vio_rgb32_t clr[8];
     clr[0] = 0xff000000;    //XXX for mouse cursor
     clr[1] = 0xffffffff;
     clr[2] = 0xff000000;

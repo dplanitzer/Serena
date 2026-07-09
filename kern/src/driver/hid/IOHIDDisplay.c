@@ -36,7 +36,7 @@ void IOHIDDisplay_releaseCursor(IOHIDDisplayRef _Nonnull self)
 {
 }
 
-errno_t IOHIDDisplay_setCursor(IOHIDDisplayRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, pixfmt_t format)
+errno_t IOHIDDisplay_setCursor(IOHIDDisplayRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format)
 {
     return ENOTSUP;
 }

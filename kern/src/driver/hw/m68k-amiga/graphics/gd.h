@@ -33,23 +33,23 @@ mtx_unlock(&gd_mtx)
 // CLUT
 extern errno_t gdGenClut(size_t colorDepth, int* _Nonnull pOutId);
 extern errno_t gdDeleteClut(int id);
-extern errno_t gdGetClutInfo(int id, clut_info_t* _Nonnull pOutInfo);
-extern errno_t gdSetClutEntries(int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries);
+extern errno_t gdGetClutInfo(int id, vio_clut_info_t* _Nonnull pOutInfo);
+extern errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 
 // Pixel Buffer
-extern errno_t gdGenBuffer(int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId);
+extern errno_t gdGenBuffer(int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t gdDeleteBuffer(int id);
-extern errno_t gdGetBufferInfo(int id, buffer_info_t* _Nonnull pOutInfo);
+extern errno_t gdGetBufferInfo(int id, vio_buffer_info_t* _Nonnull pOutInfo);
 extern errno_t gdBindBuffer(int target, int id);
-extern errno_t gdMapBuffer(int id, int mode, buffer_mapping_t* _Nonnull pOutMapping);
+extern errno_t gdMapBuffer(int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping);
 extern errno_t gdUnmapBuffer(int id);
-extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format);
+extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);
 extern errno_t gdClearPixels(int id);
 
 // Sprites
 extern errno_t gdSetSpritePos(int spriteId, int x, int y);
 extern errno_t gdSetSpriteVis(int spriteId, bool isVisible);
-extern void gdGetSpriteCaps(sprite_caps_t* _Nonnull cp);
+extern void gdGetSpriteCaps(vio_sprite_caps_t* _Nonnull cp);
 
 extern errno_t _gdBindSprite(int unit, Surface* _Nullable srf);
 

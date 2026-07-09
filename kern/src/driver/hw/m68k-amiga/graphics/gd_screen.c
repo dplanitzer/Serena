@@ -12,7 +12,7 @@
 
 static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t def)
 {
-    while (*config != SCREEN_CONF_END) {
+    while (*config != VIO_SCR_END) {
         if (*config == key) {
             return *(config + 1);
         }
@@ -28,7 +28,7 @@ static errno_t _get_clut_from_config(const intptr_t* _Nonnull icfg, ColorTable* 
 {
     decl_try_err();
     ColorTable* clut = NULL;
-    const int clut_id = _get_config_value(icfg, SCREEN_CONF_CLUT, -1);
+    const int clut_id = _get_config_value(icfg, VIO_SCR_CLUT, -1);
     
     if (clut_id != -1) {
         clut = ColorTable_GetForId(clut_id);
@@ -43,7 +43,7 @@ static errno_t _get_clut_from_config(const intptr_t* _Nonnull icfg, ColorTable* 
         *pOutCreated = false;
     }
     else {
-        err = ColorTable_Create(COLOR_COUNT, kRGBColor32_Black, &clut);
+        err = ColorTable_Create(COLOR_COUNT, VIO_RGB32_BLACK, &clut);
         if (err != EOK) {
             return err;
         }
@@ -62,7 +62,7 @@ static errno_t _get_framebuffer_from_config(const intptr_t* _Nonnull icfg, Surfa
     decl_try_err();
     Surface* fb = NULL;
     const video_conf_t* vc = NULL;
-    const fb_id = _get_config_value(icfg, SCREEN_CONF_FRAMEBUFFER, -1);
+    const fb_id = _get_config_value(icfg, VIO_SCR_FRAMEBUFFER, -1);
 
     if (fb_id != -1) {
         fb = Surface_GetForId(fb_id);
@@ -80,9 +80,9 @@ static errno_t _get_framebuffer_from_config(const intptr_t* _Nonnull icfg, Surfa
         *pOutCreated = false;
     }
     else {
-        const int w = _get_config_value(icfg, SCREEN_CONF_WIDTH, 0);
-        const int h = _get_config_value(icfg, SCREEN_CONF_HEIGHT, 0);
-        const int fmt = _get_config_value(icfg, SCREEN_CONF_PIXELFORMAT, 0);
+        const int w = _get_config_value(icfg, VIO_SCR_WIDTH, 0);
+        const int h = _get_config_value(icfg, VIO_SCR_HEIGHT, 0);
+        const int fmt = _get_config_value(icfg, VIO_SCR_PIXELFORMAT, 0);
 
         if (w <= 0 || h <= 0 || fmt == 0) {
             return EINVAL;
@@ -156,12 +156,12 @@ errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz)
         return EINVAL;
     }
 
-    // SCREEN_CONF_FRAMEBUFFER
-    // SCREEN_CONF_CLUT (if the pixel format is one of the indirect formats)
-    // SCREEN_CONF_WIDTH
-    // SCREEN_CONF_HEIGHT
-    // SCREEN_CONF_PIXELFORMAT
-    // SCREEN_CONF_END
+    // VIO_SCR_FRAMEBUFFER
+    // VIO_SCR_CLUT (if the pixel format is one of the indirect formats)
+    // VIO_SCR_WIDTH
+    // VIO_SCR_HEIGHT
+    // VIO_SCR_PIXELFORMAT
+    // VIO_SCR_END
     if (bufsiz < 11) {
         return ERANGE;
     }
@@ -172,17 +172,17 @@ errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz)
     ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
     irq_restore_mask(sim);
 
-    conf[i++] = SCREEN_CONF_FRAMEBUFFER;
+    conf[i++] = VIO_SCR_FRAMEBUFFER;
     conf[i++] = (fb) ? Surface_GetId(fb) : 0;
-    conf[i++] = SCREEN_CONF_CLUT;
+    conf[i++] = VIO_SCR_CLUT;
     conf[i++] = (clut) ? ColorTable_GetId(clut) : 0;
-    conf[i++] = SCREEN_CONF_WIDTH;
+    conf[i++] = VIO_SCR_WIDTH;
     conf[i++] = vc->width;
-    conf[i++] = SCREEN_CONF_HEIGHT;
+    conf[i++] = VIO_SCR_HEIGHT;
     conf[i++] = vc->height;
-    conf[i++] = SCREEN_CONF_PIXELFORMAT;
+    conf[i++] = VIO_SCR_PIXELFORMAT;
     conf[i++] = (fb) ? Surface_GetPixelFormat(fb) : 0;
-    conf[i]   = SCREEN_CONF_END;
+    conf[i]   = VIO_SCR_END;
 
     return EOK;
 }

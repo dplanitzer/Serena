@@ -14,7 +14,7 @@
 
 #define kCursor_Width  16
 #define kCursor_Height 16
-#define kCursor_PixelFormat    PIXFMT_RGB_IND_2
+#define kCursor_PixelFormat    VIO_COLOR_INDEX2
 
 
 //
@@ -66,9 +66,9 @@ IOCMD_MAKE(IOPROTO_HID, 6, _IOCMD_ACC_WR, 0)
 
 // Sets the mouse cursor image to the provided pixels. Note that only some pixel
 // format are supported:
-// PIXFMT_RGB_IND_2
+// VIO_COLOR_INDEX2
 // Color index #0 is interpreted as transparent for all indexed pixel formats.
-// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, pixfmt_t format, int hotSpotX, int hotSpotY)
+// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format, int hotSpotX, int hotSpotY)
 #define IOCMD_HID_SET_CURSOR \
 IOCMD_MAKE(IOPROTO_HID, 7, _IOCMD_ACC_WR, 0)
 

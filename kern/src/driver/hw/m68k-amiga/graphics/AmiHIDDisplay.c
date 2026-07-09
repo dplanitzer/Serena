@@ -51,7 +51,7 @@ void AmiHIDDisplay_releaseCursor(AmiHIDDisplayRef _Nonnull self)
     gdUnlock();
 }
 
-errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, pixfmt_t format)
+errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format)
 {
     decl_try_err();
 
@@ -64,7 +64,7 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(gdGenBuffer(width, height, PIXFMT_RGB_SPRITE_2, &newId));
+        try(gdGenBuffer(width, height, VIO_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 

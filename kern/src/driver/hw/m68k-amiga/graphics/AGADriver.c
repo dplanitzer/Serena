@@ -76,7 +76,7 @@ errno_t AGADriver_DestroyCLUT(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, clut_info_t* _Nonnull pOutInfo)
+errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo)
 {
     gdLock();
     const errno_t err = gdGetClutInfo(id, pOutInfo);
@@ -86,7 +86,7 @@ errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, clut_info_t* _
 
 // Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
 // to the colors in the array 'entries'.
-errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
+errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 {
     gdLock();
     const errno_t err = gdSetClutEntries(id, idx, count, entries);
@@ -99,7 +99,7 @@ errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx,
 // Pixel Buffer
 //
 
-errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     gdLock();
     const errno_t err = gdGenBuffer(width, height, pixelFormat, pOutId);
@@ -123,7 +123,7 @@ errno_t AGADriver_BindBuffer(AGADriverRef _Nonnull self, int target, int id)
     return err;
 }
 
-errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, buffer_info_t* _Nonnull pOutInfo)
+errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, vio_buffer_info_t* _Nonnull pOutInfo)
 {
     gdLock();
     const errno_t err = gdGetBufferInfo(id, pOutInfo);
@@ -131,7 +131,7 @@ errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, buffer_info_
     return err;
 }
 
-errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, buffer_mapping_t* _Nonnull pOutMapping)
+errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping)
 {
     gdLock();
     const errno_t err = gdMapBuffer(id, mode, pOutMapping);
@@ -147,7 +147,7 @@ errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format)
+errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
 {
     gdLock();
     const errno_t err = gdWritePixels(id, planes, bytesPerRow, format);
@@ -184,7 +184,7 @@ errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int spriteId, boo
     return err;
 }
 
-void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, sprite_caps_t* _Nonnull cp)
+void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Nonnull cp)
 {
     gdLock();
     gdGetSpriteCaps(cp);

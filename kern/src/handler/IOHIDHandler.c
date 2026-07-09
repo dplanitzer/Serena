@@ -95,7 +95,7 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             const size_t bytesPerRow = va_arg(ap, size_t);
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
-            const pixfmt_t format = va_arg(ap, pixfmt_t);
+            const vio_pixfmt_t format = va_arg(ap, vio_pixfmt_t);
             const int hotSpotX = va_arg(ap, int);
             const int hotSpotY = va_arg(ap, int);
 

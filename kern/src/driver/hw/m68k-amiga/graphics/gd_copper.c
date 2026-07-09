@@ -176,7 +176,7 @@ errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
     decl_try_err();
     ColorTable* clut;
 
-    err = ColorTable_Create(COLOR_COUNT, kRGBColor32_White, &clut);
+    err = ColorTable_Create(COLOR_COUNT, VIO_RGB32_WHITE, &clut);
     if (err != EOK) {
         return err;
     }

@@ -42,14 +42,14 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     if ((err = IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&fb)) == EOK) {
         // Create the surface and screen
-        AGADriver_CreateBuffer(fb, width, height, PIXFMT_RGB_IND_1, &srf);
+        AGADriver_CreateBuffer(fb, width, height, VIO_COLOR_INDEX1, &srf);
         AGADriver_CreateCLUT(fb, 32, &clut);
 
 
         // Define the screen colors
-        static const color_rgb32_t clrs[2] = {
-            RGBColor32_Make(0xff, 0xff, 0xff),
-            RGBColor32_Make(0x00, 0x00, 0x00)
+        static const vio_rgb32_t clrs[2] = {
+            VIO_RGB32_MAKE(0xff, 0xff, 0xff),
+            VIO_RGB32_MAKE(0x00, 0x00, 0x00)
         };
         AGADriver_SetCLUTEntries(fb, clut, 0, 2, clrs);
 
@@ -60,7 +60,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         bscr->height = height;
 
         AGADriver_ClearPixels(fb, bscr->srf);
-        AGADriver_MapBuffer(fb, bscr->srf, BUFFER_MAP_RW, &bscr->mp);
+        AGADriver_MapBuffer(fb, bscr->srf, VIO_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -69,11 +69,11 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
         // Show the screen on the monitor
         intptr_t sc[5];
-        sc[0] = SCREEN_CONF_FRAMEBUFFER;
+        sc[0] = VIO_SCR_FRAMEBUFFER;
         sc[1] = bscr->srf;
-        sc[2] = SCREEN_CONF_CLUT;
+        sc[2] = VIO_SCR_CLUT;
         sc[3] = bscr->clut;
-        sc[4] = SCREEN_CONF_END;
+        sc[4] = VIO_SCR_END;
         AGADriver_SetScreenConfig(fb, &sc[0]);
     }
 }

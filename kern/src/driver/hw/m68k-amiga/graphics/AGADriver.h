@@ -19,15 +19,15 @@ final_class(AGADriver, IODriver);
 extern errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf);
 
 // Surfaces
-extern errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId);
+extern errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id);
 
-extern errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, buffer_info_t* _Nonnull pOutInfo);
+extern errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, vio_buffer_info_t* _Nonnull pOutInfo);
 
-extern errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, buffer_mapping_t* _Nonnull pOutMapping);
+extern errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping);
 extern errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id);
 
-extern errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format);
+extern errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);
 extern errno_t AGADriver_ClearPixels(AGADriverRef _Nonnull self, int id);
 
 extern errno_t AGADriver_BindBuffer(AGADriverRef _Nonnull self, int target, int id);
@@ -36,12 +36,12 @@ extern errno_t AGADriver_BindBuffer(AGADriverRef _Nonnull self, int target, int 
 // CLUT
 extern errno_t AGADriver_CreateCLUT(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);
 extern errno_t AGADriver_DestroyCLUT(AGADriverRef _Nonnull self, int id);
-extern errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, clut_info_t* _Nonnull pOutInfo);
-extern errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries);
+extern errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo);
+extern errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 
 
 // Sprites
-extern void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, sprite_caps_t* _Nonnull cp);
+extern void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Nonnull cp);
 extern errno_t AGADriver_SetSpritePosition(AGADriverRef _Nonnull self, int spriteId, int x, int y);
 extern errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int spriteId, bool isVisible);
 

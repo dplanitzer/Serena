@@ -37,7 +37,7 @@ typedef struct ColorTable {
 } ColorTable;
 
 
-extern errno_t ColorTable_Create(size_t entryCount, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf);
+extern errno_t ColorTable_Create(size_t entryCount, vio_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf);
 
 #define ColorTable_AddRef(__self) \
 (((ColorTable*)(__self))->refCount++)
@@ -50,7 +50,7 @@ extern ColorTable* _Nullable ColorTable_GetForId(int id);
 #define ColorTable_GetId(__self) \
 (((ColorTable*)(__self))->id)
 
-extern errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, color_rgb32_t color);
-extern errno_t ColorTable_SetEntries(ColorTable* _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries);
+extern errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, vio_rgb32_t color);
+extern errno_t ColorTable_SetEntries(ColorTable* _Nonnull self, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 
 #endif /* ColorTable_h */

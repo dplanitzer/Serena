@@ -13,7 +13,7 @@ errno_t gdGenClut(size_t colorDepth, int* _Nonnull pOutId)
 {
     ColorTable* clut;
 
-    const errno_t err = ColorTable_Create(colorDepth, kRGBColor32_Black, &clut);
+    const errno_t err = ColorTable_Create(colorDepth, VIO_RGB32_BLACK, &clut);
     if (err == EOK) {
         *pOutId = ColorTable_GetId(clut);
     }
@@ -36,7 +36,7 @@ errno_t gdDeleteClut(int id)
     return EOK;
 }
 
-errno_t gdGetClutInfo(int id, clut_info_t* _Nonnull pOutInfo)
+errno_t gdGetClutInfo(int id, vio_clut_info_t* _Nonnull pOutInfo)
 {
     ColorTable* clut = ColorTable_GetForId(id);
 
@@ -51,7 +51,7 @@ errno_t gdGetClutInfo(int id, clut_info_t* _Nonnull pOutInfo)
 
 // Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
 // to the colors in the array 'entries'.
-errno_t gdSetClutEntries(int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
+errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 {
     decl_try_err();
     ColorTable* clut = ColorTable_GetForId(id);

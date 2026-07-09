@@ -52,7 +52,7 @@ static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
         if (Surface_GetWidth(srf) != SPRITE_WIDTH || Surface_GetHeight(srf) > MAX_SPRITE_HEIGHT) {
             return ENOTSUP;
         }
-        if (Surface_GetPixelFormat(srf) != PIXFMT_RGB_SPRITE_2) {
+        if (Surface_GetPixelFormat(srf) != VIO_RGB_SPRITE_2) {
             return ENOTSUP;
         }
     }
@@ -192,7 +192,7 @@ errno_t gdSetSpriteVis(int spriteId, bool isVisible)
     }
 }
 
-void gdGetSpriteCaps(sprite_caps_t* _Nonnull cp)
+void gdGetSpriteCaps(vio_sprite_caps_t* _Nonnull cp)
 {
     const video_conf_t* vcp = g_copper_running_prog->video_conf;
 

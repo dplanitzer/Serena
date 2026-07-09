@@ -174,8 +174,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
         bplcon0 |= BPLCON0F_LACE;
     }
     switch (Surface_GetPixelFormat(fb)) {
-        case PIXFMT_RGB_HAM_5:
-        case PIXFMT_RGB_HAM_6:
+        case VIO_RGB_HAM_5:
+        case VIO_RGB_HAM_6:
             bplcon0 |= BPLCON0F_HAM;
             break;
             
