@@ -24,7 +24,7 @@
 final_class_ivars(AGADriver, IODriver,
 );
 
-extern errno_t _AGADriver_CreateSurface2d(AGADriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
+extern errno_t _AGADriver_CreateBuffer(AGADriverRef _Nonnull _Locked self, int width, int height, pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
 extern errno_t _AGADriver_CreateCLUT(AGADriverRef _Nonnull _Locked self, size_t colorDepth, color_rgb32_t defaultColor, ColorTable* _Nullable * _Nonnull pOutClut);
 
 

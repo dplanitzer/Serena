@@ -39,9 +39,9 @@ extern errno_t gdSetClutEntries(int id, size_t idx, size_t count, const color_rg
 // Pixel Buffer
 extern errno_t gdGenBuffer(int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t gdDeleteBuffer(int id);
-extern errno_t gdGetBufferInfo(int id, surface_info_t* _Nonnull pOutInfo);
+extern errno_t gdGetBufferInfo(int id, buffer_info_t* _Nonnull pOutInfo);
 extern errno_t gdBindBuffer(int target, int id);
-extern errno_t gdMapBuffer(int id, int mode, surface_mapping_t* _Nonnull pOutMapping);
+extern errno_t gdMapBuffer(int id, int mode, buffer_mapping_t* _Nonnull pOutMapping);
 extern errno_t gdUnmapBuffer(int id);
 extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format);
 extern errno_t gdClearPixels(int id);

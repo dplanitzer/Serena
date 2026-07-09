@@ -99,7 +99,7 @@ errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx,
 // Pixel Buffer
 //
 
-errno_t AGADriver_CreateSurface2d(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     gdLock();
     const errno_t err = gdGenBuffer(width, height, pixelFormat, pOutId);
@@ -107,7 +107,7 @@ errno_t AGADriver_CreateSurface2d(AGADriverRef _Nonnull self, int width, int hei
     return err;
 }
 
-errno_t AGADriver_DestroySurface(AGADriverRef _Nonnull self, int id)
+errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
     const errno_t err = gdDeleteBuffer(id);
@@ -115,7 +115,7 @@ errno_t AGADriver_DestroySurface(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_BindSurface(AGADriverRef _Nonnull self, int target, int id)
+errno_t AGADriver_BindBuffer(AGADriverRef _Nonnull self, int target, int id)
 {
     gdLock();
     const errno_t err = gdBindBuffer(target, id);
@@ -123,7 +123,7 @@ errno_t AGADriver_BindSurface(AGADriverRef _Nonnull self, int target, int id)
     return err;
 }
 
-errno_t AGADriver_GetSurfaceInfo(AGADriverRef _Nonnull self, int id, surface_info_t* _Nonnull pOutInfo)
+errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, buffer_info_t* _Nonnull pOutInfo)
 {
     gdLock();
     const errno_t err = gdGetBufferInfo(id, pOutInfo);
@@ -131,7 +131,7 @@ errno_t AGADriver_GetSurfaceInfo(AGADriverRef _Nonnull self, int id, surface_inf
     return err;
 }
 
-errno_t AGADriver_MapSurface(AGADriverRef _Nonnull self, int id, int mode, surface_mapping_t* _Nonnull pOutMapping)
+errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, buffer_mapping_t* _Nonnull pOutMapping)
 {
     gdLock();
     const errno_t err = gdMapBuffer(id, mode, pOutMapping);
@@ -139,7 +139,7 @@ errno_t AGADriver_MapSurface(AGADriverRef _Nonnull self, int id, int mode, surfa
     return err;
 }
 
-errno_t AGADriver_UnmapSurface(AGADriverRef _Nonnull self, int id)
+errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
     const errno_t err = gdUnmapBuffer(id);

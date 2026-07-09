@@ -50,7 +50,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
         //height = 512;
     }
 
-    try(AGADriver_CreateSurface2d(self->fb, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
+    try(AGADriver_CreateBuffer(self->fb, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
     try(AGADriver_CreateCLUT(self->fb, 32, &self->clutId));
 
 
@@ -60,7 +60,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
     // Clear & map the framebuffer before we activate the new screen config
     try(AGADriver_ClearPixels(self->fb, self->surfaceId));
-    try(AGADriver_MapSurface(self->fb, self->surfaceId, SURFACE_MAP_RW, &self->pixels));
+    try(AGADriver_MapBuffer(self->fb, self->surfaceId, BUFFER_MAP_RW, &self->pixels));
 
 
     // Make our screen the current screen
@@ -87,10 +87,10 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(AGADriver_CreateSurface2d(self->fb, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
+    try(AGADriver_CreateBuffer(self->fb, textCursorWidth, textCursorHeight, PIXFMT_RGB_SPRITE_2, &self->textCursorSurface));
     try(AGADriver_WritePixels(self->fb, self->textCursorSurface, (void**)textCursorPlanes, 2, PIXFMT_RGB_IND_2));
     try(AGADriver_SetSpriteVisible(self->fb, self->textCursorSprite, 0));
-    try(AGADriver_BindSurface(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
+    try(AGADriver_BindBuffer(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, self->textCursorSurface));
 
     // Initialize the text cursor timer
     self->textCursorTimer.item = KDISPATCH_ITEM_INIT((kdispatch_item_func_t)Console_OnTextCursorBlink, NULL);
@@ -106,13 +106,13 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    AGADriver_UnmapSurface(self->fb, self->surfaceId);
+    AGADriver_UnmapBuffer(self->fb, self->surfaceId);
 
     AGADriver_SetScreenConfig(self->fb, NULL);
 
-    AGADriver_BindSurface(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, 0);
+    AGADriver_BindBuffer(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, 0);
     AGADriver_DestroyCLUT(self->fb, self->clutId);
-    AGADriver_DestroySurface(self->fb, self->surfaceId);    
+    AGADriver_DestroyBuffer(self->fb, self->surfaceId);    
 }
 
 

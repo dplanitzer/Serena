@@ -46,7 +46,7 @@ errno_t gdDeleteBuffer(int id)
     return EOK;
 }
 
-errno_t gdGetBufferInfo(int id, surface_info_t* _Nonnull pOutInfo)
+errno_t gdGetBufferInfo(int id, buffer_info_t* _Nonnull pOutInfo)
 {
     Surface* srf = Surface_GetForId(id);
 
@@ -79,7 +79,7 @@ errno_t gdBindBuffer(int target, int id)
     }
 }
 
-errno_t gdMapBuffer(int id, int mode, surface_mapping_t* _Nonnull pOutMapping)
+errno_t gdMapBuffer(int id, int mode, buffer_mapping_t* _Nonnull pOutMapping)
 {
     Surface* srf = Surface_GetForId(id);
 

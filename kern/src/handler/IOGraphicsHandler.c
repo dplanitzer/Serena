@@ -20,40 +20,40 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
     AGADriverRef drv = IODriverHandler_GetDriver(self);
 
     switch (cmd) {
-        case IOCMD_FB_CREATE_SURFACE_2D: {
+        case IOCMD_FB_CREATE_BUFFER: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const pixfmt_t fmt = va_arg(ap, pixfmt_t);
             int* hnd = va_arg(ap, int*);
 
-            return AGADriver_CreateSurface2d(drv, width, height, fmt, hnd);
+            return AGADriver_CreateBuffer(drv, width, height, fmt, hnd);
         }
 
-        case IOCMD_FB_DESTROY_SURFACE: {
+        case IOCMD_FB_DESTROY_BUFFER: {
             int hnd = va_arg(ap, int);
 
-            return AGADriver_DestroySurface(drv, hnd);
+            return AGADriver_DestroyBuffer(drv, hnd);
         }
 
-        case IOCMD_FB_SURFACE_INFO: {
+        case IOCMD_FB_BUFFER_INFO: {
             int hnd = va_arg(ap, int);
-            surface_info_t* si = va_arg(ap, surface_info_t*);
+            buffer_info_t* si = va_arg(ap, buffer_info_t*);
 
-            return AGADriver_GetSurfaceInfo(drv, hnd, si);
+            return AGADriver_GetBufferInfo(drv, hnd, si);
         }
 
-        case IOCMD_FB_MAP_SURFACE: {
+        case IOCMD_FB_MAP_BUFFER: {
             int hnd = va_arg(ap, int);
             int mode = va_arg(ap, int);
-            surface_mapping_t* sm = va_arg(ap, surface_mapping_t*);
+            buffer_mapping_t* sm = va_arg(ap, buffer_mapping_t*);
 
-            return AGADriver_MapSurface(drv, hnd, mode, sm);
+            return AGADriver_MapBuffer(drv, hnd, mode, sm);
         }
 
-        case IOCMD_FB_UNMAP_SURFACE: {
+        case IOCMD_FB_UNMAP_BUFFER: {
             const int hnd = va_arg(ap, int);
 
-            return AGADriver_UnmapSurface(drv, hnd);
+            return AGADriver_UnmapBuffer(drv, hnd);
         }
 
         case IOCMD_FB_WRITE_PIXELS: {
@@ -71,11 +71,11 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_ClearPixels(drv, hnd);
         }
 
-        case IOCMD_FB_BIND_SURFACE: {
+        case IOCMD_FB_BIND_BUFFER: {
             const int target = va_arg(ap, int);
             const int id = va_arg(ap, int);
 
-            return AGADriver_BindSurface(drv, target, id);
+            return AGADriver_BindBuffer(drv, target, id);
         }
 
 

@@ -13,7 +13,7 @@
 #include <kpi/ioctl.h>
 #include <kpi/types.h>
 
-// Surface pixel formats
+// Buffer pixel formats
 #define PIXFMT_RGB_IND_1    1  // planar indexed RGB with 1 plane
 #define PIXFMT_RGB_IND_2    2  // planar indexed RGB with 2 planes
 #define PIXFMT_RGB_IND_3    3  // planar indexed RGB with 3 planes
@@ -32,7 +32,7 @@
 typedef int pixfmt_t;
 
 
-// Surface binding targets
+// Pixel buffer binding targets
     //#define TARGET_FRAMEBUFFER    0x10000
 #define TARGET_SPRITE_0 0x20000
 #define TARGET_SPRITE_1 0x20001
@@ -44,25 +44,25 @@ typedef int pixfmt_t;
 #define TARGET_SPRITE_7 0x20007
 
 
-// Geometry and pixel encoding of a surface
-typedef struct surface_info {
+// Geometry and pixel encoding of a pixel buffer
+typedef struct buffer_info {
     int         width;
     int         height;
     pixfmt_t    pixelFormat;
-} surface_info_t;
+} buffer_info_t;
 
 
-// Specifies what you want to do with the pixels when you call map_surface()
-#define SURFACE_MAP_R   0
-#define SURFACE_MAP_RW  1
+// Specifies what you want to do with the pixels when you call map_buffer()
+#define BUFFER_MAP_R   0
+#define BUFFER_MAP_RW  1
 
 
-// Provides access to the pixel data of a surface
-typedef struct surface_mapping {
+// Provides access to the pixels of a pixel buffer
+typedef struct buffer_mapping {
     void* _Nonnull  plane[8];
     size_t          planeCount;
     size_t          bytesPerRow;
-} surface_mapping_t;
+} buffer_mapping_t;
 
 
 // CLUT information
@@ -101,59 +101,59 @@ typedef unsigned int color_rgb32_t;
 
 
 //
-// Surfaces
+// Pixel buffers
 //
 
-// Creates a 2d surface of size 'width' x 'height' pixels and with a pixel encoding
-// 'encoding' and returns the unique id of the surface in 'pOutId'. Note that the
-// surface width and height have to be > 1. The surface may be used to create a
-// screen and it may be directly mapped into the address space of the owning
-// process or manipulated with the Blitter.
-// create_surface(int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
-#define IOCMD_FB_CREATE_SURFACE_2D \
+// Creates a 2d pixel buffer of size 'width' x 'height' pixels and with a pixel
+// encoding 'encoding' and returns the unique id of the buffer in 'pOutId'. Note
+// that the buffer width and height have to be > 1. The buffer may be used to
+// create a screen and it may be directly mapped into the address space of the
+// owning process or manipulated with the Blitter.
+// create_buffer(int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId)
+#define IOCMD_FB_CREATE_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 1, _IOCMD_ACC_WR, 0)
 
-// Destroys the surface with id 'id'. Returns EBUSY if the surface is currently
-// mapped or is attached to a screen. Automatically unbinds the surface if it is
-// attached to a sprite and binds the sprite target to a null surface. Does
+// Destroys the buffer with id 'id'. Returns EBUSY if the buffer is currently
+// mapped or is attached to a screen. Automatically unbinds the buffer if it is
+// attached to a sprite and binds the sprite target to a null buffer. Does
 // nothing if 'id' is 0.
-// destroy_surface(int id)
-#define IOCMD_FB_DESTROY_SURFACE \
+// destroy_buffer(int id)
+#define IOCMD_FB_DESTROY_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 2, _IOCMD_ACC_WR, 0)
 
-// Binds the surface 'id' to the target 'target'. If the target is already bound
-// to a surface then that surface is unbound before the new one is bound.
-// Binding a target to a surface with id 0 leaves the target unbound.
-// bind_surface(int target, int id)
-#define IOCMD_FB_BIND_SURFACE \
+// Binds the buffer 'id' to the target 'target'. If the target is already bound
+// to a buffer then that buffer is unbound before the new one is bound.
+// Binding a target to a buffer with id 0 leaves the target unbound.
+// bind_buffer(int target, int id)
+#define IOCMD_FB_BIND_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 3, _IOCMD_ACC_WR, 0)
 
-// Returns information about the surface 'id'.
-// get_surface_info(int id, surface_info_t* _Nonnull pOutInfo)
-#define IOCMD_FB_SURFACE_INFO \
+// Returns information about the buffer 'id'.
+// get_buffer_info(int id, buffer_info_t* _Nonnull pOutInfo)
+#define IOCMD_FB_BUFFER_INFO \
 IOCMD_MAKE(IOPROTO_FB, 4, _IOCMD_ACC_RD, 0)
 
-// Maps the backing store of the surface 'id' into the address space of the
+// Maps the backing store of the buffer 'id' into the address space of the
 // calling process to allow direct access to the pixel data. 'mode' specifies
 // whether the pixel data should be mapped for reading only or reading and
 // writing. Returns with 'pOutMapping' filled in.
-// map_surface(int id, int mode, surface_mapping_t* _Nonnull pOutMapping)
-#define IOCMD_FB_MAP_SURFACE \
+// map_buffer(int id, int mode, buffer_mapping_t* _Nonnull pOutMapping)
+#define IOCMD_FB_MAP_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
-// Unmaps the backing store of the surface 'id' and revokes access to the pixels.
-// unmap_surface(int id)
-#define IOCMD_FB_UNMAP_SURFACE \
+// Unmaps the backing store of the buffer 'id' and revokes access to the pixels.
+// unmap_buffer(int id)
+#define IOCMD_FB_UNMAP_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RDWR, 0)
 
-// Writes pixels to the surface 'id'. The provided source pixel buffer must be
-// of the same width and height as the surface. Returns ENOTSUP if the source
-// pixels can not be converted to the surface pixel format.
+// Writes pixels to the buffer 'id'. The provided source pixel buffer must be
+// of the same width and height as the buffer. Returns ENOTSUP if the source
+// pixels can not be converted to the buffer pixel format.
 // write_pixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format)
 #define IOCMD_FB_WRITE_PIXELS \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
-// Clears all pixels of the surface 'id'. Clearing pixels means that all bits in
+// Clears all pixels of the buffer 'id'. Clearing pixels means that all bits in
 // all pixels are set to 0.
 // clear_pixels(int id)
 #define IOCMD_FB_CLEAR_PIXELS \

@@ -20,7 +20,7 @@ typedef struct bt_screen {
     int                         srf;
     size_t                      width;
     size_t                      height;
-    surface_mapping_t           mp;
+    buffer_mapping_t           mp;
 } bt_screen_t;
 
 typedef struct bt_icon {

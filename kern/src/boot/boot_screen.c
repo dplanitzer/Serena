@@ -42,7 +42,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
 
     if ((err = IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&fb)) == EOK) {
         // Create the surface and screen
-        AGADriver_CreateSurface2d(fb, width, height, PIXFMT_RGB_IND_1, &srf);
+        AGADriver_CreateBuffer(fb, width, height, PIXFMT_RGB_IND_1, &srf);
         AGADriver_CreateCLUT(fb, 32, &clut);
 
 
@@ -60,7 +60,7 @@ void bt_open(bt_screen_t* _Nonnull bscr)
         bscr->height = height;
 
         AGADriver_ClearPixels(fb, bscr->srf);
-        AGADriver_MapSurface(fb, bscr->srf, SURFACE_MAP_RW, &bscr->mp);
+        AGADriver_MapBuffer(fb, bscr->srf, BUFFER_MAP_RW, &bscr->mp);
 
         
         // Blit the boot logo
@@ -102,11 +102,11 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->fb) {
-        AGADriver_UnmapSurface(bscr->fb, bscr->srf);
+        AGADriver_UnmapBuffer(bscr->fb, bscr->srf);
 
         AGADriver_SetScreenConfig(bscr->fb, NULL);
         AGADriver_DestroyCLUT(bscr->fb, bscr->clut);
-        AGADriver_DestroySurface(bscr->fb, bscr->srf);
+        AGADriver_DestroyBuffer(bscr->fb, bscr->srf);
 
         IODriver_Close(bscr->fb);
         Object_Release(bscr->fb);

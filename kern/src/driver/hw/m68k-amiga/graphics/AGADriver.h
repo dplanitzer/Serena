@@ -19,18 +19,18 @@ final_class(AGADriver, IODriver);
 extern errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf);
 
 // Surfaces
-extern errno_t AGADriver_CreateSurface2d(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId);
-extern errno_t AGADriver_DestroySurface(AGADriverRef _Nonnull self, int id);
+extern errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, pixfmt_t pixelFormat, int* _Nonnull pOutId);
+extern errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id);
 
-extern errno_t AGADriver_GetSurfaceInfo(AGADriverRef _Nonnull self, int id, surface_info_t* _Nonnull pOutInfo);
+extern errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, buffer_info_t* _Nonnull pOutInfo);
 
-extern errno_t AGADriver_MapSurface(AGADriverRef _Nonnull self, int id, int mode, surface_mapping_t* _Nonnull pOutMapping);
-extern errno_t AGADriver_UnmapSurface(AGADriverRef _Nonnull self, int id);
+extern errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, buffer_mapping_t* _Nonnull pOutMapping);
+extern errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id);
 
 extern errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, pixfmt_t format);
 extern errno_t AGADriver_ClearPixels(AGADriverRef _Nonnull self, int id);
 
-extern errno_t AGADriver_BindSurface(AGADriverRef _Nonnull self, int target, int id);
+extern errno_t AGADriver_BindBuffer(AGADriverRef _Nonnull self, int target, int id);
 
 
 // CLUT
