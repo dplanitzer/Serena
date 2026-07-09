@@ -55,7 +55,7 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
 {
     decl_try_err();
 
-    if ((planes && bytesPerRow == 0) || width != kCursor_Width || height != kCursor_Height || format != kCursor_PixelFormat) {
+    if ((planes && bytesPerRow == 0) || width != HID_CURSOR_WIDTH || height != HID_CURSOR_HEIGHT || format != HID_CURSOR_PIXELFORMAT) {
         return EINVAL;
     }
 

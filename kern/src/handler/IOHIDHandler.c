@@ -55,18 +55,18 @@ errno_t IOHIDHandler_read(struct IOHIDHandler* _Nonnull self, void* _Nonnull buf
 errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case IOCMD_HID_GET_EVENT: {
+        case HID_CMD_GET_EVENT: {
             const nanotime_t* timeoutp = va_arg(ap, nanotime_t*);
             hid_event_t* evt = va_arg(ap, hid_event_t*);
 
             return IOHIDManager_GetNextEvent(gIOHIDManager, timeoutp, evt);
         }
 
-        case IOCMD_HID_FLUSH_EVENTS:
+        case HID_CMD_FLUSH_EVENTS:
             IOHIDManager_FlushEvents(gIOHIDManager);
             return EOK;
             
-        case IOCMD_HID_KEY_REPEAT_DELAYS: {
+        case HID_CMD_KEY_REPEAT_DELAYS: {
             nanotime_t* initialp = va_arg(ap, nanotime_t*);
             nanotime_t* repeatp = va_arg(ap, nanotime_t*);
 
@@ -74,7 +74,7 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return EOK;
         }
 
-        case IOCMD_HID_SET_KEY_REPEAT_DELAYS: {
+        case HID_CMD_SET_KEY_REPEAT_DELAYS: {
             const nanotime_t* initialp = va_arg(ap, nanotime_t*);
             const nanotime_t* repeatp = va_arg(ap, nanotime_t*);
 
@@ -82,15 +82,15 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return EOK;
         }
 
-        case IOCMD_HID_OBTAIN_CURSOR: {
+        case HID_CMD_OBTAIN_CURSOR: {
             return IOHIDManager_ObtainCursor(gIOHIDManager);
         }
 
-        case IOCMD_HID_RELEASE_CURSOR:
+        case HID_CMD_RELEASE_CURSOR:
             IOHIDManager_ReleaseCursor(gIOHIDManager);
             return EOK;
 
-        case IOCMD_HID_SET_CURSOR: {
+        case HID_CMD_SET_CURSOR: {
             const void** planes = va_arg(ap, const void**);
             const size_t bytesPerRow = va_arg(ap, size_t);
             const int width = va_arg(ap, int);
@@ -102,19 +102,19 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return IOHIDManager_SetCursor(gIOHIDManager, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
         }
 
-        case IOCMD_HID_SHOW_CURSOR:
+        case HID_CMD_SHOW_CURSOR:
             IOHIDManager_ShowCursor(gIOHIDManager);
             return EOK;
 
-        case IOCMD_HID_HIDE_CURSOR:
+        case HID_CMD_HIDE_CURSOR:
             IOHIDManager_HideCursor(gIOHIDManager);
             return EOK;
 
-        case IOCMD_HID_OBSCURE_CURSOR:
+        case HID_CMD_OBSCURE_CURSOR:
             IOHIDManager_ObscureCursor(gIOHIDManager);
             return EOK;
 
-        case IOCMD_HID_SHIELD_CURSOR: {
+        case HID_CMD_SHIELD_CURSOR: {
             const int x = va_arg(ap, int);
             const int y = va_arg(ap, int);
             const int w = va_arg(ap, int);
@@ -124,14 +124,14 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
         }
 
 #if __IOGPBUS__ > 0
-        case IOCMD_HID_PORT_COUNT: {
+        case HID_CMD_PORT_COUNT: {
             size_t* pcount = va_arg(ap, size_t*);
 
             *pcount = IOHIDManager_GetPortCount(gIOHIDManager);
             return EOK;
         }
 
-        case IOCMD_HID_PORT_DEVICE: {
+        case HID_CMD_PORT_DEVICE: {
             const int port = va_arg(ap, int);
             int* ptype = va_arg(ap, int*);
             did_t* pdid = va_arg(ap, did_t*);
@@ -139,14 +139,14 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return IOHIDManager_GetPortDevice(gIOHIDManager, port, ptype, pdid);
         }
 
-        case IOCMD_HID_SET_PORT_DEVICE: {
+        case HID_CMD_SET_PORT_DEVICE: {
             const int port = va_arg(ap, int);
             const int itype = va_arg(ap, int);
 
             return IOHIDManager_SetPortDevice(gIOHIDManager, port, itype);
         }
 
-        case IOCMD_HID_PORT_FOR_DEVICE: {
+        case HID_CMD_PORT_FOR_DEVICE: {
             const did_t did = va_arg(ap, did_t);
             int* pport = va_arg(ap, int*);
 

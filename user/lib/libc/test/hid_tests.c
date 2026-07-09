@@ -103,14 +103,14 @@ void hid_test(int argc, char *argv[])
 
 
     // Game port
-    assert_int_ge(0, fd_cntl(fd, IOCMD_HID_PORT_COUNT, &gp_count));
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_PORT_COUNT, &gp_count));
     printf("\nGame Ports: %d\n", gp_count);
 
     for (size_t i = 0; i < gp_count; i++) {
         int type;
         did_t device_id;
 
-        assert_int_ge(0, fd_cntl(fd, IOCMD_HID_PORT_DEVICE, i, &type, &device_id));
+        assert_int_ge(0, fd_cntl(fd, HID_CMD_PORT_DEVICE, i, &type, &device_id));
         printf("  #%d: %s [%u]\n", i, _hid_device_type_string(type), device_id);
     }
     printf("\n\n");
@@ -121,11 +121,11 @@ void hid_test(int argc, char *argv[])
     printf("Press '2' to hide mouse cursor until move.\n");
     printf("Press 'q' to quit.\n\n");
 
-    assert_int_ge(0, fd_cntl(fd, IOCMD_HID_OBTAIN_CURSOR));
-    assert_int_ge(0, fd_cntl(fd, IOCMD_HID_SET_CURSOR, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_OBTAIN_CURSOR));
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_SET_CURSOR, gArrow_Planes, sizeof(uint16_t), HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, HID_CURSOR_PIXELFORMAT, 1, 1));
 
     while (!done) {
-        assert_int_ge(0, fd_cntl(fd, IOCMD_HID_GET_EVENT, &NANOTIME_INF, &evt));
+        assert_int_ge(0, fd_cntl(fd, HID_CMD_GET_EVENT, &NANOTIME_INF, &evt));
 
         switch (evt.type) {
             case HID_EVENT_KEY_DOWN:
@@ -143,17 +143,17 @@ void hid_test(int argc, char *argv[])
 
                         case KEY_1:
                             if (mc_vis) {
-                                assert_int_ge(0, fd_cntl(fd, IOCMD_HID_HIDE_CURSOR));
+                                assert_int_ge(0, fd_cntl(fd, HID_CMD_HIDE_CURSOR));
                                 mc_vis = false;
                             }
                             else {
-                                assert_int_ge(0, fd_cntl(fd, IOCMD_HID_SHOW_CURSOR));
+                                assert_int_ge(0, fd_cntl(fd, HID_CMD_SHOW_CURSOR));
                                 mc_vis = true;
                             }
                             break;
 
                         case KEY_2:
-                            assert_int_ge(0, fd_cntl(fd, IOCMD_HID_OBSCURE_CURSOR));
+                            assert_int_ge(0, fd_cntl(fd, HID_CMD_OBSCURE_CURSOR));
                             break;
 
                         default:
@@ -203,7 +203,7 @@ void hid_test(int argc, char *argv[])
         }
     }
 
-    assert_int_ge(0, fd_cntl(fd, IOCMD_HID_FLUSH_EVENTS));
-    assert_int_ge(0, fd_cntl(fd, IOCMD_HID_RELEASE_CURSOR));
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_FLUSH_EVENTS));
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_RELEASE_CURSOR));
     fd_close(fd);
 }
