@@ -63,7 +63,6 @@ extern void gdSetCursorVis(bool isVisible);
 // Screen
 extern errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg);
 extern errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz);
-extern errno_t gdSetScreenClutEntries(size_t idx, size_t count, const color_rgb32_t* _Nonnull entries);
 extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);

@@ -50,7 +50,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
         //height = 512;
     }
 
-    try(AGADriver_CreateBuffer(self->fb, width, height, PIXFMT_RGB_IND_3, &self->surfaceId));
+    try(AGADriver_CreateBuffer(self->fb, width, height, PIXFMT_RGB_IND_3, &self->pixelBufferId));
     try(AGADriver_CreateCLUT(self->fb, 32, &self->clutId));
 
 
@@ -59,14 +59,14 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Clear & map the framebuffer before we activate the new screen config
-    try(AGADriver_ClearPixels(self->fb, self->surfaceId));
-    try(AGADriver_MapBuffer(self->fb, self->surfaceId, BUFFER_MAP_RW, &self->pixels));
+    try(AGADriver_ClearPixels(self->fb, self->pixelBufferId));
+    try(AGADriver_MapBuffer(self->fb, self->pixelBufferId, BUFFER_MAP_RW, &self->pixels));
 
 
     // Make our screen the current screen
     intptr_t sc[5];
     sc[0] = SCREEN_CONF_FRAMEBUFFER;
-    sc[1] = self->surfaceId;
+    sc[1] = self->pixelBufferId;
     sc[2] = SCREEN_CONF_CLUT;
     sc[3] = self->clutId;
     sc[4] = SCREEN_CONF_END;
@@ -106,13 +106,13 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    AGADriver_UnmapBuffer(self->fb, self->surfaceId);
+    AGADriver_UnmapBuffer(self->fb, self->pixelBufferId);
 
     AGADriver_SetScreenConfig(self->fb, NULL);
 
     AGADriver_BindBuffer(self->fb, TARGET_SPRITE_0 + self->textCursorSprite, 0);
     AGADriver_DestroyCLUT(self->fb, self->clutId);
-    AGADriver_DestroyBuffer(self->fb, self->surfaceId);    
+    AGADriver_DestroyBuffer(self->fb, self->pixelBufferId);    
 }
 
 

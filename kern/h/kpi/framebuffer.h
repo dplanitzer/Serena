@@ -250,10 +250,4 @@ IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
 #define IOCMD_FB_SCREEN_CONFIG \
 IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_RD, 0)
 
-// Updates the color entries if the current screen CLUT. 'count' entries starting
-// at index 'idx' are replaced with the color values stored in the array 'entries'.
-// set_screen_clut_entries(int id, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
-#define IOCMD_FB_SET_SCREEN_CLUT_ENTRIES \
-IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_WR, 0)
-
 #endif /* _KPI_FRAMEBUFFER_H */

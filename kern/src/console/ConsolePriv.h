@@ -179,7 +179,7 @@ final_class_ivars(Console, Object,
 
     AGADriverRef _Nonnull  fb;
     int                         clutId;
-    int                         surfaceId;
+    int                         pixelBufferId;
     buffer_mapping_t           pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;

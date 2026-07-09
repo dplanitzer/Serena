@@ -50,6 +50,4 @@ extern errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int sprite
 extern errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf);
 extern errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz);
 
-extern errno_t AGADriver_SetScreenCLUTEntries(AGADriverRef _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries);
-
 #endif /* AGADriver_h */

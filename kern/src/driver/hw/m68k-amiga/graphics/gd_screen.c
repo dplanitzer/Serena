@@ -187,18 +187,6 @@ errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz)
     return EOK;
 }
 
-errno_t gdSetScreenClutEntries(size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
-{
-    ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
-
-    if (clut) {
-        return ColorTable_SetEntries(clut, idx, count, entries);
-    }
-    else {
-        return EINVAL;
-    }
-}
-
 void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     const video_conf_t* vc = g_copper_running_prog->video_conf;

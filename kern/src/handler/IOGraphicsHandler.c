@@ -145,14 +145,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_GetScreenConfig(drv, cp, bufsiz);
         }
 
-        case IOCMD_FB_SET_SCREEN_CLUT_ENTRIES: {
-            const size_t idx = va_arg(ap, size_t);
-            const size_t count = va_arg(ap, size_t);
-            const color_rgb32_t* colors = va_arg(ap, const color_rgb32_t*);
-
-            return AGADriver_SetScreenCLUTEntries(drv, idx, count, colors);
-        }
-
         default:
             return Handler_Super_Control(IOGraphicsHandler, cmd, ap);
     }

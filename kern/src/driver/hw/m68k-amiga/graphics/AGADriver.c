@@ -212,14 +212,6 @@ errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull
     return err;
 }
 
-errno_t AGADriver_SetScreenCLUTEntries(AGADriverRef _Nonnull self, size_t idx, size_t count, const color_rgb32_t* _Nonnull entries)
-{
-    gdLock();
-    const errno_t err = gdSetScreenClutEntries(idx, count, entries);
-    gdUnlock();
-    return err;
-}
-
 
 class_func_defs(AGADriver, IODriver,
 override_func_def(start, AGADriver, IODriver)
