@@ -56,28 +56,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_UnmapBuffer(drv, hnd);
         }
 
-        case VIO_CMD_WRITE_PIXELS: {
-            int hnd = va_arg(ap, int);
-            const void* planes = va_arg(ap, const void*);
-            size_t bytesPerRow = va_arg(ap, size_t);
-            vio_pixfmt_t format = va_arg(ap, vio_pixfmt_t);
-
-            return AGADriver_WritePixels(drv, hnd, planes, bytesPerRow, format);
-        }
-
-        case VIO_CMD_CLEAR_PIXELS: {
-            const int hnd = va_arg(ap, int);
-
-            return AGADriver_ClearPixels(drv, hnd);
-        }
-
-        case VIO_CMD_BIND_BUFFER: {
-            const int target = va_arg(ap, int);
-            const int id = va_arg(ap, int);
-
-            return AGADriver_BindBuffer(drv, target, id);
-        }
-
 
         case VIO_CMD_CREATE_CLUT: {
             const size_t entryCount = va_arg(ap, size_t);
@@ -99,36 +77,12 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_GetCLUTInfo(drv, hnd, ci);
         }
 
-        case VIO_CMD_SET_CLUT_ENTRIES: {
-            const int hnd = va_arg(ap, int);
-            const size_t idx = va_arg(ap, size_t);
-            const size_t count = va_arg(ap, size_t);
-            const vio_rgb32_t* colors = va_arg(ap, const vio_rgb32_t*);
-
-            return AGADriver_SetCLUTEntries(drv, hnd, idx, count, colors);
-        }
-
 
         case VIO_CMD_SPRITE_CAPS: {
             vio_sprite_caps_t* cp = va_arg(ap, vio_sprite_caps_t*);
 
             AGADriver_GetSpriteCaps(drv, cp);
             return EOK;
-        }
-
-        case VIO_CMD_SET_SPRITE_POS: {
-            const int hnd = va_arg(ap, int);
-            const int x = va_arg(ap, int);
-            const int y = va_arg(ap, int);
-
-            return AGADriver_SetSpritePosition(drv, hnd, x, y);
-        }
-
-        case VIO_CMD_SET_SPRITE_VIS: {
-            const int hnd = va_arg(ap, int);
-            const bool flag = va_arg(ap, int);
-
-            return AGADriver_SetSpriteVisible(drv, hnd, flag);
         }
 
 

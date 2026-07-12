@@ -83,16 +83,6 @@ errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_
     return err;
 }
 
-// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
-// to the colors in the array 'entries'.
-errno_t AGADriver_SetCLUTEntries(AGADriverRef _Nonnull self, int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
-{
-    gdLock();
-    const errno_t err = gdSetClutEntries(id, idx, count, entries);
-    gdUnlock();
-    return err;
-}
-
 
 //
 // Pixel Buffer
@@ -110,14 +100,6 @@ errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
     const errno_t err = gdDeleteBuffer(id);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_BindBuffer(AGADriverRef _Nonnull self, int target, int id)
-{
-    gdLock();
-    const errno_t err = gdBindBuffer(target, id);
     gdUnlock();
     return err;
 }
@@ -146,42 +128,10 @@ errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_WritePixels(AGADriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
-{
-    gdLock();
-    const errno_t err = gdWritePixels(id, planes, bytesPerRow, format);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_ClearPixels(AGADriverRef _Nonnull self, int id)
-{
-    gdLock();
-    const errno_t err = gdClearPixels(id);
-    gdUnlock();
-    return err;
-}
-
 
 //
 // Sprites
 //
-
-errno_t AGADriver_SetSpritePosition(AGADriverRef _Nonnull self, int spriteId, int x, int y)
-{
-    gdLock();
-    const errno_t err = gdSetSpritePos(spriteId, x, y);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int spriteId, bool isVisible)
-{
-    gdLock();
-    const errno_t err = gdSetSpriteVis(spriteId, isVisible);
-    gdUnlock();
-    return err;
-}
 
 void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Nonnull cp)
 {
