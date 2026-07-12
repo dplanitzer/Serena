@@ -13,7 +13,7 @@
 
 
 open_class(AmiHIDDisplay, IOHIDDisplay,
-    int     cursorSurfaceId;
+    int     cursorBufferId;
     int16_t cursorWidth;
     int16_t cursorHeight;
 );

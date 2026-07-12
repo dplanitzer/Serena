@@ -46,8 +46,8 @@ void AmiHIDDisplay_releaseCursor(AmiHIDDisplayRef _Nonnull self)
 {
     gdLock();
     gdReleaseCursor();
-    gdDeleteBuffer(self->cursorSurfaceId);
-    self->cursorSurfaceId = 0;
+    gdDeleteBuffer(self->cursorBufferId);
+    self->cursorBufferId = 0;
     gdUnlock();
 }
 
@@ -61,21 +61,21 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
 
     
     gdLock();
-    if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
+    if (self->cursorBufferId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
         try(gdGenBuffer(width, height, VIO_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
-        if (self->cursorSurfaceId) {
-            gdDeleteBuffer(self->cursorSurfaceId);
+        if (self->cursorBufferId) {
+            gdDeleteBuffer(self->cursorBufferId);
         }
-        self->cursorSurfaceId = newId;
+        self->cursorBufferId = newId;
     }
 
-    try(gdWritePixels(self->cursorSurfaceId, planes, bytesPerRow, format));
-    try(gdBindCursor(self->cursorSurfaceId));
+    try(gdWritePixels(self->cursorBufferId, planes, bytesPerRow, format));
+    try(gdBindCursor(self->cursorBufferId));
 
 catch:
     gdUnlock();
