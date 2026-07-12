@@ -145,6 +145,26 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_GetScreenConfig(drv, cp, bufsiz);
         }
 
+        case VIO_CMD_CREATE_CMDBUF: {
+            size_t size = va_arg(ap, size_t);
+            vio_cmdbuf_desc_t* desc = va_arg(ap, vio_cmdbuf_desc_t*);
+
+            return AGADriver_CreateCommandBuffer(drv, size, desc);
+        }
+
+        case VIO_CMD_DESTROY_CMDBUF: {
+            int id = va_arg(ap, int);
+
+            return AGADriver_DestroyCommandBuffer(drv, id);
+        }
+
+        case VIO_CMD_EXEC_CMDBUF: {
+            int id = va_arg(ap, int);
+            size_t offset = va_arg(ap, size_t);
+
+            return AGADriver_ExecuteCommandBuffer(drv, id, offset);
+        }
+
         default:
             return Handler_Super_Control(IOGraphicsHandler, cmd, ap);
     }

@@ -11,16 +11,18 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <ext/try.h>
 #include <kpi/framebuffer.h>
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {
-    AGADriverRef _Nullable fb;
-    int                         clut;
-    int                         srf;
-    size_t                      width;
-    size_t                      height;
-    vio_buffer_data_t           mp;
+    AGADriverRef _Nullable  fb;
+    int                     clut;
+    int                     pbo;
+    vio_cmdbuf_desc_t       cmdbuf;
+    size_t                  width;
+    size_t                  height;
+    vio_buffer_data_t       mp;
 } bt_screen_t;
 
 typedef struct bt_icon {
@@ -30,7 +32,7 @@ typedef struct bt_icon {
 } bt_icon_t;
 
 
-extern void bt_open(bt_screen_t* _Nonnull bscr);
+extern errno_t bt_open(bt_screen_t* _Nonnull bscr);
 extern void bt_close(const bt_screen_t* _Nonnull bscr);
 
 extern void bt_drawicon(const bt_screen_t* _Nonnull bscr, const bt_icon_t* _Restrict _Nonnull icp);

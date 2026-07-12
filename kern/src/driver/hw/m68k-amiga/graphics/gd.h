@@ -67,6 +67,11 @@ extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
 
+// Command Buffer
+extern errno_t gdGenCmdbuf(size_t reqSize, vio_cmdbuf_desc_t* _Nonnull desc);
+extern errno_t gdDeleteCmdbuf(int id);
+extern errno_t gdExecCmdbuf(int id, size_t offset);
+
 
 //
 // Internal

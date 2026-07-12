@@ -12,6 +12,7 @@
 #include "Console.h"
 #include <kdispatch/kdispatch.h>
 #include <kern/cbuf.h>
+#include <kpi/framebuffer.h>
 #include <sched/mtx.h>
 #include "Color.h"
 #include "Font.h"
@@ -177,14 +178,15 @@ final_class_ivars(Console, Object,
     CharBuffer                  chb;
     cbuf_t                      reportsQueue;
 
-    AGADriverRef _Nonnull  fb;
+    AGADriverRef _Nonnull       fb;
+    vio_cmdbuf_desc_t           cmdbuf;
     int                         clutId;
-    int                         pixelBufferId;
+    int                         framebufferId;
     vio_buffer_data_t           pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
-    int                         textCursorSurface;
-    int                         textCursorSprite;
+    int                         textCursorBufferId;
+    int                         textCursorSpriteId;
     CursorTimer                 textCursorTimer;
     
     Color                       backgroundColor;

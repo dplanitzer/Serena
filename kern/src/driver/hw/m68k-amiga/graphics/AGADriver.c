@@ -40,7 +40,6 @@ errno_t AGADriver_start(AGADriverRef _Nonnull self)
 
 bool AGADriver_isExclusive(AGADriverRef _Nonnull self)
 {
-    //XXX tmp as long as the console is still inside the kernel
     return false;
 }
 
@@ -210,6 +209,125 @@ errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull
     const errno_t err = gdGetScreenConfig(conf, bufsiz);
     gdUnlock();
     return err;
+}
+
+
+//
+// Command Buffers
+//
+
+errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, vio_cmdbuf_desc_t* _Nonnull desc)
+{
+    gdLock();
+    const errno_t err = gdGenCmdbuf(size, desc);
+    gdUnlock();
+    return err;
+}
+
+errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
+{
+    gdLock();
+    const errno_t err = gdDeleteCmdbuf(id);
+    gdUnlock();
+    return err;
+}
+
+errno_t AGADriver_ExecuteCommandBuffer(AGADriverRef _Nonnull self, int id, size_t offset)
+{
+    gdLock();
+    const errno_t err = gdExecCmdbuf(id, offset);
+    gdUnlock();
+    return err;
+}
+
+
+//
+// In-kernel command buffer utilities
+//
+
+void* _Nonnull vio_set_clut_rgb32(void* _Nonnull addr, int clut_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
+{
+    struct vio_op_clut_rgb32* p = addr;
+
+    p->opcode = VIO_OPCODE_CLUT_RGB32;
+    p->clutId = clut_id;
+    p->idx = idx;
+    p->count = count;
+    
+    for (size_t i = 0; i < count; i++) {
+        p->color[i] = entries[i];
+    }
+
+    return (char*)addr + sizeof(struct vio_op_clut_rgb32) + (count - 1) * sizeof(vio_rgb32_t);
+}
+
+void* _Nonnull vio_write_pixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
+{
+    struct vio_op_write_pixels* p = addr;
+    const size_t pcnt = PixelFormat_GetPlaneCount(format);
+
+    p->opcode = VIO_OPCODE_WRITE_PIXELS;
+    p->bufferId = buf_id;
+    p->bytesPerRow = bytesPerRow;
+    p->format = format;
+    
+    for (size_t i = 0; i < pcnt; i++) {
+        p->plane[i] = planes[i];
+    }
+
+    return (char*)addr + sizeof(struct vio_op_write_pixels) + (pcnt - 1) * sizeof(void*);
+}
+
+void* _Nonnull vio_clear_pixels(void* _Nonnull addr, int buf_id)
+{
+    struct vio_op_buffer* p = addr;
+
+    p->opcode = VIO_OPCODE_CLEAR_PIXELS;
+    p->bufferId = buf_id;
+
+    return (char*)addr + sizeof(struct vio_op_buffer);
+}
+
+void* _Nonnull vio_bind_buffer(void* _Nonnull addr, int target, int buf_id)
+{
+    struct vio_op_bind_buffer* p = addr;
+
+    p->opcode = VIO_OPCODE_BIND_BUFFER;
+    p->target = target;
+    p->bufferId = buf_id;
+
+    return (char*)addr + sizeof(struct vio_op_bind_buffer);
+}
+
+void* _Nonnull vio_put_sprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
+{
+    struct vio_op_put_sprite* p = addr;
+
+    p->opcode = VIO_OPCODE_PUT_SPRITE;
+    p->spriteId = spr_id;
+    p->x = x;
+    p->y = y;
+
+    return (char*)addr + sizeof(struct vio_op_put_sprite);
+}
+
+void* _Nonnull vio_show_sprite(void* _Nonnull addr, int spr_id, bool isVisible)
+{
+    struct vio_op_show_sprite* p = addr;
+
+    p->opcode = VIO_OPCODE_SHOW_SPRITE;
+    p->spriteId = spr_id;
+    p->visible = isVisible;
+    
+    return (char*)addr + sizeof(struct vio_op_show_sprite);
+}
+
+void* _Nonnull vio_end(void* _Nonnull addr)
+{
+    vio_opcode_t* p = addr;
+
+    *p = VIO_OPCODE_END;
+    return (char*)addr + sizeof(vio_opcode_t);
 }
 
 

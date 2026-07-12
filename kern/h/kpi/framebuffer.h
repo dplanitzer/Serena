@@ -10,10 +10,11 @@
 #define _KPI_FRAMEBUFFER_H 1
 
 #include <_cmndef.h>
+#include <stdint.h>
 #include <kpi/ioctl.h>
 #include <kpi/types.h>
 
-// Buffer pixel formats
+// Pixel buffer formats
 #define VIO_COLOR_INDEX1    1  // planar indexed with 1 bit per pixel
 #define VIO_COLOR_INDEX2    2  // planar indexed with 2 bits per pixel
 #define VIO_COLOR_INDEX3    3  // planar indexed with 3 bits per pixel
@@ -249,5 +250,102 @@ IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
 // int get_screen_config(intptr_t* _Nonnull config, size_t bufsiz)
 #define VIO_CMD_SCREEN_CONFIG \
 IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_RD, 0)
+
+
+//
+// Command Buffers
+//
+
+#define VIO_OPCODE_NOP          0   // vio_opcode_t
+#define VIO_OPCODE_END          1   // vio_opcode_t
+#define VIO_OPCODE_WRITE_PIXELS 2   // struct vio_op_write_pixels
+#define VIO_OPCODE_CLEAR_PIXELS 4   // struct vio_op_buffer
+#define VIO_OPCODE_CLUT_RGB32   5   // struct vio_op_clut_rgb32
+#define VIO_OPCODE_PUT_SPRITE   6   // struct vio_op_put_sprite
+#define VIO_OPCODE_SHOW_SPRITE  7   // struct vio_op_show_sprite
+#define VIO_OPCODE_BIND_BUFFER  8   // struct vio_op_bind_buffer 
+
+typedef unsigned short vio_opcode_t;
+
+
+struct vio_op_write_pixels {
+    vio_opcode_t            opcode;
+    int                     bufferId;
+    vio_pixfmt_t            format;
+    size_t                  bytesPerRow;
+    const void* _Nonnull    plane[1];   // 'n' plane pointers follow here where 'n' depends on 'format'
+};
+
+struct vio_op_buffer {
+    vio_opcode_t    opcode;
+    int             bufferId;
+};
+
+struct vio_op_bind_buffer {
+    vio_opcode_t    opcode;
+    int             target;
+    int             bufferId;
+};
+
+struct vio_op_clut_rgb32 {
+    vio_opcode_t    opcode;
+    int             clutId;
+    uint16_t        idx;
+    uint16_t        count;
+    vio_rgb32_t     color[1];       // 'count' color entries follow here
+};
+
+struct vio_op_put_sprite {
+    vio_opcode_t    opcode;
+    int             spriteId;
+    int16_t         x;
+    int16_t         y;
+};
+
+struct vio_op_show_sprite {
+    vio_opcode_t    opcode;
+    int             spriteId;
+    int16_t         visible;    // 'visible' != 0 -> show; otherwise hide
+};
+
+union vio_op {
+    vio_opcode_t                opcode;
+    struct vio_op_write_pixels  write_pixels;
+    struct vio_op_bind_buffer   bind_buffer;
+    struct vio_op_buffer        buffer;
+    struct vio_op_clut_rgb32    clut_rgb32;
+    struct vio_op_put_sprite    put_sprite;
+    struct vio_op_show_sprite   show_sprite;
+};
+
+
+typedef struct vio_cmdbuf_desc {
+    void* _Nonnull  addr;
+    size_t          size;
+    int             id;
+} vio_cmdbuf_desc_t;
+
+// Allocates a command buffer and maps it for reading and writing into the
+// address space of the calling process. 'size' is the requested size of the
+// buffer. The call returns the base address and the actual buffer size in
+// 'desc' when successful. Note that the actual size may be greater than the
+// requested size. However it will never be smaller.
+// create_cmdbuf(size_t byteSize, const vio_cmdbuf_desc_t* _Nullable desc) -> id
+#define VIO_CMD_CREATE_CMDBUF \
+IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_WR, 0)
+
+// Deallocates the command buffer 'id'.
+// destroy_cmdbuf(int id)
+#define VIO_CMD_DESTROY_CMDBUF \
+IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_WR, 0)
+
+// Synchronously executes the command buffer 'id' start at its base address plus
+// 'offset' and continuing until the first encountered end instruction. Blocks
+// the caller until all instructions have been executed. Execution ends
+// prematurely if an instruction with invalid arguments is encountered and the
+// detected error is returned.
+// exec_cmdbuf(int id, size_t offset)
+#define VIO_CMD_EXEC_CMDBUF \
+IOCMD_MAKE(IOPROTO_FB, 19, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */

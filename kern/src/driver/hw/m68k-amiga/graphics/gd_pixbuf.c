@@ -131,8 +131,7 @@ errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow,
         return EINVAL;
     }
 
-    Surface_WritePixels(srf, planes, bytesPerRow, format);
-    return EOK;
+    return Surface_WritePixels(srf, planes, bytesPerRow, format);
 }
 
 errno_t gdClearPixels(int id)
@@ -143,6 +142,5 @@ errno_t gdClearPixels(int id)
         return EINVAL;
     }
 
-    Surface_ClearPixels(srf);
-    return EOK;
+    return Surface_ClearPixels(srf);
 }

@@ -50,4 +50,20 @@ extern errno_t AGADriver_SetSpriteVisible(AGADriverRef _Nonnull self, int sprite
 extern errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf);
 extern errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz);
 
+
+// Command buffers
+extern errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, vio_cmdbuf_desc_t* _Nonnull desc);
+extern errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id);
+extern errno_t AGADriver_ExecuteCommandBuffer(AGADriverRef _Nonnull self, int id, size_t offset);
+
+
+// In-kernel command buffer utilities
+extern void* _Nonnull vio_set_clut_rgb32(void* _Nonnull addr, int clut_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
+extern void* _Nonnull vio_write_pixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);
+extern void* _Nonnull vio_clear_pixels(void* _Nonnull addr, int buf_id);
+extern void* _Nonnull vio_bind_buffer(void* _Nonnull addr, int target, int buf_id);
+extern void* _Nonnull vio_put_sprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y);
+extern void* _Nonnull vio_show_sprite(void* _Nonnull addr, int spr_id, bool isVisible);
+extern void* _Nonnull vio_end(void* _Nonnull addr);
+
 #endif /* AGADriver_h */
