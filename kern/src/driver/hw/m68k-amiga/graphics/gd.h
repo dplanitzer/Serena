@@ -88,13 +88,8 @@ extern bool                     g_light_pen_enabled;
 extern bool                     g_mouse_cursor_active;
 extern vcpu_t _Nullable         g_screen_conf_observer;
 extern int                      g_screen_conf_signal;
-extern copper_prog_t _Nullable  g_copprg_cache;
-extern size_t                   g_copprg_cache_count;
-extern vcpu_t _Nonnull          g_copper_vp;
-extern struct waitqueue         g_copper_wq;
-extern sigset_t                 g_copper_sigs;
 
-extern void gdCopperManager(void*);
+extern errno_t _gdInitCopper(void);
 
 // Compiles a Copper program to display the null screen. The null screen shows
 // nothing.

@@ -101,18 +101,6 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nullable clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled);
 
 
-// Initializes the Copper scheduler. 'prog' is the bootstrap Copper program. This
-// program will start running as soon as the bottom-most line of the current
-// video frame has been reached.  
-extern errno_t copper_init(copper_prog_t _Nonnull prog, int signo, vcpu_t _Nullable sigvp);
-
-// Starts the Copper scheduling services running.
-extern void copper_start(void);
-
-// Removes the next program from the retired Copper program list. Returns NULL
-// if there are no retired programs.
-extern copper_prog_t _Nullable copper_acquire_retired_prog(void);
-
 // Schedules the provided Copper program. This program will start running at the
 // beginning of the next video frame. Pass COPFLAG_WAIT_RUNNING to wait until the
 // new program has started running.
