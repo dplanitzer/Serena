@@ -15,20 +15,18 @@
 
 
 enum {
-    kSurfaceFlag_ClusteredPlanes = 0x01,    // Surface is planar and all planes share a single kalloc() memory block. Ptr of this memory block is in planes[0]
     kSurfaceFlag_IsMapped = 0x02,
-    kSurfaceFlag_IsRegistered = 0x04,
 };
 
 typedef struct Surface {
     deque_node_t        chain;
     int                 id;
     int                 refCount;
-    uint8_t* _Nullable  plane[8];
+    uint8_t* _Nullable  plane[8];   // plane[0] is the buffer base pointer used for kfree(); plane[1..] are internal pointers into this buffer
     int                 width;
     int                 height;
     size_t              bytesPerRow;
-    vio_pixfmt_t            pixelFormat;
+    vio_pixfmt_t        pixelFormat;
     int8_t              planeCount;
     uint8_t             flags;
 } Surface;

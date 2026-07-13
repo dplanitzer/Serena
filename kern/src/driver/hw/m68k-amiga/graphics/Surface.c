@@ -61,18 +61,10 @@ static errno_t _alloc_multi_plane(Surface* _Nonnull self)
     // too fragmented to pull this off. Individual planes in a clustered planes
     // configuration are aligned on an 4 byte boundary.
 
-    if (kalloc_options(clusteredSize, KALLOC_OPTION_UNIFIED, (void**) &self->plane[0])) {
+    err = kalloc_options(clusteredSize, KALLOC_OPTION_UNIFIED, (void**) &self->plane[0]);
+    if (err == EOK) {
         for (int8_t i = 1; i < self->planeCount; i++) {
             self->plane[i] = self->plane[i - 1] + bytesPerClusteredPlane;
-        }
-        self->flags |= kSurfaceFlag_ClusteredPlanes;
-    }
-    else {
-        for (int8_t i = 0; i < self->planeCount; i++) {
-            err = kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->plane[i]);
-            if (err != EOK) {
-                break;
-            }
         }
     }
 
@@ -81,19 +73,11 @@ static errno_t _alloc_multi_plane(Surface* _Nonnull self)
 
 static void _destroy(Surface* _Nonnull self)
 {
-    if ((self->flags & kSurfaceFlag_IsRegistered) != 0) {
+    if (self->id != 0) {
         deque_remove(&g_surface_table, &self->chain);
     }
 
-    if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
-        kfree(self->plane[0]);
-    }
-    else {
-        for (int i = 0; i < self->planeCount; i++) {
-            kfree(self->plane[i]);
-        }
-    }
-
+    kfree(self->plane[0]);
     kfree(self);
 }
 
@@ -116,7 +100,6 @@ errno_t Surface_Create(int width, int height, vio_pixfmt_t pixelFormat, Surface*
 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
-    self->id = g_next_surface_id++;
     self->refCount = 1;
     self->pixelFormat = pixelFormat;
     self->width = width;
@@ -134,7 +117,7 @@ errno_t Surface_Create(int width, int height, vio_pixfmt_t pixelFormat, Surface*
     
 
     deque_add_first(&g_surface_table, &self->chain);
-    self->flags |= kSurfaceFlag_IsRegistered;
+    self->id = g_next_surface_id++;
 
     *pOutSelf = self;
     return EOK;
