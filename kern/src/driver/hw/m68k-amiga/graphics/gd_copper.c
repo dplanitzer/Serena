@@ -312,11 +312,13 @@ static errno_t _create_copper_prog(size_t instr_count, copper_prog_t _Nullable *
 
 static void _cache_copper_prog(copper_prog_t _Nonnull prog)
 {
-    ColorTable* clut = (ColorTable*)prog->res.clut;
-    Surface* fb = (Surface*)prog->res.fb;
+    clut_t* clut = prog->res.clut;
+    Surface* fb = prog->res.fb;
 
-    ColorTable_DelRef(clut);
+    // User can not delete the CLUT as long as the Copper program was using it.
+    // Just remove the reference here
     prog->res.clut = NULL;
+    
     Surface_DelRef(fb);
     prog->res.fb = NULL;
 
@@ -373,9 +375,6 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
         prog->video_conf = run_prog->video_conf;
         prog->res = run_prog->res;
 
-        if (prog->res.clut) {
-            ColorTable_AddRef(prog->res.clut);
-        }
         if (prog->res.fb) {
             Surface_AddRef(prog->res.fb);
         }
@@ -449,7 +448,7 @@ errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
     return create_screen_copper_prog(get_null_video_conf(), NULL, NULL, pOutProg);
 }
 
-errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable fb, clut_t* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = calc_copper_prog_instruction_count(vc);

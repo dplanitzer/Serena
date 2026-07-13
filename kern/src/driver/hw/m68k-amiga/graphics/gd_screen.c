@@ -24,14 +24,14 @@ static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t 
 
 // Parses the given 'icfg' in order to get a CLUT that is suitable for the
 // screen configuration.
-static errno_t _get_clut_from_config(const intptr_t* _Nonnull icfg, ColorTable* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
+static errno_t _get_clut_from_config(const intptr_t* _Nonnull icfg, clut_t* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
 {
     decl_try_err();
-    ColorTable* clut = NULL;
+    clut_t* clut = NULL;
     const int clut_id = _get_config_value(icfg, VIO_SCR_CLUT, -1);
     
     if (clut_id != -1) {
-        clut = ColorTable_GetForId(clut_id);
+        clut = _clut_for_id(clut_id);
         if (clut == NULL) {
             return EINVAL;
         }
@@ -43,11 +43,14 @@ static errno_t _get_clut_from_config(const intptr_t* _Nonnull icfg, ColorTable* 
         *pOutCreated = false;
     }
     else {
-        err = ColorTable_Create(COLOR_COUNT, VIO_RGB32_BLACK, &clut);
+        int clut_id;
+
+        err = gdGenClut(COLOR_COUNT, &clut_id);
         if (err != EOK) {
             return err;
         }
 
+        *pOutClut = _clut_for_id(clut_id);
         *pOutCreated = true;
     }
 
@@ -112,7 +115,7 @@ errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg)
     decl_try_err();
     Surface* fb = NULL;
     bool bFbCreated = false;
-    ColorTable* clut = NULL;
+    clut_t* clut = NULL;
     bool bClutCreated = false;
     const video_conf_t* vc = NULL;
     copper_prog_t prog = NULL;
@@ -141,7 +144,7 @@ catch:
             Surface_DelRef(fb);
         }
         if (bClutCreated) {
-            ColorTable_DelRef(clut);
+            _gdDestroyClut(clut);
         }
     }
 
@@ -168,14 +171,14 @@ errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz)
 
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
     const video_conf_t* vc = g_copper_running_prog->video_conf;
-    Surface* fb = (Surface*)g_copper_running_prog->res.fb;
-    ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
+    Surface* fb = g_copper_running_prog->res.fb;
+    clut_t* clut = g_copper_running_prog->res.clut;
     irq_restore_mask(sim);
 
     conf[i++] = VIO_SCR_FRAMEBUFFER;
     conf[i++] = (fb) ? Surface_GetId(fb) : 0;
     conf[i++] = VIO_SCR_CLUT;
-    conf[i++] = (clut) ? ColorTable_GetId(clut) : 0;
+    conf[i++] = (clut) ? clut->id : 0;
     conf[i++] = VIO_SCR_WIDTH;
     conf[i++] = vc->width;
     conf[i++] = VIO_SCR_HEIGHT;

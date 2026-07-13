@@ -49,19 +49,6 @@ void copper_prog_destroy(copper_prog_t _Nullable prog)
 {
     if (prog) {
         kfree(prog->prog);
-        prog->prog = NULL;
-        prog->even_entry = NULL;
-        prog->odd_entry = NULL;
-
-        Surface_DelRef(prog->res.fb);
-        prog->res.fb = NULL;
-        ColorTable_DelRef(prog->res.clut);
-        prog->res.clut = NULL;
-
-        for (int i = 0; i < SPRITE_COUNT; i++) {
-            Surface_DelRef(prog->res.spr[i]);
-            prog->res.spr[i] = NULL;
-        }
     }
     kfree(prog);
 }
@@ -94,7 +81,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     copper_locs_t* _Nullable locs,
     const video_conf_t* _Nonnull vc,
     Surface* _Nullable pbo,
-    ColorTable* _Nullable clut,
+    clut_t* _Nullable clut,
     const sprite_channel_t _Nonnull spr[],
     Surface* _Nonnull nullSpriteSurface,
     bool isLightPenEnabled,
@@ -230,7 +217,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     return ip;
 }
 
-void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nullable clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled)
+void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, clut_t* _Nullable clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_instr_t* ip;
@@ -247,15 +234,11 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     }
 
     self->video_conf = vc;
+    self->res.clut = clut;
 
     self->res.fb = fb;
     if (fb) {
         Surface_AddRef(self->res.fb);
-    }
-
-    self->res.clut = clut;
-    if (clut) {
-        ColorTable_AddRef(self->res.clut);
     }
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
@@ -292,7 +275,7 @@ void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size
 {
     const uint16_t l = startIdx;
     const uint16_t h = startIdx + count;
-    ColorTable* clut = (ColorTable*)self->res.clut;
+    clut_t* clut = self->res.clut;
     copper_instr_t* op = &self->odd_entry[self->loc.clut + l];
     copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.clut + l] : NULL;
     

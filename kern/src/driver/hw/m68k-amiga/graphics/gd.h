@@ -10,12 +10,8 @@
 #define _GD_H
 
 #include <ext/try.h>
-#include <ext/queue.h>
 #include <sched/mtx.h>
-#include <sched/sem.h>
 #include <sched/vcpu.h>
-#include <sched/waitqueue.h>
-#include "ColorTable.h"
 #include "Surface.h"
 
 

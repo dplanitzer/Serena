@@ -150,7 +150,8 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 #define VIO_CMD_CREATE_CLUT \
 IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 
-// Destroys the CLUT with id 'id'. Returns EBUSY if the CLUT is currently in use.
+// Destroys the CLUT with id 'id'. Returns EBUSY if the CLUT is currently used
+// by the active screen.
 // destroy_clut(int id)
 #define VIO_CMD_DESTROY_CLUT \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)

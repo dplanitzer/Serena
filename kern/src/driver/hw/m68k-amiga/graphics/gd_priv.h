@@ -17,12 +17,46 @@
 #include <ext/try.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <sched/mtx.h>
-#include <sched/sem.h>
-#include <sched/vcpu.h>
 #include <sched/waitqueue.h>
-#include "ColorTable.h"
 #include "Surface.h"
 #include "video_conf.h"
+
+// Memory management model for resources that are used by a Copper program:
+// *) A user may request the deletion of a resource that's currently being used
+//    by a Copper program.
+// *) In this case, the resource is immediately removed from the resource specific
+//    ID table (this makes the resource immediately no longer accessible be the
+//    user). The id is then removed from the resource (set to 0).
+// *) Once the Copper program is retired, the Copper manager checks whether the
+//    resource id == 0, if so it destroys the resource; otherwise it leaves it
+//    alive.
+
+// CLUT
+typedef struct clut_entry {
+    uint8_t     r;
+    uint8_t     g;
+    uint8_t     b;
+    uint8_t     flags;
+} clut_entry_t;
+
+typedef struct clut {
+    deque_node_t    chain;
+    int             id;
+    uint16_t        entryCount;
+    uint16_t        entry[1];
+} clut_t;
+
+extern void _gdDestroyClut(clut_t* _Nullable clut);
+extern clut_t* _Nullable _clut_for_id(int id);  //XXX
+
+
+// Sprite channel
+typedef struct sprite_channel {
+    Surface* _Nullable  surface;    // Surface holding the sprite image data and control words
+    int                 x;
+    int                 y;
+    bool                isVisible;
+} sprite_channel_t;
 
 
 // Copper program instruction
@@ -34,14 +68,6 @@ typedef uint32_t  copper_instr_t;
 #define COP_END()                       0xfffffffe
 
 
-typedef struct sprite_channel {
-    Surface* _Nullable  surface;    // Surface holding the sprite image data and control words
-    int                 x;
-    int                 y;
-    bool                isVisible;
-} sprite_channel_t;
-
-
 // Copper program state
 #define COP_STATE_IDLE      0
 #define COP_STATE_READY     1
@@ -50,7 +76,7 @@ typedef struct sprite_channel {
 
 
 typedef struct copper_res {
-    ColorTable* _Nonnull    clut;
+    clut_t* _Nonnull        clut;
     Surface* _Nullable      fb;
 
     Surface* _Nonnull       spr[SPRITE_COUNT];
@@ -103,7 +129,7 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 // configuration, framebuffer, CLUT and sprite configuration and writes the
 // instructions to the given Copper program. Note that the Copper program must
 // be big enough to hold all instructions.
-extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nullable clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled);
+extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, clut_t* _Nullable clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled);
 
 
 // Schedules the provided Copper program. This program will start running at the
@@ -155,7 +181,7 @@ extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, ColorTable* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, clut_t* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 extern copper_prog_t _Nullable copper_get_editable_prog(void);
 
