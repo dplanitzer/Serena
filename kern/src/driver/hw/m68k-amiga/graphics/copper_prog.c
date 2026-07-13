@@ -94,8 +94,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     copper_instr_t* _Nonnull ip, 
     copper_locs_t* _Nullable locs,
     const video_conf_t* _Nonnull vc,
-    Surface* _Nullable fb,
-    ColorTable* _Nonnull clut,
+    Surface* _Nullable pbo,
+    ColorTable* _Nullable clut,
     const sprite_channel_t _Nonnull spr[],
     Surface* _Nonnull nullSpriteSurface,
     bool isLightPenEnabled,
@@ -107,8 +107,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     const uint16_t h = vc->height;
     copper_instr_t* orig = ip;
 
-    assert(clut->entryCount == COLOR_COUNT);
-    assert((fb && fb->planeCount < PLANE_COUNT) || (fb == NULL));
+    assert((clut && clut->entryCount == COLOR_COUNT) || (clut == NULL));
+    assert((pbo && pbo->planeCount < PLANE_COUNT) || (pbo == NULL));
 
 
     // We wait here so that the Copper program editing code gets more time to
@@ -121,8 +121,15 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     if (locs) {
         locs->clut = ip - orig;
     }
-    for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
-        *ip++ = COP_MOVE(r, clut->entry[i]);
+    if (clut) {
+        for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
+            *ip++ = COP_MOVE(r, clut->entry[i]);
+        }
+    }
+    else {
+        for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
+            *ip++ = COP_MOVE(r, 0xfff); // white
+        }
     }
 
 
@@ -140,13 +147,13 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
 
     // BPLxPT
-    if (fb) {
-        const uint16_t bpr = Surface_GetBytesPerRow(fb);
+    if (pbo) {
+        const uint16_t bpr = Surface_GetBytesPerRow(pbo);
         const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
         const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
 
-        for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
-            const uint32_t bplpt = (uint32_t)fb->plane[i] + firstLineByteOffset;
+        for (int i = 0, r = BPL_BASE; i < pbo->planeCount; i++, r += 4) {
+            const uint32_t bplpt = (uint32_t)pbo->plane[i] + firstLineByteOffset;
         
             *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
             *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
@@ -163,7 +170,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
 
     // BPLCON0
-    const uint16_t bp_cnt = (fb) ? fb->planeCount & 0x07 : 0;
+    const uint16_t bp_cnt = (pbo) ? pbo->planeCount & 0x07 : 0;
     const uint16_t lpen_bit = (isLightPenEnabled) ? BPLCON0F_LPEN : 0;
     uint16_t bplcon0 = BPLCON0F_COLOR | lpen_bit | (bp_cnt << 12);
 
@@ -173,14 +180,16 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     if (isLace) {
         bplcon0 |= BPLCON0F_LACE;
     }
-    switch (Surface_GetPixelFormat(fb)) {
-        case VIO_RGB_HAM_5:
-        case VIO_RGB_HAM_6:
-            bplcon0 |= BPLCON0F_HAM;
-            break;
+    if (pbo) {
+        switch (Surface_GetPixelFormat(pbo)) {
+            case VIO_RGB_HAM_5:
+            case VIO_RGB_HAM_6:
+                bplcon0 |= BPLCON0F_HAM;
+                break;
             
-        default:
-            break;
+            default:
+                break;
+        }
     }
 
     if (locs) {
@@ -212,7 +221,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
 
     // DMACON
-    const uint16_t bpl_bit = (fb) ? DMACONF_BPLEN : 0;
+    const uint16_t bpl_bit = (pbo) ? DMACONF_BPLEN : 0;
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | bpl_bit | DMACONF_SPREN | DMACONF_DMAEN);
 
 
@@ -222,7 +231,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     return ip;
 }
 
-void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled)
+void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nullable clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_instr_t* ip;
@@ -246,7 +255,9 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     }
 
     self->res.clut = clut;
-    ColorTable_AddRef(self->res.clut);
+    if (clut) {
+        ColorTable_AddRef(self->res.clut);
+    }
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
         Surface* srf = (spr[i].surface && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;

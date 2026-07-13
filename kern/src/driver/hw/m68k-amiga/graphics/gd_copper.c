@@ -124,7 +124,9 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
         prog->video_conf = run_prog->video_conf;
         prog->res = run_prog->res;
 
-        ColorTable_AddRef(prog->res.clut);
+        if (prog->res.clut) {
+            ColorTable_AddRef(prog->res.clut);
+        }
         if (prog->res.fb) {
             Surface_AddRef(prog->res.fb);
         }
@@ -173,24 +175,10 @@ void gdCopperManager(void* ignore)
 
 errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
 {
-    decl_try_err();
-    ColorTable* clut;
-
-    err = ColorTable_Create(COLOR_COUNT, VIO_RGB32_WHITE, &clut);
-    if (err != EOK) {
-        return err;
-    }
-
-    err = create_screen_copper_prog(get_null_video_conf(), NULL, clut, pOutProg);
-    if (err != EOK) {
-        ColorTable_DelRef(clut);
-        return err;
-    }
-
-    return EOK;
+    return create_screen_copper_prog(get_null_video_conf(), NULL, NULL, pOutProg);
 }
 
-errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = calc_copper_prog_instruction_count(vc);

@@ -103,7 +103,7 @@ extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, ColorTable* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 extern copper_prog_t _Nullable copper_get_editable_prog(void);
 
