@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd.h"
+#include "gd_priv.h"
 #include <driver/IOLib.h>
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>

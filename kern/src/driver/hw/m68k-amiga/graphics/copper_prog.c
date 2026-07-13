@@ -6,8 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "copper.h"
-#include "ColorTable.h"
+#include "gd_priv.h"
 #include <assert.h>
 #include <kern/kalloc.h>
 

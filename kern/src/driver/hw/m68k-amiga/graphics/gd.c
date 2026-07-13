@@ -6,15 +6,15 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd.h"
+#include "gd_priv.h"
 
-mtx_t                       gd_mtx;
-vcpu_t _Nullable            g_screen_conf_observer;
-int                         g_screen_conf_signal;
-Surface* _Nonnull           g_null_sprite_surface;
-sprite_channel_t            g_sprite[SPRITE_COUNT];
-bool                        g_light_pen_enabled;
-bool                        g_mouse_cursor_active;
+mtx_t               gd_mtx;
+vcpu_t _Nullable    g_screen_conf_observer;
+int                 g_screen_conf_signal;
+Surface* _Nonnull   g_null_sprite_surface;
+sprite_channel_t    g_sprite[SPRITE_COUNT];
+bool                g_light_pen_enabled;
+bool                g_mouse_cursor_active;
 
 
 errno_t gdInit(void)

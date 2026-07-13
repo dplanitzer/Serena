@@ -15,12 +15,12 @@
 #include <sched/sem.h>
 #include <sched/vcpu.h>
 #include <sched/waitqueue.h>
-#include "copper.h"
 #include "ColorTable.h"
 #include "Surface.h"
 
 
 extern errno_t gdInit(void);
+extern mtx_t gd_mtx;
 
 
 #define gdLock() \
@@ -71,35 +71,5 @@ extern void gdSetLightPenEnabled(bool enabled);
 extern errno_t gdGenCmdbuf(size_t reqSize, vio_cmdbuf_desc_t* _Nonnull desc);
 extern errno_t gdDeleteCmdbuf(int id);
 extern errno_t gdExecCmdbuf(int id, size_t offset);
-
-
-//
-// Internal
-//
-
-#define MAX_CACHED_COPPER_PROGS 4
-#define MOUSE_SPRITE_PRI 0
-
-
-extern mtx_t                    gd_mtx;
-extern Surface* _Nonnull        g_null_sprite_surface;
-extern sprite_channel_t         g_sprite[SPRITE_COUNT];
-extern bool                     g_light_pen_enabled;
-extern bool                     g_mouse_cursor_active;
-extern vcpu_t _Nullable         g_screen_conf_observer;
-extern int                      g_screen_conf_signal;
-
-extern errno_t _gdInitCopper(void);
-
-// Compiles a Copper program to display the null screen. The null screen shows
-// nothing.
-extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg);
-
-// Creates the even and odd field Copper programs for the given screen. There will
-// always be at least an odd field program. The even field program will only exist
-// for an interlaced screen.
-extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, ColorTable* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg);
-
-extern copper_prog_t _Nullable copper_get_editable_prog(void);
 
 #endif /* _GD_H */

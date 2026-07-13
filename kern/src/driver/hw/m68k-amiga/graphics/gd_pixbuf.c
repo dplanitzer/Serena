@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd.h"
+#include "gd_priv.h"
 
 
 errno_t gdGenBuffer(int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId)

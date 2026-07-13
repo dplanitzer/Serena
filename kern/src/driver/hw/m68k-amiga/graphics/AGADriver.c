@@ -7,6 +7,7 @@
 //
 
 #include "AGADriverPriv.h"
+#include "video_conf.h"
 #include <string.h>
 #include <handler/IOGraphicsHandler.h>
 

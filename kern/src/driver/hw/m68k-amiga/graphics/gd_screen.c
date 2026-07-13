@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd.h"
+#include "gd_priv.h"
 #include <hal/irq.h>
 
 

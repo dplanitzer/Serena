@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd.h"
+#include "gd_priv.h"
 #include <ext/math.h>
 #include <kern/kalloc.h>
 #include <kpi/hid.h>

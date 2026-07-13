@@ -10,14 +10,7 @@
 #define AGADriverPriv_h
 
 #include "AGADriver.h"
-#include <ext/queue.h>
 #include <sched/mtx.h>
-#include <sched/sem.h>
-#include <sched/vcpu.h>
-#include <sched/waitqueue.h>
-#include "copper.h"
-#include "ColorTable.h"
-#include "Surface.h"
 #include "gd.h"
 
 
