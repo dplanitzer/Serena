@@ -10,6 +10,10 @@
 #include <hal/irq.h>
 
 
+static vcpu_t _Nullable g_screen_conf_observer;
+static int              g_screen_conf_signal;
+
+
 static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t def)
 {
     while (*config != VIO_SCR_END) {
@@ -137,6 +141,12 @@ errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg)
     // and the previous one has been retired. It's save to deallocate the old
     // framebuffer once the old program has stopped running.
     copper_schedule(prog, COPFLAG_WAIT_RUNNING);
+
+
+    if (g_screen_conf_observer) {
+        vcpu_send_signal(g_screen_conf_observer, g_screen_conf_signal);
+    }
+
 
 catch:
     if (err != EOK) {

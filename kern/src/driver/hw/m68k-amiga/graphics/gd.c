@@ -10,8 +10,6 @@
 #include <kern/kalloc.h>
 
 mtx_t               gd_mtx;
-vcpu_t _Nullable    g_screen_conf_observer;
-int                 g_screen_conf_signal;
 uint16_t* _Nonnull  g_null_sprite_data;
 sprite_channel_t    g_sprite[SPRITE_COUNT];
 bool                g_light_pen_enabled;

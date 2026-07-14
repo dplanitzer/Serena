@@ -396,18 +396,10 @@ static void copper_manager(void* ignore)
     for (;;) {
         copper_prog_t prog;
         int signo;
-        bool hasChange = false;
 
         while ((prog = copper_acquire_retired_prog()) != NULL) {
             _cache_copper_prog(prog);
-            hasChange = true;
         }
-
-
-        if (hasChange && g_screen_conf_observer) {
-            vcpu_send_signal(g_screen_conf_observer, g_screen_conf_signal);
-        }
-
 
         gdUnlock();
         vcpu_sigwait(&g_copper_wq, &g_copper_sigs, 0, TICKS_MAX, &signo);
