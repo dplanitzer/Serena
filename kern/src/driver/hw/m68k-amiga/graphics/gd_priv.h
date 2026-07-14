@@ -56,6 +56,7 @@ typedef struct sprite_channel {
     int                 x;
     int                 y;
     bool                isVisible;
+    char                id;
 } sprite_channel_t;
 
 

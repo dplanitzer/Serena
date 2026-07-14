@@ -41,22 +41,21 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
     return (hw << 16) | lw;
 }
 
-static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
+static bool _bind_sprite(sprite_channel_t* _Nonnull spr, Surface* _Nullable srf)
 {
-    bool doEditCopperProg = false;
-    sprite_channel_t* spr = &g_sprite[unit];
+    bool hasChanged = false;
 
 
     // Nothing to do if the surface doesn't actually change
     if (spr->surface == srf) {
-        return EOK;
+        return false;
     }
 
 
     // Unbind the existing surface, if one is bound
     if (spr->surface) {
         // Cancel any still pending control word writes
-        sprite_ctl_cancel(unit);
+        sprite_ctl_cancel(spr->id);
 
         // Drop the sprite channel reference. Note that the currently running Copper
         // program still holds a reference on the sprite surface. This one will be
@@ -64,7 +63,7 @@ static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
         Surface_DelRef(spr->surface);
         spr->surface = NULL;
 
-        doEditCopperProg = true;
+        hasChanged = true;
     }
 
 
@@ -76,62 +75,38 @@ static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
         uint32_t* sprptr = (uint32_t*)Surface_GetPlane(srf, 0);
         *sprptr = _calc_sprite_ctl(spr);
 
-        doEditCopperProg = true;
+        hasChanged = true;
     }
 
-
-    if (doEditCopperProg) {
-        copper_prog_t prog = copper_get_editable_prog();
-        
-        if (prog) {
-            copper_prog_sprptr_changed(prog, unit, (spr->surface && spr->isVisible) ? spr->surface : g_null_sprite_surface);
-            copper_schedule(prog, 0);
-        }
-    }
-
-    return EOK;
+    return hasChanged;
 }
 
-static void _set_sprite_pos(int unit, int x, int y)
+static void _sprite_buffer_or_visibility_changed(const sprite_channel_t* _Nonnull spr)
 {
-    sprite_channel_t* spr = &g_sprite[unit];
+    copper_prog_t prog = copper_get_editable_prog();
+        
+    if (prog) {
+        copper_prog_sprptr_changed(prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : g_null_sprite_surface);
+        copper_schedule(prog, 0);
+    }
+}
+
+static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
+{
     spr->x = x;
     spr->y = y;
+
     if (spr->surface) {
         const uint32_t ctl = _calc_sprite_ctl(spr);
 
         if (spr->isVisible) {
-            sprite_ctl_submit(unit, Surface_GetPlane(spr->surface, 0), ctl);
+            sprite_ctl_submit(spr->id, Surface_GetPlane(spr->surface, 0), ctl);
         }
         else {
             uint32_t* sprptr = (uint32_t*)Surface_GetPlane(spr->surface, 0);
             *sprptr = ctl;
         }
     }
-}
-
-static bool _set_sprite_vis(int unit, bool isVisible)
-{
-    sprite_channel_t* spr = &g_sprite[unit];
-    
-    if (spr->isVisible != isVisible) {
-        spr->isVisible = isVisible;
-
-        if (spr->surface) {
-            copper_prog_t prog = copper_get_editable_prog();
-        
-            if (prog) {
-                Surface* srf = (isVisible) ? spr->surface : g_null_sprite_surface;
-
-                copper_prog_sprptr_changed(prog, unit, srf);
-                copper_schedule(prog, 0);
-            }
-        }
-
-        return true;
-    }
-
-    return false;
 }
 
 
@@ -157,7 +132,13 @@ errno_t _gdBindSprite(int unit, Surface* _Nullable srf)
         return EBUSY;
     }
 
-    return _bind_sprite(unit, srf);
+
+    sprite_channel_t* spr = &g_sprite[unit];
+    if (_bind_sprite(spr, srf)) {
+        _sprite_buffer_or_visibility_changed(spr);
+    }
+
+    return EOK;
 }
 
 errno_t gdSetSpritePos(int spriteId, int x, int y)
@@ -169,7 +150,7 @@ errno_t gdSetSpritePos(int spriteId, int x, int y)
         return EBUSY;
     }
 
-    _set_sprite_pos(spriteId, x, y);
+    _set_sprite_pos(&g_sprite[spriteId], x, y);
     return EOK;
 }
 
@@ -182,7 +163,15 @@ errno_t gdSetSpriteVis(int spriteId, bool isVisible)
         return EBUSY;
     }
 
-    _set_sprite_vis(spriteId, isVisible);
+
+    sprite_channel_t* spr = &g_sprite[spriteId];
+    const bool hasChange = spr->isVisible != isVisible;
+    
+    if (hasChange) {
+        spr->isVisible = isVisible;
+        _sprite_buffer_or_visibility_changed(spr);
+    }
+
     return EOK;
 }
 
@@ -208,10 +197,18 @@ void gdGetSpriteCaps(vio_sprite_caps_t* _Nonnull cp)
 
 errno_t gdObtainCursor(void)
 {
+    bool hasChanged = false;
+    sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+
     g_mouse_cursor_active = 1;
-    _bind_sprite(MOUSE_SPRITE_PRI, NULL);
-    _set_sprite_pos(MOUSE_SPRITE_PRI, 0, 0);
-    _set_sprite_vis(MOUSE_SPRITE_PRI, true);
+    hasChanged |= _bind_sprite(spr, NULL);
+    _set_sprite_pos(spr, 0, 0);
+    hasChanged |= !spr->isVisible;
+    spr->isVisible = true;
+
+    if (hasChanged) {
+        _sprite_buffer_or_visibility_changed(spr);
+    }
 
     return EOK;
 }
@@ -219,49 +216,69 @@ errno_t gdObtainCursor(void)
 void gdReleaseCursor()
 {
     if (g_mouse_cursor_active) {
-        _bind_sprite(MOUSE_SPRITE_PRI, NULL);
-        _set_sprite_pos(MOUSE_SPRITE_PRI, 0, 0);
-        _set_sprite_vis(MOUSE_SPRITE_PRI, true);
+        sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+        bool hasChanged = false;
+        
+        hasChanged |= _bind_sprite(spr, NULL);
+        _set_sprite_pos(spr, 0, 0);
+        hasChanged |= spr->isVisible;
+        spr->isVisible = false;
         g_mouse_cursor_active = 0;
+
+        if (hasChanged) {
+            _sprite_buffer_or_visibility_changed(spr);
+        }
     }
 }
 
 errno_t gdBindCursor(int id)
 {
-    if (g_mouse_cursor_active) {
-       Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
-
-        if (srf) {
-            if (Surface_GetWidth(srf) != HID_CURSOR_WIDTH
-                || Surface_GetHeight(srf) != HID_CURSOR_HEIGHT
-                || Surface_GetPixelFormat(srf) != VIO_RGB_SPRITE_2) {
-                return ENOTSUP;
-            }
-
-            return _bind_sprite(MOUSE_SPRITE_PRI, srf);
-        }
-        else if (id == 0) {
-            return _bind_sprite(MOUSE_SPRITE_PRI, NULL);
-        }
-        else {
-            return EINVAL;
-        }
-    }
-    else {
+    if (!g_mouse_cursor_active) {
         return EBUSY;
     }
+
+    Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
+    sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+    bool hasChanged = false;
+
+    if (srf) {
+        if (Surface_GetWidth(srf) != HID_CURSOR_WIDTH
+            || Surface_GetHeight(srf) != HID_CURSOR_HEIGHT
+            || Surface_GetPixelFormat(srf) != VIO_RGB_SPRITE_2) {
+            return ENOTSUP;
+        }
+
+        hasChanged = _bind_sprite(spr, srf);
+    }
+    else if (id == 0) {
+        hasChanged = _bind_sprite(spr, NULL);
+    }
+    else {
+        return EINVAL;
+    }
+
+    if (hasChanged) {
+        _sprite_buffer_or_visibility_changed(spr);
+    }
+    return EOK;
 }
 
 void gdSetCursorPos(int x, int y)
 {
     if (g_mouse_cursor_active) {
-        _set_sprite_pos(MOUSE_SPRITE_PRI, x, y);
+        _set_sprite_pos(&g_sprite[MOUSE_SPRITE_PRI], x, y);
     }
 }
 
 void gdSetCursorVis(bool isVisible)
 {
     if (g_mouse_cursor_active) {
-        _set_sprite_vis(MOUSE_SPRITE_PRI, isVisible);
+        sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+        const bool hasChange = (spr->isVisible != isVisible);
+
+        if (hasChange) {
+            spr->isVisible = isVisible;
+            _sprite_buffer_or_visibility_changed(spr);
+        }
     }
 }

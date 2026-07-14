@@ -28,6 +28,7 @@ errno_t gdInit(void)
     try(Surface_CreateNullSprite(&g_null_sprite_surface));
     for (int i = 0; i < SPRITE_COUNT; i++) {
         g_sprite[i].isVisible = true;
+        g_sprite[i].id = i;
     }
 
 
