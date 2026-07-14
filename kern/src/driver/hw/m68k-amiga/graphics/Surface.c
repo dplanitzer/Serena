@@ -73,10 +73,7 @@ static errno_t _alloc_multi_plane(Surface* _Nonnull self)
 
 static void _destroy(Surface* _Nonnull self)
 {
-    if (self->id != 0) {
-        deque_remove(&g_surface_table, &self->chain);
-    }
-
+    Surface_Conceal(self);
     kfree(self->plane[0]);
     kfree(self);
 }
@@ -155,6 +152,15 @@ void Surface_DelRef(Surface* _Nullable self)
         if (self->refCount == 0) {
             _destroy(self);
         }
+    }
+}
+
+// Make the buffer no longer publicly accessible by its id
+void Surface_Conceal(Surface* _Nonnull self)
+{
+    if (self->id != 0) {
+        self->id = 0;
+        deque_remove(&g_surface_table, &self->chain);
     }
 }
 

@@ -42,6 +42,7 @@ extern errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf);
 
 extern void Surface_DelRef(Surface* _Nullable self);
 
+extern void Surface_Conceal(Surface* _Nonnull self);
 extern Surface* _Nullable Surface_GetForId(int id);
 
 

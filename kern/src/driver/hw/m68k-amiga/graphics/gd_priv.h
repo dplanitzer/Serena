@@ -59,6 +59,8 @@ typedef struct sprite_channel {
     char                id;
 } sprite_channel_t;
 
+extern bool _bind_sprite(sprite_channel_t* _Nonnull spr, Surface* _Nullable srf);
+
 
 // Copper program instruction
 typedef uint32_t  copper_instr_t;

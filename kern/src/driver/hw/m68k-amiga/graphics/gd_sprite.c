@@ -41,7 +41,7 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
     return (hw << 16) | lw;
 }
 
-static bool _bind_sprite(sprite_channel_t* _Nonnull spr, Surface* _Nullable srf)
+bool _bind_sprite(sprite_channel_t* _Nonnull spr, Surface* _Nullable srf)
 {
     bool hasChanged = false;
 

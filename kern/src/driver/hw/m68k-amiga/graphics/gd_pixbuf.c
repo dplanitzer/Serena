@@ -26,22 +26,63 @@ errno_t gdDeleteBuffer(int id)
         return EOK;
     }
 
+
     Surface* srf = Surface_GetForId(id);
 
     if (srf == NULL) {
         return EINVAL;
     }
-    if (Surface_IsMapped(srf) || g_copper_running_prog->res.fb == srf) {
+    if (Surface_IsMapped(srf)) {
         return EBUSY;
     }
 
+
+    // Unschedule an upcoming Copper program first, to make sure that the currently
+    // running Copper program can't change on us while we're inspecting it. GD is
+    // locked too so nobody else can trigger the scheduling of another Copper
+    // program while we're here.
+    copper_prog_t next_prog = copper_unschedule();
+    bool bNeedEditableCopperProg = false;
+
+
+    // We do not allow the deletion of the buffer if it is currently being used
+    // as a framebuffer.
+    if (g_copper_running_prog->res.fb == srf) {
+        if (next_prog) {
+            copper_schedule(next_prog, 0);
+        }
+        return EBUSY;
+    }
+
+
     for (int i = 0; i < SPRITE_COUNT; i++) {
         if (g_sprite[i].surface == srf) {
-            _gdBindSprite(i, NULL);
+            bNeedEditableCopperProg = true;
+            break;
         }
     }
 
+    if (bNeedEditableCopperProg && !next_prog) {
+        next_prog = copper_get_editable_prog();
+    }
+
+
+    for (int i = 0; i < SPRITE_COUNT; i++) {
+        sprite_channel_t* spr = &g_sprite[i];
+
+        if (spr->surface == srf) {
+            _bind_sprite(spr, NULL);
+            copper_prog_sprptr_changed(next_prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : g_null_sprite_surface);
+        }
+    }
+
+
+    Surface_Conceal(srf);
     Surface_DelRef(srf);
+
+    if (next_prog) {
+        copper_schedule(next_prog, 0);
+    }
 
     return EOK;
 }
