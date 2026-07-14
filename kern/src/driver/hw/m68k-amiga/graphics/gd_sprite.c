@@ -86,7 +86,7 @@ static void _sprite_buffer_or_visibility_changed(const sprite_channel_t* _Nonnul
     copper_prog_t prog = copper_get_editable_prog();
         
     if (prog) {
-        copper_prog_sprptr_changed(prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : g_null_sprite_surface);
+        copper_prog_sprptr_changed(prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : NULL);
         copper_schedule(prog, 0);
     }
 }

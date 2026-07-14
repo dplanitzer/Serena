@@ -72,7 +72,7 @@ errno_t gdDeleteBuffer(int id)
 
         if (spr->surface == srf) {
             _bind_sprite(spr, NULL);
-            copper_prog_sprptr_changed(next_prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : g_null_sprite_surface);
+            copper_prog_sprptr_changed(next_prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : NULL);
         }
     }
 

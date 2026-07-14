@@ -7,11 +7,12 @@
 //
 
 #include "gd_priv.h"
+#include <kern/kalloc.h>
 
 mtx_t               gd_mtx;
 vcpu_t _Nullable    g_screen_conf_observer;
 int                 g_screen_conf_signal;
-Surface* _Nonnull   g_null_sprite_surface;
+uint16_t* _Nonnull  g_null_sprite_data;
 sprite_channel_t    g_sprite[SPRITE_COUNT];
 bool                g_light_pen_enabled;
 bool                g_mouse_cursor_active;
@@ -24,8 +25,15 @@ errno_t gdInit(void)
     mtx_init(&gd_mtx);
 
 
-    // Create a null Copper program and null sprite
-    try(Surface_CreateNullSprite(&g_null_sprite_surface));
+    // Create a null sprite
+    try(kalloc_options(sizeof(uint16_t) * 6, KALLOC_OPTION_UNIFIED, (void**)&g_null_sprite_data));
+    g_null_sprite_data[0] = 0x1905;
+    g_null_sprite_data[1] = 0x1a00;
+    g_null_sprite_data[2] = 0;
+    g_null_sprite_data[3] = 0;
+    g_null_sprite_data[4] = 0;
+    g_null_sprite_data[5] = 0;
+
     for (int i = 0; i < SPRITE_COUNT; i++) {
         g_sprite[i].isVisible = true;
         g_sprite[i].id = i;

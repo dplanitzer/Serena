@@ -125,26 +125,6 @@ catch:
     return err;
 }
 
-errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf)
-{
-    Surface* self;
-    const errno_t err = Surface_Create(16, 1, VIO_RGB_SPRITE_2, &self);
-
-    if (err == EOK) {
-        uint16_t* pp = (uint16_t*)self->plane[0];
-
-        pp[0] = 0x1905;
-        pp[1] = 0x1a00;
-        pp[2] = 0;
-        pp[3] = 0;
-        pp[4] = 0;
-        pp[5] = 0;
-    }
-
-    *pOutSelf = self;
-    return err;
-}
-
 void Surface_DelRef(Surface* _Nullable self)
 {
     if (self) {

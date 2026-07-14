@@ -34,9 +34,6 @@ typedef struct Surface {
 
 extern errno_t Surface_Create(int width, int height, vio_pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
 
-// Create a surface that represents a null sprite.
-extern errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf);
-
 #define Surface_AddRef(__self) \
 (((Surface*)(__self))->refCount++)
 

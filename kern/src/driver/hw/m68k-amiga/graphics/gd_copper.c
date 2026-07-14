@@ -380,7 +380,9 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
         }
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
-            Surface_AddRef(prog->res.spr[i]);
+            if (prog->res.spr[i]) {
+                Surface_AddRef(prog->res.spr[i]);
+            }
         }
     }
     return prog;
@@ -456,7 +458,7 @@ errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nul
 
     err = _create_copper_prog(instrCount, &prog);
     if (err == EOK) {
-        copper_prog_compile(prog, vc, fb, clut, g_sprite, g_null_sprite_surface, g_light_pen_enabled);
+        copper_prog_compile(prog, vc, fb, clut, g_sprite, g_light_pen_enabled);
     }
 
     *pOutProg = prog;
