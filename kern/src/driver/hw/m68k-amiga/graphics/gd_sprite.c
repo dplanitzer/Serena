@@ -44,19 +44,6 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
 static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
 {
     bool doEditCopperProg = false;
-
-    if (unit < 0 || unit >= SPRITE_COUNT) {
-        return ENOTSUP;
-    }
-    if (srf) {
-        if (Surface_GetWidth(srf) != SPRITE_WIDTH || Surface_GetHeight(srf) > MAX_SPRITE_HEIGHT) {
-            return ENOTSUP;
-        }
-        if (Surface_GetPixelFormat(srf) != VIO_RGB_SPRITE_2) {
-            return ENOTSUP;
-        }
-    }
-
     sprite_channel_t* spr = &g_sprite[unit];
 
 
@@ -105,13 +92,8 @@ static errno_t _bind_sprite(int unit, Surface* _Nullable srf)
     return EOK;
 }
 
-static errno_t _set_sprite_pos(int unit, int x, int y)
+static void _set_sprite_pos(int unit, int x, int y)
 {
-    if (unit < 0 || unit >= SPRITE_COUNT) {
-        return EINVAL;
-    }
-
-
     sprite_channel_t* spr = &g_sprite[unit];
     spr->x = x;
     spr->y = y;
@@ -126,18 +108,12 @@ static errno_t _set_sprite_pos(int unit, int x, int y)
             *sprptr = ctl;
         }
     }
-    return EOK;
 }
 
-static errno_t _set_sprite_vis(int unit, bool isVisible)
+static bool _set_sprite_vis(int unit, bool isVisible)
 {
-    decl_try_err();
-
-    if (unit < 0 || unit >= SPRITE_COUNT) {
-        return EINVAL;
-    }
-
     sprite_channel_t* spr = &g_sprite[unit];
+    
     if (spr->isVisible != isVisible) {
         spr->isVisible = isVisible;
 
@@ -151,9 +127,11 @@ static errno_t _set_sprite_vis(int unit, bool isVisible)
                 copper_schedule(prog, 0);
             }
         }
+
+        return true;
     }
 
-    return EOK;
+    return false;
 }
 
 
@@ -164,32 +142,48 @@ static errno_t _set_sprite_vis(int unit, bool isVisible)
 
 errno_t _gdBindSprite(int unit, Surface* _Nullable srf)
 {
+    if (unit < 0 || unit >= SPRITE_COUNT) {
+        return ENOTSUP;
+    }
+    if (srf) {
+        if (Surface_GetWidth(srf) != SPRITE_WIDTH || Surface_GetHeight(srf) > MAX_SPRITE_HEIGHT) {
+            return ENOTSUP;
+        }
+        if (Surface_GetPixelFormat(srf) != VIO_RGB_SPRITE_2) {
+            return ENOTSUP;
+        }
+    }
     if (unit == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
         return EBUSY;
     }
-    else {
-        return _bind_sprite(unit, srf);
-    }
+
+    return _bind_sprite(unit, srf);
 }
 
 errno_t gdSetSpritePos(int spriteId, int x, int y)
 {
+    if (spriteId < 0 || spriteId >= SPRITE_COUNT) {
+        return EINVAL;
+    }
     if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
         return EBUSY;
     }
-    else {
-        return _set_sprite_pos(spriteId, x, y);
-    }
+
+    _set_sprite_pos(spriteId, x, y);
+    return EOK;
 }
 
 errno_t gdSetSpriteVis(int spriteId, bool isVisible)
 {
+    if (spriteId < 0 || spriteId >= SPRITE_COUNT) {
+        return EINVAL;
+    }
     if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
         return EBUSY;
     }
-    else {
-        return _set_sprite_vis(spriteId, isVisible);
-    }
+
+    _set_sprite_vis(spriteId, isVisible);
+    return EOK;
 }
 
 void gdGetSpriteCaps(vio_sprite_caps_t* _Nonnull cp)
@@ -237,8 +231,17 @@ errno_t gdBindCursor(int id)
     if (g_mouse_cursor_active) {
        Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
 
-        if (srf || id == 0) {
+        if (srf) {
+            if (Surface_GetWidth(srf) != HID_CURSOR_WIDTH
+                || Surface_GetHeight(srf) != HID_CURSOR_HEIGHT
+                || Surface_GetPixelFormat(srf) != VIO_RGB_SPRITE_2) {
+                return ENOTSUP;
+            }
+
             return _bind_sprite(MOUSE_SPRITE_PRI, srf);
+        }
+        else if (id == 0) {
+            return _bind_sprite(MOUSE_SPRITE_PRI, NULL);
         }
         else {
             return EINVAL;

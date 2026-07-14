@@ -25,7 +25,6 @@ errno_t gdInit(void)
 
 
     // Create a null Copper program and null sprite
-    copper_prog_t nullCopperProg;
     try(Surface_CreateNullSprite(&g_null_sprite_surface));
     for (int i = 0; i < SPRITE_COUNT; i++) {
         g_sprite[i].isVisible = true;
