@@ -450,7 +450,7 @@ errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nul
 
     err = _create_copper_prog(instrCount, &prog);
     if (err == EOK) {
-        copper_prog_compile(prog, vc, pbo, fb, g_sprite, g_light_pen_enabled);
+        copper_prog_compile(prog, vc, pbo, fb);
     }
 
     *pOutProg = prog;
