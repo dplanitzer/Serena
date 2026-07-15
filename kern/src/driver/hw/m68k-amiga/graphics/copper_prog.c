@@ -81,7 +81,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     copper_locs_t* _Nullable locs,
     const video_conf_t* _Nonnull vc,
     Surface* _Nullable pbo,
-    clut_t* _Nullable clut,
+    framebuffer_t* _Nullable fb,
     const sprite_channel_t _Nonnull spr[],
     bool isLightPenEnabled,
     bool isOddField)
@@ -92,7 +92,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     const uint16_t h = vc->height;
     copper_instr_t* orig = ip;
 
-    assert((clut && clut->entryCount == COLOR_COUNT) || (clut == NULL));
+    assert((fb && fb->clut_size == COLOR_COUNT) || (fb == NULL));
     assert((pbo && pbo->planeCount < PLANE_COUNT) || (pbo == NULL));
 
 
@@ -106,9 +106,9 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     if (locs) {
         locs->clut = ip - orig;
     }
-    if (clut) {
+    if (fb) {
         for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
-            *ip++ = COP_MOVE(r, clut->entry[i]);
+            *ip++ = COP_MOVE(r, fb->clut[i]);
         }
     }
     else {
@@ -123,7 +123,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
         locs->sprptr = ip - orig;
     }
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        Surface* srf = (spr[i].surface && spr[i].isVisible) ? spr[i].surface : NULL;
+        Surface* srf = (spr[i].pixbuf && spr[i].isVisible) ? spr[i].pixbuf : NULL;
         const uint32_t sprpt = (srf) ? (uint32_t)Surface_GetPlane(srf, 0) : (uint32_t)g_null_sprite_data;
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
@@ -216,7 +216,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     return ip;
 }
 
-void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, clut_t* _Nullable clut, const sprite_channel_t _Nonnull spr[], bool isLightPenEnabled)
+void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pbo, framebuffer_t* _Nullable fb, const sprite_channel_t _Nonnull spr[], bool isLightPenEnabled)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_instr_t* ip;
@@ -225,23 +225,23 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     self->even_entry = NULL;
     
     ip = self->prog;
-    ip = _compile_field_prog(ip, &self->loc, vc, fb, clut, spr, isLightPenEnabled, true);
+    ip = _compile_field_prog(ip, &self->loc, vc, pbo, fb, spr, isLightPenEnabled, true);
 
     if (isLace) {
         self->even_entry = ip;
-        ip = _compile_field_prog(ip, NULL, vc, fb, clut, spr, isLightPenEnabled, false);
+        ip = _compile_field_prog(ip, NULL, vc, pbo, fb, spr, isLightPenEnabled, false);
     }
 
     self->video_conf = vc;
-    self->res.clut = clut;
-
     self->res.fb = fb;
-    if (fb) {
-        Surface_AddRef(self->res.fb);
+
+    self->res.pbo = pbo;
+    if (pbo) {
+        Surface_AddRef(self->res.pbo);
     }
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        Surface* srf = (spr[i].surface && spr[i].isVisible) ? spr[i].surface : NULL;
+        Surface* srf = (spr[i].pixbuf && spr[i].isVisible) ? spr[i].pixbuf : NULL;
 
         self->res.spr[i] = srf;
         if (srf) {
@@ -276,23 +276,23 @@ void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size
 {
     const uint16_t l = startIdx;
     const uint16_t h = startIdx + count;
-    clut_t* clut = self->res.clut;
+    framebuffer_t* fb = self->res.fb;
     copper_instr_t* op = &self->odd_entry[self->loc.clut + l];
     copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.clut + l] : NULL;
     
     for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
-        *op++ = COP_MOVE(r, clut->entry[i]);
+        *op++ = COP_MOVE(r, fb->clut[i]);
         if (ep) {
-            *ep++ = COP_MOVE(r, clut->entry[i]);
+            *ep++ = COP_MOVE(r, fb->clut[i]);
         }
     }
 }
 
-void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nullable srf)
+void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nullable pbo)
 {
     copper_instr_t* op = &self->odd_entry[self->loc.sprptr + (spridx << 1)];
     copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.sprptr + (spridx << 1)] : NULL;
-    const uint32_t sprptr = (srf) ? (uint32_t)Surface_GetPlane(srf, 0) : (uint32_t)g_null_sprite_data;
+    const uint32_t sprptr = (pbo) ? (uint32_t)Surface_GetPlane(pbo, 0) : (uint32_t)g_null_sprite_data;
     const uint16_t r = SPRITE_BASE + (spridx << 2);
     const uint16_t lp = sprptr & UINT16_MAX;
     const uint16_t hp = sprptr >> 16;
@@ -305,12 +305,12 @@ void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface
         ep[1] = COP_MOVE(r + 2, lp);
     }
 
-    if (self->res.spr[spridx] != srf) {
-        if (srf) {
-            Surface_AddRef(srf);
+    if (self->res.spr[spridx] != pbo) {
+        if (pbo) {
+            Surface_AddRef(pbo);
         }
         
         Surface_DelRef(self->res.spr[spridx]);
-        self->res.spr[spridx] = srf;
+        self->res.spr[spridx] = pbo;
     }
 }

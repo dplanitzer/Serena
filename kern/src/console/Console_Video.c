@@ -54,7 +54,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
     try(AGADriver_CreateCommandBuffer(self->fb, 128, &self->cmdbuf));
     try(AGADriver_CreateBuffer(self->fb, width, height, VIO_COLOR_INDEX3, &self->framebufferId));
-    try(AGADriver_CreateCLUT(self->fb, 32, &self->clutId));
+    try(AGADriver_CreateFramebuffer(self->fb, 32, &self->clutId));
 
 
     // Clear the framebuffer
@@ -123,7 +123,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 
     AGADriver_SetScreenConfig(self->fb, NULL);
 
-    AGADriver_DestroyCLUT(self->fb, self->clutId);
+    AGADriver_DestroyFramebuffer(self->fb, self->clutId);
     AGADriver_DestroyBuffer(self->fb, self->framebufferId);
     AGADriver_DestroyCommandBuffer(self->fb, self->cmdbuf.id);
 }

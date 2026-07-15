@@ -9,11 +9,8 @@
 #include "gd_priv.h"
 #include <kern/kalloc.h>
 
-mtx_t               gd_mtx;
-uint16_t* _Nonnull  g_null_sprite_data;
-sprite_channel_t    g_sprite[SPRITE_COUNT];
-bool                g_light_pen_enabled;
-bool                g_mouse_cursor_active;
+mtx_t   gd_mtx;
+bool    g_light_pen_enabled;
 
 
 errno_t gdInit(void)

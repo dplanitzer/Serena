@@ -27,9 +27,9 @@ mtx_unlock(&gd_mtx)
 
 
 // CLUT
-extern errno_t gdGenClut(size_t colorDepth, int* _Nonnull pOutId);
-extern errno_t gdDeleteClut(int id);
-extern errno_t gdGetClutInfo(int id, vio_clut_info_t* _Nonnull pOutInfo);
+extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
+extern errno_t gdDeleteFramebuffer(int id);
+extern errno_t gdGetFramebufferInfo(int id, vio_clut_info_t* _Nonnull pOutInfo);
 extern errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 
 // Pixel Buffer
@@ -47,7 +47,7 @@ extern errno_t gdSetSpritePos(int spriteId, int x, int y);
 extern errno_t gdSetSpriteVis(int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(vio_sprite_caps_t* _Nonnull cp);
 
-extern errno_t _gdBindSprite(int unit, Surface* _Nullable srf);
+extern errno_t _gdBindSpriteBuffer(int unit, Surface* _Nullable srf);
 
 // Mouse Cursor
 extern errno_t gdObtainCursor(void);

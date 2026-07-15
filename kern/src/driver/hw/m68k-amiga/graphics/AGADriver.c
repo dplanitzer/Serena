@@ -60,26 +60,26 @@ errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull inf
 // CLUT
 //
 
-errno_t AGADriver_CreateCLUT(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId)
+errno_t AGADriver_CreateFramebuffer(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId)
 {
     gdLock();
-    const errno_t err = gdGenClut(colorDepth, pOutId);
+    const errno_t err = gdGenFramebuffer(colorDepth, pOutId);
     gdUnlock();
     return err;
 }
 
-errno_t AGADriver_DestroyCLUT(AGADriverRef _Nonnull self, int id)
+errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdDeleteClut(id);
+    const errno_t err = gdDeleteFramebuffer(id);
     gdUnlock();
     return err;
 }
 
-errno_t AGADriver_GetCLUTInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo)
+errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo)
 {
     gdLock();
-    const errno_t err = gdGetClutInfo(id, pOutInfo);
+    const errno_t err = gdGetFramebufferInfo(id, pOutInfo);
     gdUnlock();
     return err;
 }

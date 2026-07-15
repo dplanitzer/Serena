@@ -45,7 +45,7 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
     // Allocate all needed resources
     try(AGADriver_CreateCommandBuffer(fb, 128, &bscr->cmdbuf));
     try(AGADriver_CreateBuffer(fb, width, height, VIO_COLOR_INDEX1, &bscr->pbo));
-    try(AGADriver_CreateCLUT(fb, 32, &bscr->clut));
+    try(AGADriver_CreateFramebuffer(fb, 32, &bscr->clut));
 
 
     bscr->fb = fb;
@@ -112,7 +112,7 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
         AGADriver_UnmapBuffer(bscr->fb, bscr->pbo);
 
         AGADriver_SetScreenConfig(bscr->fb, NULL);
-        AGADriver_DestroyCLUT(bscr->fb, bscr->clut);
+        AGADriver_DestroyFramebuffer(bscr->fb, bscr->clut);
         AGADriver_DestroyBuffer(bscr->fb, bscr->pbo);
         AGADriver_DestroyCommandBuffer(bscr->fb, bscr->cmdbuf.id);
 

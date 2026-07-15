@@ -1,5 +1,5 @@
 //
-//  gd_clut.c
+//  gd_framebuffer.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
@@ -10,13 +10,13 @@
 #include <kern/kalloc.h>
 
 
-static int      g_next_clut_id = 1;
-static deque_t  g_clut_table;
+static int      g_next_fb_id = 1;
+static deque_t  g_fb_list;
 
 
-clut_t* _Nullable _clut_for_id(int id)
+framebuffer_t* _Nullable _fb_for_id(int id)
 {
-    deque_for_each(&g_clut_table, struct clut, it,
+    deque_for_each(&g_fb_list, struct framebuffer, it,
         if (it->id == id) {
             return it;
         }
@@ -25,10 +25,10 @@ clut_t* _Nullable _clut_for_id(int id)
 }
 
 
-errno_t gdGenClut(size_t entryCount, int* _Nonnull pOutId)
+errno_t gdGenFramebuffer(size_t entryCount, int* _Nonnull pOutId)
 {
     decl_try_err();
-    clut_t* self;
+    framebuffer_t* fb;
     
     switch (entryCount) {
         case 2:
@@ -45,46 +45,46 @@ errno_t gdGenClut(size_t entryCount, int* _Nonnull pOutId)
             return EINVAL;
     }
 
-    try(kalloc_cleared(sizeof(struct clut) + (entryCount - 1) * sizeof(uint16_t), (void**) &self));
-    self->id = g_next_clut_id++;
-    self->entryCount = entryCount;
+    try(kalloc_cleared(sizeof(struct framebuffer) + (entryCount - 1) * sizeof(uint16_t), (void**) &fb));
+    fb->id = g_next_fb_id++;
+    fb->clut_size = entryCount;
     
-    deque_add_first(&g_clut_table, &self->chain);
-    *pOutId = self->id;
+    deque_add_first(&g_fb_list, &fb->chain);
+    *pOutId = fb->id;
 
 catch:
     return err;
 }
 
-void _gdDestroyClut(clut_t* _Nullable clut)
+void _gdDestroyFramebuffer(framebuffer_t* _Nullable fb)
 {
-    if (clut) {
-        deque_remove(&g_clut_table, &clut->chain);
-        kfree(clut);
+    if (fb) {
+        deque_remove(&g_fb_list, &fb->chain);
+        kfree(fb);
     }
 }
 
-errno_t gdDeleteClut(int id)
+errno_t gdDeleteFramebuffer(int id)
 {
-    clut_t* clut = _clut_for_id(id);
+    framebuffer_t* fb = _fb_for_id(id);
 
-    if (clut == NULL) {
+    if (fb == NULL) {
         return EINVAL;
     }
-    if (g_copper_running_prog->res.clut == clut) {
+    if (g_copper_running_prog->res.fb == fb) {
         return EBUSY;
     }
 
-    _gdDestroyClut(clut);
+    _gdDestroyFramebuffer(fb);
     return EOK;
 }
 
-errno_t gdGetClutInfo(int id, vio_clut_info_t* _Nonnull pOutInfo)
+errno_t gdGetFramebufferInfo(int id, vio_clut_info_t* _Nonnull pOutInfo)
 {
-    clut_t* clut = _clut_for_id(id);
+    framebuffer_t* fb = _fb_for_id(id);
 
-    if (clut) {
-        pOutInfo->entryCount = clut->entryCount;
+    if (fb) {
+        pOutInfo->entryCount = fb->clut_size;
         return EOK;
     }
     else {
@@ -97,13 +97,13 @@ errno_t gdGetClutInfo(int id, vio_clut_info_t* _Nonnull pOutInfo)
 errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 {
     decl_try_err();
-    clut_t* clut = _clut_for_id(id);
+    framebuffer_t* fb = _fb_for_id(id);
     
-    if (clut == NULL) {
+    if (fb == NULL) {
         return EINVAL;
     }
 
-    if (idx + count > clut->entryCount) {
+    if (idx + count > fb->clut_size) {
         return EINVAL;
     }
 
@@ -115,10 +115,10 @@ errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _N
             const uint16_t g = VIO_RGB32_GREEN(color);
             const uint16_t b = VIO_RGB32_BLUE(color);
 
-            clut->entry[idx + i] = (r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
+            fb->clut[idx + i] = (r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
         }
 
-        if (clut == g_copper_running_prog->res.clut) {
+        if (fb == g_copper_running_prog->res.fb) {
             copper_prog_t prog = copper_get_editable_prog();
 
             if (prog) {

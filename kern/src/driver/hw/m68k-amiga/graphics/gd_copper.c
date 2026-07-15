@@ -312,15 +312,15 @@ static errno_t _create_copper_prog(size_t instr_count, copper_prog_t _Nullable *
 
 static void _cache_copper_prog(copper_prog_t _Nonnull prog)
 {
-    clut_t* clut = prog->res.clut;
-    Surface* fb = prog->res.fb;
+    framebuffer_t* fb = prog->res.fb;
+    Surface* pbo = prog->res.pbo;
 
-    // User can not delete the CLUT as long as the Copper program was using it.
+    // User could not delete the framebuffer as long as the Copper program was using it.
     // Just remove the reference here
-    prog->res.clut = NULL;
-    
-    Surface_DelRef(fb);
     prog->res.fb = NULL;
+    
+    Surface_DelRef(pbo);
+    prog->res.pbo = NULL;
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
         Surface_DelRef(prog->res.spr[i]);
@@ -375,8 +375,8 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
         prog->video_conf = run_prog->video_conf;
         prog->res = run_prog->res;
 
-        if (prog->res.fb) {
-            Surface_AddRef(prog->res.fb);
+        if (prog->res.pbo) {
+            Surface_AddRef(prog->res.pbo);
         }
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
@@ -442,7 +442,7 @@ errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
     return create_screen_copper_prog(get_null_video_conf(), NULL, NULL, pOutProg);
 }
 
-errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable fb, clut_t* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable pbo, framebuffer_t* _Nullable fb, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = calc_copper_prog_instruction_count(vc);
@@ -450,7 +450,7 @@ errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nul
 
     err = _create_copper_prog(instrCount, &prog);
     if (err == EOK) {
-        copper_prog_compile(prog, vc, fb, clut, g_sprite, g_light_pen_enabled);
+        copper_prog_compile(prog, vc, pbo, fb, g_sprite, g_light_pen_enabled);
     }
 
     *pOutProg = prog;

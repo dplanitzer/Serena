@@ -31,35 +31,29 @@
 //    resource id == 0, if so it destroys the resource; otherwise it leaves it
 //    alive.
 
-// CLUT
-typedef struct clut_entry {
-    uint8_t     r;
-    uint8_t     g;
-    uint8_t     b;
-    uint8_t     flags;
-} clut_entry_t;
+// Framebuffer
+typedef struct framebuffer {
+    deque_node_t        chain;
+    int                 id;
+    Surface* _Nullable  front_buf;
+    uint16_t            clut_size;
+    uint16_t            clut[1];
+} framebuffer_t;
 
-typedef struct clut {
-    deque_node_t    chain;
-    int             id;
-    uint16_t        entryCount;
-    uint16_t        entry[1];
-} clut_t;
-
-extern void _gdDestroyClut(clut_t* _Nullable clut);
-extern clut_t* _Nullable _clut_for_id(int id);  //XXX
+extern void _gdDestroyFramebuffer(framebuffer_t* _Nullable fb);
+extern framebuffer_t* _Nullable _fb_for_id(int id);  //XXX
 
 
 // Sprite channel
 typedef struct sprite_channel {
-    Surface* _Nullable  surface;    // Surface holding the sprite image data and control words
+    Surface* _Nullable  pixbuf;    // Pixel buffer holding the sprite image data and control words
     int                 x;
     int                 y;
     bool                isVisible;
     char                id;
 } sprite_channel_t;
 
-extern bool _bind_sprite(sprite_channel_t* _Nonnull spr, Surface* _Nullable srf);
+extern bool _bind_sprite_buffer(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo);
 
 
 // Copper program instruction
@@ -79,8 +73,8 @@ typedef uint32_t  copper_instr_t;
 
 
 typedef struct copper_res {
-    clut_t* _Nonnull        clut;
-    Surface* _Nullable      fb;
+    framebuffer_t* _Nonnull fb;
+    Surface* _Nullable      pbo;
 
     Surface* _Nonnull       spr[SPRITE_COUNT];
 } copper_res_t;
@@ -132,7 +126,7 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 // configuration, framebuffer, CLUT and sprite configuration and writes the
 // instructions to the given Copper program. Note that the Copper program must
 // be big enough to hold all instructions.
-extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, clut_t* _Nullable clut, const sprite_channel_t _Nonnull spr[], bool isLightPenEnabled);
+extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pbo, framebuffer_t* _Nullable clut, const sprite_channel_t _Nonnull spr[], bool isLightPenEnabled);
 
 
 // Schedules the provided Copper program. This program will start running at the
@@ -153,7 +147,7 @@ extern copper_prog_t _Nonnull   g_copper_running_prog;
 // to the program dependencies or the general graphic driver environment 
 extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
 extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
-extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nullable srf);
+extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nullable pbo);
 
 
 // Submit a change to the control word of the sprite 'spridx'. The new control
@@ -168,10 +162,9 @@ extern void sprite_ctl_cancel(int spridx);
 #define MAX_CACHED_COPPER_PROGS 4
 #define MOUSE_SPRITE_PRI 0
 
-extern uint16_t* _Nonnull       g_null_sprite_data;
-extern sprite_channel_t         g_sprite[SPRITE_COUNT];
-extern bool                     g_light_pen_enabled;
-extern bool                     g_mouse_cursor_active;
+extern uint16_t* _Nonnull   g_null_sprite_data;
+extern sprite_channel_t     g_sprite[SPRITE_COUNT];
+extern bool                 g_light_pen_enabled;
 
 extern errno_t _gdInitCopper(void);
 
@@ -182,7 +175,7 @@ extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, clut_t* _Nullable clut, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull pbo, framebuffer_t* _Nullable fb, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 extern copper_prog_t _Nullable copper_get_editable_prog(void);
 

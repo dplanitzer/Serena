@@ -11,11 +11,11 @@
 
 errno_t gdGenBuffer(int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
-    Surface* srf;
+    Surface* pbo;
 
-    const errno_t err = Surface_Create(width, height, pixelFormat, &srf);
+    const errno_t err = Surface_Create(width, height, pixelFormat, &pbo);
     if (err == EOK) {
-        *pOutId = Surface_GetId(srf);
+        *pOutId = Surface_GetId(pbo);
     }
     return err;
 }
@@ -27,12 +27,12 @@ errno_t gdDeleteBuffer(int id)
     }
 
 
-    Surface* srf = Surface_GetForId(id);
+    Surface* pbo = Surface_GetForId(id);
 
-    if (srf == NULL) {
+    if (pbo == NULL) {
         return EINVAL;
     }
-    if (Surface_IsMapped(srf)) {
+    if (Surface_IsMapped(pbo)) {
         return EBUSY;
     }
 
@@ -47,7 +47,7 @@ errno_t gdDeleteBuffer(int id)
 
     // We do not allow the deletion of the buffer if it is currently being used
     // as a framebuffer.
-    if (g_copper_running_prog->res.fb == srf) {
+    if (g_copper_running_prog->res.pbo == pbo) {
         if (next_prog) {
             copper_schedule(next_prog, 0);
         }
@@ -56,7 +56,7 @@ errno_t gdDeleteBuffer(int id)
 
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        if (g_sprite[i].surface == srf) {
+        if (g_sprite[i].pixbuf == pbo) {
             bNeedEditableCopperProg = true;
             break;
         }
@@ -70,15 +70,15 @@ errno_t gdDeleteBuffer(int id)
     for (int i = 0; i < SPRITE_COUNT; i++) {
         sprite_channel_t* spr = &g_sprite[i];
 
-        if (spr->surface == srf) {
-            _bind_sprite(spr, NULL);
-            copper_prog_sprptr_changed(next_prog, spr->id, (spr->surface && spr->isVisible) ? spr->surface : NULL);
+        if (spr->pixbuf == pbo) {
+            _bind_sprite_buffer(spr, NULL);
+            copper_prog_sprptr_changed(next_prog, spr->id, (spr->pixbuf && spr->isVisible) ? spr->pixbuf : NULL);
         }
     }
 
 
-    Surface_Conceal(srf);
-    Surface_DelRef(srf);
+    Surface_Conceal(pbo);
+    Surface_DelRef(pbo);
 
     if (next_prog) {
         copper_schedule(next_prog, 0);
@@ -89,27 +89,27 @@ errno_t gdDeleteBuffer(int id)
 
 errno_t gdGetBufferInfo(int id, vio_buffer_info_t* _Nonnull pOutInfo)
 {
-    Surface* srf = Surface_GetForId(id);
+    Surface* pbo = Surface_GetForId(id);
 
-    if (srf == NULL) {
+    if (pbo == NULL) {
         return EINVAL;
     }
 
-    pOutInfo->width = Surface_GetWidth(srf);
-    pOutInfo->height = Surface_GetHeight(srf);
-    pOutInfo->pixelFormat = Surface_GetPixelFormat(srf);
+    pOutInfo->width = Surface_GetWidth(pbo);
+    pOutInfo->height = Surface_GetHeight(pbo);
+    pOutInfo->pixelFormat = Surface_GetPixelFormat(pbo);
 
     return EOK;
 }
 
 errno_t gdBindBuffer(int target, int id)
 {
-    Surface* srf = (id != 0) ? Surface_GetForId(id) : NULL;
+    Surface* pbo = (id != 0) ? Surface_GetForId(id) : NULL;
     
-    if (srf || id == 0) {
+    if (pbo || id == 0) {
         switch (target & 0xffff0000) {
             case VIO_SPRITE_0:
-                return _gdBindSprite(target & 0x0000ffff, srf);
+                return _gdBindSpriteBuffer(target & 0x0000ffff, pbo);
 
             default:
                 return EINVAL;
@@ -122,41 +122,41 @@ errno_t gdBindBuffer(int target, int id)
 
 errno_t gdMapBuffer(int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping)
 {
-    Surface* srf = Surface_GetForId(id);
+    Surface* pbo = Surface_GetForId(id);
 
-    if (srf == NULL) {
+    if (pbo == NULL) {
         return EINVAL;
     }
-    if (Surface_IsMapped(srf)) {
+    if (Surface_IsMapped(pbo)) {
         return EBUSY;
     }
-    if (Surface_GetPixelFormat(srf) == VIO_RGB_SPRITE_2) {
+    if (Surface_GetPixelFormat(pbo) == VIO_RGB_SPRITE_2) {
         // Disallow mapping sprite surfaces for now
         return ENOTSUP;
     }
 
-    pOutMapping->planeCount = Surface_GetPlaneCount(srf);
-    pOutMapping->bytesPerRow = Surface_GetBytesPerRow(srf);
+    pOutMapping->planeCount = Surface_GetPlaneCount(pbo);
+    pOutMapping->bytesPerRow = Surface_GetBytesPerRow(pbo);
     for (size_t i = 0; i < pOutMapping->planeCount; i++) {
-        pOutMapping->plane[i] = Surface_GetPlane(srf, i);
+        pOutMapping->plane[i] = Surface_GetPlane(pbo, i);
     }
 
-    srf->flags |= kSurfaceFlag_IsMapped;
+    pbo->flags |= kSurfaceFlag_IsMapped;
 
     return EOK;
 }
 
 errno_t gdUnmapBuffer(int id)
 {
-    Surface* srf = Surface_GetForId(id);
+    Surface* pbo = Surface_GetForId(id);
 
-    if (srf == NULL) {
+    if (pbo == NULL) {
         return EINVAL;
     }
 
 
-    if (Surface_IsMapped(srf)) {
-        srf->flags &= ~kSurfaceFlag_IsMapped;
+    if (Surface_IsMapped(pbo)) {
+        pbo->flags &= ~kSurfaceFlag_IsMapped;
         return EOK;
     }
     else {
@@ -166,22 +166,22 @@ errno_t gdUnmapBuffer(int id)
 
 errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
 {
-    Surface* srf = Surface_GetForId(id);
+    Surface* pbo = Surface_GetForId(id);
 
-    if (srf == NULL) {
+    if (pbo == NULL) {
         return EINVAL;
     }
 
-    return Surface_WritePixels(srf, planes, bytesPerRow, format);
+    return Surface_WritePixels(pbo, planes, bytesPerRow, format);
 }
 
 errno_t gdClearPixels(int id)
 {
-    Surface* srf = Surface_GetForId(id);
+    Surface* pbo = Surface_GetForId(id);
 
-    if (srf == NULL) {
+    if (pbo == NULL) {
         return EINVAL;
     }
 
-    return Surface_ClearPixels(srf);
+    return Surface_ClearPixels(pbo);
 }

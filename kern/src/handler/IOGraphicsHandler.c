@@ -57,24 +57,24 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case VIO_CMD_CREATE_CLUT: {
+        case VIO_CMD_CREATE_FRAMEBUFFER: {
             const size_t entryCount = va_arg(ap, size_t);
             int* hnd = va_arg(ap, int*);
 
-            return AGADriver_CreateCLUT(drv, entryCount, hnd);
+            return AGADriver_CreateFramebuffer(drv, entryCount, hnd);
         }
 
-        case VIO_CMD_DESTROY_CLUT: {
+        case VIO_CMD_DESTROY_FRAMEBUFFER: {
             int hnd = va_arg(ap, int);
 
-            return AGADriver_DestroyCLUT(drv, hnd);
+            return AGADriver_DestroyFramebuffer(drv, hnd);
         }
 
-        case VIO_CMD_CLUT_INFO: {
+        case VIO_CMD_FRAMEBUFFER_INFO: {
             int hnd = va_arg(ap, int);
             vio_clut_info_t* ci = va_arg(ap, vio_clut_info_t*);
 
-            return AGADriver_GetCLUTInfo(drv, hnd, ci);
+            return AGADriver_GetFramebufferInfo(drv, hnd, ci);
         }
 
 

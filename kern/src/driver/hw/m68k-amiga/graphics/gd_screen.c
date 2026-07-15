@@ -28,37 +28,35 @@ static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t 
 
 // Parses the given 'icfg' in order to get a CLUT that is suitable for the
 // screen configuration.
-static errno_t _get_clut_from_config(const intptr_t* _Nonnull icfg, clut_t* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
+static errno_t _get_fb_from_config(const intptr_t* _Nonnull icfg, framebuffer_t* _Nullable * _Nonnull pOutFb, bool* _Nonnull pOutCreated)
 {
     decl_try_err();
-    clut_t* clut = NULL;
-    const int clut_id = _get_config_value(icfg, VIO_SCR_CLUT, -1);
+    framebuffer_t* fb = NULL;
+    int fb_id = _get_config_value(icfg, VIO_SCR_CLUT, -1);
     
-    if (clut_id != -1) {
-        clut = _clut_for_id(clut_id);
-        if (clut == NULL) {
+    if (fb_id != -1) {
+        fb = _fb_for_id(fb_id);
+        if (fb == NULL) {
             return EINVAL;
         }
 
-        if (clut->entryCount != COLOR_COUNT) {
+        if (fb->clut_size != COLOR_COUNT) {
             return ENOTSUP;
         }
 
         *pOutCreated = false;
     }
     else {
-        int clut_id;
-
-        err = gdGenClut(COLOR_COUNT, &clut_id);
+        err = gdGenFramebuffer(COLOR_COUNT, &fb_id);
         if (err != EOK) {
             return err;
         }
 
-        *pOutClut = _clut_for_id(clut_id);
+        *pOutFb = _fb_for_id(fb_id);
         *pOutCreated = true;
     }
 
-    *pOutClut = clut;
+    *pOutFb = fb;
     return EOK;
 }
 
@@ -117,20 +115,20 @@ static errno_t _get_framebuffer_from_config(const intptr_t* _Nonnull icfg, Surfa
 errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg)
 {
     decl_try_err();
-    Surface* fb = NULL;
+    Surface* pbo = NULL;
+    bool bPboCreated = false;
+    framebuffer_t* fb = NULL;
     bool bFbCreated = false;
-    clut_t* clut = NULL;
-    bool bClutCreated = false;
     const video_conf_t* vc = NULL;
     copper_prog_t prog = NULL;
     
 
     // Compile the Copper program(s) for the new screen
     if (icfg) {
-        try(_get_clut_from_config(icfg, &clut, &bClutCreated));
-        try(_get_framebuffer_from_config(icfg, &fb, &vc, &bFbCreated));
+        try(_get_fb_from_config(icfg, &fb, &bFbCreated));
+        try(_get_framebuffer_from_config(icfg, &pbo, &vc, &bPboCreated));
 
-        try(create_screen_copper_prog(vc, fb, clut, &prog));
+        try(create_screen_copper_prog(vc, pbo, fb, &prog));
     }
     else {
         try(create_null_copper_prog(&prog));
@@ -150,11 +148,11 @@ errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg)
 
 catch:
     if (err != EOK) {
-        if (bFbCreated) {
-            Surface_DelRef(fb);
+        if (bPboCreated) {
+            Surface_DelRef(pbo);
         }
-        if (bClutCreated) {
-            _gdDestroyClut(clut);
+        if (bFbCreated) {
+            _gdDestroyFramebuffer(fb);
         }
     }
 
@@ -181,20 +179,20 @@ errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz)
 
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
     const video_conf_t* vc = g_copper_running_prog->video_conf;
-    Surface* fb = g_copper_running_prog->res.fb;
-    clut_t* clut = g_copper_running_prog->res.clut;
+    Surface* pbo = g_copper_running_prog->res.pbo;
+    framebuffer_t* fb = g_copper_running_prog->res.fb;
     irq_restore_mask(sim);
 
     conf[i++] = VIO_SCR_FRAMEBUFFER;
-    conf[i++] = (fb) ? Surface_GetId(fb) : 0;
+    conf[i++] = (pbo) ? Surface_GetId(pbo) : 0;
     conf[i++] = VIO_SCR_CLUT;
-    conf[i++] = (clut) ? clut->id : 0;
+    conf[i++] = (fb) ? fb->id : 0;
     conf[i++] = VIO_SCR_WIDTH;
     conf[i++] = vc->width;
     conf[i++] = VIO_SCR_HEIGHT;
     conf[i++] = vc->height;
     conf[i++] = VIO_SCR_PIXELFORMAT;
-    conf[i++] = (fb) ? Surface_GetPixelFormat(fb) : 0;
+    conf[i++] = (pbo) ? Surface_GetPixelFormat(pbo) : 0;
     conf[i]   = VIO_SCR_END;
 
     return EOK;

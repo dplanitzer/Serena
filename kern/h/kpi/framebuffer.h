@@ -142,23 +142,23 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
 
 //
-// CLUTs
+// Framebuffer
 //
 
 // Creates a new CLUT with 'entryCount' color entries.
 // create_clut(size_t entryCount, int* _Nonnull pOutId)
-#define VIO_CMD_CREATE_CLUT \
+#define VIO_CMD_CREATE_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 
 // Destroys the CLUT with id 'id'. Returns EBUSY if the CLUT is currently used
 // by the active screen.
 // destroy_clut(int id)
-#define VIO_CMD_DESTROY_CLUT \
+#define VIO_CMD_DESTROY_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
 // Returns information about the CLUT 'id'.
 // get_vio_clut_info(int id, vio_clut_info_t* _Nonnull pOutInfo)
-#define VIO_CMD_CLUT_INFO \
+#define VIO_CMD_FRAMEBUFFER_INFO \
 IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
 
 
