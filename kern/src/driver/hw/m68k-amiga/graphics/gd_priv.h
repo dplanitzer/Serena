@@ -162,9 +162,10 @@ extern void sprite_ctl_cancel(int spridx);
 #define MAX_CACHED_COPPER_PROGS 4
 #define MOUSE_SPRITE_PRI 0
 
-extern uint16_t* _Nonnull   g_null_sprite_data;
-extern sprite_channel_t     g_sprite[SPRITE_COUNT];
-extern bool                 g_light_pen_enabled;
+extern uint16_t* _Nonnull       g_null_sprite_data;
+extern sprite_channel_t         g_sprite[SPRITE_COUNT];
+extern framebuffer_t* _Nullable g_cur_fb;
+extern bool                     g_light_pen_enabled;
 
 extern errno_t _gdInitCopper(void);
 

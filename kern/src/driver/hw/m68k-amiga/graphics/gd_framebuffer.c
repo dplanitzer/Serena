@@ -10,12 +10,11 @@
 #include <kern/kalloc.h>
 
 
-static int              g_next_fb_id = 1;
-static deque_t          g_fb_list;
-//static vcpu_t _Nullable g_screen_conf_observer;
-//static int              g_screen_conf_signal;
-extern vcpu_t _Nullable g_screen_conf_observer;
-extern int              g_screen_conf_signal;
+static int                  g_next_fb_id = 1;
+static deque_t              g_fb_list;
+static vcpu_t _Nullable     g_screen_conf_observer;
+static int                  g_screen_conf_signal;
+framebuffer_t* _Nullable    g_cur_fb;
 
 
 framebuffer_t* _Nullable _fb_for_id(int id)
@@ -223,6 +222,7 @@ errno_t gdSetCurrentFramebuffer(int fb_id)
     // and the previous one has been retired. It's save to deallocate the old
     // framebuffer once the old program has stopped running.
     copper_schedule(prog, COPFLAG_WAIT_RUNNING);
+    g_cur_fb = fb;
 
 
     if (g_screen_conf_observer) {
@@ -232,4 +232,36 @@ errno_t gdSetCurrentFramebuffer(int fb_id)
 
 catch:
     return err;
+}
+
+int gdGetCurrentFramebuffer(void)
+{
+    return (g_cur_fb) ? g_cur_fb->id : 0;
+}
+
+void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+{
+    const video_conf_t* vc = g_copper_running_prog->video_conf;
+
+    *pOutWidth = vc->width;
+    *pOutHeight = vc->height;
+}
+
+void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo)
+{
+    g_screen_conf_observer = vp;
+    g_screen_conf_signal = signo;
+}
+
+void gdSetLightPenEnabled(bool enabled)
+{
+    if (g_light_pen_enabled != enabled) {
+        g_light_pen_enabled = enabled;
+
+        copper_prog_t prog = copper_get_editable_prog();
+        if (prog) {
+            copper_prog_set_lp_enabled(prog, enabled);
+            copper_schedule(prog, 0);
+        }
+    }
 }

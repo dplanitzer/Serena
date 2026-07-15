@@ -62,10 +62,7 @@ extern errno_t gdAttachBuffer(int fb_id, int buf_id);
 extern errno_t gdGetFramebufferInfo(int fb_id, vio_clut_info_t* _Nonnull pOutInfo);
 extern errno_t gdSetClutEntries(int fb_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 extern errno_t gdSetCurrentFramebuffer(int fb_id);
-
-// Screen
-extern errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg);
-extern errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz);
+extern int gdGetCurrentFramebuffer(void);
 extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);

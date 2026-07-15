@@ -142,36 +142,6 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
 
 //
-// Framebuffer
-//
-
-// Creates a new CLUT with 'entryCount' color entries.
-// create_clut(size_t entryCount, int* _Nonnull pOutId)
-#define VIO_CMD_CREATE_FRAMEBUFFER \
-IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
-
-// Destroys the CLUT with id 'id'. Returns EBUSY if the CLUT is currently used
-// by the active screen.
-// destroy_clut(int id)
-#define VIO_CMD_DESTROY_FRAMEBUFFER \
-IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
-
-// Attaches the pixel buffer 'buf_id' to the framebuffer 'fb_id' as a front
-// buffer. An already attached buffer is first detached. Pass 0 for 'buf_id' to
-// simply detach the currently attach buffer without attaching a new one.
-// Returns EBUSY if the framebuffer 'fb_id' is the current framebuffer since hot
-// swapping of buffers is not supported.
-// attach_buffer(int fb_id, int buf_id)
-#define VIO_CMD_ATTACH_BUFFER \
-IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
-
-// Returns information about the CLUT 'id'.
-// get_vio_clut_info(int id, vio_clut_info_t* _Nonnull pOutInfo)
-#define VIO_CMD_FRAMEBUFFER_INFO \
-IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
-
-
-//
 // Sprites
 //
 
@@ -187,41 +157,53 @@ typedef struct vio_sprite_caps {
 // currently active screen and mouse cursor configuration.
 // get_sprite_info(sprite_info_t* _Nonnull info)
 #define VIO_CMD_SPRITE_CAPS \
+IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RD, 0)
+
+
+//
+// Framebuffer
+//
+
+// Creates a new framebuffer. Note that you must attach a pixel buffer to the
+// framebuffer before it can be set as the current framebuffer.
+// create_framebuffer(size_t entryCount, int* _Nonnull pOutId)
+#define VIO_CMD_CREATE_FRAMEBUFFER \
+IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
+
+// Destroys the framebuffer 'id'. EBUSY is returned if 'id' is the current
+// framebuffer. You must first remove it as the current framebuffer before you
+// can destroy it.
+// destroy_framebuffer(int id)
+#define VIO_CMD_DESTROY_FRAMEBUFFER \
+IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
+
+// Attaches the pixel buffer 'buf_id' to the framebuffer 'fb_id' as a front
+// buffer. An already attached buffer is first detached. Pass 0 for 'buf_id' to
+// simply detach the currently attach buffer without attaching a new one.
+// Returns EBUSY if the framebuffer 'fb_id' is the current framebuffer since hot
+// swapping of buffers is not supported.
+// attach_buffer(int fb_id, int buf_id)
+#define VIO_CMD_ATTACH_BUFFER \
+IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_WR, 0)
+
+// Returns information about the framebuffer 'id'.
+// get_framebuffer_info(int id, vio_clut_info_t* _Nonnull pOutInfo)
+#define VIO_CMD_FRAMEBUFFER_INFO \
 IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 
-
-//
-// Screen
-//
-
-#define VIO_SCR_FRAMEBUFFER 1
-#define VIO_SCR_CLUT        2
-#define VIO_SCR_WIDTH       3
-#define VIO_SCR_HEIGHT      4
-#define VIO_SCR_PIXELFORMAT 5
-#define VIO_SCR_END         0
-
-// Configures the screen based on the given screen configuration. Pass NULL to
-// turn video output off altogether.
-// set_screen_config(const intptr_t* _Nullable config)
-#define VIO_CMD_SET_SCREEN_CONFIG \
+// Sets the framebuffer 'id' as the current framebuffer. The framebuffer must
+// have a pixel buffer with a suitable width, height and pixel format attached
+// to it. The video mode is automatically selected based on the framebuffer and
+// pixel buffer configuration. Pass 0 as the 'id' to turn video off altogether.
+// set_current_framebuffer(int id)
+#define VIO_CMD_SET_CURRENT_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 
-// Returns a copy of the currently active screen configuration. The configuration
-// information is written to the provided buffer 'config' which is able to hold
-// 'bufsiz' integer entries (sizeof(int)). EINVAL is returned if 'bufsiz' is 0.
-// ERANGE is returned if 'bufsiz' is greater 0 but not big enough to hold all
-// configuration information plus the terminated VIO_SCR_END entry. The
-// returned configuration will contain the following configuration keys:
-// VIO_SCR_FRAMEBUFFER
-// VIO_SCR_CLUT (if the pixel format is one of the indirect formats)
-// VIO_SCR_WIDTH
-// VIO_SCR_HEIGHT
-// VIO_SCR_PIXELFORMAT
-// VIO_SCR_END
-// int get_screen_config(intptr_t* _Nonnull config, size_t bufsiz)
-#define VIO_CMD_SCREEN_CONFIG \
+// Returns the id of the current framebuffer. 0 is returned if no framebuffer is
+// current and video is off.
+// get_current_framebuffer(int* _Nonnull pOutId)
+#define VIO_CMD_GET_CURRENT_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 

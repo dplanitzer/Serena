@@ -54,6 +54,8 @@ extern errno_t AGADriver_CreateFramebuffer(AGADriverRef _Nonnull self, size_t co
 extern errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id);
 extern errno_t AGADriver_AttachBuffer(AGADriverRef _Nonnull self, int fb_id, int buf_id);
 extern errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo);
+extern errno_t AGADriver_SetCurrentFramebuffer(AGADriverRef _Nonnull self, int fb_id);
+extern int AGADriver_GetCurrentFramebuffer(AGADriverRef _Nonnull self);
 
 
 // Video Mode
@@ -71,12 +73,5 @@ typedef struct vio_mode {
 
 extern errno_t AGADriver_SetVideoMode(AGADriverRef _Nonnull self, const vio_mode_t* _Nonnull mode, int* _Nonnull pOutBufferId, int* _Nonnull pOutFbId);
 extern void AGADriver_SetVideoOff(AGADriverRef _Nonnull self);
-
-
-
-
-// Screens
-extern errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf);
-extern errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz);
 
 #endif /* AGADriver_h */

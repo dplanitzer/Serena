@@ -93,17 +93,17 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case VIO_CMD_SET_SCREEN_CONFIG: {
-            const intptr_t* cp = va_arg(ap, const intptr_t*);
+        case VIO_CMD_SET_CURRENT_FRAMEBUFFER: {
+            const int fb_id = va_arg(ap, int);
 
-            return AGADriver_SetScreenConfig(drv, cp);
+            return AGADriver_SetCurrentFramebuffer(drv, fb_id);
         }
 
-        case VIO_CMD_SCREEN_CONFIG: {
-            intptr_t* cp = va_arg(ap, intptr_t*);
-            size_t bufsiz = va_arg(ap, size_t);
+        case VIO_CMD_GET_CURRENT_FRAMEBUFFER: {
+            int* p_fb_id = va_arg(ap, int*);
 
-            return AGADriver_GetScreenConfig(drv, cp, bufsiz);
+            *p_fb_id = AGADriver_GetCurrentFramebuffer(drv);
+            return EOK;
         }
 
         case VIO_CMD_CREATE_CMDBUF: {
