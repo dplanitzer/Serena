@@ -36,73 +36,56 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 {
     decl_try_err();
 
-    // Create a suitable screen
-    int width, height;
+    try(AGADriver_CreateCommandBuffer(self->drv, 128, &self->cmdbuf));
+
+
+    // Select the console video mode
+    vio_mode_t mode;
     if (chipset_is_ntsc()) {
-        width = 640;
-        height = 200;
+        mode.width = 640;
+        mode.height = 200;
         
-        //width = 640;
-        //height = 400;
+        //mode.width = 640;
+        //mode.height = 400;
     } else {
-        width = 640;
-        height = 256;
+        mode.width = 640;
+        mode.height = 256;
 
-        //width = 640;
-        //height = 512;
+        //mode.width = 640;
+        //mode.height = 512;
     }
+    mode.pixelFormat = VIO_COLOR_INDEX3;
+    mode.clear.index = 0;
+    mode.paletteSize = ANSI_COLOR_COUNT;
+    mode.palette = gANSIColors;
 
-    try(AGADriver_CreateCommandBuffer(self->fb, 128, &self->cmdbuf));
-    try(AGADriver_CreateBuffer(self->fb, width, height, VIO_COLOR_INDEX3, &self->framebufferId));
-    try(AGADriver_CreateFramebuffer(self->fb, 32, &self->clutId));
-
-
-    // Clear the framebuffer
-    void* ip = self->cmdbuf.addr;
-    ip = vio_set_clut_rgb32(ip, self->clutId, 0, ANSI_COLOR_COUNT, gANSIColors);
-    ip = vio_clear_pixels(ip, self->framebufferId);
-    ip = vio_end(ip);
-
-    try(AGADriver_ExecuteCommandBuffer(self->fb, self->cmdbuf.id, 0));
+    try(AGADriver_SetVideoMode(self->drv, &mode, &self->pixelBufferId, &self->framebufferId));
 
 
-    // Clear & map the framebuffer before we activate the new screen config
-    try(AGADriver_MapBuffer(self->fb, self->framebufferId, VIO_MAP_RW, &self->pixels));
-
-
-    // Make our screen the current screen
-    intptr_t sc[5];
-    sc[0] = VIO_SCR_FRAMEBUFFER;
-    sc[1] = self->framebufferId;
-    sc[2] = VIO_SCR_CLUT;
-    sc[3] = self->clutId;
-    sc[4] = VIO_SCR_END;
-    try(AGADriver_SetScreenConfig(self->fb, &sc[0]));
-
-
-    // Get the framebuffer size
-    self->pixelsWidth = width;
-    self->pixelsHeight = height;
+    // Map the console framebuffer and get the framebuffer size
+    try(AGADriver_MapBuffer(self->drv, self->pixelBufferId, VIO_MAP_RW, &self->pixels));
+    self->pixelsWidth = mode.width;
+    self->pixelsHeight = mode.height;
 
 
     // Allocate the text cursor (sprite)
     self->textCursorSpriteId = 2;
     self->flags.isTextCursorVisible = false;
-    const bool isLace = (height > MAX_PAL_HEIGHT) ? true : false;
+    const bool isLace = (mode.height > MAX_PAL_HEIGHT) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(AGADriver_CreateBuffer(self->fb, textCursorWidth, textCursorHeight, VIO_RGB_SPRITE_2, &self->textCursorBufferId));
+    try(AGADriver_CreateBuffer(self->drv, textCursorWidth, textCursorHeight, VIO_RGB_SPRITE_2, &self->textCursorBufferId));
 
-    ip = self->cmdbuf.addr;
+    void* ip = self->cmdbuf.addr;
     ip = vio_write_pixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, VIO_COLOR_INDEX2);
     ip = vio_show_sprite(ip, self->textCursorSpriteId, 0);
     ip = vio_bind_buffer(ip, VIO_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
     ip = vio_end(ip);
 
-    try(AGADriver_ExecuteCommandBuffer(self->fb, self->cmdbuf.id, 0));
+    try(AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0));
 
 
     // Initialize the text cursor timer
@@ -119,13 +102,13 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    AGADriver_UnmapBuffer(self->fb, self->framebufferId);
+    AGADriver_UnmapBuffer(self->drv, self->pixelBufferId);
 
-    AGADriver_SetScreenConfig(self->fb, NULL);
+    AGADriver_SetVideoOff(self->drv);
 
-    AGADriver_DestroyFramebuffer(self->fb, self->clutId);
-    AGADriver_DestroyBuffer(self->fb, self->framebufferId);
-    AGADriver_DestroyCommandBuffer(self->fb, self->cmdbuf.id);
+    AGADriver_DestroyFramebuffer(self->drv, self->framebufferId);
+    AGADriver_DestroyBuffer(self->drv, self->pixelBufferId);
+    AGADriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
 }
 
 
@@ -148,10 +131,10 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[7] = clr[5];
 
     void* ip = self->cmdbuf.addr;
-    ip = vio_set_clut_rgb32(ip, self->clutId, 16, 8, clr);
+    ip = vio_set_clut_rgb32(ip, self->framebufferId, 16, 8, clr);
     ip = vio_end(ip);
 
-    AGADriver_ExecuteCommandBuffer(self->fb, self->cmdbuf.id, 0);
+    AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0);
 }
 
 // Sets the console's background color to the given color
@@ -173,7 +156,7 @@ static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
     ip = vio_show_sprite(ip, self->textCursorSpriteId, self->flags.isTextCursorOn);
     ip = vio_end(ip);
 
-    AGADriver_ExecuteCommandBuffer(self->fb, self->cmdbuf.id, 0);
+    AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0);
     mtx_unlock(&self->mtx);
 }
 
@@ -212,7 +195,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
 
     if (ip) {
         vio_end(ip);
-        AGADriver_ExecuteCommandBuffer(self->fb, self->cmdbuf.id, 0);
+        AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0);
     }
 }
 

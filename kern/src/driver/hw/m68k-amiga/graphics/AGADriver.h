@@ -18,7 +18,8 @@ final_class(AGADriver, IODriver);
 
 extern errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf);
 
-// Surfaces
+
+// Pixel buffers
 extern errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id);
 
@@ -28,19 +29,8 @@ extern errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode,
 extern errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id);
 
 
-// Framebuffer
-extern errno_t AGADriver_CreateFramebuffer(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);
-extern errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id);
-extern errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo);
-
-
 // Sprites
 extern void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Nonnull cp);
-
-
-// Screens
-extern errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf);
-extern errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz);
 
 
 // Command buffers
@@ -57,5 +47,36 @@ extern void* _Nonnull vio_bind_buffer(void* _Nonnull addr, int target, int buf_i
 extern void* _Nonnull vio_put_sprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y);
 extern void* _Nonnull vio_show_sprite(void* _Nonnull addr, int spr_id, bool isVisible);
 extern void* _Nonnull vio_end(void* _Nonnull addr);
+
+
+// Framebuffer
+extern errno_t AGADriver_CreateFramebuffer(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);
+extern errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id);
+extern errno_t AGADriver_AttachBuffer(AGADriverRef _Nonnull self, int fb_id, int buf_id);
+extern errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo);
+
+
+// Video Mode
+typedef struct vio_mode {
+    size_t                          width;
+    size_t                          height;
+    vio_pixfmt_t                    pixelFormat;
+    union {
+        uint8_t     index;
+        vio_rgb32_t color;
+    }                               clear;
+    size_t                          paletteSize;
+    const vio_rgb32_t* _Nullable    palette;
+} vio_mode_t;
+
+extern errno_t AGADriver_SetVideoMode(AGADriverRef _Nonnull self, const vio_mode_t* _Nonnull mode, int* _Nonnull pOutBufferId, int* _Nonnull pOutFbId);
+extern void AGADriver_SetVideoOff(AGADriverRef _Nonnull self);
+
+
+
+
+// Screens
+extern errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf);
+extern errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz);
 
 #endif /* AGADriver_h */

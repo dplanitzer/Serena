@@ -8,6 +8,7 @@
 
 #include "AGADriverPriv.h"
 #include "video_conf.h"
+#include <ext/math.h>
 #include <string.h>
 #include <handler/IOGraphicsHandler.h>
 
@@ -76,6 +77,14 @@ errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
+errno_t AGADriver_AttachBuffer(AGADriverRef _Nonnull self, int fb_id, int buf_id)
+{
+    gdLock();
+    const errno_t err = gdAttachBuffer(fb_id, buf_id);
+    gdUnlock();
+    return err;
+}
+
 errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo)
 {
     gdLock();
@@ -139,27 +148,6 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Non
     gdLock();
     gdGetSpriteCaps(cp);
     gdUnlock();
-}
-
-
-//
-// Screen
-//
-
-errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf)
-{
-    gdLock();
-    const errno_t err = gdSetScreenConfig(conf);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz)
-{
-    gdLock();
-    const errno_t err = gdGetScreenConfig(conf, bufsiz);
-    gdUnlock();
-    return err;
 }
 
 
@@ -279,6 +267,67 @@ void* _Nonnull vio_end(void* _Nonnull addr)
 
     *p = VIO_OPCODE_END;
     return (char*)addr + sizeof(vio_opcode_t);
+}
+
+
+//
+// Screen
+//
+
+errno_t AGADriver_SetScreenConfig(AGADriverRef _Nonnull self, const intptr_t* _Nullable conf)
+{
+    gdLock();
+    const errno_t err = gdSetScreenConfig(conf);
+    gdUnlock();
+    return err;
+}
+
+errno_t AGADriver_GetScreenConfig(AGADriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz)
+{
+    gdLock();
+    const errno_t err = gdGetScreenConfig(conf, bufsiz);
+    gdUnlock();
+    return err;
+}
+
+
+//
+// Video Mode
+//
+
+errno_t AGADriver_SetVideoMode(AGADriverRef _Nonnull self, const vio_mode_t* _Nonnull mode, int* _Nonnull pOutBufferId, int* _Nonnull pOutFbId)
+{
+    decl_try_err();
+    int buf_id, fb_id;
+    const bool isIndexed = (mode->pixelFormat >= VIO_COLOR_INDEX1 && mode->pixelFormat <= VIO_COLOR_INDEX8);
+
+    gdLock();
+    try(gdGenBuffer(mode->width, mode->height, mode->pixelFormat, &buf_id));
+    gdClearPixels(buf_id);
+
+
+    try(gdGenFramebuffer(32, &fb_id));
+    try(gdAttachBuffer(fb_id, buf_id));
+
+    if (isIndexed) {
+        gdSetClutEntries(fb_id, 0, __min(32, mode->paletteSize), mode->palette);
+    }
+
+
+    err = gdSetCurrentFramebuffer(fb_id);
+    *pOutFbId = fb_id;
+    *pOutBufferId = buf_id;
+
+catch:
+    gdUnlock();
+    return err;
+}
+
+void AGADriver_SetVideoOff(AGADriverRef _Nonnull self)
+{
+    gdLock();
+    gdSetCurrentFramebuffer(0);
+    gdUnlock();
 }
 
 

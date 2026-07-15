@@ -178,10 +178,10 @@ final_class_ivars(Console, Object,
     CharBuffer                  chb;
     cbuf_t                      reportsQueue;
 
-    AGADriverRef _Nonnull       fb;
+    AGADriverRef _Nonnull       drv;
     vio_cmdbuf_desc_t           cmdbuf;
-    int                         clutId;
     int                         framebufferId;
+    int                         pixelBufferId;
     vio_buffer_data_t           pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;

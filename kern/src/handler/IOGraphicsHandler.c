@@ -24,57 +24,64 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const vio_pixfmt_t fmt = va_arg(ap, vio_pixfmt_t);
-            int* hnd = va_arg(ap, int*);
+            int* buf_id = va_arg(ap, int*);
 
-            return AGADriver_CreateBuffer(drv, width, height, fmt, hnd);
+            return AGADriver_CreateBuffer(drv, width, height, fmt, buf_id);
         }
 
         case VIO_CMD_DESTROY_BUFFER: {
-            int hnd = va_arg(ap, int);
+            int buf_id = va_arg(ap, int);
 
-            return AGADriver_DestroyBuffer(drv, hnd);
+            return AGADriver_DestroyBuffer(drv, buf_id);
         }
 
         case VIO_CMD_BUFFER_INFO: {
-            int hnd = va_arg(ap, int);
+            int buf_id = va_arg(ap, int);
             vio_buffer_info_t* si = va_arg(ap, vio_buffer_info_t*);
 
-            return AGADriver_GetBufferInfo(drv, hnd, si);
+            return AGADriver_GetBufferInfo(drv, buf_id, si);
         }
 
         case VIO_CMD_MAP_BUFFER: {
-            int hnd = va_arg(ap, int);
+            int buf_id = va_arg(ap, int);
             int mode = va_arg(ap, int);
             vio_buffer_data_t* sm = va_arg(ap, vio_buffer_data_t*);
 
-            return AGADriver_MapBuffer(drv, hnd, mode, sm);
+            return AGADriver_MapBuffer(drv, buf_id, mode, sm);
         }
 
         case VIO_CMD_UNMAP_BUFFER: {
-            const int hnd = va_arg(ap, int);
+            const int buf_id = va_arg(ap, int);
 
-            return AGADriver_UnmapBuffer(drv, hnd);
+            return AGADriver_UnmapBuffer(drv, buf_id);
         }
 
 
         case VIO_CMD_CREATE_FRAMEBUFFER: {
             const size_t entryCount = va_arg(ap, size_t);
-            int* hnd = va_arg(ap, int*);
+            int* fb_id = va_arg(ap, int*);
 
-            return AGADriver_CreateFramebuffer(drv, entryCount, hnd);
+            return AGADriver_CreateFramebuffer(drv, entryCount, fb_id);
         }
 
         case VIO_CMD_DESTROY_FRAMEBUFFER: {
-            int hnd = va_arg(ap, int);
+            int fb_id = va_arg(ap, int);
 
-            return AGADriver_DestroyFramebuffer(drv, hnd);
+            return AGADriver_DestroyFramebuffer(drv, fb_id);
+        }
+
+        case VIO_CMD_ATTACH_BUFFER: {
+            int fb_id = va_arg(ap, int);
+            int buf_id = va_arg(ap, int);
+
+            return AGADriver_AttachBuffer(drv, fb_id, buf_id);
         }
 
         case VIO_CMD_FRAMEBUFFER_INFO: {
-            int hnd = va_arg(ap, int);
+            int fb_id = va_arg(ap, int);
             vio_clut_info_t* ci = va_arg(ap, vio_clut_info_t*);
 
-            return AGADriver_GetFramebufferInfo(drv, hnd, ci);
+            return AGADriver_GetFramebufferInfo(drv, fb_id, ci);
         }
 
 
@@ -107,16 +114,16 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
         case VIO_CMD_DESTROY_CMDBUF: {
-            int id = va_arg(ap, int);
+            int cmdbuf_id = va_arg(ap, int);
 
-            return AGADriver_DestroyCommandBuffer(drv, id);
+            return AGADriver_DestroyCommandBuffer(drv, cmdbuf_id);
         }
 
         case VIO_CMD_EXEC_CMDBUF: {
-            int id = va_arg(ap, int);
+            int cmdbuf_id = va_arg(ap, int);
             size_t offset = va_arg(ap, size_t);
 
-            return AGADriver_ExecuteCommandBuffer(drv, id, offset);
+            return AGADriver_ExecuteCommandBuffer(drv, cmdbuf_id, offset);
         }
 
         default:

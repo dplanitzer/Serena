@@ -9,9 +9,8 @@
 #include "gd_priv.h"
 #include <hal/irq.h>
 
-
-static vcpu_t _Nullable g_screen_conf_observer;
-static int              g_screen_conf_signal;
+vcpu_t _Nullable g_screen_conf_observer;
+int              g_screen_conf_signal;
 
 
 static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t def)

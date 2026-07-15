@@ -16,9 +16,9 @@
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {
-    AGADriverRef _Nullable  fb;
-    int                     clut;
-    int                     pbo;
+    AGADriverRef _Nullable  drv;
+    int                     fb_id;
+    int                     buf_id;
     vio_cmdbuf_desc_t       cmdbuf;
     size_t                  width;
     size_t                  height;

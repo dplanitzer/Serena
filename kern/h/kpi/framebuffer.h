@@ -156,10 +156,19 @@ IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 #define VIO_CMD_DESTROY_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
+// Attaches the pixel buffer 'buf_id' to the framebuffer 'fb_id' as a front
+// buffer. An already attached buffer is first detached. Pass 0 for 'buf_id' to
+// simply detach the currently attach buffer without attaching a new one.
+// Returns EBUSY if the framebuffer 'fb_id' is the current framebuffer since hot
+// swapping of buffers is not supported.
+// attach_buffer(int fb_id, int buf_id)
+#define VIO_CMD_ATTACH_BUFFER \
+IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
+
 // Returns information about the CLUT 'id'.
 // get_vio_clut_info(int id, vio_clut_info_t* _Nonnull pOutInfo)
 #define VIO_CMD_FRAMEBUFFER_INFO \
-IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -178,7 +187,7 @@ typedef struct vio_sprite_caps {
 // currently active screen and mouse cursor configuration.
 // get_sprite_info(sprite_info_t* _Nonnull info)
 #define VIO_CMD_SPRITE_CAPS \
-IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -196,7 +205,7 @@ IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
 // turn video output off altogether.
 // set_screen_config(const intptr_t* _Nullable config)
 #define VIO_CMD_SET_SCREEN_CONFIG \
-IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 
 // Returns a copy of the currently active screen configuration. The configuration
@@ -213,7 +222,7 @@ IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
 // VIO_SCR_END
 // int get_screen_config(intptr_t* _Nonnull config, size_t bufsiz)
 #define VIO_CMD_SCREEN_CONFIG \
-IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -296,12 +305,12 @@ typedef struct vio_cmdbuf_desc {
 // requested size. However it will never be smaller.
 // create_cmdbuf(size_t byteSize, const vio_cmdbuf_desc_t* _Nullable desc) -> id
 #define VIO_CMD_CREATE_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 
 // Deallocates the command buffer 'id'.
 // destroy_cmdbuf(int id)
 #define VIO_CMD_DESTROY_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 
 // Synchronously executes the command buffer 'id' start at its base address plus
 // 'offset' and continuing until the first encountered end instruction. Blocks
@@ -310,6 +319,6 @@ IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 // detected error is returned.
 // exec_cmdbuf(int id, size_t offset)
 #define VIO_CMD_EXEC_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */

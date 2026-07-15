@@ -26,12 +26,6 @@ mtx_lock(&gd_mtx)
 mtx_unlock(&gd_mtx)
 
 
-// CLUT
-extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
-extern errno_t gdDeleteFramebuffer(int id);
-extern errno_t gdGetFramebufferInfo(int id, vio_clut_info_t* _Nonnull pOutInfo);
-extern errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
-
 // Pixel Buffer
 extern errno_t gdGenBuffer(int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t gdDeleteBuffer(int id);
@@ -56,16 +50,24 @@ extern errno_t gdBindCursor(int id);
 extern void gdSetCursorPos(int x, int y);
 extern void gdSetCursorVis(bool isVisible);
 
+// Command Buffer
+extern errno_t gdGenCmdbuf(size_t reqSize, vio_cmdbuf_desc_t* _Nonnull desc);
+extern errno_t gdDeleteCmdbuf(int id);
+extern errno_t gdExecCmdbuf(int id, size_t offset);
+
+// Framebuffer
+extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
+extern errno_t gdDeleteFramebuffer(int fb_id);
+extern errno_t gdAttachBuffer(int fb_id, int buf_id);
+extern errno_t gdGetFramebufferInfo(int fb_id, vio_clut_info_t* _Nonnull pOutInfo);
+extern errno_t gdSetClutEntries(int fb_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
+extern errno_t gdSetCurrentFramebuffer(int fb_id);
+
 // Screen
 extern errno_t gdSetScreenConfig(const intptr_t* _Nullable icfg);
 extern errno_t gdGetScreenConfig(intptr_t* _Nonnull conf, size_t bufsiz);
 extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
-
-// Command Buffer
-extern errno_t gdGenCmdbuf(size_t reqSize, vio_cmdbuf_desc_t* _Nonnull desc);
-extern errno_t gdDeleteCmdbuf(int id);
-extern errno_t gdExecCmdbuf(int id, size_t offset);
 
 #endif /* _GD_H */

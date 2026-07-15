@@ -44,7 +44,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open the framebuffer
-    try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&self->fb));
+    try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&self->drv));
     self->chb.count = 0;
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
@@ -93,10 +93,10 @@ void Console_deinit(ConsoleRef _Nonnull self)
         
     mtx_deinit(&self->mtx);
 
-    if (self->fb) {
-        IODriver_Close(self->fb);
-        Object_Release(self->fb);
-        self->fb = NULL;
+    if (self->drv) {
+        IODriver_Close(self->drv);
+        Object_Release(self->drv);
+        self->drv = NULL;
     }
 
     self->hid = NULL;

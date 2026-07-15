@@ -10,8 +10,12 @@
 #include <kern/kalloc.h>
 
 
-static int      g_next_fb_id = 1;
-static deque_t  g_fb_list;
+static int              g_next_fb_id = 1;
+static deque_t          g_fb_list;
+//static vcpu_t _Nullable g_screen_conf_observer;
+//static int              g_screen_conf_signal;
+extern vcpu_t _Nullable g_screen_conf_observer;
+extern int              g_screen_conf_signal;
 
 
 framebuffer_t* _Nullable _fb_for_id(int id)
@@ -59,6 +63,9 @@ catch:
 void _gdDestroyFramebuffer(framebuffer_t* _Nullable fb)
 {
     if (fb) {
+        Surface_DelRef(fb->front_buf);
+        fb->front_buf = NULL;
+
         deque_remove(&g_fb_list, &fb->chain);
         kfree(fb);
     }
@@ -76,6 +83,39 @@ errno_t gdDeleteFramebuffer(int id)
     }
 
     _gdDestroyFramebuffer(fb);
+    return EOK;
+}
+
+errno_t gdAttachBuffer(int fb_id, int buf_id)
+{
+    framebuffer_t* fb = _fb_for_id(fb_id);
+    Surface* pbo = Surface_GetForId(buf_id);
+
+    if (fb == NULL || (pbo == NULL && buf_id > 0)) {
+        return EINVAL;
+    }
+    if (g_copper_running_prog->res.fb == fb) {
+        return EBUSY;
+    }
+
+    // Note that if there's a Copper program scheduled right now, that this one
+    // can not reference 'buf_id' as a front buffer because framebuffer switches
+    // are done atomically in gdSetCurrentFramebuffer().
+
+
+    // Detach the old pixel buffer
+    if (fb->front_buf) {
+        Surface_DelRef(fb->front_buf);
+        fb->front_buf = NULL;
+    }
+
+
+    // Attach the new buffer, if requested
+    if (pbo) {
+        fb->front_buf = pbo;
+        Surface_AddRef(pbo);
+    }
+
     return EOK;
 }
 
@@ -129,4 +169,67 @@ errno_t gdSetClutEntries(int id, size_t idx, size_t count, const vio_rgb32_t* _N
     }
 
     return EOK;
+}
+
+
+static errno_t _validate_fb(framebuffer_t* _Nonnull fb, const video_conf_t* _Nullable * _Nonnull pOutVc)
+{
+    decl_try_err();
+    const video_conf_t* vc = NULL;
+    Surface* front_buf = fb->front_buf;
+
+    if (front_buf == NULL) {
+        return EINVAL;  //XXX ENOBUF?
+    }
+
+    if ((vc = get_matching_video_conf(
+        Surface_GetWidth(front_buf),
+        Surface_GetHeight(front_buf),
+        Surface_GetPixelFormat(front_buf))) == NULL) {
+            return ENOTSUP; //XXX ENOMATCH?
+    }
+
+    *pOutVc = vc;
+    return EOK;
+}
+
+
+errno_t gdSetCurrentFramebuffer(int fb_id)
+{
+    decl_try_err();
+    framebuffer_t* fb = _fb_for_id(fb_id);
+    const video_conf_t* vc = NULL;
+    copper_prog_t prog = NULL;
+    
+    if (fb == NULL && fb_id > 0) {
+        return EINVAL;
+    }
+    if (fb && g_copper_running_prog->res.fb == fb) {
+        return EBUSY;
+    }
+
+
+    // Compile the Copper program(s) for the new framebuffer
+    if (fb) {
+        try(_validate_fb(fb, &vc));
+        try(create_screen_copper_prog(vc, fb->front_buf, fb, &prog));
+    }
+    else {
+        try(create_null_copper_prog(&prog));
+    } 
+
+
+    // Schedule the new Copper program and wait until the new program is running
+    // and the previous one has been retired. It's save to deallocate the old
+    // framebuffer once the old program has stopped running.
+    copper_schedule(prog, COPFLAG_WAIT_RUNNING);
+
+
+    if (g_screen_conf_observer) {
+        vcpu_send_signal(g_screen_conf_observer, g_screen_conf_signal);
+    }
+
+
+catch:
+    return err;
 }
