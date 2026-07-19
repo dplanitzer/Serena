@@ -164,7 +164,7 @@ errno_t gdUnmapBuffer(int id)
     }
 }
 
-errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
+errno_t _gdDrawPixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
 {
     Surface* pbo = Surface_GetForId(id);
 
@@ -175,7 +175,7 @@ errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow,
     return Surface_WritePixels(pbo, planes, bytesPerRow, format);
 }
 
-errno_t gdClearPixels(int id)
+errno_t _gdClearPixels(int id)
 {
     Surface* pbo = Surface_GetForId(id);
 

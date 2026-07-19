@@ -101,6 +101,14 @@ errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
+errno_t AGADriver_BufferCommands(AGADriverRef _Nonnull self, int buf_id, int cmds_id, size_t offset)
+{
+    gdLock();
+    const errno_t err = gdBufferCommands(buf_id, cmds_id, offset);
+    gdUnlock();
+    return err;
+}
+
 
 //
 // Sprites
@@ -111,6 +119,19 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Non
     gdLock();
     gdGetSpriteCaps(cp);
     gdUnlock();
+}
+
+
+//
+// Screen
+//
+
+errno_t AGADriver_ScreenCommands(AGADriverRef _Nonnull self, int id, size_t offset)
+{
+    gdLock();
+    const errno_t err = gdScreenCommands(id, offset);
+    gdUnlock();
+    return err;
 }
 
 
@@ -134,20 +155,47 @@ errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_ExecuteCommandBuffer(AGADriverRef _Nonnull self, int id, size_t offset)
-{
-    gdLock();
-    const errno_t err = gdExecCmdbuf(id, offset);
-    gdUnlock();
-    return err;
-}
-
 
 //
 // In-kernel command buffer utilities
 //
 
-void* _Nonnull vio_set_clut_rgb32(void* _Nonnull addr, int clut_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
+void* _Nonnull gdCmdEnd(void* _Nonnull addr)
+{
+    vio_opcode_t* p = addr;
+
+    *p = VIO_OPCODE_END;
+    return (char*)addr + sizeof(vio_opcode_t);
+}
+
+
+void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
+{
+    struct vio_op_draw_pixels* p = addr;
+    const size_t pcnt = PixelFormat_GetPlaneCount(format);
+
+    p->opcode = VIO_OPCODE_DRAW_PIXELS;
+    p->bytesPerRow = bytesPerRow;
+    p->format = format;
+    
+    for (size_t i = 0; i < pcnt; i++) {
+        p->plane[i] = planes[i];
+    }
+
+    return (char*)addr + sizeof(struct vio_op_draw_pixels) + (pcnt - 1) * sizeof(void*);
+}
+
+void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id)
+{
+    vio_opcode_t* p = addr;
+
+    *p = VIO_OPCODE_CLEAR_PIXELS;
+
+    return (char*)addr + sizeof(vio_opcode_t);
+}
+
+
+void* _Nonnull gdCmdClut(void* _Nonnull addr, int clut_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 {
     struct vio_op_clut_rgb32* p = addr;
 
@@ -163,34 +211,7 @@ void* _Nonnull vio_set_clut_rgb32(void* _Nonnull addr, int clut_id, size_t idx, 
     return (char*)addr + sizeof(struct vio_op_clut_rgb32) + (count - 1) * sizeof(vio_rgb32_t);
 }
 
-void* _Nonnull vio_write_pixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
-{
-    struct vio_op_write_pixels* p = addr;
-    const size_t pcnt = PixelFormat_GetPlaneCount(format);
-
-    p->opcode = VIO_OPCODE_WRITE_PIXELS;
-    p->bufferId = buf_id;
-    p->bytesPerRow = bytesPerRow;
-    p->format = format;
-    
-    for (size_t i = 0; i < pcnt; i++) {
-        p->plane[i] = planes[i];
-    }
-
-    return (char*)addr + sizeof(struct vio_op_write_pixels) + (pcnt - 1) * sizeof(void*);
-}
-
-void* _Nonnull vio_clear_pixels(void* _Nonnull addr, int buf_id)
-{
-    struct vio_op_buffer* p = addr;
-
-    p->opcode = VIO_OPCODE_CLEAR_PIXELS;
-    p->bufferId = buf_id;
-
-    return (char*)addr + sizeof(struct vio_op_buffer);
-}
-
-void* _Nonnull vio_bind_buffer(void* _Nonnull addr, int target, int buf_id)
+void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id)
 {
     struct vio_op_bind_buffer* p = addr;
 
@@ -201,7 +222,7 @@ void* _Nonnull vio_bind_buffer(void* _Nonnull addr, int target, int buf_id)
     return (char*)addr + sizeof(struct vio_op_bind_buffer);
 }
 
-void* _Nonnull vio_put_sprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
+void* _Nonnull gdCmdSpritePosition(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
 {
     struct vio_op_put_sprite* p = addr;
 
@@ -213,7 +234,7 @@ void* _Nonnull vio_put_sprite(void* _Nonnull addr, int spr_id, int16_t x, int16_
     return (char*)addr + sizeof(struct vio_op_put_sprite);
 }
 
-void* _Nonnull vio_show_sprite(void* _Nonnull addr, int spr_id, bool isVisible)
+void* _Nonnull gdCmdSpriteVisible(void* _Nonnull addr, int spr_id, bool isVisible)
 {
     struct vio_op_show_sprite* p = addr;
 
@@ -222,14 +243,6 @@ void* _Nonnull vio_show_sprite(void* _Nonnull addr, int spr_id, bool isVisible)
     p->visible = isVisible;
     
     return (char*)addr + sizeof(struct vio_op_show_sprite);
-}
-
-void* _Nonnull vio_end(void* _Nonnull addr)
-{
-    vio_opcode_t* p = addr;
-
-    *p = VIO_OPCODE_END;
-    return (char*)addr + sizeof(vio_opcode_t);
 }
 
 
@@ -298,7 +311,7 @@ errno_t AGADriver_SetVideoMode(AGADriverRef _Nonnull self, const vio_mode_t* _No
 
     gdLock();
     try(gdGenBuffer(mode->width, mode->height, mode->pixelFormat, &buf_id));
-    gdClearPixels(buf_id);
+    _gdClearPixels(buf_id);
 
 
     try(gdGenFramebuffer(32, &fb_id));

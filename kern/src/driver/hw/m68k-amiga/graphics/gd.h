@@ -30,11 +30,13 @@ mtx_unlock(&gd_mtx)
 extern errno_t gdGenBuffer(int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t gdDeleteBuffer(int id);
 extern errno_t gdGetBufferInfo(int id, vio_buffer_info_t* _Nonnull pOutInfo);
-extern errno_t gdBindBuffer(int target, int id);
+extern errno_t gdBindBuffer(int target, int id);    //XXX
 extern errno_t gdMapBuffer(int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping);
 extern errno_t gdUnmapBuffer(int id);
-extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);
-extern errno_t gdClearPixels(int id);
+extern errno_t gdBufferCommands(int buf_id, int cmds_id, size_t offset);
+extern errno_t _gdClearPixels(int id);   // For use by AGADriver (clearing default framebuffer)
+extern errno_t _gdDrawPixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
+
 
 // Sprites
 extern errno_t gdSetSpritePos(int spriteId, int x, int y);
@@ -53,7 +55,6 @@ extern void gdSetCursorVis(bool isVisible);
 // Command Buffer
 extern errno_t gdGenCmdbuf(size_t reqSize, vio_cmdbuf_desc_t* _Nonnull desc);
 extern errno_t gdDeleteCmdbuf(int id);
-extern errno_t gdExecCmdbuf(int id, size_t offset);
 
 // Framebuffer
 extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
@@ -66,5 +67,8 @@ extern int gdGetCurrentFramebuffer(void);
 extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
+
+// Screen
+extern errno_t gdScreenCommands(int id, size_t offset);
 
 #endif /* _GD_H */

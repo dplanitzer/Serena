@@ -92,7 +92,7 @@ errno_t gdDeleteCmdbuf(int id)
     return EOK;
 }
 
-errno_t gdExecCmdbuf(int id, size_t offset)
+errno_t gdScreenCommands(int id, size_t offset)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf = _cmdbuf_for_id(id);
@@ -107,24 +107,10 @@ errno_t gdExecCmdbuf(int id, size_t offset)
 
     while ((const char*)ip < cmdbuf->opEnd) {
         switch (ip->opcode) {
-            case VIO_OPCODE_NOP:                // vio_opcode_t
-                ilen = 0;
-                break;
-
             case VIO_OPCODE_END:                // vio_opcode_t
                 return EOK;
 
-            case VIO_OPCODE_WRITE_PIXELS:       // struct vio_op_write_pixels
-                try(gdWritePixels(ip->write_pixels.bufferId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format));
-                ilen = sizeof(struct vio_op_write_pixels) + (PixelFormat_GetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
-                break;
-
-            case VIO_OPCODE_CLEAR_PIXELS:       // struct vio_op_buffer
-                try(gdClearPixels(ip->buffer.bufferId));
-                ilen = sizeof(struct vio_op_buffer);
-                break;
-
-            case VIO_OPCODE_BIND_BUFFER:        // vio_op_bind_buffer
+            case VIO_OPCODE_BIND_BUFFER:        // vio_op_bind_buffer   //XXX will turn into gdCmdSpriteBufferLevel
                 try(gdBindBuffer(ip->bind_buffer.target, ip->bind_buffer.bufferId));
                 ilen = sizeof(struct vio_op_bind_buffer);
                 break;
@@ -156,4 +142,40 @@ errno_t gdExecCmdbuf(int id, size_t offset)
 
 catch:
     return err;
+}
+
+errno_t gdBufferCommands(int buf_id, int cmds_id, size_t offset)
+{
+    Surface* pbo = Surface_GetForId(buf_id);
+    cmdbuf_t* cmdbuf = _cmdbuf_for_id(cmds_id);
+
+    if (pbo == NULL || cmdbuf == NULL) {
+        return EINVAL;
+    }
+
+
+    const union vio_op* ip = (const union vio_op*)(cmdbuf->op + offset);
+    size_t ilen;
+
+    while ((const char*)ip < cmdbuf->opEnd) {
+        switch (ip->opcode) {
+            case VIO_OPCODE_END:                // vio_opcode_t
+                return EOK;
+
+            case VIO_OPCODE_DRAW_PIXELS:       // struct vio_op_draw_pixels
+                Surface_WritePixels(pbo, &ip->draw_pixels.plane[0], ip->draw_pixels.bytesPerRow, ip->draw_pixels.format);
+                ilen = sizeof(struct vio_op_draw_pixels) + (PixelFormat_GetPlaneCount(ip->draw_pixels.format) - 1) * sizeof(void*);
+                break;
+
+            case VIO_OPCODE_CLEAR_PIXELS:       // struct vio_opcode_t
+                Surface_ClearPixels(pbo);
+                ilen = sizeof(vio_opcode_t);
+                break;
+
+            default:
+                return EINVAL;
+        }
+
+        ip = (const union vio_op*)((const char*)ip + ilen);
+    }
 }

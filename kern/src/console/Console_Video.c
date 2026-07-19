@@ -80,12 +80,17 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     try(AGADriver_CreateBuffer(self->drv, textCursorWidth, textCursorHeight, VIO_RGB_SPRITE_2, &self->textCursorBufferId));
 
     void* ip = self->cmdbuf.addr;
-    ip = vio_write_pixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, VIO_COLOR_INDEX2);
-    ip = vio_show_sprite(ip, self->textCursorSpriteId, 0);
-    ip = vio_bind_buffer(ip, VIO_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
-    ip = vio_end(ip);
+    ip = gdCmdDrawPixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, VIO_COLOR_INDEX2);
+    ip = gdCmdEnd(ip);
 
-    try(AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0));
+    try(AGADriver_BufferCommands(self->drv, self->textCursorBufferId, self->cmdbuf.id, 0));
+
+    ip = self->cmdbuf.addr;
+    ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, 0);
+    ip = gdCmdBindSpriteBuffer(ip, VIO_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
+    ip = gdCmdEnd(ip);
+
+    try(AGADriver_ScreenCommands(self->drv, self->cmdbuf.id, 0));
 
 
     // Initialize the text cursor timer
@@ -131,10 +136,10 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[7] = clr[5];
 
     void* ip = self->cmdbuf.addr;
-    ip = vio_set_clut_rgb32(ip, self->framebufferId, 16, 8, clr);
-    ip = vio_end(ip);
+    ip = gdCmdClut(ip, self->framebufferId, 16, 8, clr);
+    ip = gdCmdEnd(ip);
 
-    AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0);
+    AGADriver_ScreenCommands(self->drv, self->cmdbuf.id, 0);
 }
 
 // Sets the console's background color to the given color
@@ -153,10 +158,10 @@ static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
 
     void* ip = self->cmdbuf.addr;
-    ip = vio_show_sprite(ip, self->textCursorSpriteId, self->flags.isTextCursorOn);
-    ip = vio_end(ip);
+    ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, self->flags.isTextCursorOn);
+    ip = gdCmdEnd(ip);
 
-    AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0);
+    AGADriver_ScreenCommands(self->drv, self->cmdbuf.id, 0);
     mtx_unlock(&self->mtx);
 }
 
@@ -175,11 +180,11 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
 
     if (self->flags.isTextCursorVisible) {
-        ip = vio_put_sprite(self->cmdbuf.addr, self->textCursorSpriteId, self->x * self->characterWidth, self->y * self->lineHeight);
+        ip = gdCmdSpritePosition(self->cmdbuf.addr, self->textCursorSpriteId, self->x * self->characterWidth, self->y * self->lineHeight);
 
         if (!self->flags.isTextCursorOn) {
             self->flags.isTextCursorOn = true;
-            ip = vio_show_sprite(ip, self->textCursorSpriteId, true);
+            ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, true);
         }
 
 
@@ -190,12 +195,12 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
     else if (self->flags.isTextCursorOn) {
         self->flags.isTextCursorOn = false;
-        ip = vio_show_sprite(self->cmdbuf.addr, self->textCursorSpriteId, false);
+        ip = gdCmdSpriteVisible(self->cmdbuf.addr, self->textCursorSpriteId, false);
     }
 
     if (ip) {
-        vio_end(ip);
-        AGADriver_ExecuteCommandBuffer(self->drv, self->cmdbuf.id, 0);
+        gdCmdEnd(ip);
+        AGADriver_ScreenCommands(self->drv, self->cmdbuf.id, 0);
     }
 }
 

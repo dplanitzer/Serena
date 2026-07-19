@@ -140,6 +140,16 @@ IOCMD_MAKE(IOPROTO_FB, 4, _IOCMD_ACC_RDWR, 0)
 #define VIO_CMD_UNMAP_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
+// Synchronously executes the pixel buffer command buffer 'cmds_id' starting at
+// its base address plus 'offset' and continuing until the first encountered end
+// instruction. Blocks the caller until all instructions have been executed.
+// Execution ends prematurely if an instruction with invalid arguments is
+// encountered and the detected error is returned. The buffer 'buf_id' is the
+// target of all render operations.
+// gdBufferCommands(int buf_id, int cmds_id, size_t offset)
+#define VIO_CMD_BUFFER_COMMANDS \
+IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
+
 
 //
 // Sprites
@@ -208,34 +218,51 @@ IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 
 //
+// Screen
+//
+
+// Synchronously executes the screen command buffer 'id' start at its base
+// address plus 'offset' and continuing until the first encountered end
+// instruction. Blocks the caller until all instructions have been executed.
+// Execution ends prematurely if an instruction with invalid arguments is
+// encountered and the detected error is returned.
+// gdScreenCommands(int id, size_t offset)
+#define VIO_CMD_SCREEN_COMMANDS \
+IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
+
+
+
+//
 // Command Buffers
 //
 
-#define VIO_OPCODE_NOP          0   // vio_opcode_t
-#define VIO_OPCODE_END          1   // vio_opcode_t
-#define VIO_OPCODE_WRITE_PIXELS 2   // struct vio_op_write_pixels
-#define VIO_OPCODE_CLEAR_PIXELS 4   // struct vio_op_buffer
-#define VIO_OPCODE_CLUT_RGB32   5   // struct vio_op_clut_rgb32
-#define VIO_OPCODE_PUT_SPRITE   6   // struct vio_op_put_sprite
-#define VIO_OPCODE_SHOW_SPRITE  7   // struct vio_op_show_sprite
-#define VIO_OPCODE_BIND_BUFFER  8   // struct vio_op_bind_buffer 
+// Core instructions subset
+#define VIO_OPCODE_NOP          0       // vio_opcode_t
+#define VIO_OPCODE_END          1       // vio_opcode_t
+
+// Pixel buffer instructions subset
+#define VIO_OPCODE_DRAW_PIXELS  100     // struct vio_op_draw_pixels
+#define VIO_OPCODE_CLEAR_PIXELS 101     // vio_opcode_t
+
+// Screen instructions subset
+#define VIO_OPCODE_CLUT_RGB32   200     // struct vio_op_clut_rgb32
+#define VIO_OPCODE_PUT_SPRITE   201     // struct vio_op_put_sprite
+#define VIO_OPCODE_SHOW_SPRITE  202     // struct vio_op_show_sprite
+#define VIO_OPCODE_BIND_BUFFER  203     // struct vio_op_bind_buffer 
 
 typedef unsigned short vio_opcode_t;
 
 
-struct vio_op_write_pixels {
+// Pixel buffer instruction subset
+struct vio_op_draw_pixels {
     vio_opcode_t            opcode;
-    int                     bufferId;
     vio_pixfmt_t            format;
     size_t                  bytesPerRow;
     const void* _Nonnull    plane[1];   // 'n' plane pointers follow here where 'n' depends on 'format'
 };
 
-struct vio_op_buffer {
-    vio_opcode_t    opcode;
-    int             bufferId;
-};
 
+// Screen instructions subset
 struct vio_op_bind_buffer {
     vio_opcode_t    opcode;
     int             target;
@@ -265,9 +292,9 @@ struct vio_op_show_sprite {
 
 union vio_op {
     vio_opcode_t                opcode;
-    struct vio_op_write_pixels  write_pixels;
+    struct vio_op_draw_pixels   draw_pixels;
+
     struct vio_op_bind_buffer   bind_buffer;
-    struct vio_op_buffer        buffer;
     struct vio_op_clut_rgb32    clut_rgb32;
     struct vio_op_put_sprite    put_sprite;
     struct vio_op_show_sprite   show_sprite;
@@ -293,14 +320,5 @@ IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 // destroy_cmdbuf(int id)
 #define VIO_CMD_DESTROY_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
-
-// Synchronously executes the command buffer 'id' start at its base address plus
-// 'offset' and continuing until the first encountered end instruction. Blocks
-// the caller until all instructions have been executed. Execution ends
-// prematurely if an instruction with invalid arguments is encountered and the
-// detected error is returned.
-// exec_cmdbuf(int id, size_t offset)
-#define VIO_CMD_EXEC_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */

@@ -20,6 +20,10 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
     AGADriverRef drv = IODriverHandler_GetDriver(self);
 
     switch (cmd) {
+        //
+        // Pixel Buffer
+        //
+
         case VIO_CMD_CREATE_BUFFER: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
@@ -56,6 +60,14 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_UnmapBuffer(drv, buf_id);
         }
 
+        case VIO_CMD_BUFFER_COMMANDS: {
+            int buf_id = va_arg(ap, int);
+            int cmdbuf_id = va_arg(ap, int);
+            size_t offset = va_arg(ap, size_t);
+
+            return AGADriver_BufferCommands(drv, buf_id, cmdbuf_id, offset);
+        }
+
 
         case VIO_CMD_CREATE_FRAMEBUFFER: {
             const size_t entryCount = va_arg(ap, size_t);
@@ -85,6 +97,10 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
+        //
+        // Sprite
+        //
+
         case VIO_CMD_SPRITE_CAPS: {
             vio_sprite_caps_t* cp = va_arg(ap, vio_sprite_caps_t*);
 
@@ -106,6 +122,11 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return EOK;
         }
 
+
+        //
+        // Command Buffer
+        //
+        
         case VIO_CMD_CREATE_CMDBUF: {
             size_t size = va_arg(ap, size_t);
             vio_cmdbuf_desc_t* desc = va_arg(ap, vio_cmdbuf_desc_t*);
@@ -119,13 +140,22 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_DestroyCommandBuffer(drv, cmdbuf_id);
         }
 
-        case VIO_CMD_EXEC_CMDBUF: {
+
+        //
+        // Screen
+        //
+
+        case VIO_CMD_SCREEN_COMMANDS: {
             int cmdbuf_id = va_arg(ap, int);
             size_t offset = va_arg(ap, size_t);
 
-            return AGADriver_ExecuteCommandBuffer(drv, cmdbuf_id, offset);
+            return AGADriver_ScreenCommands(drv, cmdbuf_id, offset);
         }
 
+
+        //
+        // Inherited Functions
+        //
         default:
             return Handler_Super_Control(IOGraphicsHandler, cmd, ap);
     }
