@@ -12,6 +12,18 @@
 mtx_t   gd_mtx;
 bool    g_light_pen_enabled;
 
+#define ANSI_COLOR_COUNT    8
+static const vio_rgb32_t ansi_clrs[ANSI_COLOR_COUNT] = {
+    0xff000000,     // Black
+    0xffff0000,     // Red
+    0xff00ff00,     // Green
+    0xffffff00,     // Yellow
+    0xff0000ff,     // Blue
+    0xffff00ff,     // Magenta
+    0xff00ffff,     // Cyan
+    0xffffffff,     // White
+};
+
 
 errno_t gdInit(void)
 {
@@ -38,6 +50,37 @@ errno_t gdInit(void)
     // Allocate the Copper manager
     try(_gdInitCopper());
     
+
+    // Initialize the boot screen buffer
+    int width, height;
+
+    if (chipset_is_ntsc()) {
+        width = 640;
+        height = 200;
+        
+        //width = 640;
+        //height = 400;
+    } else {
+        width = 640;
+        height = 256;
+
+        //width = 640;
+        //height = 512;
+    }
+
+    int buf_id, fb_id;
+
+    try(gdGenBuffer(width, height, VIO_COLOR_INDEX3, &buf_id));
+    _gdClearPixels(buf_id);
+
+
+    try(gdGenFramebuffer(32, &fb_id));
+    try(gdAttachBuffer(fb_id, buf_id));
+    gdSetClutEntries(fb_id, 0, ANSI_COLOR_COUNT, ansi_clrs);
+
+
+    err = gdSetCurrentFramebuffer(fb_id);
+
 catch:
     return err;
 }

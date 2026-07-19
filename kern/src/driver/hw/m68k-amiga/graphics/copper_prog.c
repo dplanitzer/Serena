@@ -111,7 +111,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     }
     else {
         for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
-            *ip++ = COP_MOVE(r, 0xfff); // white
+            *ip++ = COP_MOVE(r, 0x0); // black
         }
     }
 

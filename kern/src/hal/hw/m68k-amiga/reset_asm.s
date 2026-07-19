@@ -84,7 +84,7 @@ _chipset_reset:
 
     ; set all color registers to white
     lea COLOR00(a0), a1
-    move.w #$0fff, d0
+    move.w #$0000, d0
     move.w  #COLOR_REGS_COUNT-1, d1
 .L1:
     move.w  d0, (a1)+

@@ -69,6 +69,7 @@ extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
 
 // Screen
+extern int gdGetScreenbuffer(void);
 extern errno_t gdScreenCommands(int id, size_t offset);
 
 #endif /* _GD_H */

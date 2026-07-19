@@ -236,15 +236,15 @@ IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
 // Command Buffers
 //
 
-// Core instructions subset
+// Common command set
 #define VIO_OPCODE_NOP          0       // vio_opcode_t
 #define VIO_OPCODE_END          1       // vio_opcode_t
 
-// Pixel buffer instructions subset
+// 2d render command set
 #define VIO_OPCODE_DRAW_PIXELS  100     // struct vio_op_draw_pixels
 #define VIO_OPCODE_CLEAR_PIXELS 101     // vio_opcode_t
 
-// Screen instructions subset
+// Screen command set
 #define VIO_OPCODE_CLUT_RGB32   200     // struct vio_op_clut_rgb32
 #define VIO_OPCODE_PUT_SPRITE   201     // struct vio_op_put_sprite
 #define VIO_OPCODE_SHOW_SPRITE  202     // struct vio_op_show_sprite
@@ -253,7 +253,7 @@ IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
 typedef unsigned short vio_opcode_t;
 
 
-// Pixel buffer instruction subset
+// 2d render command set
 struct vio_op_draw_pixels {
     vio_opcode_t            opcode;
     vio_pixfmt_t            format;
@@ -262,7 +262,7 @@ struct vio_op_draw_pixels {
 };
 
 
-// Screen instructions subset
+// Screen command set
 struct vio_op_bind_buffer {
     vio_opcode_t    opcode;
     int             target;

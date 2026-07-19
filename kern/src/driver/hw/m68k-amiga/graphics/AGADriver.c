@@ -126,6 +126,14 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Non
 // Screen
 //
 
+int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self)
+{
+    gdLock();
+    const int id = gdGetScreenbuffer();
+    gdUnlock();
+    return id;
+}
+
 errno_t AGADriver_ScreenCommands(AGADriverRef _Nonnull self, int id, size_t offset)
 {
     gdLock();
@@ -296,46 +304,6 @@ int AGADriver_GetCurrentFramebuffer(AGADriverRef _Nonnull self)
     const int id = gdGetCurrentFramebuffer();
     gdUnlock();
     return id;
-}
-
-
-//
-// Video Mode
-//
-
-errno_t AGADriver_SetVideoMode(AGADriverRef _Nonnull self, const vio_mode_t* _Nonnull mode, int* _Nonnull pOutBufferId, int* _Nonnull pOutFbId)
-{
-    decl_try_err();
-    int buf_id, fb_id;
-    const bool isIndexed = (mode->pixelFormat >= VIO_COLOR_INDEX1 && mode->pixelFormat <= VIO_COLOR_INDEX8);
-
-    gdLock();
-    try(gdGenBuffer(mode->width, mode->height, mode->pixelFormat, &buf_id));
-    _gdClearPixels(buf_id);
-
-
-    try(gdGenFramebuffer(32, &fb_id));
-    try(gdAttachBuffer(fb_id, buf_id));
-
-    if (isIndexed) {
-        gdSetClutEntries(fb_id, 0, __min(32, mode->paletteSize), mode->palette);
-    }
-
-
-    err = gdSetCurrentFramebuffer(fb_id);
-    *pOutFbId = fb_id;
-    *pOutBufferId = buf_id;
-
-catch:
-    gdUnlock();
-    return err;
-}
-
-void AGADriver_SetVideoOff(AGADriverRef _Nonnull self)
-{
-    gdLock();
-    gdSetCurrentFramebuffer(0);
-    gdUnlock();
 }
 
 

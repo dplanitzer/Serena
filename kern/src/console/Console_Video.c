@@ -39,39 +39,32 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     try(AGADriver_CreateCommandBuffer(self->drv, 128, &self->cmdbuf));
 
 
-    // Select the console video mode
-    vio_mode_t mode;
-    if (chipset_is_ntsc()) {
-        mode.width = 640;
-        mode.height = 200;
-        
-        //mode.width = 640;
-        //mode.height = 400;
-    } else {
-        mode.width = 640;
-        mode.height = 256;
+    // Get the screen buffer information
+    vio_buffer_info_t binf;
 
-        //mode.width = 640;
-        //mode.height = 512;
-    }
-    mode.pixelFormat = VIO_COLOR_INDEX3;
-    mode.clear.index = 0;
-    mode.paletteSize = ANSI_COLOR_COUNT;
-    mode.palette = gANSIColors;
-
-    try(AGADriver_SetVideoMode(self->drv, &mode, &self->pixelBufferId, &self->framebufferId));
+    self->framebufferId = AGADriver_GetCurrentFramebuffer(self->drv);
+    self->pixelBufferId = AGADriver_GetScreenbuffer(self->drv);
+    AGADriver_GetBufferInfo(self->drv, self->pixelBufferId, &binf);
+    self->pixelsWidth = binf.width;
+    self->pixelsHeight = binf.height;
 
 
-    // Map the console framebuffer and get the framebuffer size
+    // Clear the framebuffer
+    void* ip = self->cmdbuf.addr;
+    ip = gdCmdClearPixels(ip, self->pixelBufferId);
+    ip = gdCmdEnd(ip);
+
+    try(AGADriver_BufferCommands(self->drv, self->pixelBufferId, self->cmdbuf.id, 0));
+
+
+    // Map the console framebuffer
     try(AGADriver_MapBuffer(self->drv, self->pixelBufferId, VIO_MAP_RW, &self->pixels));
-    self->pixelsWidth = mode.width;
-    self->pixelsHeight = mode.height;
 
 
     // Allocate the text cursor (sprite)
     self->textCursorSpriteId = 2;
     self->flags.isTextCursorVisible = false;
-    const bool isLace = (mode.height > MAX_PAL_HEIGHT) ? true : false;
+    const bool isLace = (self->pixelsHeight > MAX_PAL_HEIGHT) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
@@ -79,7 +72,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
     try(AGADriver_CreateBuffer(self->drv, textCursorWidth, textCursorHeight, VIO_RGB_SPRITE_2, &self->textCursorBufferId));
 
-    void* ip = self->cmdbuf.addr;
+    ip = self->cmdbuf.addr;
     ip = gdCmdDrawPixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, VIO_COLOR_INDEX2);
     ip = gdCmdEnd(ip);
 
@@ -108,11 +101,6 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
     AGADriver_UnmapBuffer(self->drv, self->pixelBufferId);
-
-    AGADriver_SetVideoOff(self->drv);
-
-    AGADriver_DestroyFramebuffer(self->drv, self->framebufferId);
-    AGADriver_DestroyBuffer(self->drv, self->pixelBufferId);
     AGADriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
 }
 

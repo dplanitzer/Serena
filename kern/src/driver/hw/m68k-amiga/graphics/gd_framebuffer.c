@@ -239,6 +239,11 @@ int gdGetCurrentFramebuffer(void)
     return (g_cur_fb) ? g_cur_fb->id : 0;
 }
 
+int gdGetScreenbuffer(void)
+{
+    return (g_cur_fb) ? g_cur_fb->front_buf->id : 0;
+}
+
 void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     const video_conf_t* vc = g_copper_running_prog->video_conf;

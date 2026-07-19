@@ -57,23 +57,7 @@ extern int AGADriver_GetCurrentFramebuffer(AGADriverRef _Nonnull self);
 
 
 // Screen
+extern int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self);
 extern errno_t AGADriver_ScreenCommands(AGADriverRef _Nonnull self, int id, size_t offset);
-
-
-// Video Mode
-typedef struct vio_mode {
-    size_t                          width;
-    size_t                          height;
-    vio_pixfmt_t                    pixelFormat;
-    union {
-        uint8_t     index;
-        vio_rgb32_t color;
-    }                               clear;
-    size_t                          paletteSize;
-    const vio_rgb32_t* _Nullable    palette;
-} vio_mode_t;
-
-extern errno_t AGADriver_SetVideoMode(AGADriverRef _Nonnull self, const vio_mode_t* _Nonnull mode, int* _Nonnull pOutBufferId, int* _Nonnull pOutFbId);
-extern void AGADriver_SetVideoOff(AGADriverRef _Nonnull self);
 
 #endif /* AGADriver_h */
