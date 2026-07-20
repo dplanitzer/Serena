@@ -31,16 +31,6 @@
 //    resource id == 0, if so it destroys the resource; otherwise it leaves it
 //    alive.
 
-// Framebuffer
-typedef struct framebuffer {
-    deque_node_t        chain;
-    int                 id;
-    Surface* _Nullable  front_buf;
-} framebuffer_t;
-
-extern void _gdDestroyFramebuffer(framebuffer_t* _Nullable fb);
-extern framebuffer_t* _Nullable _fb_for_id(int id);  //XXX
-
 
 // Sprite channel
 typedef struct sprite_channel {
@@ -71,9 +61,6 @@ typedef uint32_t  copper_instr_t;
 
 
 typedef struct copper_res {
-    framebuffer_t* _Nonnull fb;
-    Surface* _Nullable      pbo;
-
     Surface* _Nonnull       spr[SPRITE_COUNT];
 } copper_res_t;
 
@@ -105,7 +92,6 @@ struct copper_prog {
 
     copper_locs_t                   loc;        // locations of instructions that may be edited
 
-    const video_conf_t* _Nonnull    video_conf;
     copper_res_t                    res;
 };
 typedef struct copper_prog* copper_prog_t;
@@ -124,7 +110,7 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 // configuration, framebuffer, CLUT and sprite configuration and writes the
 // instructions to the given Copper program. Note that the Copper program must
 // be big enough to hold all instructions.
-extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pbo, framebuffer_t* _Nullable fb);
+extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pFrontBuffer);
 
 
 // Schedules the provided Copper program. This program will start running at the
@@ -163,10 +149,11 @@ extern void sprite_ctl_cancel(int spridx);
 
 extern uint16_t* _Nonnull       g_null_sprite_data;
 extern sprite_channel_t         g_sprite[SPRITE_COUNT];
-extern framebuffer_t* _Nullable g_cur_fb;
 extern bool                     g_light_pen_enabled;
 extern uint16_t                 g_clut[CLUT_SIZE];
 extern uint8_t                  g_clut_size;
+extern Surface*                 g_cur_front_buffer;
+extern const video_conf_t*      g_cur_video_config;
 
 extern errno_t _gdInitCopper(void);
 
@@ -177,7 +164,7 @@ extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull pbo, framebuffer_t* _Nullable fb, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 extern copper_prog_t _Nullable copper_get_editable_prog(void);
 

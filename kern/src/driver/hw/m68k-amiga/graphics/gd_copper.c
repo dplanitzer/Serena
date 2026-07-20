@@ -312,16 +312,6 @@ static errno_t _create_copper_prog(size_t instr_count, copper_prog_t _Nullable *
 
 static void _cache_copper_prog(copper_prog_t _Nonnull prog)
 {
-    framebuffer_t* fb = prog->res.fb;
-    Surface* pbo = prog->res.pbo;
-
-    // User could not delete the framebuffer as long as the Copper program was using it.
-    // Just remove the reference here
-    prog->res.fb = NULL;
-    
-    Surface_DelRef(pbo);
-    prog->res.pbo = NULL;
-
     for (int i = 0; i < SPRITE_COUNT; i++) {
         Surface_DelRef(prog->res.spr[i]);
         prog->res.spr[i] = NULL;
@@ -372,12 +362,7 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
         }
 
         prog->loc = run_prog->loc;
-        prog->video_conf = run_prog->video_conf;
         prog->res = run_prog->res;
-
-        if (prog->res.pbo) {
-            Surface_AddRef(prog->res.pbo);
-        }
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
             if (prog->res.spr[i]) {
@@ -439,10 +424,10 @@ catch:
 
 errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
 {
-    return create_screen_copper_prog(get_null_video_conf(), NULL, NULL, pOutProg);
+    return create_screen_copper_prog(get_null_video_conf(), NULL, pOutProg);
 }
 
-errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable pbo, framebuffer_t* _Nullable fb, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = calc_copper_prog_instruction_count(vc);
@@ -450,7 +435,7 @@ errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nul
 
     err = _create_copper_prog(instrCount, &prog);
     if (err == EOK) {
-        copper_prog_compile(prog, vc, pbo, fb);
+        copper_prog_compile(prog, vc, pFrontBuffer);
     }
 
     *pOutProg = prog;

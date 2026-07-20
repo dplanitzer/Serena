@@ -42,7 +42,6 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     // Get the screen buffer information
     gd_buffer_info_t binf;
 
-    self->framebufferId = AGADriver_GetCurrentFramebuffer(self->drv);
     self->pixelBufferId = AGADriver_GetScreenbuffer(self->drv);
     AGADriver_GetBufferInfo(self->drv, self->pixelBufferId, &binf);
     self->pixelsWidth = binf.width;

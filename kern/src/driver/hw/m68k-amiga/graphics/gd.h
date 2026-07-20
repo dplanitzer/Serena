@@ -56,21 +56,15 @@ extern void gdSetCursorVis(bool isVisible);
 extern errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
 extern errno_t gdDeleteCmdbuf(int id);
 
-// Framebuffer
-extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
-extern errno_t gdDeleteFramebuffer(int fb_id);
-extern errno_t gdAttachBuffer(int fb_id, int buf_id);
-extern errno_t gdSetCurrentFramebuffer(int fb_id);
-extern int gdGetCurrentFramebuffer(void);
-extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
-extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
-extern void gdSetLightPenEnabled(bool enabled);
-
 // Display
 extern errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries);
 extern errno_t gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries);
 extern errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info);
+extern errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
 extern int gdGetScreenbuffer(void);
 extern errno_t gdDisplayCommands(int id, size_t offset);
+extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
+extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
+extern void gdSetLightPenEnabled(bool enabled);
 
 #endif /* _GD_H */

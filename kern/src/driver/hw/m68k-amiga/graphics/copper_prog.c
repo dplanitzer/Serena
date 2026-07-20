@@ -80,8 +80,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     copper_instr_t* _Nonnull ip, 
     copper_locs_t* _Nullable locs,
     const video_conf_t* _Nonnull vc,
-    Surface* _Nullable pbo,
-    framebuffer_t* _Nullable fb,
+    Surface* _Nullable pFrontBuffer,
     bool isOddField)
 {
     const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
@@ -89,9 +88,6 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     const uint16_t w = vc->width;
     const uint16_t h = vc->height;
     copper_instr_t* orig = ip;
-
-    assert((pbo && pbo->planeCount < PLANE_COUNT) || (pbo == NULL));
-
 
     // We wait here so that the Copper program editing code gets more time to
     // change sprite pointers before the Copper program pokes them into the DMA
@@ -122,13 +118,13 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
 
     // BPLxPT
-    if (pbo) {
-        const uint16_t bpr = Surface_GetBytesPerRow(pbo);
+    if (pFrontBuffer) {
+        const uint16_t bpr = Surface_GetBytesPerRow(pFrontBuffer);
         const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
         const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
 
-        for (int i = 0, r = BPL_BASE; i < pbo->planeCount; i++, r += 4) {
-            const uint32_t bplpt = (uint32_t)pbo->plane[i] + firstLineByteOffset;
+        for (int i = 0, r = BPL_BASE; i < pFrontBuffer->planeCount; i++, r += 4) {
+            const uint32_t bplpt = (uint32_t)pFrontBuffer->plane[i] + firstLineByteOffset;
         
             *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
             *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
@@ -145,7 +141,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
 
     // BPLCON0
-    const uint16_t bp_cnt = (pbo) ? pbo->planeCount & 0x07 : 0;
+    const uint16_t bp_cnt = (pFrontBuffer) ? pFrontBuffer->planeCount & 0x07 : 0;
     const uint16_t lpen_bit = (g_light_pen_enabled) ? BPLCON0F_LPEN : 0;
     uint16_t bplcon0 = BPLCON0F_COLOR | lpen_bit | (bp_cnt << 12);
 
@@ -155,8 +151,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     if (isLace) {
         bplcon0 |= BPLCON0F_LACE;
     }
-    if (pbo) {
-        switch (Surface_GetPixelFormat(pbo)) {
+    if (pFrontBuffer) {
+        switch (Surface_GetPixelFormat(pFrontBuffer)) {
             case GD_RGB_HAM_5:
             case GD_RGB_HAM_6:
                 bplcon0 |= BPLCON0F_HAM;
@@ -196,7 +192,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
 
     // DMACON
-    const uint16_t bpl_bit = (pbo) ? DMACONF_BPLEN : 0;
+    const uint16_t bpl_bit = (pFrontBuffer) ? DMACONF_BPLEN : 0;
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | bpl_bit | DMACONF_SPREN | DMACONF_DMAEN);
 
 
@@ -206,7 +202,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     return ip;
 }
 
-void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pbo, framebuffer_t* _Nullable fb)
+void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pFrontBuffer)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_instr_t* ip;
@@ -215,21 +211,13 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     self->even_entry = NULL;
     
     ip = self->prog;
-    ip = _compile_field_prog(ip, &self->loc, vc, pbo, fb, true);
+    ip = _compile_field_prog(ip, &self->loc, vc, pFrontBuffer, true);
 
     if (isLace) {
         self->even_entry = ip;
-        ip = _compile_field_prog(ip, NULL, vc, pbo, fb, false);
+        ip = _compile_field_prog(ip, NULL, vc, pFrontBuffer, false);
     }
-
-    self->video_conf = vc;
-    self->res.fb = fb;
-
-    self->res.pbo = pbo;
-    if (pbo) {
-        Surface_AddRef(self->res.pbo);
-    }
-
+    
     for (int i = 0; i < SPRITE_COUNT; i++) {
         Surface* sprpbo = (g_sprite[i].pixbuf && g_sprite[i].isVisible) ? g_sprite[i].pixbuf : NULL;
 

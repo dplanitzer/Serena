@@ -69,27 +69,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case GDC_CREATE_FRAMEBUFFER: {
-            const size_t entryCount = va_arg(ap, size_t);
-            int* fb_id = va_arg(ap, int*);
-
-            return AGADriver_CreateFramebuffer(drv, entryCount, fb_id);
-        }
-
-        case GDC_DESTROY_FRAMEBUFFER: {
-            int fb_id = va_arg(ap, int);
-
-            return AGADriver_DestroyFramebuffer(drv, fb_id);
-        }
-
-        case GDC_ATTACH_BUFFER: {
-            int fb_id = va_arg(ap, int);
-            int buf_id = va_arg(ap, int);
-
-            return AGADriver_AttachBuffer(drv, fb_id, buf_id);
-        }
-
-
         //
         // Command Buffer
         //
@@ -120,20 +99,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
 
-        case GDC_SET_CURRENT_FRAMEBUFFER: {
-            const int fb_id = va_arg(ap, int);
-
-            return AGADriver_SetCurrentFramebuffer(drv, fb_id);
-        }
-
-        case GDC_GET_CURRENT_FRAMEBUFFER: {
-            int* p_fb_id = va_arg(ap, int*);
-
-            *p_fb_id = AGADriver_GetCurrentFramebuffer(drv);
-            return EOK;
-        }
-
-
         //
         // Display
         //
@@ -150,6 +115,14 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             gd_clut_info_t* info = va_arg(ap, gd_clut_info_t*);
 
             return AGADriver_GetClutInfo(drv, info);
+        }
+
+        case GDC_DISPLAY_MODE: {
+            const gd_display_mode_t* mode = va_arg(ap, const gd_display_mode_t*);
+            const gd_display_params_t* params = va_arg(ap, const gd_display_params_t*);
+            const int op = va_arg(ap, int);
+
+            return AGADriver_DisplayMode(drv, mode, params, op);
         }
 
         case GDC_DISPLAY_COMMANDS: {

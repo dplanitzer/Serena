@@ -150,6 +150,14 @@ int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self)
     return id;
 }
 
+errno_t AGADriver_DisplayMode(AGADriverRef _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
+{
+    gdLock();
+    const errno_t err = gdDisplayMode(mode, params, op);
+    gdUnlock();
+    return err;
+}
+
 errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset)
 {
     gdLock();
@@ -266,51 +274,6 @@ void* _Nonnull gdCmdSpriteVisible(void* _Nonnull addr, int spr_id, bool isVisibl
     p->visible = isVisible;
     
     return (char*)addr + sizeof(struct gd_op_show_sprite);
-}
-
-
-//
-// Framebuffer
-//
-
-errno_t AGADriver_CreateFramebuffer(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId)
-{
-    gdLock();
-    const errno_t err = gdGenFramebuffer(colorDepth, pOutId);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id)
-{
-    gdLock();
-    const errno_t err = gdDeleteFramebuffer(id);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_AttachBuffer(AGADriverRef _Nonnull self, int fb_id, int buf_id)
-{
-    gdLock();
-    const errno_t err = gdAttachBuffer(fb_id, buf_id);
-    gdUnlock();
-    return err;
-}
-
-errno_t AGADriver_SetCurrentFramebuffer(AGADriverRef _Nonnull self, int fb_id)
-{
-    gdLock();
-    const errno_t err = gdSetCurrentFramebuffer(fb_id);
-    gdUnlock();
-    return err;
-}
-
-int AGADriver_GetCurrentFramebuffer(AGADriverRef _Nonnull self)
-{
-    gdLock();
-    const int id = gdGetCurrentFramebuffer();
-    gdUnlock();
-    return id;
 }
 
 

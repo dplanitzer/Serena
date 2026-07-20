@@ -141,7 +141,7 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 // target of all render operations.
 // gdBufferCommands(int buf_id, int cmds_id, size_t offset)
 #define GDC_BUFFER_COMMANDS \
-IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 
 
 //
@@ -160,54 +160,44 @@ typedef struct gd_sprite_caps {
 // currently active screen and mouse cursor configuration.
 // get_sprite_info(sprite_info_t* _Nonnull info)
 #define GDC_SPRITE_CAPS \
-IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RD, 0)
-
-
-//
-// Framebuffer
-//
-
-// Creates a new framebuffer. Note that you must attach a pixel buffer to the
-// framebuffer before it can be set as the current framebuffer.
-// create_framebuffer(size_t entryCount, int* _Nonnull pOutId)
-#define GDC_CREATE_FRAMEBUFFER \
-IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
-
-// Destroys the framebuffer 'id'. EBUSY is returned if 'id' is the current
-// framebuffer. You must first remove it as the current framebuffer before you
-// can destroy it.
-// destroy_framebuffer(int id)
-#define GDC_DESTROY_FRAMEBUFFER \
-IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
-
-// Attaches the pixel buffer 'buf_id' to the framebuffer 'fb_id' as a front
-// buffer. An already attached buffer is first detached. Pass 0 for 'buf_id' to
-// simply detach the currently attach buffer without attaching a new one.
-// Returns EBUSY if the framebuffer 'fb_id' is the current framebuffer since hot
-// swapping of buffers is not supported.
-// attach_buffer(int fb_id, int buf_id)
-#define GDC_ATTACH_BUFFER \
-IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_WR, 0)
-
-// Sets the framebuffer 'id' as the current framebuffer. The framebuffer must
-// have a pixel buffer with a suitable width, height and pixel format attached
-// to it. The video mode is automatically selected based on the framebuffer and
-// pixel buffer configuration. Pass 0 as the 'id' to turn video off altogether.
-// set_current_framebuffer(int id)
-#define GDC_SET_CURRENT_FRAMEBUFFER \
-IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
-
-
-// Returns the id of the current framebuffer. 0 is returned if no framebuffer is
-// current and video is off.
-// get_current_framebuffer(int* _Nonnull pOutId)
-#define GDC_GET_CURRENT_FRAMEBUFFER \
-IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_RD, 0)
 
 
 //
 // Display
 //
+
+#define GD_APPLY    0
+#define GD_CHECK    1
+
+#define GD_CAP_GENLOCK          1
+#define GD_CAP_DOUBLE_BUFFERED  2
+#define GD_CAP_SPRITES          4
+#define GD_CAP_CURSOR           8
+
+typedef struct gd_display_mode {
+	int	        width;
+	int	        height;
+	int	        refreshRate;
+	gd_pixfmt_t pixelFormat;
+} gd_display_mode_t;
+
+typedef struct gd_display_params {
+	gd_pixfmt_t overlayPixelFormat;
+	int	        panWidth;
+	int	        panHeight;
+	int         overscanWidth;
+	int         overscanHeight;
+	int         capabilities;   // [requires genlock, requires double buffering, requires sprites, requires mouse cursor]
+} gd_display_params_t;
+
+typedef struct gd_display_buffers {
+	int front_left;
+	int	front_right;
+	int back_left;
+	int back_right;
+} gd_display_buffers_t;
+
 
 typedef struct gd_clut_info {
     size_t  entryCount;
@@ -223,13 +213,25 @@ typedef struct gd_clut_info {
 // supported CLUT color resolution.
 // gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 #define GDC_GET_CLUT \
-IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
 
 // Returns information about the display CLUT. The number of color entries and
 // the physical color resolution is returned.
 // gdGetClutInfo(gd_clut_info_t* _Nonnull info)
 #define GDC_GET_CLUT_INFO \
-IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
+
+// Switches the display to the display mode 'mode' and applies the dynamic
+// display parameters 'params' if specified. The switch is executed on the next
+// VBL and the caller is blocked until teh switch has completed. 'op' specifies
+// how teh switch should be executed:
+// GD_APPLY - the switch is executed.
+// GD_CHECK - the call verifies whether the switch would succeed but it does not
+//            actually execute it. EOK is returned if the switch would be successful
+//            and a suitable error is returned if it would fail.
+// gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params* _Nullable params, int op)
+#define GDC_DISPLAY_MODE \
+IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
 
 // Executes commands from the command buffer 'id', starting at offset 'offset'
 // until an end command is encountered. All commands target the display and are
@@ -237,7 +239,7 @@ IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_RD, 0)
 // ends at the first encountered end command or if an error is encountered.
 // gdDisplayCommands(int id, size_t offset)
 #define GDC_DISPLAY_COMMANDS \
-IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 
 
@@ -322,11 +324,11 @@ typedef struct gd_cmdbuf_desc {
 // requested size. However it will never be smaller.
 // create_cmdbuf(size_t byteSize, const gd_cmdbuf_desc_t* _Nullable desc) -> id
 #define GDC_CREATE_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_WR, 0)
 
 // Deallocates the command buffer 'id'.
 // destroy_cmdbuf(int id)
 #define GDC_DESTROY_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */

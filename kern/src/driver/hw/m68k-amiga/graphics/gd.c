@@ -51,35 +51,27 @@ errno_t gdInit(void)
     try(_gdInitCopper());
     
 
-    // Initialize the boot screen buffer
-    int width, height;
+    // Initialize the boot display
+    gd_display_mode_t mode;
 
     if (chipset_is_ntsc()) {
-        width = 640;
-        height = 200;
+        mode.width = 640;
+        mode.height = 200;
         
-        //width = 640;
-        //height = 400;
+        //mode.width = 640;
+        //mode.height = 400;
     } else {
-        width = 640;
-        height = 256;
+        mode.width = 640;
+        mode.height = 256;
 
-        //width = 640;
-        //height = 512;
+        //mode.width = 640;
+        //mode.height = 512;
     }
+    mode.pixelFormat = GD_COLOR_INDEX3;
+    mode.refreshRate = 60;      //XXX revisit
 
-    int buf_id, fb_id;
-
-    try(gdGenBuffer(width, height, GD_COLOR_INDEX3, &buf_id));
-    _gdClearPixels(buf_id);
-
-
-    try(gdGenFramebuffer(32, &fb_id));
-    try(gdAttachBuffer(fb_id, buf_id));
+    err = gdDisplayMode(&mode, NULL, 2);    //XXX 2 (to clear the fb) -> revisit
     gdClut(0, ANSI_COLOR_COUNT, ansi_clrs);
-
-
-    err = gdSetCurrentFramebuffer(fb_id);
 
 catch:
     return err;

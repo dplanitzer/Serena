@@ -28,7 +28,7 @@ static bool         g_mouse_cursor_active;
 static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
 {
     const uint16_t h = Surface_GetHeight(self->pixbuf);
-    const video_conf_t * vc = g_copper_running_prog->video_conf;
+    const video_conf_t * vc = g_cur_video_config;
     const int16_t sprX = vc->hSprOrigin - 1 + (self->x >> vc->hSprScale);
     const int16_t sprY = vc->vSprOrigin + (self->y >> vc->vSprScale);
     uint16_t x = __max(__min(sprX, MAX_SPRITE_HPOS), 0);
@@ -182,16 +182,14 @@ errno_t gdSetSpriteVis(int spriteId, bool isVisible)
 
 void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
 {
-    const video_conf_t* vcp = g_copper_running_prog->video_conf;
-
     cp->minWidth = 16;
     cp->maxWidth = 16;
     cp->minHeight = 1;
     cp->maxHeight = 256;
     cp->lowSpriteNum = (g_mouse_cursor_active) ? 1 : 0;
     cp->highSpriteNum = 7;
-    cp->xScale = 1 << vcp->hSprScale;
-    cp->yScale = 1 << vcp->vSprScale;
+    cp->xScale = 1 << g_cur_video_config->hSprScale;
+    cp->yScale = 1 << g_cur_video_config->vSprScale;
 }
 
 

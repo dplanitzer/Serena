@@ -45,9 +45,8 @@ errno_t gdDeleteBuffer(int id)
     bool bNeedEditableCopperProg = false;
 
 
-    // We do not allow the deletion of the buffer if it is currently being used
-    // as a framebuffer.
-    if (g_copper_running_prog->res.pbo == pbo) {
+    // We do not allow the deletion of the display pixel buffers.
+    if (pbo == g_cur_front_buffer) {
         if (next_prog) {
             copper_schedule(next_prog, 0);
         }
