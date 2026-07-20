@@ -36,8 +36,6 @@ typedef struct framebuffer {
     deque_node_t        chain;
     int                 id;
     Surface* _Nullable  front_buf;
-    uint16_t            clut_size;
-    uint16_t            clut[1];
 } framebuffer_t;
 
 extern void _gdDestroyFramebuffer(framebuffer_t* _Nullable fb);
@@ -161,11 +159,14 @@ extern void sprite_ctl_cancel(int spridx);
 
 #define MAX_CACHED_COPPER_PROGS 4
 #define MOUSE_SPRITE_PRI 0
+#define CLUT_SIZE   32
 
 extern uint16_t* _Nonnull       g_null_sprite_data;
 extern sprite_channel_t         g_sprite[SPRITE_COUNT];
 extern framebuffer_t* _Nullable g_cur_fb;
 extern bool                     g_light_pen_enabled;
+extern uint16_t                 g_clut[CLUT_SIZE];
+extern uint8_t                  g_clut_size;
 
 extern errno_t _gdInitCopper(void);
 

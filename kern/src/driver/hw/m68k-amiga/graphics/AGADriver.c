@@ -123,8 +123,24 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Non
 
 
 //
-// Screen
+// Display
 //
+
+errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, vio_rgb32_t* _Nonnull entries)
+{
+    gdLock();
+    const errno_t err = gdGetClut(idx, count, entries);
+    gdUnlock();
+    return err;
+}
+
+errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnull info)
+{
+    gdLock();
+    const errno_t err = gdGetClutInfo(info);
+    gdUnlock();
+    return err;
+}
 
 int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self)
 {
@@ -134,10 +150,10 @@ int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self)
     return id;
 }
 
-errno_t AGADriver_ScreenCommands(AGADriverRef _Nonnull self, int id, size_t offset)
+errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset)
 {
     gdLock();
-    const errno_t err = gdScreenCommands(id, offset);
+    const errno_t err = gdDisplayCommands(id, offset);
     gdUnlock();
     return err;
 }
@@ -203,12 +219,11 @@ void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id)
 }
 
 
-void* _Nonnull gdCmdClut(void* _Nonnull addr, int clut_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
+void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 {
     struct vio_op_clut_rgb32* p = addr;
 
     p->opcode = VIO_OPCODE_CLUT_RGB32;
-    p->clutId = clut_id;
     p->idx = idx;
     p->count = count;
     

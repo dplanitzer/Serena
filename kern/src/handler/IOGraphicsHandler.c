@@ -142,14 +142,28 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
 
 
         //
-        // Screen
+        // Display
         //
 
-        case VIO_CMD_SCREEN_COMMANDS: {
+        case VIO_CMD_GET_CLUT: {
+            const size_t idx = va_arg(ap, size_t);
+            const size_t count = va_arg(ap, size_t);
+            vio_rgb32_t* entries = va_arg(ap, vio_rgb32_t*);
+
+            return AGADriver_GetClut(drv, idx, count, entries);
+        }
+
+        case VIO_CMD_GET_CLUT_INFO: {
+            gd_clut_info_t* info = va_arg(ap, gd_clut_info_t*);
+
+            return AGADriver_GetClutInfo(drv, info);
+        }
+
+        case VIO_CMD_DISPLAY_COMMANDS: {
             int cmdbuf_id = va_arg(ap, int);
             size_t offset = va_arg(ap, size_t);
 
-            return AGADriver_ScreenCommands(drv, cmdbuf_id, offset);
+            return AGADriver_DisplayCommands(drv, cmdbuf_id, offset);
         }
 
 

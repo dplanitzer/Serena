@@ -218,16 +218,37 @@ IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 
 //
-// Screen
+// Display
 //
 
-// Synchronously executes the screen command buffer 'id' start at its base
-// address plus 'offset' and continuing until the first encountered end
-// instruction. Blocks the caller until all instructions have been executed.
-// Execution ends prematurely if an instruction with invalid arguments is
-// encountered and the detected error is returned.
-// gdScreenCommands(int id, size_t offset)
-#define VIO_CMD_SCREEN_COMMANDS \
+typedef struct gd_clut_info {
+    size_t  entryCount;
+    size_t  redBits;
+    size_t  greenBits;
+    size_t  blueBits;
+} gd_clut_info_t;
+
+// Returns a copy of the CLUT entries from 'idx' to 'idx + count'. The returned
+// color values represent the physical CLUT color values. They may have reduced
+// color precision compared to the color values that were originally set by a
+// gdCmdClut() command. Use gdGetClutInfo() receive information about the
+// supported CLUT color resolution.
+// gdGetClut(size_t idx, size_t count, vio_rgb32_t* _Nonnull entries)
+#define VIO_CMD_GET_CLUT \
+IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_RD, 0)
+
+// Returns information about the display CLUT. The number of color entries and
+// the physical color resolution is returned.
+// gdGetClutInfo(gd_clut_info_t* _Nonnull info)
+#define VIO_CMD_GET_CLUT_INFO \
+IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_RD, 0)
+
+// Executes commands from the command buffer 'id', starting at offset 'offset'
+// until an end command is encountered. All commands target the display and are
+// scheduled such that they will update the display on the next VBL. Execution
+// ends at the first encountered end command or if an error is encountered.
+// gdDisplayCommands(int id, size_t offset)
+#define VIO_CMD_DISPLAY_COMMANDS \
 IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
 
 
@@ -271,7 +292,6 @@ struct vio_op_bind_buffer {
 
 struct vio_op_clut_rgb32 {
     vio_opcode_t    opcode;
-    int             clutId;
     uint16_t        idx;
     uint16_t        count;
     vio_rgb32_t     color[1];       // 'count' color entries follow here

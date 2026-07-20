@@ -76,7 +76,7 @@ errno_t gdInit(void)
 
     try(gdGenFramebuffer(32, &fb_id));
     try(gdAttachBuffer(fb_id, buf_id));
-    gdSetClutEntries(fb_id, 0, ANSI_COLOR_COUNT, ansi_clrs);
+    gdClut(0, ANSI_COLOR_COUNT, ansi_clrs);
 
 
     err = gdSetCurrentFramebuffer(fb_id);

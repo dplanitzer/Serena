@@ -38,7 +38,7 @@ extern errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id
 
 
 // In-kernel command buffer utilities
-extern void* _Nonnull gdCmdClut(void* _Nonnull addr, int clut_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
+extern void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 extern void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);
 extern void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id);
 extern void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id);
@@ -56,8 +56,10 @@ extern errno_t AGADriver_SetCurrentFramebuffer(AGADriverRef _Nonnull self, int f
 extern int AGADriver_GetCurrentFramebuffer(AGADriverRef _Nonnull self);
 
 
-// Screen
+// Display
+extern errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, vio_rgb32_t* _Nonnull entries);
+extern errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnull info);
 extern int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self);
-extern errno_t AGADriver_ScreenCommands(AGADriverRef _Nonnull self, int id, size_t offset);
+extern errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset);
 
 #endif /* AGADriver_h */

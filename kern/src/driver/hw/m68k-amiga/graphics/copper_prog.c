@@ -90,7 +90,6 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     const uint16_t h = vc->height;
     copper_instr_t* orig = ip;
 
-    assert((fb && fb->clut_size == COLOR_COUNT) || (fb == NULL));
     assert((pbo && pbo->planeCount < PLANE_COUNT) || (pbo == NULL));
 
 
@@ -104,15 +103,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     if (locs) {
         locs->clut = ip - orig;
     }
-    if (fb) {
-        for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
-            *ip++ = COP_MOVE(r, fb->clut[i]);
-        }
-    }
-    else {
-        for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
-            *ip++ = COP_MOVE(r, 0x0); // black
-        }
+    for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
+        *ip++ = COP_MOVE(r, g_clut[i]);
     }
 
 
@@ -274,14 +266,13 @@ void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size
 {
     const uint16_t l = startIdx;
     const uint16_t h = startIdx + count;
-    framebuffer_t* fb = self->res.fb;
     copper_instr_t* op = &self->odd_entry[self->loc.clut + l];
     copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.clut + l] : NULL;
     
     for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
-        *op++ = COP_MOVE(r, fb->clut[i]);
+        *op++ = COP_MOVE(r, g_clut[i]);
         if (ep) {
-            *ep++ = COP_MOVE(r, fb->clut[i]);
+            *ep++ = COP_MOVE(r, g_clut[i]);
         }
     }
 }

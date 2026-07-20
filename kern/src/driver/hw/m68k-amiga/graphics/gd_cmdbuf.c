@@ -92,7 +92,7 @@ errno_t gdDeleteCmdbuf(int id)
     return EOK;
 }
 
-errno_t gdScreenCommands(int id, size_t offset)
+errno_t gdDisplayCommands(int id, size_t offset)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf = _cmdbuf_for_id(id);
@@ -116,7 +116,7 @@ errno_t gdScreenCommands(int id, size_t offset)
                 break;
                 
             case VIO_OPCODE_CLUT_RGB32:         // struct vio_op_clut_rgb32
-                try(gdSetClutEntries(ip->clut_rgb32.clutId, ip->clut_rgb32.idx, ip->clut_rgb32.count, &ip->clut_rgb32.color[0]));
+                try(gdClut(ip->clut_rgb32.idx, ip->clut_rgb32.count, &ip->clut_rgb32.color[0]));
                 ilen = sizeof(struct vio_op_clut_rgb32) - sizeof(vio_rgb32_t);
                 if (ip->clut_rgb32.count > 0) {
                     ilen += sizeof(vio_rgb32_t) * ip->clut_rgb32.count;

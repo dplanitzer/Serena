@@ -61,15 +61,17 @@ extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
 extern errno_t gdDeleteFramebuffer(int fb_id);
 extern errno_t gdAttachBuffer(int fb_id, int buf_id);
 extern errno_t gdGetFramebufferInfo(int fb_id, vio_clut_info_t* _Nonnull pOutInfo);
-extern errno_t gdSetClutEntries(int fb_id, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
 extern errno_t gdSetCurrentFramebuffer(int fb_id);
 extern int gdGetCurrentFramebuffer(void);
 extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
 
-// Screen
+// Display
+extern errno_t gdClut(size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries);
+extern errno_t gdGetClut(size_t idx, size_t count, vio_rgb32_t* _Nonnull entries);
+extern errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info);
 extern int gdGetScreenbuffer(void);
-extern errno_t gdScreenCommands(int id, size_t offset);
+extern errno_t gdDisplayCommands(int id, size_t offset);
 
 #endif /* _GD_H */
