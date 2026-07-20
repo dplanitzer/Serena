@@ -104,7 +104,7 @@ typedef unsigned int gd_rgb32_t;
 // create a screen and it may be directly mapped into the address space of the
 // owning process or manipulated with the Blitter.
 // create_buffer(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
-#define GD_CMD_CREATE_BUFFER \
+#define GDC_CREATE_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 1, _IOCMD_ACC_WR, 0)
 
 // Destroys the buffer with id 'id'. Returns EBUSY if the buffer is currently
@@ -112,12 +112,12 @@ IOCMD_MAKE(IOPROTO_FB, 1, _IOCMD_ACC_WR, 0)
 // attached to a sprite and binds the sprite target to a null buffer. Does
 // nothing if 'id' is 0.
 // destroy_buffer(int id)
-#define GD_CMD_DESTROY_BUFFER \
+#define GDC_DESTROY_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 2, _IOCMD_ACC_WR, 0)
 
 // Returns information about the buffer 'id'.
 // get_gd_buffer_info(int id, gd_buffer_info_t* _Nonnull pOutInfo)
-#define GD_CMD_BUFFER_INFO \
+#define GDC_BUFFER_INFO \
 IOCMD_MAKE(IOPROTO_FB, 3, _IOCMD_ACC_RD, 0)
 
 // Maps the backing store of the buffer 'id' into the address space of the
@@ -125,12 +125,12 @@ IOCMD_MAKE(IOPROTO_FB, 3, _IOCMD_ACC_RD, 0)
 // whether the pixel data should be mapped for reading only or reading and
 // writing. Returns with 'pOutMapping' filled in.
 // map_buffer(int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
-#define GD_CMD_MAP_BUFFER \
+#define GDC_MAP_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 4, _IOCMD_ACC_RDWR, 0)
 
 // Unmaps the backing store of the buffer 'id' and revokes access to the pixels.
 // unmap_buffer(int id)
-#define GD_CMD_UNMAP_BUFFER \
+#define GDC_UNMAP_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
 // Synchronously executes the pixel buffer command buffer 'cmds_id' starting at
@@ -140,7 +140,7 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 // encountered and the detected error is returned. The buffer 'buf_id' is the
 // target of all render operations.
 // gdBufferCommands(int buf_id, int cmds_id, size_t offset)
-#define GD_CMD_BUFFER_COMMANDS \
+#define GDC_BUFFER_COMMANDS \
 IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
 
 
@@ -159,7 +159,7 @@ typedef struct gd_sprite_caps {
 // Returns information about the limits of the sprite sub-system based on the
 // currently active screen and mouse cursor configuration.
 // get_sprite_info(sprite_info_t* _Nonnull info)
-#define GD_CMD_SPRITE_CAPS \
+#define GDC_SPRITE_CAPS \
 IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RD, 0)
 
 
@@ -170,14 +170,14 @@ IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RD, 0)
 // Creates a new framebuffer. Note that you must attach a pixel buffer to the
 // framebuffer before it can be set as the current framebuffer.
 // create_framebuffer(size_t entryCount, int* _Nonnull pOutId)
-#define GD_CMD_CREATE_FRAMEBUFFER \
+#define GDC_CREATE_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
 // Destroys the framebuffer 'id'. EBUSY is returned if 'id' is the current
 // framebuffer. You must first remove it as the current framebuffer before you
 // can destroy it.
 // destroy_framebuffer(int id)
-#define GD_CMD_DESTROY_FRAMEBUFFER \
+#define GDC_DESTROY_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
 
 // Attaches the pixel buffer 'buf_id' to the framebuffer 'fb_id' as a front
@@ -186,7 +186,7 @@ IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
 // Returns EBUSY if the framebuffer 'fb_id' is the current framebuffer since hot
 // swapping of buffers is not supported.
 // attach_buffer(int fb_id, int buf_id)
-#define GD_CMD_ATTACH_BUFFER \
+#define GDC_ATTACH_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_WR, 0)
 
 // Sets the framebuffer 'id' as the current framebuffer. The framebuffer must
@@ -194,14 +194,14 @@ IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_WR, 0)
 // to it. The video mode is automatically selected based on the framebuffer and
 // pixel buffer configuration. Pass 0 as the 'id' to turn video off altogether.
 // set_current_framebuffer(int id)
-#define GD_CMD_SET_CURRENT_FRAMEBUFFER \
+#define GDC_SET_CURRENT_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 
 // Returns the id of the current framebuffer. 0 is returned if no framebuffer is
 // current and video is off.
 // get_current_framebuffer(int* _Nonnull pOutId)
-#define GD_CMD_GET_CURRENT_FRAMEBUFFER \
+#define GDC_GET_CURRENT_FRAMEBUFFER \
 IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 
@@ -222,13 +222,13 @@ typedef struct gd_clut_info {
 // gdCmdClut() command. Use gdGetClutInfo() receive information about the
 // supported CLUT color resolution.
 // gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
-#define GD_CMD_GET_CLUT \
+#define GDC_GET_CLUT \
 IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_RD, 0)
 
 // Returns information about the display CLUT. The number of color entries and
 // the physical color resolution is returned.
 // gdGetClutInfo(gd_clut_info_t* _Nonnull info)
-#define GD_CMD_GET_CLUT_INFO \
+#define GDC_GET_CLUT_INFO \
 IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_RD, 0)
 
 // Executes commands from the command buffer 'id', starting at offset 'offset'
@@ -236,7 +236,7 @@ IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_RD, 0)
 // scheduled such that they will update the display on the next VBL. Execution
 // ends at the first encountered end command or if an error is encountered.
 // gdDisplayCommands(int id, size_t offset)
-#define GD_CMD_DISPLAY_COMMANDS \
+#define GDC_DISPLAY_COMMANDS \
 IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_WR, 0)
 
 
@@ -321,12 +321,12 @@ typedef struct gd_cmdbuf_desc {
 // 'desc' when successful. Note that the actual size may be greater than the
 // requested size. However it will never be smaller.
 // create_cmdbuf(size_t byteSize, const gd_cmdbuf_desc_t* _Nullable desc) -> id
-#define GD_CMD_CREATE_CMDBUF \
+#define GDC_CREATE_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 
 // Deallocates the command buffer 'id'.
 // destroy_cmdbuf(int id)
-#define GD_CMD_DESTROY_CMDBUF \
+#define GDC_DESTROY_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */
