@@ -103,7 +103,7 @@ errno_t gdAttachBuffer(int fb_id, int buf_id)
     return EOK;
 }
 
-errno_t gdClut(size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
+errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
 {
     if (idx + count > g_clut_size) {
         return EINVAL;
@@ -112,10 +112,10 @@ errno_t gdClut(size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 
     if (count > 0) {
         for (size_t i = 0; i < count; i++) {
-            const vio_rgb32_t color = entries[i];
-            const uint16_t r = VIO_RGB32_RED(color);
-            const uint16_t g = VIO_RGB32_GREEN(color);
-            const uint16_t b = VIO_RGB32_BLUE(color);
+            const gd_rgb32_t color = entries[i];
+            const uint16_t r = GD_RGB32_RED(color);
+            const uint16_t g = GD_RGB32_GREEN(color);
+            const uint16_t b = GD_RGB32_BLUE(color);
 
             g_clut[idx + i] = (r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
         }
@@ -131,7 +131,7 @@ errno_t gdClut(size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
     return EOK;
 }
 
-errno_t gdGetClut(size_t idx, size_t count, vio_rgb32_t* _Nonnull entries)
+errno_t gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 {
     if (idx + count > g_clut_size) {
         return EINVAL;
@@ -144,7 +144,7 @@ errno_t gdGetClut(size_t idx, size_t count, vio_rgb32_t* _Nonnull entries)
         const uint16_t g = ((color >> 4) & 0x0f) << 4;
         const uint16_t b = (color & 0x0f) << 4;
 
-        entries[i] = VIO_RGB32_MAKE(r, g, b);
+        entries[i] = GD_RGB32_MAKE(r, g, b);
     }
 
     return EOK;

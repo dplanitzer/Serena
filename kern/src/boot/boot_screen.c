@@ -21,7 +21,7 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     AGADriverRef drv = NULL;
-    vio_buffer_info_t binf;
+    gd_buffer_info_t binf;
 
     memset(bscr, 0, sizeof(bt_screen_t));
     try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&drv));
@@ -34,7 +34,7 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
     bscr->height = binf.height;
 
 
-    try(AGADriver_MapBuffer(drv, bscr->buf_id, VIO_MAP_RW, &bscr->mp));
+    try(AGADriver_MapBuffer(drv, bscr->buf_id, GD_MAP_RW, &bscr->mp));
 
         
     // Draw the boot logo

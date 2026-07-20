@@ -14,7 +14,7 @@
 
 #define HID_CURSOR_WIDTH    16
 #define HID_CURSOR_HEIGHT   16
-#define HID_CURSOR_PIXELFORMAT  VIO_COLOR_INDEX2
+#define HID_CURSOR_PIXELFORMAT  GD_COLOR_INDEX2
 
 
 //
@@ -66,9 +66,9 @@ IOCMD_MAKE(IOPROTO_HID, 6, _IOCMD_ACC_WR, 0)
 
 // Sets the mouse cursor image to the provided pixels. Note that only some pixel
 // format are supported:
-// VIO_COLOR_INDEX2
+// GD_COLOR_INDEX2
 // Color index #0 is interpreted as transparent for all indexed pixel formats.
-// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format, int hotSpotX, int hotSpotY)
+// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format, int hotSpotX, int hotSpotY)
 #define HID_CMD_SET_CURSOR \
 IOCMD_MAKE(IOPROTO_HID, 7, _IOCMD_ACC_WR, 0)
 

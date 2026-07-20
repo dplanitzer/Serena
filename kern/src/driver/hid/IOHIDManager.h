@@ -38,7 +38,7 @@ extern void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const 
 // Mouse cursor state
 extern errno_t IOHIDManager_ObtainCursor(IOHIDManagerRef _Nonnull self);
 extern void IOHIDManager_ReleaseCursor(IOHIDManagerRef _Nonnull self);
-extern errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format, int hotSpotX, int hotSpotY);
+extern errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format, int hotSpotX, int hotSpotY);
 extern void IOHIDManager_ShowCursor(IOHIDManagerRef _Nonnull self);
 extern void IOHIDManager_HideCursor(IOHIDManagerRef _Nonnull self);
 extern void IOHIDManager_ObscureCursor(IOHIDManagerRef _Nonnull self);

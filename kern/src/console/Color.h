@@ -22,14 +22,14 @@ typedef enum ColorType {
 typedef struct Color {
     ColorType   tag;
     union {
-        vio_rgb32_t  rgb32;
+        gd_rgb32_t  rgb32;
         int         index;
     }           u;
 } Color;
 
 
 #define Color_MakeRGB32(__r, __g, __b) \
-    ((Color) {kColorType_RGB, .rgb = VIO_RGB32_MAKE(__r, __g, __b)})
+    ((Color) {kColorType_RGB, .rgb = GD_RGB32_MAKE(__r, __g, __b)})
 
 
 #define Color_MakeIndex(__idx) \

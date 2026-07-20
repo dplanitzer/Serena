@@ -77,30 +77,30 @@ const video_conf_t* _Nonnull get_null_video_conf(void)
     return (chipset_is_ntsc()) ? &g_video_conf[0] : &g_video_conf[4];
 }
 
-static bool _matches_pixel_format(const video_conf_t* _Nonnull cfg, vio_pixfmt_t fmt)
+static bool _matches_pixel_format(const video_conf_t* _Nonnull cfg, gd_pixfmt_t fmt)
 {
     switch (fmt) {
-        case VIO_COLOR_INDEX1:
-        case VIO_COLOR_INDEX2:
-        case VIO_COLOR_INDEX3:
-        case VIO_COLOR_INDEX4:
-        case VIO_COLOR_INDEX5:
-        case VIO_COLOR_INDEX6:
-        case VIO_COLOR_INDEX7:
-        case VIO_COLOR_INDEX8:
+        case GD_COLOR_INDEX1:
+        case GD_COLOR_INDEX2:
+        case GD_COLOR_INDEX3:
+        case GD_COLOR_INDEX4:
+        case GD_COLOR_INDEX5:
+        case GD_COLOR_INDEX6:
+        case GD_COLOR_INDEX7:
+        case GD_COLOR_INDEX8:
             if (PixelFormat_GetPlaneCount(fmt) <= cfg->maxPlaneCount) {
                 return true;
             }
             break;
 
-        case VIO_RGB_HAM_5:
-        case VIO_RGB_HAM_6:
+        case GD_RGB_HAM_5:
+        case GD_RGB_HAM_6:
             if (cfg->allowsHAM) {
                 return true;
             }
             break;
 
-        case VIO_RGB_EHB_6:
+        case GD_RGB_EHB_6:
             if (cfg->allowsEHB) {
                 return true;
             }
@@ -113,7 +113,7 @@ static bool _matches_pixel_format(const video_conf_t* _Nonnull cfg, vio_pixfmt_t
     return false;
 }
 
-const video_conf_t* _Nullable get_matching_video_conf(int width, int height, vio_pixfmt_t fmt)
+const video_conf_t* _Nullable get_matching_video_conf(int width, int height, gd_pixfmt_t fmt)
 {
     for (size_t i = 0; i < NUM_CONFS; i++) {
         const video_conf_t* hwc = &g_video_conf[i];
@@ -131,37 +131,37 @@ const video_conf_t* _Nullable get_matching_video_conf(int width, int height, vio
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: vio_pixfmt_t
+// MARK: gd_pixfmt_t
 //
 
-int8_t PixelFormat_GetPlaneCount(vio_pixfmt_t format)
+int8_t PixelFormat_GetPlaneCount(gd_pixfmt_t format)
 {
     switch (format) {
-        case VIO_RGB_SPRITE_2:
-        case VIO_COLOR_INDEX1:
+        case GD_RGB_SPRITE_2:
+        case GD_COLOR_INDEX1:
             return 1;
 
-        case VIO_COLOR_INDEX2:
+        case GD_COLOR_INDEX2:
             return 2;
 
-        case VIO_COLOR_INDEX3:
+        case GD_COLOR_INDEX3:
             return 3;
 
-        case VIO_COLOR_INDEX4:
+        case GD_COLOR_INDEX4:
             return 4;
 
-        case VIO_RGB_HAM_5:
-        case VIO_COLOR_INDEX5:
+        case GD_RGB_HAM_5:
+        case GD_COLOR_INDEX5:
             return 5;
 
-        case VIO_RGB_HAM_6:
-        case VIO_COLOR_INDEX6:
+        case GD_RGB_HAM_6:
+        case GD_COLOR_INDEX6:
             return 6;
 
-        case VIO_COLOR_INDEX7:
+        case GD_COLOR_INDEX7:
             return 7;
 
-        case VIO_COLOR_INDEX8:
+        case GD_COLOR_INDEX8:
             return 8;
             
         default:

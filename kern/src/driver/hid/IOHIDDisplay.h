@@ -63,7 +63,7 @@ open_class_funcs(IOHIDDisplay, IODriver,
     // Sets the pixel image of the mouse cursor.
     // Override: Required
     // Default: Does nothing and returns ENOTSUP
-    errno_t (*setCursor)(void* _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format);
+    errno_t (*setCursor)(void* _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format);
 
     // Sets the position of the mouse cursor. Note that the mouse cursor is only
     // visible as long as at least some part of it is inside the display window

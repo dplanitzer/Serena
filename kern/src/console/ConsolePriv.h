@@ -179,10 +179,10 @@ final_class_ivars(Console, Object,
     cbuf_t                      reportsQueue;
 
     AGADriverRef _Nonnull       drv;
-    vio_cmdbuf_desc_t           cmdbuf;
+    gd_cmdbuf_desc_t           cmdbuf;
     int                         framebufferId;
     int                         pixelBufferId;
-    vio_buffer_data_t           pixels;
+    gd_buffer_data_t           pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
     int                         textCursorBufferId;

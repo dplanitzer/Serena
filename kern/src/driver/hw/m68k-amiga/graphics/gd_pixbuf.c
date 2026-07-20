@@ -9,7 +9,7 @@
 #include "gd_priv.h"
 
 
-errno_t gdGenBuffer(int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t gdGenBuffer(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     Surface* pbo;
 
@@ -87,7 +87,7 @@ errno_t gdDeleteBuffer(int id)
     return EOK;
 }
 
-errno_t gdGetBufferInfo(int id, vio_buffer_info_t* _Nonnull pOutInfo)
+errno_t gdGetBufferInfo(int id, gd_buffer_info_t* _Nonnull pOutInfo)
 {
     Surface* pbo = Surface_GetForId(id);
 
@@ -108,7 +108,7 @@ errno_t gdBindBuffer(int target, int id)
     
     if (pbo || id == 0) {
         switch (target & 0xffff0000) {
-            case VIO_SPRITE_0:
+            case GD_SPRITE_0:
                 return _gdBindSpriteBuffer(target & 0x0000ffff, pbo);
 
             default:
@@ -120,7 +120,7 @@ errno_t gdBindBuffer(int target, int id)
     }
 }
 
-errno_t gdMapBuffer(int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping)
+errno_t gdMapBuffer(int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
 {
     Surface* pbo = Surface_GetForId(id);
 
@@ -130,7 +130,7 @@ errno_t gdMapBuffer(int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping)
     if (Surface_IsMapped(pbo)) {
         return EBUSY;
     }
-    if (Surface_GetPixelFormat(pbo) == VIO_RGB_SPRITE_2) {
+    if (Surface_GetPixelFormat(pbo) == GD_RGB_SPRITE_2) {
         // Disallow mapping sprite surfaces for now
         return ENOTSUP;
     }
@@ -164,7 +164,7 @@ errno_t gdUnmapBuffer(int id)
     }
 }
 
-errno_t _gdDrawPixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
+errno_t _gdDrawPixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
     Surface* pbo = Surface_GetForId(id);
 

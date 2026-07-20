@@ -18,10 +18,10 @@
 typedef struct bt_screen {
     AGADriverRef _Nullable  drv;
     int                     buf_id;
-    vio_cmdbuf_desc_t       cmdbuf;
+    gd_cmdbuf_desc_t       cmdbuf;
     size_t                  width;
     size_t                  height;
-    vio_buffer_data_t       mp;
+    gd_buffer_data_t       mp;
 } bt_screen_t;
 
 typedef struct bt_icon {

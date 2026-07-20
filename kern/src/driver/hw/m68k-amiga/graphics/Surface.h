@@ -26,13 +26,13 @@ typedef struct Surface {
     int                 width;
     int                 height;
     size_t              bytesPerRow;
-    vio_pixfmt_t        pixelFormat;
+    gd_pixfmt_t        pixelFormat;
     int8_t              planeCount;
     uint8_t             flags;
 } Surface;
 
 
-extern errno_t Surface_Create(int width, int height, vio_pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern errno_t Surface_Create(int width, int height, gd_pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
 
 #define Surface_AddRef(__self) \
 (((Surface*)(__self))->refCount++)
@@ -74,7 +74,7 @@ extern Surface* _Nullable Surface_GetForId(int id);
 #define Surface_IsMapped(__self) \
 (((__self)->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped)
 
-extern errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format);
+extern errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 extern errno_t Surface_ClearPixels(Surface* _Nonnull self);
 
 #endif /* Surface_h */

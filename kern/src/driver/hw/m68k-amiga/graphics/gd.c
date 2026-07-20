@@ -13,7 +13,7 @@ mtx_t   gd_mtx;
 bool    g_light_pen_enabled;
 
 #define ANSI_COLOR_COUNT    8
-static const vio_rgb32_t ansi_clrs[ANSI_COLOR_COUNT] = {
+static const gd_rgb32_t ansi_clrs[ANSI_COLOR_COUNT] = {
     0xff000000,     // Black
     0xffff0000,     // Red
     0xff00ff00,     // Green
@@ -70,7 +70,7 @@ errno_t gdInit(void)
 
     int buf_id, fb_id;
 
-    try(gdGenBuffer(width, height, VIO_COLOR_INDEX3, &buf_id));
+    try(gdGenBuffer(width, height, GD_COLOR_INDEX3, &buf_id));
     _gdClearPixels(buf_id);
 
 

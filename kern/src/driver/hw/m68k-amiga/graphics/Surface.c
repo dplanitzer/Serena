@@ -22,7 +22,7 @@ static errno_t _alloc_single_plane(Surface* _Nonnull self)
     size_t nbytes;
 
     switch (self->pixelFormat) {
-        case VIO_RGB_SPRITE_2:
+        case GD_RGB_SPRITE_2:
             // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
             nbytes = 2*sizeof(uint16_t) + (2*self->height*self->bytesPerRow) + 2*sizeof(uint16_t);
             break;
@@ -34,7 +34,7 @@ static errno_t _alloc_single_plane(Surface* _Nonnull self)
 
     try(kalloc_options(nbytes, KALLOC_OPTION_UNIFIED, (void**) &self->plane[0]));
 
-    if (self->pixelFormat == VIO_RGB_SPRITE_2) {
+    if (self->pixelFormat == GD_RGB_SPRITE_2) {
         uint16_t* p = (uint16_t*)self->plane[0];
 
         p[0] = 0;
@@ -85,7 +85,7 @@ static void _destroy(Surface* _Nonnull self)
 // \param height the height in pixels
 // \param pixelFormat the pixel format
 // \return the surface; NULL on failure
-errno_t Surface_Create(int width, int height, vio_pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
+errno_t Surface_Create(int width, int height, gd_pixfmt_t pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Surface* self;
@@ -154,9 +154,9 @@ Surface* _Nullable Surface_GetForId(int id)
     return NULL;
 }
 
-errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
+errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
-    if (self->pixelFormat == VIO_RGB_SPRITE_2 && format == VIO_COLOR_INDEX2) {
+    if (self->pixelFormat == GD_RGB_SPRITE_2 && format == GD_COLOR_INDEX2) {
         const uint8_t* sp0 = planes[0];
         const uint8_t* sp1 = planes[1];
         uint16_t* pp = (uint16_t*)self->plane[0];
@@ -190,7 +190,7 @@ errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[
 
 errno_t Surface_ClearPixels(Surface* _Nonnull self)
 {
-    if (self->pixelFormat == VIO_RGB_SPRITE_2) {
+    if (self->pixelFormat == GD_RGB_SPRITE_2) {
         uint16_t* pp = (uint16_t*)self->plane[0];
         uint16_t* dp = &pp[2];
 

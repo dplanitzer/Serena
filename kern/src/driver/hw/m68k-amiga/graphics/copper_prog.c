@@ -157,8 +157,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     }
     if (pbo) {
         switch (Surface_GetPixelFormat(pbo)) {
-            case VIO_RGB_HAM_5:
-            case VIO_RGB_HAM_6:
+            case GD_RGB_HAM_5:
+            case GD_RGB_HAM_6:
                 bplcon0 |= BPLCON0F_HAM;
                 break;
             

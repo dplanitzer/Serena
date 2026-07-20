@@ -19,7 +19,7 @@
 static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer);
 
 
-static const vio_rgb32_t gANSIColors[ANSI_COLOR_COUNT] = {
+static const gd_rgb32_t gANSIColors[ANSI_COLOR_COUNT] = {
     0xff000000,     // Black
     0xffff0000,     // Red
     0xff00ff00,     // Green
@@ -40,7 +40,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Get the screen buffer information
-    vio_buffer_info_t binf;
+    gd_buffer_info_t binf;
 
     self->framebufferId = AGADriver_GetCurrentFramebuffer(self->drv);
     self->pixelBufferId = AGADriver_GetScreenbuffer(self->drv);
@@ -58,7 +58,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Map the console framebuffer
-    try(AGADriver_MapBuffer(self->drv, self->pixelBufferId, VIO_MAP_RW, &self->pixels));
+    try(AGADriver_MapBuffer(self->drv, self->pixelBufferId, GD_MAP_RW, &self->pixels));
 
 
     // Allocate the text cursor (sprite)
@@ -70,17 +70,17 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(AGADriver_CreateBuffer(self->drv, textCursorWidth, textCursorHeight, VIO_RGB_SPRITE_2, &self->textCursorBufferId));
+    try(AGADriver_CreateBuffer(self->drv, textCursorWidth, textCursorHeight, GD_RGB_SPRITE_2, &self->textCursorBufferId));
 
     ip = self->cmdbuf.addr;
-    ip = gdCmdDrawPixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, VIO_COLOR_INDEX2);
+    ip = gdCmdDrawPixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, GD_COLOR_INDEX2);
     ip = gdCmdEnd(ip);
 
     try(AGADriver_BufferCommands(self->drv, self->textCursorBufferId, self->cmdbuf.id, 0));
 
     ip = self->cmdbuf.addr;
     ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, 0);
-    ip = gdCmdBindSpriteBuffer(ip, VIO_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
+    ip = gdCmdBindSpriteBuffer(ip, GD_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
     ip = gdCmdEnd(ip);
 
     try(AGADriver_DisplayCommands(self->drv, self->cmdbuf.id, 0));
@@ -112,7 +112,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     self->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    vio_rgb32_t clr[8];
+    gd_rgb32_t clr[8];
     clr[0] = 0xff000000;    //XXX for mouse cursor
     clr[1] = 0xffffffff;
     clr[2] = 0xff000000;

@@ -129,7 +129,7 @@ errno_t _gdBindSpriteBuffer(int unit, Surface* _Nullable pbo)
         if (Surface_GetWidth(pbo) != SPRITE_WIDTH || Surface_GetHeight(pbo) > MAX_SPRITE_HEIGHT) {
             return ENOTSUP;
         }
-        if (Surface_GetPixelFormat(pbo) != VIO_RGB_SPRITE_2) {
+        if (Surface_GetPixelFormat(pbo) != GD_RGB_SPRITE_2) {
             return ENOTSUP;
         }
     }
@@ -180,7 +180,7 @@ errno_t gdSetSpriteVis(int spriteId, bool isVisible)
     return EOK;
 }
 
-void gdGetSpriteCaps(vio_sprite_caps_t* _Nonnull cp)
+void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
 {
     const video_conf_t* vcp = g_copper_running_prog->video_conf;
 
@@ -249,7 +249,7 @@ errno_t gdBindCursor(int id)
     if (pbo) {
         if (Surface_GetWidth(pbo) != HID_CURSOR_WIDTH
             || Surface_GetHeight(pbo) != HID_CURSOR_HEIGHT
-            || Surface_GetPixelFormat(pbo) != VIO_RGB_SPRITE_2) {
+            || Surface_GetPixelFormat(pbo) != GD_RGB_SPRITE_2) {
             return ENOTSUP;
         }
 

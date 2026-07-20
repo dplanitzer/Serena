@@ -520,7 +520,7 @@ extern bool cpu_is_null_fsave(const char* _Nonnull sfp);
 #define BIU_ACC_OP_REG_EXPECTED (1 << 28)
 #define BIU_PENDING_INSTR_TYPE  (1 << 29)
 #define BIU_INSTR_PENDING       (1 << 30)
-#define BIU_PROTO_VIO_PENDING   (1 << 31)
+#define BIU_PROTO_GD_PENDING   (1 << 31)
 
 
 

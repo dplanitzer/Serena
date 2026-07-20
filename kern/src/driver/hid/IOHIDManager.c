@@ -213,7 +213,7 @@ void IOHIDManager_ReleaseCursor(IOHIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, vio_pixfmt_t format, int hotSpotX, int hotSpotY)
+errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format, int hotSpotX, int hotSpotY)
 {
     decl_try_err();
 

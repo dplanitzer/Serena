@@ -61,7 +61,7 @@ errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull inf
 // Pixel Buffer
 //
 
-errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, vio_pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     gdLock();
     const errno_t err = gdGenBuffer(width, height, pixelFormat, pOutId);
@@ -77,7 +77,7 @@ errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, vio_buffer_info_t* _Nonnull pOutInfo)
+errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, gd_buffer_info_t* _Nonnull pOutInfo)
 {
     gdLock();
     const errno_t err = gdGetBufferInfo(id, pOutInfo);
@@ -85,7 +85,7 @@ errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, vio_buffer_i
     return err;
 }
 
-errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, vio_buffer_data_t* _Nonnull pOutMapping)
+errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
 {
     gdLock();
     const errno_t err = gdMapBuffer(id, mode, pOutMapping);
@@ -114,7 +114,7 @@ errno_t AGADriver_BufferCommands(AGADriverRef _Nonnull self, int buf_id, int cmd
 // Sprites
 //
 
-void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Nonnull cp)
+void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_caps_t* _Nonnull cp)
 {
     gdLock();
     gdGetSpriteCaps(cp);
@@ -126,7 +126,7 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, vio_sprite_caps_t* _Non
 // Display
 //
 
-errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, vio_rgb32_t* _Nonnull entries)
+errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 {
     gdLock();
     const errno_t err = gdGetClut(idx, count, entries);
@@ -163,7 +163,7 @@ errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t off
 // Command Buffers
 //
 
-errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, vio_cmdbuf_desc_t* _Nonnull desc)
+errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, gd_cmdbuf_desc_t* _Nonnull desc)
 {
     gdLock();
     const errno_t err = gdGenCmdbuf(size, desc);
@@ -186,19 +186,19 @@ errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
 
 void* _Nonnull gdCmdEnd(void* _Nonnull addr)
 {
-    vio_opcode_t* p = addr;
+    gd_opcode_t* p = addr;
 
-    *p = VIO_OPCODE_END;
-    return (char*)addr + sizeof(vio_opcode_t);
+    *p = GD_OPCODE_END;
+    return (char*)addr + sizeof(gd_opcode_t);
 }
 
 
-void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, vio_pixfmt_t format)
+void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
-    struct vio_op_draw_pixels* p = addr;
+    struct gd_op_draw_pixels* p = addr;
     const size_t pcnt = PixelFormat_GetPlaneCount(format);
 
-    p->opcode = VIO_OPCODE_DRAW_PIXELS;
+    p->opcode = GD_OPCODE_DRAW_PIXELS;
     p->bytesPerRow = bytesPerRow;
     p->format = format;
     
@@ -206,24 +206,24 @@ void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Non
         p->plane[i] = planes[i];
     }
 
-    return (char*)addr + sizeof(struct vio_op_draw_pixels) + (pcnt - 1) * sizeof(void*);
+    return (char*)addr + sizeof(struct gd_op_draw_pixels) + (pcnt - 1) * sizeof(void*);
 }
 
 void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id)
 {
-    vio_opcode_t* p = addr;
+    gd_opcode_t* p = addr;
 
-    *p = VIO_OPCODE_CLEAR_PIXELS;
+    *p = GD_OPCODE_CLEAR_PIXELS;
 
-    return (char*)addr + sizeof(vio_opcode_t);
+    return (char*)addr + sizeof(gd_opcode_t);
 }
 
 
-void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
+void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
 {
-    struct vio_op_clut_rgb32* p = addr;
+    struct gd_op_clut_rgb32* p = addr;
 
-    p->opcode = VIO_OPCODE_CLUT_RGB32;
+    p->opcode = GD_OPCODE_CLUT_RGB32;
     p->idx = idx;
     p->count = count;
     
@@ -231,41 +231,41 @@ void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const vi
         p->color[i] = entries[i];
     }
 
-    return (char*)addr + sizeof(struct vio_op_clut_rgb32) + (count - 1) * sizeof(vio_rgb32_t);
+    return (char*)addr + sizeof(struct gd_op_clut_rgb32) + (count - 1) * sizeof(gd_rgb32_t);
 }
 
 void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id)
 {
-    struct vio_op_bind_buffer* p = addr;
+    struct gd_op_bind_buffer* p = addr;
 
-    p->opcode = VIO_OPCODE_BIND_BUFFER;
+    p->opcode = GD_OPCODE_BIND_BUFFER;
     p->target = target;
     p->bufferId = buf_id;
 
-    return (char*)addr + sizeof(struct vio_op_bind_buffer);
+    return (char*)addr + sizeof(struct gd_op_bind_buffer);
 }
 
 void* _Nonnull gdCmdSpritePosition(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
 {
-    struct vio_op_put_sprite* p = addr;
+    struct gd_op_put_sprite* p = addr;
 
-    p->opcode = VIO_OPCODE_PUT_SPRITE;
+    p->opcode = GD_OPCODE_PUT_SPRITE;
     p->spriteId = spr_id;
     p->x = x;
     p->y = y;
 
-    return (char*)addr + sizeof(struct vio_op_put_sprite);
+    return (char*)addr + sizeof(struct gd_op_put_sprite);
 }
 
 void* _Nonnull gdCmdSpriteVisible(void* _Nonnull addr, int spr_id, bool isVisible)
 {
-    struct vio_op_show_sprite* p = addr;
+    struct gd_op_show_sprite* p = addr;
 
-    p->opcode = VIO_OPCODE_SHOW_SPRITE;
+    p->opcode = GD_OPCODE_SHOW_SPRITE;
     p->spriteId = spr_id;
     p->visible = isVisible;
     
-    return (char*)addr + sizeof(struct vio_op_show_sprite);
+    return (char*)addr + sizeof(struct gd_op_show_sprite);
 }
 
 
