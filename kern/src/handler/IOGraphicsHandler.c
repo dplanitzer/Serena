@@ -89,13 +89,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_AttachBuffer(drv, fb_id, buf_id);
         }
 
-        case VIO_CMD_FRAMEBUFFER_INFO: {
-            int fb_id = va_arg(ap, int);
-            vio_clut_info_t* ci = va_arg(ap, vio_clut_info_t*);
-
-            return AGADriver_GetFramebufferInfo(drv, fb_id, ci);
-        }
-
 
         //
         // Sprite

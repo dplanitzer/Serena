@@ -51,7 +51,6 @@ extern void* _Nonnull gdCmdEnd(void* _Nonnull addr);
 extern errno_t AGADriver_CreateFramebuffer(AGADriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);
 extern errno_t AGADriver_DestroyFramebuffer(AGADriverRef _Nonnull self, int id);
 extern errno_t AGADriver_AttachBuffer(AGADriverRef _Nonnull self, int fb_id, int buf_id);
-extern errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo);
 extern errno_t AGADriver_SetCurrentFramebuffer(AGADriverRef _Nonnull self, int fb_id);
 extern int AGADriver_GetCurrentFramebuffer(AGADriverRef _Nonnull self);
 

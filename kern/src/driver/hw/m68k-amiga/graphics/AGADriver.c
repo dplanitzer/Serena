@@ -297,14 +297,6 @@ errno_t AGADriver_AttachBuffer(AGADriverRef _Nonnull self, int fb_id, int buf_id
     return err;
 }
 
-errno_t AGADriver_GetFramebufferInfo(AGADriverRef _Nonnull self, int id, vio_clut_info_t* _Nonnull pOutInfo)
-{
-    gdLock();
-    const errno_t err = gdGetFramebufferInfo(id, pOutInfo);
-    gdUnlock();
-    return err;
-}
-
 errno_t AGADriver_SetCurrentFramebuffer(AGADriverRef _Nonnull self, int fb_id)
 {
     gdLock();

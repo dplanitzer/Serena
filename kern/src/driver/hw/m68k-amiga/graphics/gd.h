@@ -60,7 +60,6 @@ extern errno_t gdDeleteCmdbuf(int id);
 extern errno_t gdGenFramebuffer(size_t colorDepth, int* _Nonnull pOutId);
 extern errno_t gdDeleteFramebuffer(int fb_id);
 extern errno_t gdAttachBuffer(int fb_id, int buf_id);
-extern errno_t gdGetFramebufferInfo(int fb_id, vio_clut_info_t* _Nonnull pOutInfo);
 extern errno_t gdSetCurrentFramebuffer(int fb_id);
 extern int gdGetCurrentFramebuffer(void);
 extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);

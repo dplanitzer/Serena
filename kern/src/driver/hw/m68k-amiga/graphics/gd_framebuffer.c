@@ -103,19 +103,6 @@ errno_t gdAttachBuffer(int fb_id, int buf_id)
     return EOK;
 }
 
-errno_t gdGetFramebufferInfo(int id, vio_clut_info_t* _Nonnull pOutInfo)
-{
-    framebuffer_t* fb = _fb_for_id(id);
-
-    if (fb) {
-        pOutInfo->entryCount = g_clut_size;
-        return EOK;
-    }
-    else {
-        return EINVAL;
-    }
-}
-
 errno_t gdClut(size_t idx, size_t count, const vio_rgb32_t* _Nonnull entries)
 {
     if (idx + count > g_clut_size) {

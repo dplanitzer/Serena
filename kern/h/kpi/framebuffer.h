@@ -66,12 +66,6 @@ typedef struct vio_buffer_data {
 } vio_buffer_data_t;
 
 
-// CLUT information
-typedef struct vio_clut_info {
-    size_t  entryCount;
-} vio_clut_info_t;
-
-
 //
 // Colors
 //
@@ -195,11 +189,6 @@ IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_WR, 0)
 // attach_buffer(int fb_id, int buf_id)
 #define VIO_CMD_ATTACH_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_WR, 0)
-
-// Returns information about the framebuffer 'id'.
-// get_framebuffer_info(int id, vio_clut_info_t* _Nonnull pOutInfo)
-#define VIO_CMD_FRAMEBUFFER_INFO \
-IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 
 // Sets the framebuffer 'id' as the current framebuffer. The framebuffer must
 // have a pixel buffer with a suitable width, height and pixel format attached
