@@ -92,17 +92,10 @@ errno_t gdDeleteCmdbuf(int id)
     return EOK;
 }
 
-errno_t gdDisplayCommands(int id, size_t offset)
+static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
 {
     decl_try_err();
-    cmdbuf_t* cmdbuf = _cmdbuf_for_id(id);
-
-    if (cmdbuf == NULL) {
-        return EINVAL;
-    }
-
-
-    const union vio_op* ip = (const union vio_op*)(cmdbuf->op + offset);
+    const union vio_op* ip = (const union vio_op*)cmdbuf->op;
     size_t ilen;
 
     while ((const char*)ip < cmdbuf->opEnd) {
@@ -144,17 +137,10 @@ catch:
     return err;
 }
 
-errno_t gdBufferCommands(int buf_id, int cmds_id, size_t offset)
+static errno_t _exec_transfer_cmds(cmdbuf_t* _Nonnull cmdbuf)
 {
-    Surface* pbo = Surface_GetForId(buf_id);
-    cmdbuf_t* cmdbuf = _cmdbuf_for_id(cmds_id);
-
-    if (pbo == NULL || cmdbuf == NULL) {
-        return EINVAL;
-    }
-
-
-    const union vio_op* ip = (const union vio_op*)(cmdbuf->op + offset);
+    const union vio_op* ip = (const union vio_op*)cmdbuf->op;
+    Surface* dstbuf;
     size_t ilen;
 
     while ((const char*)ip < cmdbuf->opEnd) {
@@ -162,14 +148,11 @@ errno_t gdBufferCommands(int buf_id, int cmds_id, size_t offset)
             case GD_OPCODE_END:                // gd_opcode_t
                 return EOK;
 
-            case GD_OPCODE_DRAW_PIXELS:       // struct gd_op_draw_pixels
-                Surface_WritePixels(pbo, &ip->draw_pixels.plane[0], ip->draw_pixels.bytesPerRow, ip->draw_pixels.format);
-                ilen = sizeof(struct gd_op_draw_pixels) + (PixelFormat_GetPlaneCount(ip->draw_pixels.format) - 1) * sizeof(void*);
-                break;
-
-            case GD_OPCODE_CLEAR_PIXELS:       // struct gd_opcode_t
-                Surface_ClearPixels(pbo);
-                ilen = sizeof(gd_opcode_t);
+            case GD_OPCODE_WRITE_PIXELS:       // struct gd_op_write_pixels
+                if ((dstbuf = Surface_GetForId(ip->write_pixels.dstBufferId)) != NULL) {
+                    Surface_WritePixels(dstbuf, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
+                }
+                ilen = sizeof(struct gd_op_write_pixels) + (PixelFormat_GetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
                 break;
 
             default:
@@ -177,5 +160,55 @@ errno_t gdBufferCommands(int buf_id, int cmds_id, size_t offset)
         }
 
         ip = (const union vio_op*)((const char*)ip + ilen);
+    }
+}
+
+static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
+{
+    const union vio_op* ip = (const union vio_op*)cmdbuf->op;
+    Surface* dstbuf;
+    size_t ilen;
+
+    while ((const char*)ip < cmdbuf->opEnd) {
+        switch (ip->opcode) {
+            case GD_OPCODE_END:                // gd_opcode_t
+                return EOK;
+
+            case GD_OPCODE_CLEAR_PIXELS:       // struct gd_op_clear_pixels
+                if ((dstbuf = Surface_GetForId(ip->clear_pixels.dstBufferId)) != NULL) {
+                    Surface_ClearPixels(dstbuf);
+                }
+                ilen = sizeof(struct gd_op_clear_pixels);
+                break;
+
+            default:
+                return EINVAL;
+        }
+
+        ip = (const union vio_op*)((const char*)ip + ilen);
+    }
+}
+
+errno_t gdSubmitCmdbuf(int queue_id, int cmds_id)
+{
+    decl_try_err();
+    cmdbuf_t* cmdbuf = _cmdbuf_for_id(cmds_id);
+
+    if (cmdbuf == NULL) {
+        return EINVAL;
+    }
+
+    switch (queue_id) {
+        case GD_BLIT_QUEUE:
+            return _exec_blit_cmds(cmdbuf);
+
+        case GD_TRANSFER_QUEUE:
+            return _exec_transfer_cmds(cmdbuf);
+
+        case GD_SPRITE_QUEUE:
+            return _exec_sprite_cmds(cmdbuf);
+
+        default:
+            return EINVAL;
     }
 }

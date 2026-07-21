@@ -60,14 +60,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_UnmapBuffer(drv, buf_id);
         }
 
-        case GDC_BUFFER_COMMANDS: {
-            int buf_id = va_arg(ap, int);
-            int cmdbuf_id = va_arg(ap, int);
-            size_t offset = va_arg(ap, size_t);
-
-            return AGADriver_BufferCommands(drv, buf_id, cmdbuf_id, offset);
-        }
-
 
         //
         // Command Buffer
@@ -84,6 +76,13 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             int cmdbuf_id = va_arg(ap, int);
 
             return AGADriver_DestroyCommandBuffer(drv, cmdbuf_id);
+        }
+
+        case GDC_SUBMIT_CMDBUF: {
+            int queue_id = va_arg(ap, int);
+            int cmdbuf_id = va_arg(ap, int);
+
+            return AGADriver_SubmitCommandBuffer(drv, queue_id, cmdbuf_id);
         }
 
 
@@ -142,13 +141,6 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             gd_display_mode_t* mode = va_arg(ap, gd_display_mode_t*);
 
             return AGADriver_EnumDisplayModes(drv, index, mode);
-        }
-
-        case GDC_DISPLAY_COMMANDS: {
-            int cmdbuf_id = va_arg(ap, int);
-            size_t offset = va_arg(ap, size_t);
-
-            return AGADriver_DisplayCommands(drv, cmdbuf_id, offset);
         }
 
 

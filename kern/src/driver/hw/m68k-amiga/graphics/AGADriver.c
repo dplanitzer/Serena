@@ -101,14 +101,6 @@ errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t AGADriver_BufferCommands(AGADriverRef _Nonnull self, int buf_id, int cmds_id, size_t offset)
-{
-    gdLock();
-    const errno_t err = gdBufferCommands(buf_id, cmds_id, offset);
-    gdUnlock();
-    return err;
-}
-
 
 //
 // Sprites
@@ -166,14 +158,6 @@ errno_t AGADriver_EnumDisplayModes(AGADriverRef _Nonnull self, int index, gd_dis
     return err;
 }
 
-errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset)
-{
-    gdLock();
-    const errno_t err = gdDisplayCommands(id, offset);
-    gdUnlock();
-    return err;
-}
-
 
 //
 // Command Buffers
@@ -195,6 +179,14 @@ errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
     return err;
 }
 
+errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int queue_id, int cmds_id)
+{
+    gdLock();
+    const errno_t err = gdSubmitCmdbuf(queue_id, cmds_id);
+    gdUnlock();
+    return err;
+}
+
 
 //
 // In-kernel command buffer utilities
@@ -209,12 +201,13 @@ void* _Nonnull gdCmdEnd(void* _Nonnull addr)
 }
 
 
-void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
+void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
-    struct gd_op_draw_pixels* p = addr;
+    struct gd_op_write_pixels* p = addr;
     const size_t pcnt = PixelFormat_GetPlaneCount(format);
 
-    p->opcode = GD_OPCODE_DRAW_PIXELS;
+    p->opcode = GD_OPCODE_WRITE_PIXELS;
+    p->dstBufferId = buf_id;
     p->bytesPerRow = bytesPerRow;
     p->format = format;
     
@@ -222,16 +215,17 @@ void* _Nonnull gdCmdDrawPixels(void* _Nonnull addr, int buf_id, const void* _Non
         p->plane[i] = planes[i];
     }
 
-    return (char*)addr + sizeof(struct gd_op_draw_pixels) + (pcnt - 1) * sizeof(void*);
+    return (char*)addr + sizeof(struct gd_op_write_pixels) + (pcnt - 1) * sizeof(void*);
 }
 
 void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id)
 {
-    gd_opcode_t* p = addr;
+    struct gd_op_clear_pixels* p = addr;
 
-    *p = GD_OPCODE_CLEAR_PIXELS;
+    p->opcode = GD_OPCODE_CLEAR_PIXELS;
+    p->dstBufferId = buf_id;
 
-    return (char*)addr + sizeof(gd_opcode_t);
+    return (char*)addr + sizeof(struct gd_op_clear_pixels);
 }
 
 

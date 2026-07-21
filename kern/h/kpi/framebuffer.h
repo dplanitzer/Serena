@@ -132,16 +132,6 @@ IOCMD_MAKE(IOPROTO_FB, 4, _IOCMD_ACC_RDWR, 0)
 #define GDC_UNMAP_BUFFER \
 IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
-// Synchronously executes the pixel buffer command buffer 'cmds_id' starting at
-// its base address plus 'offset' and continuing until the first encountered end
-// instruction. Blocks the caller until all instructions have been executed.
-// Execution ends prematurely if an instruction with invalid arguments is
-// encountered and the detected error is returned. The buffer 'buf_id' is the
-// target of all render operations.
-// gdBufferCommands(int buf_id, int cmds_id, size_t offset)
-#define GDC_BUFFER_COMMANDS \
-IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
-
 
 //
 // Sprites
@@ -230,14 +220,6 @@ IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_RD, 0)
 #define GDC_ENUM_DISPLAY_MODES \
 IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_RD, 0)
 
-// Executes commands from the command buffer 'id', starting at offset 'offset'
-// until an end command is encountered. All commands target the display and are
-// scheduled such that they will update the display on the next VBL. Execution
-// ends at the first encountered end command or if an error is encountered.
-// gdDisplayCommands(int id, size_t offset)
-#define GDC_DISPLAY_COMMANDS \
-IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
-
 
 //
 // CLUT
@@ -275,29 +257,39 @@ IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
 #define GD_OPCODE_NOP          0       // gd_opcode_t
 #define GD_OPCODE_END          1       // gd_opcode_t
 
-// 2d render command set
-#define GD_OPCODE_DRAW_PIXELS  100     // struct gd_op_draw_pixels
-#define GD_OPCODE_CLEAR_PIXELS 101     // gd_opcode_t
+// Blit command set
+#define GD_OPCODE_CLEAR_PIXELS 100     // struct gd_op_clear_pixels
 
-// Display command set
-#define GD_OPCODE_CLUT_RGB32   200     // struct gd_op_clut_rgb32
-#define GD_OPCODE_PUT_SPRITE   201     // struct gd_op_put_sprite
-#define GD_OPCODE_SHOW_SPRITE  202     // struct gd_op_show_sprite
-#define GD_OPCODE_BIND_BUFFER  203     // struct gd_op_bind_buffer 
+// Transfer command set
+#define GD_OPCODE_WRITE_PIXELS 200     // struct gd_op_write_pixels
+
+// Sprite command set
+#define GD_OPCODE_CLUT_RGB32   300     // struct gd_op_clut_rgb32
+#define GD_OPCODE_PUT_SPRITE   301     // struct gd_op_put_sprite
+#define GD_OPCODE_SHOW_SPRITE  302     // struct gd_op_show_sprite
+#define GD_OPCODE_BIND_BUFFER  303     // struct gd_op_bind_buffer 
 
 typedef unsigned short gd_opcode_t;
 
 
-// 2d render command set
-struct gd_op_draw_pixels {
+// Blit command set
+struct gd_op_clear_pixels {
+    gd_opcode_t opcode;
+    int         dstBufferId;
+};
+
+
+// Transfer command set
+struct gd_op_write_pixels {
     gd_opcode_t             opcode;
+    int                     dstBufferId;
     gd_pixfmt_t             format;
     size_t                  bytesPerRow;
     const void* _Nonnull    plane[1];   // 'n' plane pointers follow here where 'n' depends on 'format'
 };
 
 
-// Display command set
+// Sprite command set
 struct gd_op_bind_buffer {
     gd_opcode_t    opcode;
     int             target;
@@ -326,8 +318,14 @@ struct gd_op_show_sprite {
 
 union vio_op {
     gd_opcode_t                 opcode;
-    struct gd_op_draw_pixels    draw_pixels;
 
+    // Blit
+    struct gd_op_clear_pixels   clear_pixels;
+
+    // Transfer
+    struct gd_op_write_pixels   write_pixels;
+
+    // Sprite
     struct gd_op_bind_buffer    bind_buffer;
     struct gd_op_clut_rgb32     clut_rgb32;
     struct gd_op_put_sprite     put_sprite;
@@ -354,5 +352,18 @@ IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_WR, 0)
 // destroy_cmdbuf(int id)
 #define GDC_DESTROY_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
+
+#define GD_BLIT_QUEUE       0       // 2d blit/render commands
+#define GD_TRANSFER_QUEUE   256     // copying data from/to RAM and a GD buffer
+#define GD_SPRITE_QUEUE     512     // 2d sprite engine
+
+// Submits the command buffer 'cmds_id' to the command queue 'queue_id' for
+// execution. Depending on the targeted queue, the command may be executed
+// asynchronously or synchronously. Malformed commands are ignored and execution
+// is terminated if either an end command is encountered or a malformed command
+// is encountered from which the command queue can not recover.
+// gdSubmitCommands(int queue_id, int cmds_id)
+#define GDC_SUBMIT_CMDBUF \
+IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */
