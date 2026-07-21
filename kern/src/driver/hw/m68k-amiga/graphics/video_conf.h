@@ -20,7 +20,7 @@ typedef struct video_conf {
     gd_pixfmt_t pixelFormat;
     int16_t     width;
     int16_t     height;
-    int8_t      fps;
+    int8_t      refreshRate;
     uint8_t     flags;
     uint8_t     hDwStart;
     uint8_t     hDwStop;
@@ -43,7 +43,7 @@ extern const video_conf_t* _Nonnull get_null_video_conf(void);
 
 // Looks up the video configuration that corresponds to the given screen
 // configuration.
-extern const video_conf_t* _Nullable get_matching_video_conf(int width, int height, gd_pixfmt_t fmt);
+extern const video_conf_t* _Nullable get_matching_video_conf(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nonnull params);
 
 
 // Returns how many planes are needed to store a pixel in the given pixel format.

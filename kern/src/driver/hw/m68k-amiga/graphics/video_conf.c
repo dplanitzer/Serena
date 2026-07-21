@@ -203,14 +203,15 @@ const video_conf_t* _Nonnull get_null_video_conf(void)
     return (chipset_is_ntsc()) ? &g_video_conf[0] : &g_video_conf[14];
 }
 
-const video_conf_t* _Nullable get_matching_video_conf(int width, int height, gd_pixfmt_t fmt)
+const video_conf_t* _Nullable get_matching_video_conf(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nonnull params)
 {
     for (size_t i = 0; i < NUM_VIDEO_CONFIGS; i++) {
         const video_conf_t* hwc = &g_video_conf[i];
 
-        if (hwc->width == width
-            && hwc->height == height
-            && hwc->pixelFormat == fmt) {
+        if (hwc->width == mode->width
+            && hwc->height == mode->height
+            && hwc->refreshRate == mode->refreshRate
+            && hwc->pixelFormat == mode->pixelFormat) {
             return hwc;
         }
     }

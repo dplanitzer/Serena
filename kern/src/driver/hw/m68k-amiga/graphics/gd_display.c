@@ -92,7 +92,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
 
 
     // Validate the display mode and parameters
-    const video_conf_t* vc = get_matching_video_conf(mode->width, mode->height, mode->pixelFormat);
+    const video_conf_t* vc = get_matching_video_conf(mode, params);
     if (vc == NULL) {
         return ENOTSUP; //XXX ENOMATCH?
     }
@@ -192,7 +192,7 @@ errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
     const video_conf_t* vc = &g_video_conf[index];
     pOutMode->width = vc->width;
     pOutMode->height = vc->height;
-    pOutMode->refreshRate = vc->fps;
+    pOutMode->refreshRate = vc->refreshRate;
     pOutMode->pixelFormat = vc->pixelFormat;
 }
 

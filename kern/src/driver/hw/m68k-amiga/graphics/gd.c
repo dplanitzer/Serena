@@ -57,18 +57,21 @@ errno_t gdInit(void)
     if (chipset_is_ntsc()) {
         mode.width = 640;
         mode.height = 200;
+        mode.refreshRate = 60;
         
         //mode.width = 640;
         //mode.height = 400;
+        //mode.refreshRate = 30;
     } else {
         mode.width = 640;
         mode.height = 256;
+        mode.refreshRate = 50;
 
         //mode.width = 640;
         //mode.height = 512;
+        //mode.refreshRate = 25;
     }
     mode.pixelFormat = GD_COLOR_INDEX3;
-    mode.refreshRate = 60;      //XXX revisit
 
     err = gdDisplayMode(&mode, NULL, 2);    //XXX 2 (to clear the fb) -> revisit
     gdClut(0, ANSI_COLOR_COUNT, ansi_clrs);
