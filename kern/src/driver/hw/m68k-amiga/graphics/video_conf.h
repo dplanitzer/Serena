@@ -13,11 +13,11 @@
 #include <stdint.h>
 #include <kpi/framebuffer.h>
 
-
 #define VCFLAG_HIRES   1
 #define VCFLAG_LACE    2
 
 typedef struct video_conf {
+    gd_pixfmt_t pixelFormat;
     int16_t     width;
     int16_t     height;
     int8_t      fps;
@@ -30,11 +30,12 @@ typedef struct video_conf {
     uint8_t     vSprOrigin;
     uint8_t     hSprScale;
     uint8_t     vSprScale;
-    int8_t      maxPlaneCount;      // Max number of planes for normal display mode
-    bool        allowsHAM;          // True if this video conf is able to support HAM mode
-    bool        allowsEHB;          // Ditto for EHB mode
-    int8_t      maxPlaneCountDPF;   // Ditto for dual playfield display mode. This is the max plane count across both playfields
+    int8_t      maxPlaneCountDPF;   // Dual playfield display mode supported, if > 0. This is the max plane count across both playfields
 } video_conf_t;
+
+
+#define NUM_VIDEO_CONFIGS   28
+extern const video_conf_t g_video_conf[NUM_VIDEO_CONFIGS];
 
 
 // Returns the video conf that should be used for a null Copper program.

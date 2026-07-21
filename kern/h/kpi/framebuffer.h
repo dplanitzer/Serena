@@ -25,7 +25,6 @@
 #define GD_COLOR_INDEX8 8  // planar indexed with 8 bits per pixel
 
 #ifdef MACHINE_AMIGA
-#define GD_RGB_HAM_5    9   // planar RGB Hold-And-Modify mode with 5 planes
 #define GD_RGB_HAM_6    10  // planar RGB Hold-And-Modify mode with 6 planes
 #define GD_RGB_EHB_6    11  // planar RGB Extra-Half-Bright mode with 6 planes
 #define GD_RGB_SPRITE_2 12  // interleaved planar indexed RGB with 2 planes
@@ -222,6 +221,14 @@ IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
 // gdGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull pOutInfo)
 #define GDC_GET_DISPLAY_INFO \
 IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_RD, 0)
+
+// Returns the display mode with index 'index'. Returns EOK if a display mode
+// with such an index exists and EINVAL if not. Call this function with index 0
+// as teh first index and then with previous index + 1 until it returns EINVAL
+// to get all supported display modes.
+// gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
+#define GDC_ENUM_DISPLAY_MODES \
+IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_RD, 0)
 
 // Executes commands from the command buffer 'id', starting at offset 'offset'
 // until an end command is encountered. All commands target the display and are

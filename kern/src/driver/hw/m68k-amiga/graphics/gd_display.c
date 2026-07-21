@@ -183,6 +183,19 @@ errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
     }
 }
 
+errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
+{
+    if (index < 0 || index >= NUM_VIDEO_CONFIGS) {
+        return EINVAL;
+    }
+
+    const video_conf_t* vc = &g_video_conf[index];
+    pOutMode->width = vc->width;
+    pOutMode->height = vc->height;
+    pOutMode->refreshRate = vc->fps;
+    pOutMode->pixelFormat = vc->pixelFormat;
+}
+
 void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo)
 {
     g_screen_conf_observer = vp;

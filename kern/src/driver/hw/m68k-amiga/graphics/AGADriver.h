@@ -55,6 +55,7 @@ extern errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t*
 // Display
 extern errno_t AGADriver_DisplayMode(AGADriverRef _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
 extern errno_t AGADriver_GetDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info);
+extern errno_t AGADriver_EnumDisplayModes(AGADriverRef _Nonnull self, int index, gd_display_mode_t* _Nonnull pOutMode);
 extern errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset);
 
 #endif /* AGADriver_h */

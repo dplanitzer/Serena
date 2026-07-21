@@ -158,6 +158,14 @@ errno_t AGADriver_GetDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_disp
     return err;
 }
 
+errno_t AGADriver_EnumDisplayModes(AGADriverRef _Nonnull self, int index, gd_display_mode_t* _Nonnull pOutMode)
+{
+    gdLock();
+    const errno_t err = gdEnumDisplayModes(index, pOutMode);
+    gdUnlock();
+    return err;
+}
+
 errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset)
 {
     gdLock();

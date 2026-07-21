@@ -137,6 +137,13 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_GetDisplayInfo(drv, flavor, info);
         }
 
+        case GDC_ENUM_DISPLAY_MODES: {
+            const int index = va_arg(ap, int);
+            gd_display_mode_t* mode = va_arg(ap, gd_display_mode_t*);
+
+            return AGADriver_EnumDisplayModes(drv, index, mode);
+        }
+
         case GDC_DISPLAY_COMMANDS: {
             int cmdbuf_id = va_arg(ap, int);
             size_t offset = va_arg(ap, size_t);

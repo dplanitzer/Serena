@@ -152,14 +152,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
         bplcon0 |= BPLCON0F_LACE;
     }
     if (pFrontBuffer) {
-        switch (Surface_GetPixelFormat(pFrontBuffer)) {
-            case GD_RGB_HAM_5:
-            case GD_RGB_HAM_6:
-                bplcon0 |= BPLCON0F_HAM;
-                break;
-            
-            default:
-                break;
+        if (Surface_GetPixelFormat(pFrontBuffer) == GD_RGB_HAM_6) {
+            bplcon0 |= BPLCON0F_HAM;
         }
     }
 
