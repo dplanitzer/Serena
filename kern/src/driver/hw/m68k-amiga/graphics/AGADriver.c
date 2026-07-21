@@ -115,8 +115,16 @@ void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_caps_t* _Nonn
 
 
 //
-// Display
+// CLUT
 //
+
+errno_t AGADriver_Clut(AGADriverRef _Nonnull self, size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
+{
+    gdLock();
+    const errno_t err = gdClut(idx, count, entries);
+    gdUnlock();
+    return err;
+}
 
 errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 {
@@ -133,6 +141,11 @@ errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnu
     gdUnlock();
     return err;
 }
+
+
+//
+// Display
+//
 
 errno_t AGADriver_DisplayMode(AGADriverRef _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
 {
@@ -228,21 +241,6 @@ void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id)
     return (char*)addr + sizeof(struct gd_op_clear_pixels);
 }
 
-
-void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
-{
-    struct gd_op_clut_rgb32* p = addr;
-
-    p->opcode = GD_OPCODE_CLUT_RGB32;
-    p->idx = idx;
-    p->count = count;
-    
-    for (size_t i = 0; i < count; i++) {
-        p->color[i] = entries[i];
-    }
-
-    return (char*)addr + sizeof(struct gd_op_clut_rgb32) + (count - 1) * sizeof(gd_rgb32_t);
-}
 
 void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id)
 {

@@ -149,7 +149,7 @@ typedef struct gd_sprite_caps {
 // currently active screen and mouse cursor configuration.
 // get_sprite_info(sprite_info_t* _Nonnull info)
 #define GDC_SPRITE_CAPS \
-IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -205,12 +205,12 @@ typedef void* gd_display_info_ref_t;
 //            and a suitable error is returned if it would fail.
 // gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params* _Nullable params, int op)
 #define GDC_DISPLAY_MODE \
-IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
 // Returns the display info indicated by 'flavor'.
 // gdGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull pOutInfo)
 #define GDC_GET_DISPLAY_INFO \
-IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
 
 // Returns the display mode with index 'index'. Returns EOK if a display mode
 // with such an index exists and EINVAL if not. Call this function with index 0
@@ -218,7 +218,7 @@ IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_RD, 0)
 // to get all supported display modes.
 // gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
 #define GDC_ENUM_DISPLAY_MODES \
-IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -232,20 +232,28 @@ typedef struct gd_clut_info {
     size_t  blueBits;
 } gd_clut_info_t;
 
+// Replaces the color entries of the CLUT starting at entry 'idx' up to entry
+// 'idx + count'. The provided color values are converted to the color resolution
+// that is actually supported by the CLUT. The color values will become visible
+// on the screen starting with the next VBL.
+// gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
+#define GDC_CLUT \
+IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
+
 // Returns a copy of the CLUT entries from 'idx' to 'idx + count'. The returned
 // color values represent the physical CLUT color values. They may have reduced
 // color precision compared to the color values that were originally set by a
-// gdCmdClut() command. Use gdGetClutInfo() receive information about the
+// gdClut() command. Use gdGetClutInfo() receive information about the
 // supported CLUT color resolution.
 // gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 #define GDC_GET_CLUT \
-IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_RD, 0)
 
 // Returns information about the display CLUT. The number of color entries and
 // the physical color resolution is returned.
 // gdGetClutInfo(gd_clut_info_t* _Nonnull info)
 #define GDC_GET_CLUT_INFO \
-IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 
 
@@ -264,10 +272,9 @@ IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
 #define GD_OPCODE_WRITE_PIXELS 200     // struct gd_op_write_pixels
 
 // Sprite command set
-#define GD_OPCODE_CLUT_RGB32   300     // struct gd_op_clut_rgb32
-#define GD_OPCODE_PUT_SPRITE   301     // struct gd_op_put_sprite
-#define GD_OPCODE_SHOW_SPRITE  302     // struct gd_op_show_sprite
-#define GD_OPCODE_BIND_BUFFER  303     // struct gd_op_bind_buffer 
+#define GD_OPCODE_PUT_SPRITE   300     // struct gd_op_put_sprite
+#define GD_OPCODE_SHOW_SPRITE  301     // struct gd_op_show_sprite
+#define GD_OPCODE_BIND_BUFFER  302     // struct gd_op_bind_buffer 
 
 typedef unsigned short gd_opcode_t;
 
@@ -296,13 +303,6 @@ struct gd_op_bind_buffer {
     int             bufferId;
 };
 
-struct gd_op_clut_rgb32 {
-    gd_opcode_t     opcode;
-    uint16_t        idx;
-    uint16_t        count;
-    gd_rgb32_t      color[1];       // 'count' color entries follow here
-};
-
 struct gd_op_put_sprite {
     gd_opcode_t     opcode;
     int             spriteId;
@@ -316,6 +316,7 @@ struct gd_op_show_sprite {
     int16_t         visible;    // 'visible' != 0 -> show; otherwise hide
 };
 
+
 union vio_op {
     gd_opcode_t                 opcode;
 
@@ -327,7 +328,6 @@ union vio_op {
 
     // Sprite
     struct gd_op_bind_buffer    bind_buffer;
-    struct gd_op_clut_rgb32     clut_rgb32;
     struct gd_op_put_sprite     put_sprite;
     struct gd_op_show_sprite    show_sprite;
 };
@@ -346,12 +346,12 @@ typedef struct gd_cmdbuf_desc {
 // requested size. However it will never be smaller.
 // create_cmdbuf(size_t byteSize, const gd_cmdbuf_desc_t* _Nullable desc) -> id
 #define GDC_CREATE_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 
 // Deallocates the command buffer 'id'.
 // destroy_cmdbuf(int id)
 #define GDC_DESTROY_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 
 #define GD_BLIT_QUEUE       0       // 2d blit/render commands
 #define GD_TRANSFER_QUEUE   256     // copying data from/to RAM and a GD buffer
@@ -364,6 +364,6 @@ IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
 // is encountered from which the command queue can not recover.
 // gdSubmitCommands(int queue_id, int cmds_id)
 #define GDC_SUBMIT_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */

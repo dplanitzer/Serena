@@ -126,11 +126,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[6] = clr[5];
     clr[7] = clr[5];
 
-    void* ip = self->cmdbuf.addr;
-    ip = gdCmdClut(ip, 16, 8, clr);
-    ip = gdCmdEnd(ip);
-
-    AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id);
+    AGADriver_Clut(self->drv, 16, 8, clr);
 }
 
 // Sets the console's background color to the given color

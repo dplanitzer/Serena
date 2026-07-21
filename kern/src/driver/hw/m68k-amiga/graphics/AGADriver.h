@@ -38,7 +38,6 @@ extern errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int que
 
 
 // In-kernel command buffer utilities
-extern void* _Nonnull gdCmdClut(void* _Nonnull addr, size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries);
 extern void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 extern void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id);
 extern void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id);
@@ -48,6 +47,7 @@ extern void* _Nonnull gdCmdEnd(void* _Nonnull addr);
 
 
 // CLUT
+extern errno_t AGADriver_Clut(AGADriverRef _Nonnull self, size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries);
 extern errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, gd_rgb32_t* _Nonnull entries);
 extern errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnull info);
 

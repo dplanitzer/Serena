@@ -107,14 +107,6 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
                 try(gdBindBuffer(ip->bind_buffer.target, ip->bind_buffer.bufferId));
                 ilen = sizeof(struct gd_op_bind_buffer);
                 break;
-                
-            case GD_OPCODE_CLUT_RGB32:         // struct gd_op_clut_rgb32
-                try(gdClut(ip->clut_rgb32.idx, ip->clut_rgb32.count, &ip->clut_rgb32.color[0]));
-                ilen = sizeof(struct gd_op_clut_rgb32) - sizeof(gd_rgb32_t);
-                if (ip->clut_rgb32.count > 0) {
-                    ilen += sizeof(gd_rgb32_t) * ip->clut_rgb32.count;
-                }
-                break;
 
             case GD_OPCODE_PUT_SPRITE:         // struct gd_op_put_sprite
                 try(gdSetSpritePos(ip->put_sprite.spriteId, ip->put_sprite.x, ip->put_sprite.y));

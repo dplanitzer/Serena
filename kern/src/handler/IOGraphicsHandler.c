@@ -102,6 +102,14 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         // CLUT
         //
 
+        case GDC_CLUT: {
+            const size_t idx = va_arg(ap, size_t);
+            const size_t count = va_arg(ap, size_t);
+            const gd_rgb32_t* entries = va_arg(ap, const gd_rgb32_t*);
+
+            return AGADriver_Clut(drv, idx, count, entries);
+        }
+
         case GDC_GET_CLUT: {
             const size_t idx = va_arg(ap, size_t);
             const size_t count = va_arg(ap, size_t);
