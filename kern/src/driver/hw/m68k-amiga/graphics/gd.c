@@ -73,7 +73,8 @@ errno_t gdInit(void)
     }
     mode.pixelFormat = GD_COLOR_INDEX3;
 
-    err = gdDisplayMode(&mode, NULL, 2);    //XXX 2 (to clear the fb) -> revisit
+    try(gdDisplayMode(&mode, NULL, GD_APPLY));
+    Surface_ClearPixels(g_cur_front_buffer);
     gdClut(0, ANSI_COLOR_COUNT, ansi_clrs);
 
 catch:

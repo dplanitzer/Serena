@@ -83,7 +83,6 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     switch (op) {
         case GD_APPLY:
         case GD_CHECK:
-        case 2: //XXX revisit this
             break;
 
         default:
@@ -111,13 +110,6 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     }
 
 
-    // Clear the framebuffer to black if requested
-    //XXX revisit this
-    if (op == 2) {
-        Surface_ClearPixels(front_buf);
-    }
-
-    
     // Compile the Copper program(s) for the new framebuffer
     err = create_screen_copper_prog(vc, front_buf, &prog);
     if (err != EOK) {
