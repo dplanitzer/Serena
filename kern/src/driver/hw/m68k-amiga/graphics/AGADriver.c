@@ -142,18 +142,18 @@ errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnu
     return err;
 }
 
-int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self)
-{
-    gdLock();
-    const int id = gdGetScreenbuffer();
-    gdUnlock();
-    return id;
-}
-
 errno_t AGADriver_DisplayMode(AGADriverRef _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
 {
     gdLock();
     const errno_t err = gdDisplayMode(mode, params, op);
+    gdUnlock();
+    return err;
+}
+
+errno_t AGADriver_GetDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info)
+{
+    gdLock();
+    const errno_t err = gdGetDisplayInfo(flavor, info);
     gdUnlock();
     return err;
 }

@@ -45,26 +45,31 @@ extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);
 
 extern errno_t _gdBindSpriteBuffer(int unit, Surface* _Nullable srf);
 
+
+// Command Buffer
+extern errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
+extern errno_t gdDeleteCmdbuf(int id);
+
+
+// CLUT
+extern errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries);
+extern errno_t gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries);
+extern errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info);
+
+
+// Display
+extern errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
+extern errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info);
+extern errno_t gdDisplayCommands(int id, size_t offset);
+extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
+extern void gdSetLightPenEnabled(bool enabled);
+
+
 // Mouse Cursor
 extern errno_t gdObtainCursor(void);
 extern void gdReleaseCursor();
 extern errno_t gdBindCursor(int id);
 extern void gdSetCursorPos(int x, int y);
 extern void gdSetCursorVis(bool isVisible);
-
-// Command Buffer
-extern errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
-extern errno_t gdDeleteCmdbuf(int id);
-
-// Display
-extern errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries);
-extern errno_t gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries);
-extern errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info);
-extern errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
-extern int gdGetScreenbuffer(void);
-extern errno_t gdDisplayCommands(int id, size_t offset);
-extern void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
-extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
-extern void gdSetLightPenEnabled(bool enabled);
 
 #endif /* _GD_H */

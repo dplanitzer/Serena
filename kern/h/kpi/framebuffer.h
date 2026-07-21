@@ -199,6 +199,43 @@ typedef struct gd_display_buffers {
 } gd_display_buffers_t;
 
 
+#define GD_DISPLAY_MODE     1
+#define GD_DISPLAY_PARAMS   2
+#define GD_DISPLAY_BUFFERS  3
+
+typedef void* gd_display_info_ref_t;
+
+
+// Switches the display to the display mode 'mode' and applies the dynamic
+// display parameters 'params' if specified. The switch is executed on the next
+// VBL and the caller is blocked until teh switch has completed. 'op' specifies
+// how teh switch should be executed:
+// GD_APPLY - the switch is executed.
+// GD_CHECK - the call verifies whether the switch would succeed but it does not
+//            actually execute it. EOK is returned if the switch would be successful
+//            and a suitable error is returned if it would fail.
+// gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params* _Nullable params, int op)
+#define GDC_DISPLAY_MODE \
+IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
+
+// Returns the display info indicated by 'flavor'.
+// gdGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull pOutInfo)
+#define GDC_GET_DISPLAY_INFO \
+IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_RD, 0)
+
+// Executes commands from the command buffer 'id', starting at offset 'offset'
+// until an end command is encountered. All commands target the display and are
+// scheduled such that they will update the display on the next VBL. Execution
+// ends at the first encountered end command or if an error is encountered.
+// gdDisplayCommands(int id, size_t offset)
+#define GDC_DISPLAY_COMMANDS \
+IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
+
+
+//
+// CLUT
+//
+
 typedef struct gd_clut_info {
     size_t  entryCount;
     size_t  redBits;
@@ -220,26 +257,6 @@ IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
 // gdGetClutInfo(gd_clut_info_t* _Nonnull info)
 #define GDC_GET_CLUT_INFO \
 IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
-
-// Switches the display to the display mode 'mode' and applies the dynamic
-// display parameters 'params' if specified. The switch is executed on the next
-// VBL and the caller is blocked until teh switch has completed. 'op' specifies
-// how teh switch should be executed:
-// GD_APPLY - the switch is executed.
-// GD_CHECK - the call verifies whether the switch would succeed but it does not
-//            actually execute it. EOK is returned if the switch would be successful
-//            and a suitable error is returned if it would fail.
-// gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params* _Nullable params, int op)
-#define GDC_DISPLAY_MODE \
-IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
-
-// Executes commands from the command buffer 'id', starting at offset 'offset'
-// until an end command is encountered. All commands target the display and are
-// scheduled such that they will update the display on the next VBL. Execution
-// ends at the first encountered end command or if an error is encountered.
-// gdDisplayCommands(int id, size_t offset)
-#define GDC_DISPLAY_COMMANDS \
-IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 
 

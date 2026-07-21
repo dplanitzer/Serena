@@ -98,7 +98,14 @@ void AmiHIDDisplay_setCursorVisible(AmiHIDDisplayRef _Nonnull self, bool isVisib
 
 void AmiHIDDisplay_getScreenSize(AmiHIDDisplayRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
-    gdGetScreenSize(pOutWidth, pOutHeight);
+    gd_display_mode_t mode;
+
+    gdLock();
+    gdGetDisplayInfo(GD_DISPLAY_MODE, &mode);
+    gdUnlock();
+    
+    *pOutWidth = mode.width;
+    *pOutHeight = mode.height;
 }
 
 void AmiHIDDisplay_setScreenConfigObserver(AmiHIDDisplayRef _Nonnull self, vcpu_t _Nullable vp, int signo)

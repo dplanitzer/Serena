@@ -21,17 +21,22 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     AGADriverRef drv = NULL;
-    gd_buffer_info_t binf;
 
     memset(bscr, 0, sizeof(bt_screen_t));
     try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&drv));
 
 
+    union {
+        gd_display_buffers_t    b;
+        gd_display_mode_t       m;
+    } dpy_inf;
+
+    AGADriver_GetDisplayInfo(drv, GD_DISPLAY_BUFFERS, &dpy_inf.b);
+    bscr->buf_id = dpy_inf.b.front_left;
+    AGADriver_GetDisplayInfo(drv, GD_DISPLAY_MODE, &dpy_inf.m);
+    bscr->width = dpy_inf.m.width;
+    bscr->height = dpy_inf.m.height;
     bscr->drv = drv;
-    bscr->buf_id = AGADriver_GetScreenbuffer(drv);
-    AGADriver_GetBufferInfo(bscr->drv, bscr->buf_id, &binf);
-    bscr->width = binf.width;
-    bscr->height = binf.height;
 
 
     try(AGADriver_MapBuffer(drv, bscr->buf_id, GD_MAP_RW, &bscr->mp));

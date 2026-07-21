@@ -40,12 +40,16 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Get the screen buffer information
-    gd_buffer_info_t binf;
+    union {
+        gd_display_buffers_t    b;
+        gd_display_mode_t       m;
+    } dpy_inf;
 
-    self->pixelBufferId = AGADriver_GetScreenbuffer(self->drv);
-    AGADriver_GetBufferInfo(self->drv, self->pixelBufferId, &binf);
-    self->pixelsWidth = binf.width;
-    self->pixelsHeight = binf.height;
+    AGADriver_GetDisplayInfo(self->drv, GD_DISPLAY_BUFFERS, &dpy_inf.b);
+    self->pixelBufferId = dpy_inf.b.front_left;
+    AGADriver_GetDisplayInfo(self->drv, GD_DISPLAY_MODE, &dpy_inf.m);
+    self->pixelsWidth = dpy_inf.m.width;
+    self->pixelsHeight = dpy_inf.m.height;
 
 
     // Clear the framebuffer

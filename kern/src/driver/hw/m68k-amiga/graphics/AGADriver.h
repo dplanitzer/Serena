@@ -47,11 +47,14 @@ extern void* _Nonnull gdCmdSpriteVisible(void* _Nonnull addr, int spr_id, bool i
 extern void* _Nonnull gdCmdEnd(void* _Nonnull addr);
 
 
-// Display
+// CLUT
 extern errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, gd_rgb32_t* _Nonnull entries);
 extern errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnull info);
+
+
+// Display
 extern errno_t AGADriver_DisplayMode(AGADriverRef _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
-extern int AGADriver_GetScreenbuffer(AGADriverRef _Nonnull self);
+extern errno_t AGADriver_GetDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info);
 extern errno_t AGADriver_DisplayCommands(AGADriverRef _Nonnull self, int id, size_t offset);
 
 #endif /* AGADriver_h */

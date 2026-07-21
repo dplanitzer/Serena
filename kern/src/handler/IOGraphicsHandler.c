@@ -100,7 +100,7 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
 
 
         //
-        // Display
+        // CLUT
         //
 
         case GDC_GET_CLUT: {
@@ -117,12 +117,24 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_GetClutInfo(drv, info);
         }
 
+
+        //
+        // Display
+        //
+
         case GDC_DISPLAY_MODE: {
             const gd_display_mode_t* mode = va_arg(ap, const gd_display_mode_t*);
             const gd_display_params_t* params = va_arg(ap, const gd_display_params_t*);
             const int op = va_arg(ap, int);
 
             return AGADriver_DisplayMode(drv, mode, params, op);
+        }
+
+        case GDC_GET_DISPLAY_INFO: {
+            const int flavor = va_arg(ap, int);
+            gd_display_info_ref_t info = va_arg(ap, gd_display_info_ref_t);
+
+            return AGADriver_GetDisplayInfo(drv, flavor, info);
         }
 
         case GDC_DISPLAY_COMMANDS: {

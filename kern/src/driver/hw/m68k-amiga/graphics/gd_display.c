@@ -153,15 +153,34 @@ catch:
     return err;
 }
 
-int gdGetScreenbuffer(void)
+errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
 {
-    return (g_cur_front_buffer) ? g_cur_front_buffer->id : 0;
-}
+    switch (flavor) {
+        case GD_DISPLAY_MODE: {
+            gd_display_mode_t* ip = info;
 
-void gdGetScreenSize(int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
-{
-    *pOutWidth = g_cur_display_mode.width;
-    *pOutHeight = g_cur_display_mode.height;
+            *ip = g_cur_display_mode;
+            return EOK;
+        }
+
+        case GD_DISPLAY_PARAMS: {
+            gd_display_params_t* ip = info;
+
+            *ip = g_cur_display_params;
+            return EOK;
+        }
+
+        case GD_DISPLAY_BUFFERS: {
+            gd_display_buffers_t* ip = info;
+
+            *ip = (gd_display_buffers_t){0};
+            ip->front_left = (g_cur_front_buffer) ? g_cur_front_buffer->id : 0;
+            return EOK;
+        }
+
+        default:
+            return EINVAL;
+    }
 }
 
 void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo)
