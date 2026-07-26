@@ -34,7 +34,7 @@ typedef struct video_conf {
 } video_conf_t;
 
 
-#define NUM_VIDEO_CONFIGS   28
+#define NUM_VIDEO_CONFIGS   18
 extern const video_conf_t g_video_conf[NUM_VIDEO_CONFIGS];
 
 
