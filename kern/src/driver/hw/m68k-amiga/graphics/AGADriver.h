@@ -19,12 +19,12 @@ final_class(AGADriver, IODriver);
 extern errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf);
 
 
-// Pixel buffers
-extern errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
-extern errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id);
-extern errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, gd_buffer_info_t* _Nonnull pOutInfo);
-extern errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping);
-extern errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id);
+// Images
+extern errno_t AGADriver_CreateImage(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
+extern errno_t AGADriver_DestroyImage(AGADriverRef _Nonnull self, int id);
+extern errno_t AGADriver_GetImageInfo(AGADriverRef _Nonnull self, int id, gd_image_info_t* _Nonnull pOutInfo);
+extern errno_t AGADriver_MapImage(AGADriverRef _Nonnull self, int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
+extern errno_t AGADriver_UnmapImage(AGADriverRef _Nonnull self, int id);
 
 
 // Sprites
@@ -38,11 +38,11 @@ extern errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int que
 
 
 // In-kernel command buffer utilities
-extern void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
-extern void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id);
-extern void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id);
-extern void* _Nonnull gdCmdSpritePosition(void* _Nonnull addr, int spr_id, int16_t x, int16_t y);
-extern void* _Nonnull gdCmdSpriteVisible(void* _Nonnull addr, int spr_id, bool isVisible);
+extern void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int img_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
+extern void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int img_id);
+extern void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int target, int img_id);
+extern void* _Nonnull gdCmdMoveSprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y);
+extern void* _Nonnull gdCmdShowSprite(void* _Nonnull addr, int spr_id, bool isVisible);
 extern void* _Nonnull gdCmdEnd(void* _Nonnull addr);
 
 

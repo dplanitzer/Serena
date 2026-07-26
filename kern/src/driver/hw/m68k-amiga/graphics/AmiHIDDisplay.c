@@ -46,7 +46,7 @@ void AmiHIDDisplay_releaseCursor(AmiHIDDisplayRef _Nonnull self)
 {
     gdLock();
     gdReleaseCursor();
-    gdDeleteBuffer(self->cursorBufferId);
+    gdDestroyImage(self->cursorBufferId);
     self->cursorBufferId = 0;
     gdUnlock();
 }
@@ -64,18 +64,18 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
     if (self->cursorBufferId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(gdGenBuffer(width, height, GD_RGB_SPRITE_2, &newId));
+        try(gdCreateImage(width, height, GD_RGB_SPRITE_2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
         if (self->cursorBufferId) {
-            gdDeleteBuffer(self->cursorBufferId);
+            gdDestroyImage(self->cursorBufferId);
         }
         self->cursorBufferId = newId;
     }
 
     try(_gdDrawPixels(self->cursorBufferId, planes, bytesPerRow, format));
-    try(gdBindCursor(self->cursorBufferId));
+    try(gdBindCursorImage(self->cursorBufferId));
 
 catch:
     gdUnlock();
@@ -85,14 +85,14 @@ catch:
 void AmiHIDDisplay_setCursorPosition(AmiHIDDisplayRef _Nonnull self, int x, int y)
 {
     gdLock();
-    gdSetCursorPos(x, y);
+    gdMoveCursor(x, y);
     gdUnlock();
 }
 
 void AmiHIDDisplay_setCursorVisible(AmiHIDDisplayRef _Nonnull self, bool isVisible)
 {
     gdLock();
-    gdSetCursorVis(isVisible);
+    gdShowCursor(isVisible);
     gdUnlock();
 }
 

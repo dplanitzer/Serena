@@ -161,7 +161,7 @@ const video_conf_t* _Nullable get_matching_video_conf(const gd_display_mode_t* _
 // MARK: gd_pixfmt_t
 //
 
-int8_t PixelFormat_GetPlaneCount(gd_pixfmt_t format)
+int8_t _gdGetPlaneCount(gd_pixfmt_t format)
 {
     switch (format) {
         case GD_RGB_SPRITE_2:

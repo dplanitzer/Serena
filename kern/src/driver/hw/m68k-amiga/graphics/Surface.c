@@ -102,7 +102,7 @@ errno_t Surface_Create(int width, int height, gd_pixfmt_t pixelFormat, Surface* 
     self->width = width;
     self->height = height;
     self->bytesPerRow = ((width + 15) >> 4) << 1;       // Must be a multiple of at least words (16bits)
-    self->planeCount = PixelFormat_GetPlaneCount(pixelFormat);
+    self->planeCount = _gdGetPlaneCount(pixelFormat);
 
 
     if (self->planeCount == 1) {

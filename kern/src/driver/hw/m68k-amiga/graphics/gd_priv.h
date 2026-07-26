@@ -41,7 +41,7 @@ typedef struct sprite_channel {
     char                id;
 } sprite_channel_t;
 
-extern bool _bind_sprite_buffer(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo);
+extern bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo);
 
 
 // Copper program instruction

@@ -46,7 +46,7 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
     return (hw << 16) | lw;
 }
 
-bool _bind_sprite_buffer(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo)
+bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo)
 {
     bool hasChanged = false;
 
@@ -86,7 +86,7 @@ bool _bind_sprite_buffer(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo)
     return hasChanged;
 }
 
-static void _sprite_buffer_or_visibility_changed(const sprite_channel_t* _Nonnull spr)
+static void _sprite_image_or_visibility_changed(const sprite_channel_t* _Nonnull spr)
 {
     copper_prog_t prog = copper_get_editable_prog();
         
@@ -120,7 +120,7 @@ static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t _gdBindSpriteBuffer(int unit, Surface* _Nullable pbo)
+errno_t _gdBindSpriteImage(int unit, Surface* _Nullable pbo)
 {
     if (unit < 0 || unit >= SPRITE_COUNT) {
         return ENOTSUP;
@@ -139,14 +139,14 @@ errno_t _gdBindSpriteBuffer(int unit, Surface* _Nullable pbo)
 
 
     sprite_channel_t* spr = &g_sprite[unit];
-    if (_bind_sprite_buffer(spr, pbo)) {
-        _sprite_buffer_or_visibility_changed(spr);
+    if (_bind_sprite_image(spr, pbo)) {
+        _sprite_image_or_visibility_changed(spr);
     }
 
     return EOK;
 }
 
-errno_t gdSetSpritePos(int spriteId, int x, int y)
+errno_t gdMoveSprite(int spriteId, int x, int y)
 {
     if (spriteId < 0 || spriteId >= SPRITE_COUNT) {
         return EINVAL;
@@ -159,7 +159,7 @@ errno_t gdSetSpritePos(int spriteId, int x, int y)
     return EOK;
 }
 
-errno_t gdSetSpriteVis(int spriteId, bool isVisible)
+errno_t gdShowSprite(int spriteId, bool isVisible)
 {
     if (spriteId < 0 || spriteId >= SPRITE_COUNT) {
         return EINVAL;
@@ -174,7 +174,7 @@ errno_t gdSetSpriteVis(int spriteId, bool isVisible)
     
     if (hasChange) {
         spr->isVisible = isVisible;
-        _sprite_buffer_or_visibility_changed(spr);
+        _sprite_image_or_visibility_changed(spr);
     }
 
     return EOK;
@@ -204,13 +204,13 @@ errno_t gdObtainCursor(void)
     sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
 
     g_mouse_cursor_active = 1;
-    hasChanged |= _bind_sprite_buffer(spr, NULL);
+    hasChanged |= _bind_sprite_image(spr, NULL);
     _set_sprite_pos(spr, 0, 0);
     hasChanged |= !spr->isVisible;
     spr->isVisible = true;
 
     if (hasChanged) {
-        _sprite_buffer_or_visibility_changed(spr);
+        _sprite_image_or_visibility_changed(spr);
     }
 
     return EOK;
@@ -222,19 +222,19 @@ void gdReleaseCursor()
         sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
         bool hasChanged = false;
         
-        hasChanged |= _bind_sprite_buffer(spr, NULL);
+        hasChanged |= _bind_sprite_image(spr, NULL);
         _set_sprite_pos(spr, 0, 0);
         hasChanged |= spr->isVisible;
         spr->isVisible = false;
         g_mouse_cursor_active = 0;
 
         if (hasChanged) {
-            _sprite_buffer_or_visibility_changed(spr);
+            _sprite_image_or_visibility_changed(spr);
         }
     }
 }
 
-errno_t gdBindCursor(int id)
+errno_t gdBindCursorImage(int id)
 {
     if (!g_mouse_cursor_active) {
         return EBUSY;
@@ -251,29 +251,29 @@ errno_t gdBindCursor(int id)
             return ENOTSUP;
         }
 
-        hasChanged = _bind_sprite_buffer(spr, pbo);
+        hasChanged = _bind_sprite_image(spr, pbo);
     }
     else if (id == 0) {
-        hasChanged = _bind_sprite_buffer(spr, NULL);
+        hasChanged = _bind_sprite_image(spr, NULL);
     }
     else {
         return EINVAL;
     }
 
     if (hasChanged) {
-        _sprite_buffer_or_visibility_changed(spr);
+        _sprite_image_or_visibility_changed(spr);
     }
     return EOK;
 }
 
-void gdSetCursorPos(int x, int y)
+void gdMoveCursor(int x, int y)
 {
     if (g_mouse_cursor_active) {
         _set_sprite_pos(&g_sprite[MOUSE_SPRITE_PRI], x, y);
     }
 }
 
-void gdSetCursorVis(bool isVisible)
+void gdShowCursor(bool isVisible)
 {
     if (g_mouse_cursor_active) {
         sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
@@ -281,7 +281,7 @@ void gdSetCursorVis(bool isVisible)
 
         if (hasChange) {
             spr->isVisible = isVisible;
-            _sprite_buffer_or_visibility_changed(spr);
+            _sprite_image_or_visibility_changed(spr);
         }
     }
 }

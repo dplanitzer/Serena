@@ -61,7 +61,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Map the console framebuffer
-    try(AGADriver_MapBuffer(self->drv, self->pixelBufferId, GD_MAP_RW, &self->pixels));
+    try(AGADriver_MapImage(self->drv, self->pixelBufferId, GD_MAP_RW, &self->pixels));
 
 
     // Allocate the text cursor (sprite)
@@ -73,7 +73,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(AGADriver_CreateBuffer(self->drv, textCursorWidth, textCursorHeight, GD_RGB_SPRITE_2, &self->textCursorBufferId));
+    try(AGADriver_CreateImage(self->drv, textCursorWidth, textCursorHeight, GD_RGB_SPRITE_2, &self->textCursorBufferId));
 
     ip = self->cmdbuf.addr;
     ip = gdCmdWritePixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, GD_COLOR_INDEX2);
@@ -82,8 +82,8 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     try(AGADriver_SubmitCommandBuffer(self->drv, GD_TRANSFER_QUEUE, self->cmdbuf.id));
 
     ip = self->cmdbuf.addr;
-    ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, 0);
-    ip = gdCmdBindSpriteBuffer(ip, GD_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
+    ip = gdCmdShowSprite(ip, self->textCursorSpriteId, 0);
+    ip = gdCmdBindSpriteImage(ip, GD_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
     ip = gdCmdEnd(ip);
 
     try(AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id));
@@ -103,7 +103,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    AGADriver_UnmapBuffer(self->drv, self->pixelBufferId);
+    AGADriver_UnmapImage(self->drv, self->pixelBufferId);
     AGADriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
 }
 
@@ -145,7 +145,7 @@ static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
 
     void* ip = self->cmdbuf.addr;
-    ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, self->flags.isTextCursorOn);
+    ip = gdCmdShowSprite(ip, self->textCursorSpriteId, self->flags.isTextCursorOn);
     ip = gdCmdEnd(ip);
 
     AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id);
@@ -167,11 +167,11 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
 
     if (self->flags.isTextCursorVisible) {
-        ip = gdCmdSpritePosition(self->cmdbuf.addr, self->textCursorSpriteId, self->x * self->characterWidth, self->y * self->lineHeight);
+        ip = gdCmdMoveSprite(self->cmdbuf.addr, self->textCursorSpriteId, self->x * self->characterWidth, self->y * self->lineHeight);
 
         if (!self->flags.isTextCursorOn) {
             self->flags.isTextCursorOn = true;
-            ip = gdCmdSpriteVisible(ip, self->textCursorSpriteId, true);
+            ip = gdCmdShowSprite(ip, self->textCursorSpriteId, true);
         }
 
 
@@ -182,7 +182,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
     }
     else if (self->flags.isTextCursorOn) {
         self->flags.isTextCursorOn = false;
-        ip = gdCmdSpriteVisible(self->cmdbuf.addr, self->textCursorSpriteId, false);
+        ip = gdCmdShowSprite(self->cmdbuf.addr, self->textCursorSpriteId, false);
     }
 
     if (ip) {

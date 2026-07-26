@@ -24,40 +24,40 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         // Pixel Buffer
         //
 
-        case GDC_CREATE_BUFFER: {
+        case GDC_CREATE_IMAGE: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const gd_pixfmt_t fmt = va_arg(ap, gd_pixfmt_t);
-            int* buf_id = va_arg(ap, int*);
+            int* img_id = va_arg(ap, int*);
 
-            return AGADriver_CreateBuffer(drv, width, height, fmt, buf_id);
+            return AGADriver_CreateImage(drv, width, height, fmt, img_id);
         }
 
-        case GDC_DESTROY_BUFFER: {
-            int buf_id = va_arg(ap, int);
+        case GDC_DESTROY_IMAGE: {
+            int img_id = va_arg(ap, int);
 
-            return AGADriver_DestroyBuffer(drv, buf_id);
+            return AGADriver_DestroyImage(drv, img_id);
         }
 
-        case GDC_BUFFER_INFO: {
-            int buf_id = va_arg(ap, int);
-            gd_buffer_info_t* si = va_arg(ap, gd_buffer_info_t*);
+        case GDC_GET_IMAGE_INFO: {
+            int img_id = va_arg(ap, int);
+            gd_image_info_t* si = va_arg(ap, gd_image_info_t*);
 
-            return AGADriver_GetBufferInfo(drv, buf_id, si);
+            return AGADriver_GetImageInfo(drv, img_id, si);
         }
 
-        case GDC_MAP_BUFFER: {
-            int buf_id = va_arg(ap, int);
+        case GDC_MAP_IMAGE: {
+            int img_id = va_arg(ap, int);
             int mode = va_arg(ap, int);
-            gd_buffer_data_t* sm = va_arg(ap, gd_buffer_data_t*);
+            gd_image_data_t* sm = va_arg(ap, gd_image_data_t*);
 
-            return AGADriver_MapBuffer(drv, buf_id, mode, sm);
+            return AGADriver_MapImage(drv, img_id, mode, sm);
         }
 
-        case GDC_UNMAP_BUFFER: {
-            const int buf_id = va_arg(ap, int);
+        case GDC_UNMAP_IMAGE: {
+            const int img_id = va_arg(ap, int);
 
-            return AGADriver_UnmapBuffer(drv, buf_id);
+            return AGADriver_UnmapImage(drv, img_id);
         }
 
 
@@ -73,16 +73,16 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         }
 
         case GDC_DESTROY_CMDBUF: {
-            int cmdbuf_id = va_arg(ap, int);
+            int cmdimg_id = va_arg(ap, int);
 
-            return AGADriver_DestroyCommandBuffer(drv, cmdbuf_id);
+            return AGADriver_DestroyCommandBuffer(drv, cmdimg_id);
         }
 
         case GDC_SUBMIT_CMDBUF: {
             int queue_id = va_arg(ap, int);
-            int cmdbuf_id = va_arg(ap, int);
+            int cmdimg_id = va_arg(ap, int);
 
-            return AGADriver_SubmitCommandBuffer(drv, queue_id, cmdbuf_id);
+            return AGADriver_SubmitCommandBuffer(drv, queue_id, cmdimg_id);
         }
 
 

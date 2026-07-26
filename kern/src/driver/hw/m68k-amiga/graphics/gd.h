@@ -26,29 +26,29 @@ mtx_lock(&gd_mtx)
 mtx_unlock(&gd_mtx)
 
 
-// Pixel Buffer
-extern errno_t gdGenBuffer(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
-extern errno_t gdDeleteBuffer(int id);
-extern errno_t gdGetBufferInfo(int id, gd_buffer_info_t* _Nonnull pOutInfo);
-extern errno_t gdBindBuffer(int target, int id);    //XXX
-extern errno_t gdMapBuffer(int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping);
-extern errno_t gdUnmapBuffer(int id);
+// Images
+extern errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
+extern errno_t gdDestroyImage(int id);
+extern errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo);
+extern errno_t gdBindImage(int target, int id);    //XXX
+extern errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
+extern errno_t gdUnmapImage(int id);
 extern errno_t _gdClearPixels(int id);   // For use by AGADriver (clearing default framebuffer)
 extern errno_t _gdDrawPixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
 
 
 // Sprites
-extern errno_t gdSetSpritePos(int spriteId, int x, int y);
-extern errno_t gdSetSpriteVis(int spriteId, bool isVisible);
+extern errno_t gdMoveSprite(int spriteId, int x, int y);
+extern errno_t gdShowSprite(int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);
 
-extern errno_t _gdBindSpriteBuffer(int unit, Surface* _Nullable srf);
+extern errno_t _gdBindSpriteImage(int unit, Surface* _Nullable srf);
 
 
 // Command Buffer
-extern errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
-extern errno_t gdDeleteCmdbuf(int id);
-extern errno_t gdSubmitCmdbuf(int buf_id, int cmds_id);
+extern errno_t gdCreateCommandBuffer(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
+extern errno_t gdDestroyCommandBuffer(int id);
+extern errno_t gdSubmitCommandBuffer(int img_id, int cmds_id);
 
 
 // CLUT
@@ -68,8 +68,8 @@ extern void gdSetLightPenEnabled(bool enabled);
 // Mouse Cursor
 extern errno_t gdObtainCursor(void);
 extern void gdReleaseCursor();
-extern errno_t gdBindCursor(int id);
-extern void gdSetCursorPos(int x, int y);
-extern void gdSetCursorVis(bool isVisible);
+extern errno_t gdBindCursorImage(int id);
+extern void gdMoveCursor(int x, int y);
+extern void gdShowCursor(bool isVisible);
 
 #endif /* _GD_H */

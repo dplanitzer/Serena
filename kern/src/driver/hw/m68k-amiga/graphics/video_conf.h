@@ -48,6 +48,6 @@ extern const video_conf_t* _Nullable get_matching_video_conf(const gd_display_mo
 
 // Returns how many planes are needed to store a pixel in the given pixel format.
 // Returns 1 if the pixel format is a direct pixel format.
-extern int8_t PixelFormat_GetPlaneCount(gd_pixfmt_t format);
+extern int8_t _gdGetPlaneCount(gd_pixfmt_t format);
 
 #endif /* _VIDEO_CONF_H */

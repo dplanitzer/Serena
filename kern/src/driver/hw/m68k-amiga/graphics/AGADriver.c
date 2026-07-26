@@ -58,45 +58,45 @@ errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull inf
 
 
 //
-// Pixel Buffer
+// Images
 //
 
-errno_t AGADriver_CreateBuffer(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t AGADriver_CreateImage(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     gdLock();
-    const errno_t err = gdGenBuffer(width, height, pixelFormat, pOutId);
+    const errno_t err = gdCreateImage(width, height, pixelFormat, pOutId);
     gdUnlock();
     return err;
 }
 
-errno_t AGADriver_DestroyBuffer(AGADriverRef _Nonnull self, int id)
+errno_t AGADriver_DestroyImage(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdDeleteBuffer(id);
+    const errno_t err = gdDestroyImage(id);
     gdUnlock();
     return err;
 }
 
-errno_t AGADriver_GetBufferInfo(AGADriverRef _Nonnull self, int id, gd_buffer_info_t* _Nonnull pOutInfo)
+errno_t AGADriver_GetImageInfo(AGADriverRef _Nonnull self, int id, gd_image_info_t* _Nonnull pOutInfo)
 {
     gdLock();
-    const errno_t err = gdGetBufferInfo(id, pOutInfo);
+    const errno_t err = gdGetImageInfo(id, pOutInfo);
     gdUnlock();
     return err;
 }
 
-errno_t AGADriver_MapBuffer(AGADriverRef _Nonnull self, int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
+errno_t AGADriver_MapImage(AGADriverRef _Nonnull self, int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
     gdLock();
-    const errno_t err = gdMapBuffer(id, mode, pOutMapping);
+    const errno_t err = gdMapImage(id, mode, pOutMapping);
     gdUnlock();
     return err;
 }
 
-errno_t AGADriver_UnmapBuffer(AGADriverRef _Nonnull self, int id)
+errno_t AGADriver_UnmapImage(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdUnmapBuffer(id);
+    const errno_t err = gdUnmapImage(id);
     gdUnlock();
     return err;
 }
@@ -179,7 +179,7 @@ errno_t AGADriver_EnumDisplayModes(AGADriverRef _Nonnull self, int index, gd_dis
 errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, gd_cmdbuf_desc_t* _Nonnull desc)
 {
     gdLock();
-    const errno_t err = gdGenCmdbuf(size, desc);
+    const errno_t err = gdCreateCommandBuffer(size, desc);
     gdUnlock();
     return err;
 }
@@ -187,7 +187,7 @@ errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, g
 errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdDeleteCmdbuf(id);
+    const errno_t err = gdDestroyCommandBuffer(id);
     gdUnlock();
     return err;
 }
@@ -195,7 +195,7 @@ errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
 errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int queue_id, int cmds_id)
 {
     gdLock();
-    const errno_t err = gdSubmitCmdbuf(queue_id, cmds_id);
+    const errno_t err = gdSubmitCommandBuffer(queue_id, cmds_id);
     gdUnlock();
     return err;
 }
@@ -214,13 +214,13 @@ void* _Nonnull gdCmdEnd(void* _Nonnull addr)
 }
 
 
-void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int buf_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
+void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int img_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
     struct gd_op_write_pixels* p = addr;
-    const size_t pcnt = PixelFormat_GetPlaneCount(format);
+    const size_t pcnt = _gdGetPlaneCount(format);
 
     p->opcode = GD_OPCODE_WRITE_PIXELS;
-    p->dstBufferId = buf_id;
+    p->dstBufferId = img_id;
     p->bytesPerRow = bytesPerRow;
     p->format = format;
     
@@ -231,41 +231,41 @@ void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int buf_id, const void* _No
     return (char*)addr + sizeof(struct gd_op_write_pixels) + (pcnt - 1) * sizeof(void*);
 }
 
-void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int buf_id)
+void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int img_id)
 {
     struct gd_op_clear_pixels* p = addr;
 
     p->opcode = GD_OPCODE_CLEAR_PIXELS;
-    p->dstBufferId = buf_id;
+    p->dstBufferId = img_id;
 
     return (char*)addr + sizeof(struct gd_op_clear_pixels);
 }
 
 
-void* _Nonnull gdCmdBindSpriteBuffer(void* _Nonnull addr, int target, int buf_id)
+void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int target, int img_id)
 {
-    struct gd_op_bind_buffer* p = addr;
+    struct gd_op_bind_image* p = addr;
 
-    p->opcode = GD_OPCODE_BIND_BUFFER;
+    p->opcode = GD_OPCODE_BIND_IMAGE;
     p->target = target;
-    p->bufferId = buf_id;
+    p->bufferId = img_id;
 
-    return (char*)addr + sizeof(struct gd_op_bind_buffer);
+    return (char*)addr + sizeof(struct gd_op_bind_image);
 }
 
-void* _Nonnull gdCmdSpritePosition(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
+void* _Nonnull gdCmdMoveSprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
 {
-    struct gd_op_put_sprite* p = addr;
+    struct gd_op_move_sprite* p = addr;
 
-    p->opcode = GD_OPCODE_PUT_SPRITE;
+    p->opcode = GD_OPCODE_MOVE_SPRITE;
     p->spriteId = spr_id;
     p->x = x;
     p->y = y;
 
-    return (char*)addr + sizeof(struct gd_op_put_sprite);
+    return (char*)addr + sizeof(struct gd_op_move_sprite);
 }
 
-void* _Nonnull gdCmdSpriteVisible(void* _Nonnull addr, int spr_id, bool isVisible)
+void* _Nonnull gdCmdShowSprite(void* _Nonnull addr, int spr_id, bool isVisible)
 {
     struct gd_op_show_sprite* p = addr;
 

@@ -14,7 +14,7 @@
 #include <kpi/ioctl.h>
 #include <kpi/types.h>
 
-// Pixel buffer formats
+// Image pixel formats
 #define GD_COLOR_INDEX1 1  // planar indexed with 1 bit per pixel
 #define GD_COLOR_INDEX2 2  // planar indexed with 2 bits per pixel
 #define GD_COLOR_INDEX3 3  // planar indexed with 3 bits per pixel
@@ -32,7 +32,7 @@
 typedef int gd_pixfmt_t;
 
 
-// Pixel buffer binding targets
+// Image binding targets
 #define GD_SPRITE_0 0x20000
 #define GD_SPRITE_1 0x20001
 #define GD_SPRITE_2 0x20002
@@ -44,24 +44,24 @@ typedef int gd_pixfmt_t;
 
 
 // Geometry and pixel encoding of a pixel buffer
-typedef struct gd_buffer_info {
+typedef struct gd_image_info {
     int         width;
     int         height;
     gd_pixfmt_t pixelFormat;
-} gd_buffer_info_t;
+} gd_image_info_t;
 
 
-// Specifies what you want to do with the pixels when you call map_buffer()
+// Specifies what you want to do with the pixels when you call gdMapImage()
 #define GD_MAP_RDONLY  0
 #define GD_MAP_RW      1
 
 
 // Provides access to the pixels of a pixel buffer
-typedef struct gd_buffer_data {
+typedef struct gd_image_data {
     void* _Nonnull  plane[8];
     size_t          planeCount;
     size_t          bytesPerRow;
-} gd_buffer_data_t;
+} gd_image_data_t;
 
 
 //
@@ -94,42 +94,41 @@ typedef unsigned int gd_rgb32_t;
 
 
 //
-// Pixel buffers
+// Images
 //
 
-// Creates a 2d pixel buffer of size 'width' x 'height' pixels and with a pixel
-// encoding 'encoding' and returns the unique id of the buffer in 'pOutId'. Note
-// that the buffer width and height have to be > 1. The buffer may be used to
-// create a screen and it may be directly mapped into the address space of the
-// owning process or manipulated with the Blitter.
-// create_buffer(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
-#define GDC_CREATE_BUFFER \
+// Creates a 2d image with size 'width' x 'height' pixels and pixel format
+// 'format'. Returns the unique image ID in 'pOutId' on success. Note
+// that the image width and height have to be > 1. The image may be directly
+// mapped into the address space of the owning process or manipulated with the
+// Blitter.
+// gdCreateImage(int width, int height, gd_pixfmt_t format, int* _Nonnull pOutId)
+#define GDC_CREATE_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 1, _IOCMD_ACC_WR, 0)
 
-// Destroys the buffer with id 'id'. Returns EBUSY if the buffer is currently
-// mapped or is attached to a screen. Automatically unbinds the buffer if it is
-// attached to a sprite and binds the sprite target to a null buffer. Does
-// nothing if 'id' is 0.
-// destroy_buffer(int id)
-#define GDC_DESTROY_BUFFER \
+// Destroys the image with id 'id'. Returns EBUSY if the image is currently
+// mapped. Automatically unbinds the image if it is bound to a sprite and binds
+// the sprite target to a null image. Does nothing if 'id' is 0.
+// gdDestroyImage(int id)
+#define GDC_DESTROY_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 2, _IOCMD_ACC_WR, 0)
 
-// Returns information about the buffer 'id'.
-// get_gd_buffer_info(int id, gd_buffer_info_t* _Nonnull pOutInfo)
-#define GDC_BUFFER_INFO \
+// Returns information about the image with ID 'id'.
+// gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
+#define GDC_GET_IMAGE_INFO \
 IOCMD_MAKE(IOPROTO_FB, 3, _IOCMD_ACC_RD, 0)
 
-// Maps the backing store of the buffer 'id' into the address space of the
-// calling process to allow direct access to the pixel data. 'mode' specifies
+// Maps the pixels of the image 'id' into the address space of the calling
+// process to allow direct access to the pixel data. 'mode' specifies
 // whether the pixel data should be mapped for reading only or reading and
 // writing. Returns with 'pOutMapping' filled in.
-// map_buffer(int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
-#define GDC_MAP_BUFFER \
+// gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
+#define GDC_MAP_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 4, _IOCMD_ACC_RDWR, 0)
 
-// Unmaps the backing store of the buffer 'id' and revokes access to the pixels.
-// unmap_buffer(int id)
-#define GDC_UNMAP_BUFFER \
+// Unmaps the pixels of the image 'id' and revokes access to the pixels.
+// gdUnmapImage(int id)
+#define GDC_UNMAP_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
 
@@ -272,9 +271,9 @@ IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 #define GD_OPCODE_WRITE_PIXELS 200     // struct gd_op_write_pixels
 
 // Sprite command set
-#define GD_OPCODE_PUT_SPRITE   300     // struct gd_op_put_sprite
+#define GD_OPCODE_MOVE_SPRITE   300     // struct gd_op_move_sprite
 #define GD_OPCODE_SHOW_SPRITE  301     // struct gd_op_show_sprite
-#define GD_OPCODE_BIND_BUFFER  302     // struct gd_op_bind_buffer 
+#define GD_OPCODE_BIND_IMAGE  302     // struct gd_op_bind_image 
 
 typedef unsigned short gd_opcode_t;
 
@@ -297,13 +296,13 @@ struct gd_op_write_pixels {
 
 
 // Sprite command set
-struct gd_op_bind_buffer {
+struct gd_op_bind_image {
     gd_opcode_t    opcode;
     int             target;
     int             bufferId;
 };
 
-struct gd_op_put_sprite {
+struct gd_op_move_sprite {
     gd_opcode_t     opcode;
     int             spriteId;
     int16_t         x;
@@ -327,8 +326,8 @@ union vio_op {
     struct gd_op_write_pixels   write_pixels;
 
     // Sprite
-    struct gd_op_bind_buffer    bind_buffer;
-    struct gd_op_put_sprite     put_sprite;
+    struct gd_op_bind_image    bind_buffer;
+    struct gd_op_move_sprite     put_sprite;
     struct gd_op_show_sprite    show_sprite;
 };
 

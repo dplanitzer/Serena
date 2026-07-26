@@ -32,14 +32,14 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
     } dpy_inf;
 
     AGADriver_GetDisplayInfo(drv, GD_DISPLAY_BUFFERS, &dpy_inf.b);
-    bscr->buf_id = dpy_inf.b.front_left;
+    bscr->img_id = dpy_inf.b.front_left;
     AGADriver_GetDisplayInfo(drv, GD_DISPLAY_MODE, &dpy_inf.m);
     bscr->width = dpy_inf.m.width;
     bscr->height = dpy_inf.m.height;
     bscr->drv = drv;
 
 
-    try(AGADriver_MapBuffer(drv, bscr->buf_id, GD_MAP_RW, &bscr->mp));
+    try(AGADriver_MapImage(drv, bscr->img_id, GD_MAP_RW, &bscr->mp));
 
         
     // Draw the boot logo
@@ -76,7 +76,7 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->drv) {
-        AGADriver_UnmapBuffer(bscr->drv, bscr->buf_id);
+        AGADriver_UnmapImage(bscr->drv, bscr->img_id);
 
         IODriver_Close(bscr->drv);
         Object_Release(bscr->drv);

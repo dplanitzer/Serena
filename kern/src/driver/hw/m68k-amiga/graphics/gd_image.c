@@ -1,5 +1,5 @@
 //
-//  gd_pixbuf.c
+//  gd_image.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
@@ -9,7 +9,7 @@
 #include "gd_priv.h"
 
 
-errno_t gdGenBuffer(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     Surface* pbo;
 
@@ -20,7 +20,7 @@ errno_t gdGenBuffer(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnul
     return err;
 }
 
-errno_t gdDeleteBuffer(int id)
+errno_t gdDestroyImage(int id)
 {
     if (id == 0) {
         return EOK;
@@ -70,7 +70,7 @@ errno_t gdDeleteBuffer(int id)
         sprite_channel_t* spr = &g_sprite[i];
 
         if (spr->pixbuf == pbo) {
-            _bind_sprite_buffer(spr, NULL);
+            _bind_sprite_image(spr, NULL);
             copper_prog_sprptr_changed(next_prog, spr->id, (spr->pixbuf && spr->isVisible) ? spr->pixbuf : NULL);
         }
     }
@@ -86,7 +86,7 @@ errno_t gdDeleteBuffer(int id)
     return EOK;
 }
 
-errno_t gdGetBufferInfo(int id, gd_buffer_info_t* _Nonnull pOutInfo)
+errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
 {
     Surface* pbo = Surface_GetForId(id);
 
@@ -101,14 +101,14 @@ errno_t gdGetBufferInfo(int id, gd_buffer_info_t* _Nonnull pOutInfo)
     return EOK;
 }
 
-errno_t gdBindBuffer(int target, int id)
+errno_t gdBindImage(int target, int id)
 {
     Surface* pbo = (id != 0) ? Surface_GetForId(id) : NULL;
     
     if (pbo || id == 0) {
         switch (target & 0xffff0000) {
             case GD_SPRITE_0:
-                return _gdBindSpriteBuffer(target & 0x0000ffff, pbo);
+                return _gdBindSpriteImage(target & 0x0000ffff, pbo);
 
             default:
                 return EINVAL;
@@ -119,7 +119,7 @@ errno_t gdBindBuffer(int target, int id)
     }
 }
 
-errno_t gdMapBuffer(int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
+errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
     Surface* pbo = Surface_GetForId(id);
 
@@ -145,7 +145,7 @@ errno_t gdMapBuffer(int id, int mode, gd_buffer_data_t* _Nonnull pOutMapping)
     return EOK;
 }
 
-errno_t gdUnmapBuffer(int id)
+errno_t gdUnmapImage(int id)
 {
     Surface* pbo = Surface_GetForId(id);
 

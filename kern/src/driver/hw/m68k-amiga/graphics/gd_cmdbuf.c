@@ -22,7 +22,7 @@ typedef struct cmdbuf {
 } cmdbuf_t;
 
 
-static int      g_next_cmdbuf_id = 1;
+static int      g_next_cmdimg_id = 1;
 static deque_t  g_cmdbuf_list;
 
 
@@ -39,7 +39,7 @@ static cmdbuf_t* _Nullable _cmdbuf_for_id(int id)
 
 
 
-errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
+errno_t gdCreateCommandBuffer(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf;
@@ -61,7 +61,7 @@ errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
     }
 
 
-    cmdbuf->id = g_next_cmdbuf_id++;
+    cmdbuf->id = g_next_cmdimg_id++;
     cmdbuf->byteSize = reqSize;
     cmdbuf->op = opbuf;
     cmdbuf->opEnd =  cmdbuf->op + cmdbuf->byteSize;
@@ -75,7 +75,7 @@ errno_t gdGenCmdbuf(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
     return EOK;
 }
 
-errno_t gdDeleteCmdbuf(int id)
+errno_t gdDestroyCommandBuffer(int id)
 {
     if (id == 0) {
         return EOK;
@@ -103,18 +103,18 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
             case GD_OPCODE_END:                // gd_opcode_t
                 return EOK;
 
-            case GD_OPCODE_BIND_BUFFER:        // gd_op_bind_buffer   //XXX will turn into gdCmdSpriteBufferLevel
-                try(gdBindBuffer(ip->bind_buffer.target, ip->bind_buffer.bufferId));
-                ilen = sizeof(struct gd_op_bind_buffer);
+            case GD_OPCODE_BIND_IMAGE:         // gd_op_bind_image   //XXX will turn into gdCmdSpriteBufferLevel
+                try(gdBindImage(ip->bind_buffer.target, ip->bind_buffer.bufferId));
+                ilen = sizeof(struct gd_op_bind_image);
                 break;
 
-            case GD_OPCODE_PUT_SPRITE:         // struct gd_op_put_sprite
-                try(gdSetSpritePos(ip->put_sprite.spriteId, ip->put_sprite.x, ip->put_sprite.y));
-                ilen = sizeof(struct gd_op_put_sprite);
+            case GD_OPCODE_MOVE_SPRITE:        // struct gd_op_move_sprite
+                try(gdMoveSprite(ip->put_sprite.spriteId, ip->put_sprite.x, ip->put_sprite.y));
+                ilen = sizeof(struct gd_op_move_sprite);
                 break;
 
             case GD_OPCODE_SHOW_SPRITE:        // struct gd_op_show_sprite
-                try(gdSetSpriteVis(ip->show_sprite.spriteId, ip->show_sprite.visible != 0));
+                try(gdShowSprite(ip->show_sprite.spriteId, ip->show_sprite.visible != 0));
                 ilen = sizeof(struct gd_op_show_sprite);
                 break;
 
@@ -144,7 +144,7 @@ static errno_t _exec_transfer_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 if ((dstbuf = Surface_GetForId(ip->write_pixels.dstBufferId)) != NULL) {
                     Surface_WritePixels(dstbuf, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
                 }
-                ilen = sizeof(struct gd_op_write_pixels) + (PixelFormat_GetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
+                ilen = sizeof(struct gd_op_write_pixels) + (_gdGetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
                 break;
 
             default:
@@ -181,7 +181,7 @@ static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
     }
 }
 
-errno_t gdSubmitCmdbuf(int queue_id, int cmds_id)
+errno_t gdSubmitCommandBuffer(int queue_id, int cmds_id)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf = _cmdbuf_for_id(cmds_id);
