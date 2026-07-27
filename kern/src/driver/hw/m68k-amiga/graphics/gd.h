@@ -10,10 +10,11 @@
 #define _GD_H
 
 #include <ext/try.h>
+#include <kpi/framebuffer.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>
-#include "Surface.h"
 
+struct image;
 
 extern errno_t gdInit(void);
 extern mtx_t gd_mtx;
@@ -33,8 +34,8 @@ extern errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo);
 extern errno_t gdBindImage(int target, int id);    //XXX
 extern errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
 extern errno_t gdUnmapImage(int id);
-extern errno_t _gdClearPixels(int id);   // For use by AGADriver (clearing default framebuffer)
-extern errno_t _gdDrawPixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
+extern errno_t gdClearPixels(int id);   // For use by AGADriver (clearing default framebuffer)
+extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
 
 
 // Sprites
@@ -42,7 +43,7 @@ extern errno_t gdMoveSprite(int spriteId, int x, int y);
 extern errno_t gdShowSprite(int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);
 
-extern errno_t _gdBindSpriteImage(int unit, Surface* _Nullable srf);
+extern errno_t _gdBindSpriteImage(int unit, struct image* _Nullable srf);
 
 
 // Command Buffer

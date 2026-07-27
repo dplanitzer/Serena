@@ -74,7 +74,7 @@ errno_t gdInit(void)
     mode.pixelFormat = GD_COLOR_INDEX3;
 
     try(gdDisplayMode(&mode, NULL, GD_APPLY));
-    Surface_ClearPixels(g_cur_front_buffer);
+    _gdClearPixels(g_cur_front_buffer);
     gdClut(0, ANSI_COLOR_COUNT, ansi_clrs);
 
 catch:

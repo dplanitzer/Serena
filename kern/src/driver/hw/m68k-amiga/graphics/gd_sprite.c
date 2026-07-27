@@ -27,7 +27,7 @@ static bool         g_mouse_cursor_active;
 // sprite DMA data block.
 static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
 {
-    const uint16_t h = Surface_GetHeight(self->pixbuf);
+    const uint16_t h = _gdGetImageHeight(self->image);
     const video_conf_t * vc = g_cur_video_config;
     const int16_t sprX = vc->hSprOrigin - 1 + (self->x >> vc->hSprScale);
     const int16_t sprY = vc->vSprOrigin + (self->y >> vc->vSprScale);
@@ -46,27 +46,27 @@ static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
     return (hw << 16) | lw;
 }
 
-bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo)
+bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, image_t* _Nullable pbo)
 {
     bool hasChanged = false;
 
 
     // Nothing to do if the pixel buffer doesn't actually change
-    if (spr->pixbuf == pbo) {
+    if (spr->image == pbo) {
         return false;
     }
 
 
     // Unbind the existing pixel buffer, if one is bound
-    if (spr->pixbuf) {
+    if (spr->image) {
         // Cancel any still pending control word writes
         sprite_ctl_cancel(spr->id);
 
         // Drop the sprite channel reference. Note that the currently running Copper
         // program still holds a reference on the sprite surface. This one will be
         // freed after the Copper program has been retired
-        Surface_DelRef(spr->pixbuf);
-        spr->pixbuf = NULL;
+        _gdReleaseImage(spr->image);
+        spr->image = NULL;
 
         hasChanged = true;
     }
@@ -74,10 +74,10 @@ bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo)
 
     // Bind the new pixel buffer if there is one
     if (pbo) {
-        spr->pixbuf = pbo;
-        Surface_AddRef(pbo);
+        spr->image = pbo;
+        _gdRetainImage(pbo);
 
-        uint32_t* sprptr = (uint32_t*)Surface_GetPlane(pbo, 0);
+        uint32_t* sprptr = (uint32_t*)_gdGetImagePlane(pbo, 0);
         *sprptr = _calc_sprite_ctl(spr);
 
         hasChanged = true;
@@ -91,7 +91,7 @@ static void _sprite_image_or_visibility_changed(const sprite_channel_t* _Nonnull
     copper_prog_t prog = copper_get_editable_prog();
         
     if (prog) {
-        copper_prog_sprptr_changed(prog, spr->id, (spr->pixbuf && spr->isVisible) ? spr->pixbuf : NULL);
+        copper_prog_sprptr_changed(prog, spr->id, (spr->image && spr->isVisible) ? spr->image : NULL);
         copper_schedule(prog, 0);
     }
 }
@@ -101,14 +101,14 @@ static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
     spr->x = x;
     spr->y = y;
 
-    if (spr->pixbuf) {
+    if (spr->image) {
         const uint32_t ctl = _calc_sprite_ctl(spr);
 
         if (spr->isVisible) {
-            sprite_ctl_submit(spr->id, Surface_GetPlane(spr->pixbuf, 0), ctl);
+            sprite_ctl_submit(spr->id, _gdGetImagePlane(spr->image, 0), ctl);
         }
         else {
-            uint32_t* sprptr = (uint32_t*)Surface_GetPlane(spr->pixbuf, 0);
+            uint32_t* sprptr = (uint32_t*)_gdGetImagePlane(spr->image, 0);
             *sprptr = ctl;
         }
     }
@@ -120,16 +120,16 @@ static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t _gdBindSpriteImage(int unit, Surface* _Nullable pbo)
+errno_t _gdBindSpriteImage(int unit, image_t* _Nullable pbo)
 {
     if (unit < 0 || unit >= SPRITE_COUNT) {
         return ENOTSUP;
     }
     if (pbo) {
-        if (Surface_GetWidth(pbo) != SPRITE_WIDTH || Surface_GetHeight(pbo) > MAX_SPRITE_HEIGHT) {
+        if (_gdGetImageWidth(pbo) != SPRITE_WIDTH || _gdGetImageHeight(pbo) > MAX_SPRITE_HEIGHT) {
             return ENOTSUP;
         }
-        if (Surface_GetPixelFormat(pbo) != GD_RGB_SPRITE_2) {
+        if (_gdGetImagePixelFormat(pbo) != GD_RGB_SPRITE_2) {
             return ENOTSUP;
         }
     }
@@ -240,14 +240,14 @@ errno_t gdBindCursorImage(int id)
         return EBUSY;
     }
 
-    Surface* pbo = (id != 0) ? Surface_GetForId(id) : NULL;
+    image_t* pbo = (id != 0) ? _gdGetImageById(id) : NULL;
     sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
     bool hasChanged = false;
 
     if (pbo) {
-        if (Surface_GetWidth(pbo) != HID_CURSOR_WIDTH
-            || Surface_GetHeight(pbo) != HID_CURSOR_HEIGHT
-            || Surface_GetPixelFormat(pbo) != GD_RGB_SPRITE_2) {
+        if (_gdGetImageWidth(pbo) != HID_CURSOR_WIDTH
+            || _gdGetImageHeight(pbo) != HID_CURSOR_HEIGHT
+            || _gdGetImagePixelFormat(pbo) != GD_RGB_SPRITE_2) {
             return ENOTSUP;
         }
 

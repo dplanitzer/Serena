@@ -80,7 +80,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     copper_instr_t* _Nonnull ip, 
     copper_locs_t* _Nullable locs,
     const video_conf_t* _Nonnull vc,
-    Surface* _Nullable pFrontBuffer,
+    image_t* _Nullable pFrontBuffer,
     bool isOddField)
 {
     const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
@@ -109,8 +109,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(
         locs->sprptr = ip - orig;
     }
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        Surface* sprpbo = (g_sprite[i].pixbuf && g_sprite[i].isVisible) ? g_sprite[i].pixbuf : NULL;
-        const uint32_t sprpt = (sprpbo) ? (uint32_t)Surface_GetPlane(sprpbo, 0) : (uint32_t)g_null_sprite_data;
+        image_t* sprpbo = (g_sprite[i].image && g_sprite[i].isVisible) ? g_sprite[i].image : NULL;
+        const uint32_t sprpt = (sprpbo) ? (uint32_t)_gdGetImagePlane(sprpbo, 0) : (uint32_t)g_null_sprite_data;
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
@@ -119,7 +119,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
 
     // BPLxPT
     if (pFrontBuffer) {
-        const uint16_t bpr = Surface_GetBytesPerRow(pFrontBuffer);
+        const uint16_t bpr = _gdGetImageBytesPerRow(pFrontBuffer);
         const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
         const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
 
@@ -152,7 +152,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
         bplcon0 |= BPLCON0F_LACE;
     }
     if (pFrontBuffer) {
-        if (Surface_GetPixelFormat(pFrontBuffer) == GD_RGB_HAM_6) {
+        if (_gdGetImagePixelFormat(pFrontBuffer) == GD_RGB_HAM_6) {
             bplcon0 |= BPLCON0F_HAM;
         }
     }
@@ -196,7 +196,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
     return ip;
 }
 
-void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pFrontBuffer)
+void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, image_t* _Nullable pFrontBuffer)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_instr_t* ip;
@@ -213,11 +213,11 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     }
     
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        Surface* sprpbo = (g_sprite[i].pixbuf && g_sprite[i].isVisible) ? g_sprite[i].pixbuf : NULL;
+        image_t* sprpbo = (g_sprite[i].image && g_sprite[i].isVisible) ? g_sprite[i].image : NULL;
 
         self->res.spr[i] = sprpbo;
         if (sprpbo) {
-            Surface_AddRef(sprpbo);
+            _gdRetainImage(sprpbo);
         }
     }
 }
@@ -259,11 +259,11 @@ void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size
     }
 }
 
-void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nullable pbo)
+void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, image_t* _Nullable pbo)
 {
     copper_instr_t* op = &self->odd_entry[self->loc.sprptr + (spridx << 1)];
     copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.sprptr + (spridx << 1)] : NULL;
-    const uint32_t sprptr = (pbo) ? (uint32_t)Surface_GetPlane(pbo, 0) : (uint32_t)g_null_sprite_data;
+    const uint32_t sprptr = (pbo) ? (uint32_t)_gdGetImagePlane(pbo, 0) : (uint32_t)g_null_sprite_data;
     const uint16_t r = SPRITE_BASE + (spridx << 2);
     const uint16_t lp = sprptr & UINT16_MAX;
     const uint16_t hp = sprptr >> 16;
@@ -278,10 +278,10 @@ void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface
 
     if (self->res.spr[spridx] != pbo) {
         if (pbo) {
-            Surface_AddRef(pbo);
+            _gdRetainImage(pbo);
         }
         
-        Surface_DelRef(self->res.spr[spridx]);
+        _gdReleaseImage(self->res.spr[spridx]);
         self->res.spr[spridx] = pbo;
     }
 }

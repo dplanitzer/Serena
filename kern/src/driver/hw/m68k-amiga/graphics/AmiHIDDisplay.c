@@ -74,7 +74,7 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
         self->cursorBufferId = newId;
     }
 
-    try(_gdDrawPixels(self->cursorBufferId, planes, bytesPerRow, format));
+    try(gdWritePixels(self->cursorBufferId, planes, bytesPerRow, format));
     try(gdBindCursorImage(self->cursorBufferId));
 
 catch:

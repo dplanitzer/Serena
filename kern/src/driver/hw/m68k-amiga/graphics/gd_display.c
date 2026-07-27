@@ -15,7 +15,7 @@ uint8_t                     g_clut_size = CLUT_SIZE;
 static gd_display_mode_t    g_cur_display_mode;
 static gd_display_params_t  g_cur_display_params;
 const video_conf_t*         g_cur_video_config;
-Surface*                    g_cur_front_buffer;
+image_t*                    g_cur_front_buffer;
 
 
 errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
@@ -77,7 +77,7 @@ errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info)
 errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
 {
     decl_try_err();
-    Surface* front_buf;
+    image_t* front_buf;
     copper_prog_t prog = NULL;
     
     switch (op) {
@@ -104,7 +104,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
 
 
     // Allocate the framebuffer
-    err = Surface_Create(mode->width, mode->height, mode->pixelFormat, &front_buf);
+    err = _gdCreateImage(mode->width, mode->height, mode->pixelFormat, &front_buf);
     if (err != EOK) {
         return err;
     }
@@ -113,7 +113,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     // Compile the Copper program(s) for the new framebuffer
     err = create_screen_copper_prog(vc, front_buf, &prog);
     if (err != EOK) {
-        Surface_DelRef(front_buf);
+        _gdReleaseImage(front_buf);
         return err;
     }
 
@@ -126,7 +126,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     copper_schedule(prog, COPFLAG_WAIT_RUNNING);
 
     if (g_cur_front_buffer) {
-        Surface_DelRef(g_cur_front_buffer);
+        _gdReleaseImage(g_cur_front_buffer);
         g_cur_front_buffer = NULL;
     }
     g_cur_display_mode = *mode;

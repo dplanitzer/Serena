@@ -313,7 +313,7 @@ static errno_t _create_copper_prog(size_t instr_count, copper_prog_t _Nullable *
 static void _cache_copper_prog(copper_prog_t _Nonnull prog)
 {
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        Surface_DelRef(prog->res.spr[i]);
+        _gdReleaseImage(prog->res.spr[i]);
         prog->res.spr[i] = NULL;
     }
 
@@ -366,7 +366,7 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
             if (prog->res.spr[i]) {
-                Surface_AddRef(prog->res.spr[i]);
+                _gdRetainImage(prog->res.spr[i]);
             }
         }
     }
@@ -427,7 +427,7 @@ errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
     return create_screen_copper_prog(get_null_video_conf(), NULL, pOutProg);
 }
 
-errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nullable pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, image_t* _Nullable pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = calc_copper_prog_instruction_count(vc);

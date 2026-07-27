@@ -18,7 +18,6 @@
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>
-#include "Surface.h"
 #include "video_conf.h"
 
 // Memory management model for resources that are used by a Copper program:
@@ -32,16 +31,78 @@
 //    alive.
 
 
+// Image
+enum {
+    GD_IMAGE_MAPPED = 0x02,
+};
+
+typedef struct image {
+    deque_node_t        chain;
+    int                 id;
+    int                 refCount;
+    uint8_t* _Nullable  plane[8];   // plane[0] is the buffer base pointer used for kfree(); plane[1..] are internal pointers into this buffer
+    int                 width;
+    int                 height;
+    size_t              bytesPerRow;
+    gd_pixfmt_t         pixelFormat;
+    int8_t              planeCount;
+    uint8_t             flags;
+} image_t;
+
+extern errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, image_t* _Nullable * _Nonnull pOutSelf);
+extern void _gdClearPixels(image_t* _Nonnull self);
+
+#define _gdRetainImage(__self) \
+(((image_t*)(__self))->refCount++)
+
+extern void _gdReleaseImage(image_t* _Nullable self);
+
+extern void _gdConcealImage(image_t* _Nonnull self);
+extern image_t* _Nullable _gdGetImageById(int id);
+
+
+#define _gdGetImageId(__self) \
+(((image_t*)(__self))->id)
+
+// Returns the pixel width of the surface.
+#define _gdGetImageWidth(__self) \
+((__self)->width)
+
+// Returns the pixel height of the surface.
+#define _gdGetImageHeight(__self) \
+((__self)->height)
+
+// Returns the number of planes in the surface.
+#define _gdGetImagePlaneCount(__self) \
+((__self)->planeCount)
+
+// Returns the bytes-per-row value
+#define _gdGetImageBytesPerRow(__self) \
+((__self)->bytesPerRow)
+
+// Returns the pixel format
+#define _gdGetImagePixelFormat(__self) \
+((__self)->pixelFormat)
+
+// Returns the n-th plane of the surface.
+#define _gdGetImagePlane(__self, __idx) \
+((__self)->plane[__idx])
+
+// Returns true if the surface is currently mapped
+#define _gdIsImageMapped(__self) \
+(((__self)->flags & GD_IMAGE_MAPPED) == GD_IMAGE_MAPPED)
+
+
 // Sprite channel
 typedef struct sprite_channel {
-    Surface* _Nullable  pixbuf;    // Pixel buffer holding the sprite image data and control words
+    image_t* _Nullable  image;      // Image holding the sprite image data and control words
     int                 x;
     int                 y;
     bool                isVisible;
     char                id;
 } sprite_channel_t;
 
-extern bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, Surface* _Nullable pbo);
+extern bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, image_t* _Nullable pbo);
 
 
 // Copper program instruction
@@ -61,7 +122,7 @@ typedef uint32_t  copper_instr_t;
 
 
 typedef struct copper_res {
-    Surface* _Nonnull       spr[SPRITE_COUNT];
+    image_t* _Nonnull   spr[SPRITE_COUNT];
 } copper_res_t;
 
 
@@ -110,7 +171,7 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 // configuration, framebuffer, CLUT and sprite configuration and writes the
 // instructions to the given Copper program. Note that the Copper program must
 // be big enough to hold all instructions.
-extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable pFrontBuffer);
+extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, image_t* _Nullable pFrontBuffer);
 
 
 // Schedules the provided Copper program. This program will start running at the
@@ -131,7 +192,7 @@ extern copper_prog_t _Nonnull   g_copper_running_prog;
 // to the program dependencies or the general graphic driver environment 
 extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
 extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
-extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nullable pbo);
+extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, image_t* _Nullable pbo);
 
 
 // Submit a change to the control word of the sprite 'spridx'. The new control
@@ -152,7 +213,7 @@ extern sprite_channel_t         g_sprite[SPRITE_COUNT];
 extern bool                     g_light_pen_enabled;
 extern uint16_t                 g_clut[CLUT_SIZE];
 extern uint8_t                  g_clut_size;
-extern Surface*                 g_cur_front_buffer;
+extern image_t*                 g_cur_front_buffer;
 extern const video_conf_t*      g_cur_video_config;
 
 extern errno_t _gdInitCopper(void);
@@ -164,7 +225,7 @@ extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, Surface* _Nonnull pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, image_t* _Nonnull pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 extern copper_prog_t _Nullable copper_get_editable_prog(void);
 
