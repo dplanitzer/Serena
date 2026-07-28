@@ -12,8 +12,8 @@
 #include <string.h>
 #include <kern/kalloc.h>
 
-static int      g_next_surface_id = 1;
-static deque_t  g_surface_table;
+static int      g_next_image_id = GD_DYNAMIC_IMAGE_BASE;
+static deque_t  g_image_table;
 
 
 static errno_t _alloc_single_plane(image_t* _Nonnull self)
@@ -107,9 +107,6 @@ errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, image_t* 
     }
     
 
-    deque_add_first(&g_surface_table, &self->chain);
-    self->id = g_next_surface_id++;
-
     *pOutSelf = self;
     return EOK;
     
@@ -118,20 +115,37 @@ catch:
     return err;
 }
 
+// Make the image publicly accessible by 'id'
+void _gdPublishImage(image_t* _Nonnull self, int id)
+{
+    deque_add_first(&g_image_table, &self->chain);
+    self->id = id;
+}
+
+// Make the image no longer publicly accessible by its id
+void _gdConcealImage(image_t* _Nonnull self)
+{
+    if (self->id != 0) {
+        self->id = 0;
+        deque_remove(&g_image_table, &self->chain);
+    }
+}
+
 errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
-    image_t* pbo;
+    image_t* self;
 
-    const errno_t err = _gdCreateImage(width, height, pixelFormat, &pbo);
+    const errno_t err = _gdCreateImage(width, height, pixelFormat, &self);
     if (err == EOK) {
-        *pOutId = _gdGetImageId(pbo);
+        _gdPublishImage(self, g_next_image_id++);
+        *pOutId = _gdGetImageId(self);
     }
     return err;
 }
 
 image_t* _Nullable _gdGetImageById(int id)
 {
-    deque_for_each(&g_surface_table, image_t, it,
+    deque_for_each(&g_image_table, image_t, it,
         if (it->id == id) {
             return it;
         }
@@ -149,28 +163,25 @@ void _gdReleaseImage(image_t* _Nullable self)
     }
 }
 
-// Make the buffer no longer publicly accessible by its id
-void _gdConcealImage(image_t* _Nonnull self)
-{
-    if (self->id != 0) {
-        self->id = 0;
-        deque_remove(&g_surface_table, &self->chain);
-    }
-}
-
 errno_t gdDestroyImage(int id)
 {
     if (id == 0) {
         return EOK;
     }
+    switch (id) {
+        case GD_FRONT_BUFFER:
+            return EINVAL;
+
+        default:
+            break;
+    }
 
 
-    image_t* pbo = _gdGetImageById(id);
-
-    if (pbo == NULL) {
+    image_t* self = _gdGetImageById(id);
+    if (self == NULL) {
         return EINVAL;
     }
-    if (_gdIsImageMapped(pbo)) {
+    if (_gdIsImageMapped(self)) {
         return EBUSY;
     }
 
@@ -183,17 +194,8 @@ errno_t gdDestroyImage(int id)
     bool bNeedEditableCopperProg = false;
 
 
-    // We do not allow the deletion of the display pixel buffers.
-    if (pbo == g_cur_front_buffer) {
-        if (next_prog) {
-            copper_schedule(next_prog, 0);
-        }
-        return EBUSY;
-    }
-
-
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        if (g_sprite[i].image == pbo) {
+        if (g_sprite[i].image == self) {
             bNeedEditableCopperProg = true;
             break;
         }
@@ -207,15 +209,15 @@ errno_t gdDestroyImage(int id)
     for (int i = 0; i < SPRITE_COUNT; i++) {
         sprite_channel_t* spr = &g_sprite[i];
 
-        if (spr->image == pbo) {
+        if (spr->image == self) {
             _bind_sprite_image(spr, NULL);
             copper_prog_sprptr_changed(next_prog, spr->id, (spr->image && spr->isVisible) ? spr->image : NULL);
         }
     }
 
 
-    _gdConcealImage(pbo);
-    _gdReleaseImage(pbo);
+    _gdConcealImage(self);
+    _gdReleaseImage(self);
 
     if (next_prog) {
         copper_schedule(next_prog, 0);
@@ -226,27 +228,27 @@ errno_t gdDestroyImage(int id)
 
 errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
 {
-    image_t* pbo = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(id);
 
-    if (pbo == NULL) {
+    if (self == NULL) {
         return EINVAL;
     }
 
-    pOutInfo->width = _gdGetImageWidth(pbo);
-    pOutInfo->height = _gdGetImageHeight(pbo);
-    pOutInfo->pixelFormat = _gdGetImagePixelFormat(pbo);
+    pOutInfo->width = _gdGetImageWidth(self);
+    pOutInfo->height = _gdGetImageHeight(self);
+    pOutInfo->pixelFormat = _gdGetImagePixelFormat(self);
 
     return EOK;
 }
 
 errno_t gdBindImage(int target, int id)
 {
-    image_t* pbo = (id != 0) ? _gdGetImageById(id) : NULL;
+    image_t* self = (id != 0) ? _gdGetImageById(id) : NULL;
     
-    if (pbo || id == 0) {
+    if (self || id == 0) {
         switch (target & 0xffff0000) {
             case GD_SPRITE_0:
-                return _gdBindSpriteImage(target & 0x0000ffff, pbo);
+                return _gdBindSpriteImage(target & 0x0000ffff, self);
 
             default:
                 return EINVAL;
@@ -259,41 +261,41 @@ errno_t gdBindImage(int target, int id)
 
 errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
-    image_t* pbo = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(id);
 
-    if (pbo == NULL) {
+    if (self == NULL) {
         return EINVAL;
     }
-    if (_gdIsImageMapped(pbo)) {
+    if (_gdIsImageMapped(self)) {
         return EBUSY;
     }
-    if (_gdGetImagePixelFormat(pbo) == GD_RGB_SPRITE_2) {
+    if (_gdGetImagePixelFormat(self) == GD_RGB_SPRITE_2) {
         // Disallow mapping sprite surfaces for now
         return ENOTSUP;
     }
 
-    pOutMapping->planeCount = _gdGetImagePlaneCount(pbo);
-    pOutMapping->bytesPerRow = _gdGetImageBytesPerRow(pbo);
+    pOutMapping->planeCount = _gdGetImagePlaneCount(self);
+    pOutMapping->bytesPerRow = _gdGetImageBytesPerRow(self);
     for (size_t i = 0; i < pOutMapping->planeCount; i++) {
-        pOutMapping->plane[i] = _gdGetImagePlane(pbo, i);
+        pOutMapping->plane[i] = _gdGetImagePlane(self, i);
     }
 
-    pbo->flags |= GD_IMAGE_MAPPED;
+    self->flags |= GD_IMAGE_MAPPED;
 
     return EOK;
 }
 
 errno_t gdUnmapImage(int id)
 {
-    image_t* pbo = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(id);
 
-    if (pbo == NULL) {
+    if (self == NULL) {
         return EINVAL;
     }
 
 
-    if (_gdIsImageMapped(pbo)) {
-        pbo->flags &= ~GD_IMAGE_MAPPED;
+    if (_gdIsImageMapped(self)) {
+        self->flags &= ~GD_IMAGE_MAPPED;
         return EOK;
     }
     else {

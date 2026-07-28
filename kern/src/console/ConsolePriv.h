@@ -180,8 +180,7 @@ final_class_ivars(Console, Object,
 
     AGADriverRef _Nonnull       drv;
     gd_cmdbuf_desc_t            cmdbuf;
-    int                         pixelBufferId;
-    gd_image_data_t            pixels;
+    gd_image_data_t             pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
     int                         textCursorBufferId;

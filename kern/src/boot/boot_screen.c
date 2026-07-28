@@ -21,25 +21,20 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     AGADriverRef drv = NULL;
+    gd_display_mode_t dpy_mode;
 
     memset(bscr, 0, sizeof(bt_screen_t));
     try(IORegistry_OpenBestMatch(gIORegistry, g_fb_cats, O_RDWR, (IODriverRef*)&drv));
 
 
-    union {
-        gd_display_buffers_t    b;
-        gd_display_mode_t       m;
-    } dpy_inf;
 
-    AGADriver_GetDisplayInfo(drv, GD_DISPLAY_BUFFERS, &dpy_inf.b);
-    bscr->img_id = dpy_inf.b.front_left;
-    AGADriver_GetDisplayInfo(drv, GD_DISPLAY_MODE, &dpy_inf.m);
-    bscr->width = dpy_inf.m.width;
-    bscr->height = dpy_inf.m.height;
+    AGADriver_GetDisplayInfo(drv, GD_DISPLAY_MODE, &dpy_mode);
+    bscr->width = dpy_mode.width;
+    bscr->height = dpy_mode.height;
     bscr->drv = drv;
 
 
-    try(AGADriver_MapImage(drv, bscr->img_id, GD_MAP_RW, &bscr->mp));
+    try(AGADriver_MapImage(drv, GD_FRONT_BUFFER, GD_MAP_RW, &bscr->mp));
 
         
     // Draw the boot logo
@@ -76,7 +71,7 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->drv) {
-        AGADriver_UnmapImage(bscr->drv, bscr->img_id);
+        AGADriver_UnmapImage(bscr->drv, GD_FRONT_BUFFER);
 
         IODriver_Close(bscr->drv);
         Object_Release(bscr->drv);

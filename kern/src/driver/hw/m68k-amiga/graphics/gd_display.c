@@ -129,6 +129,8 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
         _gdReleaseImage(g_cur_front_buffer);
         g_cur_front_buffer = NULL;
     }
+    _gdPublishImage(front_buf, GD_FRONT_BUFFER);
+
     g_cur_display_mode = *mode;
     g_cur_display_params = (params) ? *params : (gd_display_params_t){0};
     g_cur_front_buffer = front_buf;
@@ -159,14 +161,6 @@ errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
             gd_display_params_t* ip = info;
 
             *ip = g_cur_display_params;
-            return EOK;
-        }
-
-        case GD_DISPLAY_BUFFERS: {
-            gd_display_buffers_t* ip = info;
-
-            *ip = (gd_display_buffers_t){0};
-            ip->front_left = (g_cur_front_buffer) ? g_cur_front_buffer->id : 0;
             return EOK;
         }
 

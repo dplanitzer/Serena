@@ -35,33 +35,27 @@ static const gd_rgb32_t gANSIColors[ANSI_COLOR_COUNT] = {
 errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 {
     decl_try_err();
+    gd_display_mode_t dpy_mode;
 
     try(AGADriver_CreateCommandBuffer(self->drv, 128, &self->cmdbuf));
 
 
     // Get the screen buffer information
-    union {
-        gd_display_buffers_t    b;
-        gd_display_mode_t       m;
-    } dpy_inf;
-
-    AGADriver_GetDisplayInfo(self->drv, GD_DISPLAY_BUFFERS, &dpy_inf.b);
-    self->pixelBufferId = dpy_inf.b.front_left;
-    AGADriver_GetDisplayInfo(self->drv, GD_DISPLAY_MODE, &dpy_inf.m);
-    self->pixelsWidth = dpy_inf.m.width;
-    self->pixelsHeight = dpy_inf.m.height;
+    AGADriver_GetDisplayInfo(self->drv, GD_DISPLAY_MODE, &dpy_mode);
+    self->pixelsWidth = dpy_mode.width;
+    self->pixelsHeight = dpy_mode.height;
 
 
     // Clear the framebuffer
     void* ip = self->cmdbuf.addr;
-    ip = gdCmdClearPixels(ip, self->pixelBufferId);
+    ip = gdCmdClearPixels(ip, GD_FRONT_BUFFER);
     ip = gdCmdEnd(ip);
 
     try(AGADriver_SubmitCommandBuffer(self->drv, GD_BLIT_QUEUE, self->cmdbuf.id));
 
 
     // Map the console framebuffer
-    try(AGADriver_MapImage(self->drv, self->pixelBufferId, GD_MAP_RW, &self->pixels));
+    try(AGADriver_MapImage(self->drv, GD_FRONT_BUFFER, GD_MAP_RW, &self->pixels));
 
 
     // Allocate the text cursor (sprite)
@@ -103,7 +97,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    AGADriver_UnmapImage(self->drv, self->pixelBufferId);
+    AGADriver_UnmapImage(self->drv, GD_FRONT_BUFFER);
     AGADriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
 }
 

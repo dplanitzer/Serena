@@ -43,6 +43,10 @@ typedef int gd_pixfmt_t;
 #define GD_SPRITE_7 0x20007
 
 
+// Well known images
+#define GD_FRONT_BUFFER 1
+
+
 // Geometry and pixel encoding of a pixel buffer
 typedef struct gd_image_info {
     int         width;
@@ -179,17 +183,9 @@ typedef struct gd_display_params {
 	int         capabilities;   // [requires genlock, requires double buffering, requires sprites, requires mouse cursor]
 } gd_display_params_t;
 
-typedef struct gd_display_buffers {
-	int front_left;
-	int	front_right;
-	int back_left;
-	int back_right;
-} gd_display_buffers_t;
-
 
 #define GD_DISPLAY_MODE     1
 #define GD_DISPLAY_PARAMS   2
-#define GD_DISPLAY_BUFFERS  3
 
 typedef void* gd_display_info_ref_t;
 

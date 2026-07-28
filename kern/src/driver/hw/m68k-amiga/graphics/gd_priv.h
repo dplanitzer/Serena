@@ -32,9 +32,9 @@
 
 
 // Image
-enum {
-    GD_IMAGE_MAPPED = 0x02,
-};
+#define GD_DYNAMIC_IMAGE_BASE   0x100   // Images allocated at runtime. < than this are well known image
+
+#define GD_IMAGE_MAPPED 2   // Image is mapped
 
 typedef struct image {
     deque_node_t        chain;
@@ -57,6 +57,7 @@ extern void _gdClearPixels(image_t* _Nonnull self);
 
 extern void _gdReleaseImage(image_t* _Nullable self);
 
+extern void _gdPublishImage(image_t* _Nonnull self, int id);
 extern void _gdConcealImage(image_t* _Nonnull self);
 extern image_t* _Nullable _gdGetImageById(int id);
 
