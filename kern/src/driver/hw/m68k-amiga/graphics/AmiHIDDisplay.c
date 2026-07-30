@@ -32,7 +32,7 @@ catch:
 
 errno_t AmiHIDDisplay_start(AmiHIDDisplayRef _Nonnull self)
 {
-    return EOK;
+    return _gdCreateImage(HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, PID_KERNELD, (struct image**)&self->cursorImage);
 }
 
 errno_t AmiHIDDisplay_obtainCursor(AmiHIDDisplayRef _Nonnull self)
@@ -59,25 +59,9 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
         return EINVAL;
     }
 
-    
     gdLock();
-    if (self->cursorImage == NULL || self->cursorWidth != width || self->cursorHeight != height) {
-        void* newImage;
-
-        try(_gdCreateImage(width, height, GD_RGB_SPRITE_2, PID_KERNELD, (struct image**)&newImage));
-        self->cursorWidth = width;
-        self->cursorHeight = height;
-
-        if (self->cursorImage) {
-            _gdDestroyImage(self->cursorImage);
-        }
-        self->cursorImage = newImage;
-    }
-
-    try(_gdWritePixels(self->cursorImage, planes, bytesPerRow, format));
-    try(_gdBindCursorImage(self->cursorImage));
-
-catch:
+    _gdWritePixels(self->cursorImage, planes, bytesPerRow, format);
+    err = _gdBindCursorImage(self->cursorImage);
     gdUnlock();
     return err;
 }
