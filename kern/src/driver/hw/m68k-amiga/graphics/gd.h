@@ -30,6 +30,7 @@ mtx_unlock(&gd_mtx)
 // Images
 extern errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
 extern errno_t gdDestroyImage(int id);
+extern void gdDestroyImagesOwnedBy(pid_t pid);
 extern errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo);
 extern errno_t gdBindImage(int target, int id);    //XXX
 extern errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
@@ -37,6 +38,10 @@ extern errno_t gdUnmapImage(int id);
 extern errno_t gdClearPixels(int id);   // For use by AGADriver (clearing default framebuffer)
 extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
 
+extern errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, pid_t ownerPid, struct image* _Nullable * _Nonnull pOutSelf);
+extern void _gdDestroyImage(struct image* _Nonnull self);
+extern void _gdClearPixels(struct image* _Nonnull self);
+extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 
 // Sprites
 extern errno_t gdMoveSprite(int spriteId, int x, int y);
@@ -69,7 +74,7 @@ extern void gdSetLightPenEnabled(bool enabled);
 // Mouse Cursor
 extern errno_t gdObtainCursor(void);
 extern void gdReleaseCursor();
-extern errno_t gdBindCursorImage(int id);
+extern errno_t _gdBindCursorImage(struct image* _Nonnull img);
 extern void gdMoveCursor(int x, int y);
 extern void gdShowCursor(bool isVisible);
 

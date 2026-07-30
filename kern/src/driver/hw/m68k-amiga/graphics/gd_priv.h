@@ -39,6 +39,7 @@
 typedef struct image {
     deque_node_t        chain;
     int                 id;
+    pid_t               ownerPid;
     int                 refCount;
     uint8_t* _Nullable  plane[8];   // plane[0] is the buffer base pointer used for kfree(); plane[1..] are internal pointers into this buffer
     int                 width;
@@ -48,9 +49,6 @@ typedef struct image {
     int8_t              planeCount;
     uint8_t             flags;
 } image_t;
-
-extern errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, image_t* _Nullable * _Nonnull pOutSelf);
-extern void _gdClearPixels(image_t* _Nonnull self);
 
 #define _gdRetainImage(__self) \
 (((image_t*)(__self))->refCount++)

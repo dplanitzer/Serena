@@ -9,6 +9,7 @@
 #include "AmiHIDDisplay.h"
 #include "gd.h"
 #include <kpi/hid.h>
+#include <kpi/process.h>
 
 IOCATS_DEF(g_cats, IOHID_DISPLAY);
 
@@ -46,8 +47,7 @@ void AmiHIDDisplay_releaseCursor(AmiHIDDisplayRef _Nonnull self)
 {
     gdLock();
     gdReleaseCursor();
-    gdDestroyImage(self->cursorBufferId);
-    self->cursorBufferId = 0;
+    // Keep the cursor memory around
     gdUnlock();
 }
 
@@ -61,21 +61,21 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
 
     
     gdLock();
-    if (self->cursorBufferId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
-        int newId;
+    if (self->cursorImage == NULL || self->cursorWidth != width || self->cursorHeight != height) {
+        void* newImage;
 
-        try(gdCreateImage(width, height, GD_RGB_SPRITE_2, &newId));
+        try(_gdCreateImage(width, height, GD_RGB_SPRITE_2, PID_KERNELD, (struct image**)&newImage));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
-        if (self->cursorBufferId) {
-            gdDestroyImage(self->cursorBufferId);
+        if (self->cursorImage) {
+            _gdDestroyImage(self->cursorImage);
         }
-        self->cursorBufferId = newId;
+        self->cursorImage = newImage;
     }
 
-    try(gdWritePixels(self->cursorBufferId, planes, bytesPerRow, format));
-    try(gdBindCursorImage(self->cursorBufferId));
+    try(_gdWritePixels(self->cursorImage, planes, bytesPerRow, format));
+    try(_gdBindCursorImage(self->cursorImage));
 
 catch:
     gdUnlock();

@@ -11,6 +11,7 @@
 #include <ext/math.h>
 #include <string.h>
 #include <handler/IOGraphicsHandler.h>
+#include <process/Process.h>
 
 IOCATS_DEF(g_cats, IOVID_FB);
 
@@ -43,6 +44,15 @@ errno_t AGADriver_start(AGADriverRef _Nonnull self)
 bool AGADriver_isExclusive(AGADriverRef _Nonnull self)
 {
     return false;
+}
+
+void AGADriver_doClose(IODriverRef _Nonnull _Locked self)
+{
+    IODriver_Super_DoClose(AGADriver);
+
+    gdLock();
+    gdDestroyImagesOwnedBy(Process_GetCurrentId());
+    gdUnlock();
 }
 
 errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull info)
@@ -280,5 +290,6 @@ void* _Nonnull gdCmdShowSprite(void* _Nonnull addr, int spr_id, bool isVisible)
 class_func_defs(AGADriver, IODriver,
 override_func_def(start, AGADriver, IODriver)
 override_func_def(isExclusive, AGADriver, IODriver)
+override_func_def(doClose, AGADriver, IODriver)
 override_func_def(getDFSInfo, AGADriver, IODriver)
 );

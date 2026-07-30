@@ -234,33 +234,24 @@ void gdReleaseCursor()
     }
 }
 
-errno_t gdBindCursorImage(int id)
+errno_t _gdBindCursorImage(image_t* _Nonnull img)
 {
     if (!g_mouse_cursor_active) {
         return EBUSY;
     }
 
-    image_t* pbo = (id != 0) ? _gdGetImageById(id) : NULL;
-    sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
-    bool hasChanged = false;
-
-    if (pbo) {
-        if (_gdGetImageWidth(pbo) != HID_CURSOR_WIDTH
-            || _gdGetImageHeight(pbo) != HID_CURSOR_HEIGHT
-            || _gdGetImagePixelFormat(pbo) != GD_RGB_SPRITE_2) {
+    if (img) {
+        if (_gdGetImageWidth(img) != HID_CURSOR_WIDTH
+            || _gdGetImageHeight(img) != HID_CURSOR_HEIGHT
+            || _gdGetImagePixelFormat(img) != GD_RGB_SPRITE_2) {
             return ENOTSUP;
         }
-
-        hasChanged = _bind_sprite_image(spr, pbo);
-    }
-    else if (id == 0) {
-        hasChanged = _bind_sprite_image(spr, NULL);
-    }
-    else {
-        return EINVAL;
     }
 
-    if (hasChanged) {
+
+    sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+
+    if (_bind_sprite_image(spr, img)) {
         _sprite_image_or_visibility_changed(spr);
     }
     return EOK;

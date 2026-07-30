@@ -11,6 +11,7 @@
 #include <ext/math.h>
 #include <string.h>
 #include <kern/kalloc.h>
+#include <process/Process.h>
 
 static int      g_next_image_id = GD_DYNAMIC_IMAGE_BASE;
 static deque_t  g_image_table;
@@ -79,7 +80,7 @@ static void _destroy(image_t* _Nonnull self)
 }
 
 
-errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, image_t* _Nullable * _Nonnull pOutSelf)
+errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, pid_t ownerPid, image_t* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     image_t* self;
@@ -91,6 +92,7 @@ errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, image_t* 
 
     try(kalloc_cleared(sizeof(image_t), (void**) &self));
     
+    self->ownerPid = ownerPid;
     self->refCount = 1;
     self->pixelFormat = pixelFormat;
     self->width = width;
@@ -135,7 +137,7 @@ errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonn
 {
     image_t* self;
 
-    const errno_t err = _gdCreateImage(width, height, pixelFormat, &self);
+    const errno_t err = _gdCreateImage(width, height, pixelFormat, Process_GetCurrentId(), &self);
     if (err == EOK) {
         _gdPublishImage(self, g_next_image_id++);
         *pOutId = _gdGetImageId(self);
@@ -163,29 +165,8 @@ void _gdReleaseImage(image_t* _Nullable self)
     }
 }
 
-errno_t gdDestroyImage(int id)
+void _gdDestroyImage(image_t* _Nonnull self)
 {
-    if (id == 0) {
-        return EOK;
-    }
-    switch (id) {
-        case GD_FRONT_BUFFER:
-            return EINVAL;
-
-        default:
-            break;
-    }
-
-
-    image_t* self = _gdGetImageById(id);
-    if (self == NULL) {
-        return EINVAL;
-    }
-    if (_gdIsImageMapped(self)) {
-        return EBUSY;
-    }
-
-
     // Unschedule an upcoming Copper program first, to make sure that the currently
     // running Copper program can't change on us while we're inspecting it. GD is
     // locked too so nobody else can trigger the scheduling of another Copper
@@ -222,8 +203,42 @@ errno_t gdDestroyImage(int id)
     if (next_prog) {
         copper_schedule(next_prog, 0);
     }
+}
 
-    return EOK;
+errno_t gdDestroyImage(int id)
+{
+    switch (id) {
+        case 0:
+            return EOK;
+
+        case GD_FRONT_BUFFER:
+            return EINVAL;
+
+        default:
+            break;
+    }
+
+
+    image_t* self = _gdGetImageById(id);
+    if (self) {
+        if (_gdIsImageMapped(self)) {
+            return EBUSY;
+        }
+
+        _gdDestroyImage(self);
+        return EOK;
+    } else {
+        return EINVAL;
+    }
+}
+
+void gdDestroyImagesOwnedBy(pid_t pid)
+{
+    deque_for_each(&g_image_table, image_t, it,
+        if (it->ownerPid == pid) {
+            _gdDestroyImage(it);
+        }
+    )
 }
 
 errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)

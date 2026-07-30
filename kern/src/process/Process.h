@@ -26,6 +26,9 @@
 #define Process_GetCurrent() \
 g_sched->running->proc
 
+#define Process_GetCurrentId() \
+Process_GetId(g_sched->running->proc)
+
 
 extern ProcessRef _Nonnull Process_Retain(ProcessRef _Nonnull self);
 extern void Process_Release(ProcessRef _Nullable self);
