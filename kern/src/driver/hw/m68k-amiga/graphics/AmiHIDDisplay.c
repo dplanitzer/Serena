@@ -32,7 +32,10 @@ catch:
 
 errno_t AmiHIDDisplay_start(AmiHIDDisplayRef _Nonnull self)
 {
-    return _gdCreateImage(HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, PID_KERNELD, (struct image**)&self->cursorImage);
+    gdLock();
+    const errno_t err = _gdCreateImage(HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, PID_KERNELD, (struct image**)&self->cursorImage);
+    gdUnlock();
+    return err;
 }
 
 errno_t AmiHIDDisplay_obtainCursor(AmiHIDDisplayRef _Nonnull self)
