@@ -11,7 +11,7 @@
 #include <ext/math.h>
 #include <string.h>
 #include <kern/kalloc.h>
-#include <process/Process.h>
+#include <kpi/process.h>
 
 static int      g_next_image_id = GD_DYNAMIC_IMAGE_BASE;
 static deque_t  g_image_table;
@@ -80,7 +80,7 @@ static void _destroy(image_t* _Nonnull self)
 }
 
 
-errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, pid_t ownerPid, image_t* _Nullable * _Nonnull pOutSelf)
+errno_t _gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, image_t* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     image_t* self;
@@ -92,7 +92,7 @@ errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, pid_t own
 
     try(kalloc_cleared(sizeof(image_t), (void**) &self));
     
-    self->ownerPid = ownerPid;
+    self->ownerPid = pid;
     self->refCount = 1;
     self->pixelFormat = pixelFormat;
     self->width = width;
@@ -133,11 +133,11 @@ void _gdConcealImage(image_t* _Nonnull self)
     }
 }
 
-errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     image_t* self;
 
-    const errno_t err = _gdCreateImage(width, height, pixelFormat, Process_GetCurrentId(), &self);
+    const errno_t err = _gdCreateImage(pid, width, height, pixelFormat, &self);
     if (err == EOK) {
         _gdPublishImage(self, g_next_image_id++);
         *pOutId = _gdGetImageId(self);
@@ -145,10 +145,12 @@ errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonn
     return err;
 }
 
-image_t* _Nullable _gdGetImageById(int id)
+image_t* _Nullable _gdGetImageById(pid_t pid, int id)
 {
     deque_for_each(&g_image_table, image_t, it,
-        if (it->id == id) {
+        // Image owned by process or the kernel is fine. Kernel owned images are
+        // things like framebuffer, mouse cursor, etc
+        if ((it->id == id) && (it->ownerPid == pid || it->ownerPid == PID_KERNELD)) {
             return it;
         }
     )
@@ -205,7 +207,7 @@ void _gdDestroyImage(image_t* _Nonnull self)
     }
 }
 
-errno_t gdDestroyImage(int id)
+errno_t gdDestroyImage(pid_t pid, int id)
 {
     switch (id) {
         case 0:
@@ -219,7 +221,7 @@ errno_t gdDestroyImage(int id)
     }
 
 
-    image_t* self = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(pid, id);
     if (self) {
         if (_gdIsImageMapped(self)) {
             return EBUSY;
@@ -241,9 +243,9 @@ void gdDestroyImagesOwnedBy(pid_t pid)
     )
 }
 
-errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
+errno_t gdGetImageInfo(pid_t pid, int id, gd_image_info_t* _Nonnull pOutInfo)
 {
-    image_t* self = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
@@ -256,9 +258,9 @@ errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
     return EOK;
 }
 
-errno_t gdBindImage(int target, int id)
+errno_t gdBindImage(pid_t pid, int target, int id)
 {
-    image_t* self = (id != 0) ? _gdGetImageById(id) : NULL;
+    image_t* self = (id != 0) ? _gdGetImageById(pid, id) : NULL;
     
     if (self || id == 0) {
         switch (target & 0xffff0000) {
@@ -274,9 +276,9 @@ errno_t gdBindImage(int target, int id)
     }
 }
 
-errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
+errno_t gdMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
-    image_t* self = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
@@ -300,9 +302,9 @@ errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
     return EOK;
 }
 
-errno_t gdUnmapImage(int id)
+errno_t gdUnmapImage(pid_t pid, int id)
 {
-    image_t* self = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
@@ -352,9 +354,9 @@ errno_t _gdWritePixels(image_t* self, const void* _Nonnull planes[], size_t byte
     }
 }
 
-errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
+errno_t gdWritePixels(pid_t pid, int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
-    image_t* pbo = _gdGetImageById(id);
+    image_t* pbo = _gdGetImageById(pid, id);
 
     if (pbo == NULL) {
         return EINVAL;
@@ -381,14 +383,14 @@ void _gdClearPixels(image_t* _Nonnull self)
     }
 }
 
-errno_t gdClearPixels(int id)
+errno_t gdClearPixels(pid_t pid, int id)
 {
-    image_t* pbo = _gdGetImageById(id);
+    image_t* self = _gdGetImageById(pid, id);
 
-    if (pbo == NULL) {
+    if (self == NULL) {
         return EINVAL;
     }
 
-    _gdClearPixels(pbo);
+    _gdClearPixels(self);
     return EOK;
 }

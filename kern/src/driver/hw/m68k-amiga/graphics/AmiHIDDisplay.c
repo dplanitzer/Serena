@@ -33,7 +33,7 @@ catch:
 errno_t AmiHIDDisplay_start(AmiHIDDisplayRef _Nonnull self)
 {
     gdLock();
-    const errno_t err = _gdCreateImage(HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, PID_KERNELD, (struct image**)&self->cursorImage);
+    const errno_t err = _gdCreateImage(PID_KERNELD, HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, (struct image**)&self->cursorImage);
     gdUnlock();
     return err;
 }

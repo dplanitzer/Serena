@@ -57,7 +57,7 @@ extern void _gdReleaseImage(image_t* _Nullable self);
 
 extern void _gdPublishImage(image_t* _Nonnull self, int id);
 extern void _gdConcealImage(image_t* _Nonnull self);
-extern image_t* _Nullable _gdGetImageById(int id);
+extern image_t* _Nullable _gdGetImageById(pid_t pid, int id);
 
 
 #define _gdGetImageId(__self) \

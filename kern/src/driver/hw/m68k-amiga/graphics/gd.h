@@ -28,17 +28,17 @@ mtx_unlock(&gd_mtx)
 
 
 // Images
-extern errno_t gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
-extern errno_t gdDestroyImage(int id);
+extern errno_t gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
+extern errno_t gdDestroyImage(pid_t pid, int id);
 extern void gdDestroyImagesOwnedBy(pid_t pid);
-extern errno_t gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo);
-extern errno_t gdBindImage(int target, int id);    //XXX
-extern errno_t gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
-extern errno_t gdUnmapImage(int id);
-extern errno_t gdClearPixels(int id);   // For use by AGADriver (clearing default framebuffer)
-extern errno_t gdWritePixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
+extern errno_t gdGetImageInfo(pid_t pid, int id, gd_image_info_t* _Nonnull pOutInfo);
+extern errno_t gdBindImage(pid_t pid, int target, int id);    //XXX
+extern errno_t gdMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
+extern errno_t gdUnmapImage(pid_t pid, int id);
+extern errno_t gdClearPixels(pid_t pid, int id);   // For use by AGADriver (clearing default framebuffer)
+extern errno_t gdWritePixels(pid_t pid, int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);   // For use by HIDDisplay (cursor pixel image update)
 
-extern errno_t _gdCreateImage(int width, int height, gd_pixfmt_t pixelFormat, pid_t ownerPid, struct image* _Nullable * _Nonnull pOutSelf);
+extern errno_t _gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, struct image* _Nullable * _Nonnull pOutSelf);
 extern void _gdDestroyImage(struct image* _Nonnull self);
 extern void _gdClearPixels(struct image* _Nonnull self);
 extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
@@ -52,9 +52,9 @@ extern errno_t _gdBindSpriteImage(int unit, struct image* _Nullable srf);
 
 
 // Command Buffer
-extern errno_t gdCreateCommandBuffer(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
-extern errno_t gdDestroyCommandBuffer(int id);
-extern errno_t gdSubmitCommandBuffer(int img_id, int cmds_id);
+extern errno_t gdCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
+extern errno_t gdDestroyCommandBuffer(pid_t pid, int id);
+extern errno_t gdSubmitCommandBuffer(pid_t pid, int img_id, int cmds_id);
 
 
 // CLUT

@@ -74,7 +74,7 @@ errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull inf
 errno_t AGADriver_CreateImage(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     gdLock();
-    const errno_t err = gdCreateImage(width, height, pixelFormat, pOutId);
+    const errno_t err = gdCreateImage(Process_GetCurrentId(), width, height, pixelFormat, pOutId);
     gdUnlock();
     return err;
 }
@@ -82,7 +82,7 @@ errno_t AGADriver_CreateImage(AGADriverRef _Nonnull self, int width, int height,
 errno_t AGADriver_DestroyImage(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdDestroyImage(id);
+    const errno_t err = gdDestroyImage(Process_GetCurrentId(), id);
     gdUnlock();
     return err;
 }
@@ -90,7 +90,7 @@ errno_t AGADriver_DestroyImage(AGADriverRef _Nonnull self, int id)
 errno_t AGADriver_GetImageInfo(AGADriverRef _Nonnull self, int id, gd_image_info_t* _Nonnull pOutInfo)
 {
     gdLock();
-    const errno_t err = gdGetImageInfo(id, pOutInfo);
+    const errno_t err = gdGetImageInfo(Process_GetCurrentId(), id, pOutInfo);
     gdUnlock();
     return err;
 }
@@ -98,7 +98,7 @@ errno_t AGADriver_GetImageInfo(AGADriverRef _Nonnull self, int id, gd_image_info
 errno_t AGADriver_MapImage(AGADriverRef _Nonnull self, int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
     gdLock();
-    const errno_t err = gdMapImage(id, mode, pOutMapping);
+    const errno_t err = gdMapImage(Process_GetCurrentId(), id, mode, pOutMapping);
     gdUnlock();
     return err;
 }
@@ -106,7 +106,7 @@ errno_t AGADriver_MapImage(AGADriverRef _Nonnull self, int id, int mode, gd_imag
 errno_t AGADriver_UnmapImage(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdUnmapImage(id);
+    const errno_t err = gdUnmapImage(Process_GetCurrentId(), id);
     gdUnlock();
     return err;
 }
@@ -189,7 +189,7 @@ errno_t AGADriver_EnumDisplayModes(AGADriverRef _Nonnull self, int index, gd_dis
 errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, gd_cmdbuf_desc_t* _Nonnull desc)
 {
     gdLock();
-    const errno_t err = gdCreateCommandBuffer(size, desc);
+    const errno_t err = gdCreateCommandBuffer(Process_GetCurrentId(), size, desc);
     gdUnlock();
     return err;
 }
@@ -197,7 +197,7 @@ errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, g
 errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
 {
     gdLock();
-    const errno_t err = gdDestroyCommandBuffer(id);
+    const errno_t err = gdDestroyCommandBuffer(Process_GetCurrentId(), id);
     gdUnlock();
     return err;
 }
@@ -205,7 +205,7 @@ errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id)
 errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int queue_id, int cmds_id)
 {
     gdLock();
-    const errno_t err = gdSubmitCommandBuffer(queue_id, cmds_id);
+    const errno_t err = gdSubmitCommandBuffer(Process_GetCurrentId(), queue_id, cmds_id);
     gdUnlock();
     return err;
 }

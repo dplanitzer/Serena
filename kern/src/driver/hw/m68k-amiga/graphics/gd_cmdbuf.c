@@ -16,6 +16,7 @@
 typedef struct cmdbuf {
     deque_node_t            chain;
     int                     id;
+    pid_t                   ownerPid;
     size_t                  byteSize;
     const char* _Nonnull    op;
     const char* _Nonnull    opEnd;
@@ -27,9 +28,20 @@ static deque_t  g_cmdbuf_list;
 
 
 
-static cmdbuf_t* _Nullable _cmdbuf_for_id(int id)
+static cmdbuf_t* _Nullable _cmdbuf_for_id(pid_t pid, int id)
 {
     deque_for_each(&g_cmdbuf_list, struct cmdbuf, it,
+        //XXX can not currently do the check for 'ownerPid == pid' because the
+        // console is still inside the kernel and it is initialized through a
+        // user space system call. So what happens is that the first user space
+        // process kicks off the initialization of the console which then
+        // allocates a command buffer. That buffer is tagged with the pid of the
+        // user space process which then breaks cursor management because the
+        // cursor management is done from a kernel vcpu. Thus the pid doesn't
+        // match...
+        // However we want to move the console out into user space anyway. Bring
+        // back the strict check once the console is in user space
+        //if ((it->id == id) && (it->ownerPid == pid)) {
         if (it->id == id) {
             return it;
         }
@@ -39,7 +51,7 @@ static cmdbuf_t* _Nullable _cmdbuf_for_id(int id)
 
 
 
-errno_t gdCreateCommandBuffer(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
+errno_t gdCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf;
@@ -62,6 +74,7 @@ errno_t gdCreateCommandBuffer(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
 
 
     cmdbuf->id = g_next_cmdimg_id++;
+    cmdbuf->ownerPid = pid;
     cmdbuf->byteSize = reqSize;
     cmdbuf->op = opbuf;
     cmdbuf->opEnd =  cmdbuf->op + cmdbuf->byteSize;
@@ -75,13 +88,13 @@ errno_t gdCreateCommandBuffer(size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
     return EOK;
 }
 
-errno_t gdDestroyCommandBuffer(int id)
+errno_t gdDestroyCommandBuffer(pid_t pid, int id)
 {
     if (id == 0) {
         return EOK;
     }
 
-    cmdbuf_t* cmdbuf = _cmdbuf_for_id(id);
+    cmdbuf_t* cmdbuf = _cmdbuf_for_id(pid, id);
     if (cmdbuf == NULL) {
         return EINVAL;
     }
@@ -104,7 +117,7 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
                 return EOK;
 
             case GD_OPCODE_BIND_IMAGE:         // gd_op_bind_image   //XXX will turn into gdCmdSpriteBufferLevel
-                try(gdBindImage(ip->bind_buffer.target, ip->bind_buffer.bufferId));
+                try(gdBindImage(cmdbuf->ownerPid, ip->bind_buffer.target, ip->bind_buffer.bufferId));
                 ilen = sizeof(struct gd_op_bind_image);
                 break;
 
@@ -141,7 +154,7 @@ static errno_t _exec_transfer_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 return EOK;
 
             case GD_OPCODE_WRITE_PIXELS:       // struct gd_op_write_pixels
-                gdWritePixels(ip->write_pixels.dstBufferId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
+                gdWritePixels(cmdbuf->ownerPid, ip->write_pixels.dstBufferId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
                 ilen = sizeof(struct gd_op_write_pixels) + (_gdGetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
                 break;
 
@@ -165,7 +178,7 @@ static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 return EOK;
 
             case GD_OPCODE_CLEAR_PIXELS:       // struct gd_op_clear_pixels
-                gdClearPixels(ip->clear_pixels.dstBufferId);
+                gdClearPixels(cmdbuf->ownerPid, ip->clear_pixels.dstBufferId);
                 ilen = sizeof(struct gd_op_clear_pixels);
                 break;
 
@@ -177,10 +190,10 @@ static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
     }
 }
 
-errno_t gdSubmitCommandBuffer(int queue_id, int cmds_id)
+errno_t gdSubmitCommandBuffer(pid_t pid, int queue_id, int cmds_id)
 {
     decl_try_err();
-    cmdbuf_t* cmdbuf = _cmdbuf_for_id(cmds_id);
+    cmdbuf_t* cmdbuf = _cmdbuf_for_id(pid, cmds_id);
 
     if (cmdbuf == NULL) {
         return EINVAL;

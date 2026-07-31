@@ -105,7 +105,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
 
 
     // Allocate the framebuffer
-    err = _gdCreateImage(mode->width, mode->height, mode->pixelFormat, PID_KERNELD, &front_buf);
+    err = _gdCreateImage(PID_KERNELD, mode->width, mode->height, mode->pixelFormat, &front_buf);
     if (err != EOK) {
         return err;
     }
