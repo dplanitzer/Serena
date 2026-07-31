@@ -230,7 +230,7 @@ void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int img_id, const void* _No
     const size_t pcnt = _gdGetPlaneCount(format);
 
     p->opcode = GD_OPCODE_WRITE_PIXELS;
-    p->dstBufferId = img_id;
+    p->dstImageId = img_id;
     p->bytesPerRow = bytesPerRow;
     p->format = format;
     
@@ -246,7 +246,7 @@ void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int img_id)
     struct gd_op_clear_pixels* p = addr;
 
     p->opcode = GD_OPCODE_CLEAR_PIXELS;
-    p->dstBufferId = img_id;
+    p->dstImageId = img_id;
 
     return (char*)addr + sizeof(struct gd_op_clear_pixels);
 }
@@ -258,7 +258,7 @@ void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int target, int img_id)
 
     p->opcode = GD_OPCODE_BIND_IMAGE;
     p->target = target;
-    p->bufferId = img_id;
+    p->imageId = img_id;
 
     return (char*)addr + sizeof(struct gd_op_bind_image);
 }

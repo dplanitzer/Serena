@@ -117,7 +117,7 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
                 return EOK;
 
             case GD_OPCODE_BIND_IMAGE:         // gd_op_bind_image   //XXX will turn into gdCmdSpriteBufferLevel
-                try(gdBindImage(cmdbuf->ownerPid, ip->bind_buffer.target, ip->bind_buffer.bufferId));
+                try(gdBindImage(cmdbuf->ownerPid, ip->bind_image.target, ip->bind_image.imageId));
                 ilen = sizeof(struct gd_op_bind_image);
                 break;
 
@@ -154,7 +154,7 @@ static errno_t _exec_transfer_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 return EOK;
 
             case GD_OPCODE_WRITE_PIXELS:       // struct gd_op_write_pixels
-                gdWritePixels(cmdbuf->ownerPid, ip->write_pixels.dstBufferId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
+                gdWritePixels(cmdbuf->ownerPid, ip->write_pixels.dstImageId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
                 ilen = sizeof(struct gd_op_write_pixels) + (_gdGetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
                 break;
 
@@ -178,7 +178,7 @@ static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 return EOK;
 
             case GD_OPCODE_CLEAR_PIXELS:       // struct gd_op_clear_pixels
-                gdClearPixels(cmdbuf->ownerPid, ip->clear_pixels.dstBufferId);
+                gdClearPixels(cmdbuf->ownerPid, ip->clear_pixels.dstImageId);
                 ilen = sizeof(struct gd_op_clear_pixels);
                 break;
 

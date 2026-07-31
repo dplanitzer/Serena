@@ -268,8 +268,8 @@ IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 // Sprite command set
 #define GD_OPCODE_MOVE_SPRITE   300     // struct gd_op_move_sprite
-#define GD_OPCODE_SHOW_SPRITE  301     // struct gd_op_show_sprite
-#define GD_OPCODE_BIND_IMAGE  302     // struct gd_op_bind_image 
+#define GD_OPCODE_SHOW_SPRITE   301     // struct gd_op_show_sprite
+#define GD_OPCODE_BIND_IMAGE    302     // struct gd_op_bind_image 
 
 typedef unsigned short gd_opcode_t;
 
@@ -277,14 +277,14 @@ typedef unsigned short gd_opcode_t;
 // Blit command set
 struct gd_op_clear_pixels {
     gd_opcode_t opcode;
-    int         dstBufferId;
+    int         dstImageId;
 };
 
 
 // Transfer command set
 struct gd_op_write_pixels {
     gd_opcode_t             opcode;
-    int                     dstBufferId;
+    int                     dstImageId;
     gd_pixfmt_t             format;
     size_t                  bytesPerRow;
     const void* _Nonnull    plane[1];   // 'n' plane pointers follow here where 'n' depends on 'format'
@@ -293,27 +293,27 @@ struct gd_op_write_pixels {
 
 // Sprite command set
 struct gd_op_bind_image {
-    gd_opcode_t    opcode;
-    int             target;
-    int             bufferId;
+    gd_opcode_t opcode;
+    int         target;
+    int         imageId;
 };
 
 struct gd_op_move_sprite {
-    gd_opcode_t     opcode;
-    int             spriteId;
-    int16_t         x;
-    int16_t         y;
+    gd_opcode_t opcode;
+    int         spriteId;
+    int16_t     x;
+    int16_t     y;
 };
 
 struct gd_op_show_sprite {
-    gd_opcode_t     opcode;
-    int             spriteId;
-    int16_t         visible;    // 'visible' != 0 -> show; otherwise hide
+    gd_opcode_t opcode;
+    int         spriteId;
+    int16_t     visible;    // 'visible' != 0 -> show; otherwise hide
 };
 
 
 union vio_op {
-    gd_opcode_t                 opcode;
+    gd_opcode_t opcode;
 
     // Blit
     struct gd_op_clear_pixels   clear_pixels;
@@ -322,8 +322,8 @@ union vio_op {
     struct gd_op_write_pixels   write_pixels;
 
     // Sprite
-    struct gd_op_bind_image    bind_buffer;
-    struct gd_op_move_sprite     put_sprite;
+    struct gd_op_bind_image     bind_image;
+    struct gd_op_move_sprite    put_sprite;
     struct gd_op_show_sprite    show_sprite;
 };
 
