@@ -47,37 +47,6 @@ _sem_post:
 
 
 ;-------------------------------------------------------------------------------
-;void sem_wait(sem_t* _Nonnull sem)
-; Acquires a permit from the semaphore.
-_sem_wait:
-    inline
-    cargs sw_saved_d7.l, sw_sem.l
-        move.l  d7, -(sp)
-        DISABLE_PREEMPTION d7
-
-        ; check whether value >= 1 and consume the permits and return if that's the case. Otherwise wait and retry
-.retry:
-        move.l  sw_sem(sp), a0
-        move.l  sem_value(a0), d0
-        cmp.l   #1, d0
-        bge.s   .claim_permit
-
-        ; wait for a permit to arrive and then retry
-        move.l  #0, -(sp)
-        move.l  a0, -(sp)
-        jsr     _sem_on_wait
-        addq.l  #4, sp
-        bra.s   .retry
-
-.claim_permit:
-        subq.l  #1, sem_value(a0)
-        RESTORE_PREEMPTION d7
-        move.l  (sp)+, d7
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
 ; errno_t sem_timedwait(sem_t* _Nonnull sem, const nanotime_t* _Nonnull deadline)
 ; Acquires a permit from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore

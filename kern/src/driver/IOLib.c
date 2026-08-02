@@ -78,9 +78,11 @@ void IOSleep(mseconds_t ms)
     preempt_restore(sps);
 }
 
-errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nonnull pOutVp)
+errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nullable pOutVp)
 {
+    decl_try_err();
     vcpu_attr_t attr;
+    vcpu_t vp;
 
     attr.version = sizeof(vcpu_attr_t);
     attr.stack_size = 0;
@@ -90,7 +92,12 @@ errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg
     attr.policy.qos.priority = priority;
     attr.flags = 0;
 
-    return Process_AcquireVirtualProcessor(gKernelProcess, func, arg, &attr, 0, pOutVp);
+    err = Process_AcquireVirtualProcessor(gKernelProcess, func, arg, &attr, 0, &vp);
+    if (err == EOK && pOutVp) {
+        *pOutVp = vp;
+    }
+
+    return err;
 }
 
 void IOResumeVirtualProcessor(vcpu_t _Nonnull vcpu)

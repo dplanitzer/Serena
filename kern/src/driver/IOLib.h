@@ -31,7 +31,7 @@ extern void IOSleep(mseconds_t ms);
 // level, 'priority' is the priority, 'func' the function that will be invoked
 // on the acquired vcpu and 'arg' is the argument that will be passed to the
 // new vcpu. The virtual processor will be relinquished when 'func' returns.
-extern errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nonnull pOutVp);
+extern errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nullable pOutVp);
 
 // Resume the I/O virtual processor 'vcpu'. Call this function on a newly acquired
 // virtual processor after you've finished initializing teh data on which the

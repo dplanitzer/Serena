@@ -31,7 +31,9 @@ extern void sem_deinit(sem_t* _Nonnull self);
 // @IRQ Context Safe
 extern void sem_post(sem_t* _Nonnull self);
 
-extern void sem_wait(sem_t* _Nonnull self);
+#define sem_wait(__self) \
+sem_timedwait(__self, &NANOTIME_INF)
+
 extern errno_t sem_timedwait(sem_t* _Nonnull self, const nanotime_t* _Nonnull deadline);
 extern bool sem_trywait(sem_t* _Nonnull self);
 

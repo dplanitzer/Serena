@@ -8,6 +8,7 @@
 
 #include <console/Console.h>
 #include <driver/hid/IOHIDManager.h>
+#include <driver/IOLib.h>
 #include <handler/ConsoleHandler.h>
 #include <handler/IOHIDHandler.h>
 #include <handler/LogHandler.h>
@@ -15,6 +16,7 @@
 #include <kern/devfs.h>
 #include <kpi/fs_perms.h>
 #include <kpi/uid.h>
+#include <sched/sem.h>
 
 
 errno_t init_pseudo_devices(void)
@@ -55,12 +57,11 @@ catch:
     return err;
 }
 
-errno_t init_console(void)
+static void _init_console(sem_t* _Nonnull sem)
 {
-    decl_try_err();
     devfs_entry_t en;
 
-    try(Console_Create(&gConsole));
+    try_bang(Console_Create(&gConsole));
     Console_Start(gConsole);
 
     en.name = "console";
@@ -69,8 +70,29 @@ errno_t init_console(void)
     en.uid = UID_ROOT;
     en.gid = GID_ROOT;
     en.perms = fs_perms_from_octal(0666);
-    try(devfs_add(&en, NULL));
+    try_bang(devfs_add(&en, NULL));
 
-catch:
+    sem_post(sem);
+}
+
+errno_t init_console(void)
+{
+    decl_try_err();
+    vcpu_t vp = NULL;
+    sem_t sem;
+
+    // We do this because the graphic driver enforces command buffer, image and sprite
+    // ownership and the console is really a shared resource, yet owned by the kernel
+    // (the console command buffer & sprites belong to the kernel but are used on
+    // behalf of some user space app). The console will be moved to user space in the
+    // future - where it belongs really
+    sem_init(&sem, 0);
+    err = IOAcquireVirtualProcessor((vcpu_func_t)_init_console, &sem, VCPU_QOS_URGENT, VCPU_PRI_NORMAL, &vp);
+    if (err == EOK) {
+        IOResumeVirtualProcessor(vp);
+        sem_wait(&sem);
+    }
+    sem_deinit(&sem);
+
     return err;
 }
