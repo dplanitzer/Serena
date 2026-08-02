@@ -34,7 +34,7 @@ const char*     g_run_proc_state_name[5] = {
 };
 
 static run_procs_info_t g_info;
-static cpuid_t          g_cpu_ids[_CPU_MAX];
+static cpuid_t          g_cpu_ids[_CPU_MAX + 1];
 static struct cpu_data  g_cpu_data[_CPU_MAX];
 
 
@@ -43,12 +43,12 @@ int run_procs_setup(void)
     int r = host_cpus(g_cpu_ids, _CPU_MAX + 1);
 
     if (r == 0) {
-        cpu_basic_info_t basic_info;
+      //  cpu_basic_info_t basic_info;
         cpu_utilization_info_t util_info;
         size_t i = 0;
 
         while (g_cpu_ids[i] > 0) {
-            cpu_info(g_cpu_ids[i], CPU_INFO_BASIC, &basic_info);
+          //  cpu_info(g_cpu_ids[i], CPU_INFO_BASIC, &basic_info);
 
             cpu_info(g_cpu_ids[i], CPU_INFO_UTILIZATION, &util_info);
             g_cpu_data[i].prev_usr_time = util_info.user_time;
