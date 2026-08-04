@@ -122,12 +122,12 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
                 break;
 
             case GD_OPCODE_MOVE_SPRITE:        // struct gd_op_move_sprite
-                try(gdMoveSprite(ip->put_sprite.spriteId, ip->put_sprite.x, ip->put_sprite.y));
+                try(gdMoveSprite(cmdbuf->ownerPid, ip->put_sprite.spriteId, ip->put_sprite.x, ip->put_sprite.y));
                 ilen = sizeof(struct gd_op_move_sprite);
                 break;
 
             case GD_OPCODE_SHOW_SPRITE:        // struct gd_op_show_sprite
-                try(gdShowSprite(ip->show_sprite.spriteId, ip->show_sprite.visible != 0));
+                try(gdShowSprite(cmdbuf->ownerPid, ip->show_sprite.spriteId, ip->show_sprite.visible != 0));
                 ilen = sizeof(struct gd_op_show_sprite);
                 break;
 

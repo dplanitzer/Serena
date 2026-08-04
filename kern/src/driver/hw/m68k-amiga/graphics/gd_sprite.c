@@ -114,67 +114,86 @@ static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
     }
 }
 
+static sprite_channel_t* _Nullable sprite_channel_for_id(pid_t pid, int id)
+{
+    if (id >= 0 && id < SPRITE_COUNT) {
+        sprite_channel_t* p = &g_sprite[id];
+
+        //XXX owner check disabled for now since the console is still in the kernel.
+        //XXX enable the check once the console has been moved to user space 
+        //if (p->ownerPid == pid) {
+            return p;
+        //}
+    }
+
+    return NULL;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t _gdBindSpriteImage(int unit, image_t* _Nullable pbo)
+errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
 {
-    if (unit < 0 || unit >= SPRITE_COUNT) {
-        return ENOTSUP;
-    }
-    if (pbo) {
-        if (_gdGetImageWidth(pbo) != SPRITE_WIDTH || _gdGetImageHeight(pbo) > MAX_SPRITE_HEIGHT) {
-            return ENOTSUP;
-        }
-        if (_gdGetImagePixelFormat(pbo) != GD_RGB_SPRITE_2) {
-            return ENOTSUP;
-        }
-    }
-    if (unit == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
-        return EBUSY;
-    }
+    sprite_channel_t* scp = sprite_channel_for_id(pid, spriteId);
 
-
-    sprite_channel_t* spr = &g_sprite[unit];
-    if (_bind_sprite_image(spr, pbo)) {
-        _sprite_image_or_visibility_changed(spr);
-    }
-
-    return EOK;
-}
-
-errno_t gdMoveSprite(int spriteId, int x, int y)
-{
-    if (spriteId < 0 || spriteId >= SPRITE_COUNT) {
+    if (scp == NULL) {
         return EINVAL;
     }
-    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
-        return EBUSY;
-    }
-
-    _set_sprite_pos(&g_sprite[spriteId], x, y);
-    return EOK;
-}
-
-errno_t gdShowSprite(int spriteId, bool isVisible)
-{
-    if (spriteId < 0 || spriteId >= SPRITE_COUNT) {
-        return EINVAL;
+    if (img) {
+        if (_gdGetImageWidth(img) != SPRITE_WIDTH || _gdGetImageHeight(img) > MAX_SPRITE_HEIGHT) {
+            return ENOTSUP;
+        }
+        if (_gdGetImagePixelFormat(img) != GD_RGB_SPRITE_2) {
+            return ENOTSUP;
+        }
     }
     if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
         return EBUSY;
     }
 
 
-    sprite_channel_t* spr = &g_sprite[spriteId];
-    const bool hasChange = spr->isVisible != isVisible;
+    if (_bind_sprite_image(scp, img)) {
+        _sprite_image_or_visibility_changed(scp);
+    }
+
+    return EOK;
+}
+
+errno_t gdMoveSprite(pid_t pid, int spriteId, int x, int y)
+{
+    sprite_channel_t* scp = sprite_channel_for_id(pid, spriteId);
+
+    if (scp == NULL) {
+        return EINVAL;
+    }
+    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
+        return EBUSY;
+    }
+
+    _set_sprite_pos(scp, x, y);
+    return EOK;
+}
+
+errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
+{
+    sprite_channel_t* scp = sprite_channel_for_id(pid, spriteId);
+
+    if (scp == NULL) {
+        return EINVAL;
+    }
+    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
+        return EBUSY;
+    }
+
+
+    const bool hasChange = scp->isVisible != isVisible;
     
     if (hasChange) {
-        spr->isVisible = isVisible;
-        _sprite_image_or_visibility_changed(spr);
+        scp->isVisible = isVisible;
+        _sprite_image_or_visibility_changed(scp);
     }
 
     return EOK;
@@ -201,16 +220,16 @@ void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
 errno_t gdObtainCursor(void)
 {
     bool hasChanged = false;
-    sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+    sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
 
     g_mouse_cursor_active = 1;
-    hasChanged |= _bind_sprite_image(spr, NULL);
-    _set_sprite_pos(spr, 0, 0);
-    hasChanged |= !spr->isVisible;
-    spr->isVisible = true;
+    hasChanged |= _bind_sprite_image(scp, NULL);
+    _set_sprite_pos(scp, 0, 0);
+    hasChanged |= !scp->isVisible;
+    scp->isVisible = true;
 
     if (hasChanged) {
-        _sprite_image_or_visibility_changed(spr);
+        _sprite_image_or_visibility_changed(scp);
     }
 
     return EOK;
@@ -219,17 +238,17 @@ errno_t gdObtainCursor(void)
 void gdReleaseCursor()
 {
     if (g_mouse_cursor_active) {
-        sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+        sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
         bool hasChanged = false;
         
-        hasChanged |= _bind_sprite_image(spr, NULL);
-        _set_sprite_pos(spr, 0, 0);
-        hasChanged |= spr->isVisible;
-        spr->isVisible = false;
+        hasChanged |= _bind_sprite_image(scp, NULL);
+        _set_sprite_pos(scp, 0, 0);
+        hasChanged |= scp->isVisible;
+        scp->isVisible = false;
         g_mouse_cursor_active = 0;
 
         if (hasChanged) {
-            _sprite_image_or_visibility_changed(spr);
+            _sprite_image_or_visibility_changed(scp);
         }
     }
 }
@@ -249,10 +268,10 @@ errno_t _gdBindCursorImage(image_t* _Nonnull img)
     }
 
 
-    sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
+    sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
 
-    if (_bind_sprite_image(spr, img)) {
-        _sprite_image_or_visibility_changed(spr);
+    if (_bind_sprite_image(scp, img)) {
+        _sprite_image_or_visibility_changed(scp);
     }
     return EOK;
 }
@@ -267,12 +286,12 @@ void gdMoveCursor(int x, int y)
 void gdShowCursor(bool isVisible)
 {
     if (g_mouse_cursor_active) {
-        sprite_channel_t* spr = &g_sprite[MOUSE_SPRITE_PRI];
-        const bool hasChange = (spr->isVisible != isVisible);
+        sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
+        const bool hasChange = (scp->isVisible != isVisible);
 
         if (hasChange) {
-            spr->isVisible = isVisible;
-            _sprite_image_or_visibility_changed(spr);
+            scp->isVisible = isVisible;
+            _sprite_image_or_visibility_changed(scp);
         }
     }
 }

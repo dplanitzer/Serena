@@ -95,6 +95,7 @@ extern image_t* _Nullable _gdGetImageById(pid_t pid, int id);
 // Sprite channel
 typedef struct sprite_channel {
     image_t* _Nullable  image;      // Image holding the sprite image data and control words
+    pid_t               ownerPid;
     int                 x;
     int                 y;
     bool                isVisible;

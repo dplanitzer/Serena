@@ -44,11 +44,11 @@ extern void _gdClearPixels(struct image* _Nonnull self);
 extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 
 // Sprites
-extern errno_t gdMoveSprite(int spriteId, int x, int y);
-extern errno_t gdShowSprite(int spriteId, bool isVisible);
+extern errno_t gdMoveSprite(pid_t pid, int spriteId, int x, int y);
+extern errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);
 
-extern errno_t _gdBindSpriteImage(int unit, struct image* _Nullable srf);
+extern errno_t _gdBindSpriteImage(pid_t pid, int spriteId, struct image* _Nullable img);
 
 
 // Command Buffer

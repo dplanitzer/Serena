@@ -265,7 +265,7 @@ errno_t gdBindImage(pid_t pid, int target, int id)
     if (self || id == 0) {
         switch (target & 0xffff0000) {
             case GD_SPRITE_0:
-                return _gdBindSpriteImage(target & 0x0000ffff, self);
+                return _gdBindSpriteImage(pid, target & 0x0000ffff, self);
 
             default:
                 return EINVAL;
