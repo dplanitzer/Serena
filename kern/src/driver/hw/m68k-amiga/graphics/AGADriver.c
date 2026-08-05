@@ -48,13 +48,15 @@ bool AGADriver_isExclusive(AGADriverRef _Nonnull self)
 
 void AGADriver_doClose(IODriverRef _Nonnull _Locked self)
 {
-    const pid_t pid = Process_GetCurrentId();
+//    const pid_t pid = Process_GetCurrentId();
 
     IODriver_Super_DoClose(AGADriver);
 
     gdLock();
-    gdReleaseSprites(pid, NULL, 0);
-    gdDestroyImagesOwnedBy(pid);
+    //XXX temp disabled until the console has been moved to user space
+//    gdReleaseSprites(pid, NULL, 0);
+//    gdDestroyImagesOwnedBy(pid);
+//    gdDestroyCommandBuffersOwnedBy(pid);
     gdUnlock();
 }
 

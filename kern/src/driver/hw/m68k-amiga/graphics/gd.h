@@ -56,6 +56,7 @@ extern errno_t _gdBindSpriteImage(pid_t pid, int spriteId, struct image* _Nullab
 // Command Buffer
 extern errno_t gdCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc);
 extern errno_t gdDestroyCommandBuffer(pid_t pid, int id);
+extern void gdDestroyCommandBuffersOwnedBy(pid_t pid);
 extern errno_t gdSubmitCommandBuffer(pid_t pid, int img_id, int cmds_id);
 
 

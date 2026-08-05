@@ -88,6 +88,12 @@ errno_t gdCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonn
     return EOK;
 }
 
+static void _gdDestroyCommandBuffer(cmdbuf_t* _Nonnull cmdbuf)
+{
+    kfree(cmdbuf->op);
+    kfree(cmdbuf);
+}
+
 errno_t gdDestroyCommandBuffer(pid_t pid, int id)
 {
     if (id == 0) {
@@ -99,10 +105,18 @@ errno_t gdDestroyCommandBuffer(pid_t pid, int id)
         return EINVAL;
     }
 
-    kfree(cmdbuf->op);
-    kfree(cmdbuf);
+    _gdDestroyCommandBuffer(cmdbuf);
 
     return EOK;
+}
+
+void gdDestroyCommandBuffersOwnedBy(pid_t pid)
+{
+    deque_for_each(&g_cmdbuf_list, struct cmdbuf, it,
+        if (it->ownerPid == pid) {
+            _gdDestroyCommandBuffer(it);
+        }
+    )
 }
 
 static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
