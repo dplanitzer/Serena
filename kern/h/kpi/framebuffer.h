@@ -140,6 +140,29 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 // Sprites
 //
 
+// Acquires 'count' sprites with ascending priorities and returns the ids in
+// the array 'pOutSpriteIds'. The array must have 'count' entries.
+// If 'basePriority' is >= 0 then 'count' sprites with consecutive ascending
+// priorities are allocated. Each sprite has a priority +1 greater than the
+// previous sprite. The allocation will only succeed if 'count' consecutive
+// sprite priorities are available. Otherwise the allocation fails and no sprites
+// are allocated.
+// 'If 'basePriority' is < 0 then 'count' sprites with an arbitrary and available
+// priority are allocated.
+// Note that a sprite is hidden by default. You must issue a gdCmdShowSprite()
+// command and bind an image to it to make it visible.
+// EAGAIN is returned if not enough sprites are available.
+// gdAcquireSprites(int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
+#define GDC_ACQUIRE_SPRITES \
+IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
+
+// Releases 'count' sprites owned by the calling process. The sprite ids are
+// provided by the 'spriteIds' array. All sprites currently owned by the calling
+// process are released if 'spriteIds' is NULL.
+// gdReleaseSprites(const int* _Nullable spriteIds, size_t count)
+#define GDC_RELEASE_SPRITES \
+IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
+
 typedef struct gd_sprite_caps {
     int minWidth, maxWidth;
     int minHeight, maxHeight;
@@ -152,7 +175,7 @@ typedef struct gd_sprite_caps {
 // currently active screen and mouse cursor configuration.
 // get_sprite_info(sprite_info_t* _Nonnull info)
 #define GDC_SPRITE_CAPS \
-IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -200,12 +223,12 @@ typedef void* gd_display_info_ref_t;
 //            and a suitable error is returned if it would fail.
 // gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params* _Nullable params, int op)
 #define GDC_DISPLAY_MODE \
-IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 // Returns the display info indicated by 'flavor'.
 // gdGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull pOutInfo)
 #define GDC_GET_DISPLAY_INFO \
-IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 // Returns the display mode with index 'index'. Returns EOK if a display mode
 // with such an index exists and EINVAL if not. Call this function with index 0
@@ -213,7 +236,7 @@ IOCMD_MAKE(IOPROTO_FB, 8, _IOCMD_ACC_RD, 0)
 // to get all supported display modes.
 // gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
 #define GDC_ENUM_DISPLAY_MODES \
-IOCMD_MAKE(IOPROTO_FB, 9, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_RD, 0)
 
 
 //
@@ -233,7 +256,7 @@ typedef struct gd_clut_info {
 // on the screen starting with the next VBL.
 // gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
 #define GDC_CLUT \
-IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 
 // Returns a copy of the CLUT entries from 'idx' to 'idx + count'. The returned
 // color values represent the physical CLUT color values. They may have reduced
@@ -242,13 +265,13 @@ IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_WR, 0)
 // supported CLUT color resolution.
 // gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 #define GDC_GET_CLUT \
-IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_RD, 0)
 
 // Returns information about the display CLUT. The number of color entries and
 // the physical color resolution is returned.
 // gdGetClutInfo(gd_clut_info_t* _Nonnull info)
 #define GDC_GET_CLUT_INFO \
-IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
+IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_RD, 0)
 
 
 
@@ -341,12 +364,12 @@ typedef struct gd_cmdbuf_desc {
 // requested size. However it will never be smaller.
 // create_cmdbuf(size_t byteSize, const gd_cmdbuf_desc_t* _Nullable desc) -> id
 #define GDC_CREATE_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_WR, 0)
 
 // Deallocates the command buffer 'id'.
 // destroy_cmdbuf(int id)
 #define GDC_DESTROY_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_WR, 0)
 
 #define GD_BLIT_QUEUE       0       // 2d blit/render commands
 #define GD_TRANSFER_QUEUE   256     // copying data from/to RAM and a GD buffer
@@ -359,6 +382,6 @@ IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 // is encountered from which the command queue can not recover.
 // gdSubmitCommands(int queue_id, int cmds_id)
 #define GDC_SUBMIT_CMDBUF \
-IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_WR, 0)
+IOCMD_MAKE(IOPROTO_FB, 19, _IOCMD_ACC_WR, 0)
 
 #endif /* _KPI_FRAMEBUFFER_H */

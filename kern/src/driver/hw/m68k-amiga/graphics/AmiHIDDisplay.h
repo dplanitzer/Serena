@@ -14,6 +14,7 @@
 
 open_class(AmiHIDDisplay, IOHIDDisplay,
     void*   cursorImage;
+    int     cursorSpriteId;
 );
 open_class_funcs(AmiHIDDisplay, IOHIDDisplay,
 );

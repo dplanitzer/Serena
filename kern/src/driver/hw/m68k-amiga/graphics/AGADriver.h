@@ -28,6 +28,8 @@ extern errno_t AGADriver_UnmapImage(AGADriverRef _Nonnull self, int id);
 
 
 // Sprites
+extern errno_t AGADriver_AcquireSprites(AGADriverRef _Nonnull self, int basePriority, size_t count, int* _Nonnull pOutSpriteIds);
+extern errno_t AGADriver_ReleaseSprites(AGADriverRef _Nonnull self, const int* _Nullable spriteIds, size_t count);
 extern void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_caps_t* _Nonnull cp);
 
 

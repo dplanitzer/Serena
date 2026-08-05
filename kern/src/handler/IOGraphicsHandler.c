@@ -21,7 +21,7 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
 
     switch (cmd) {
         //
-        // Pixel Buffer
+        // Image
         //
 
         case GDC_CREATE_IMAGE: {
@@ -89,6 +89,21 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
         //
         // Sprites
         //
+
+        case GDC_ACQUIRE_SPRITES: {
+            int basePri = va_arg(ap, int);
+            size_t count = va_arg(ap, size_t);
+            int* pOutSpriteIds = va_arg(ap, int*);
+
+            return AGADriver_AcquireSprites(drv, basePri, count, pOutSpriteIds);
+        }
+
+        case GDC_RELEASE_SPRITES: {
+            const int* spriteIds = va_arg(ap, const int*);
+            size_t count = va_arg(ap, size_t);
+
+            return AGADriver_ReleaseSprites(drv, spriteIds, count);
+        }
 
         case GDC_SPRITE_CAPS: {
             gd_sprite_caps_t* cp = va_arg(ap, gd_sprite_caps_t*);

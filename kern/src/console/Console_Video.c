@@ -59,7 +59,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Allocate the text cursor (sprite)
-    self->textCursorSpriteId = 2;
+    try(AGADriver_AcquireSprites(self->drv, 2, 1, &self->textCursorSpriteId));
     self->flags.isTextCursorVisible = false;
     const bool isLace = (self->pixelsHeight > MAX_PAL_HEIGHT) ? true : false;
     const uint16_t* textCursorPlanes[2];
@@ -98,6 +98,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
     AGADriver_UnmapImage(self->drv, GD_FRONT_BUFFER);
+    //XXX just close the driver fd once the console is in user space. Will automatically free all driver resources
     AGADriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
 }
 

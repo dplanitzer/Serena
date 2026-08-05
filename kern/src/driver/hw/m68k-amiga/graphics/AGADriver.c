@@ -48,10 +48,13 @@ bool AGADriver_isExclusive(AGADriverRef _Nonnull self)
 
 void AGADriver_doClose(IODriverRef _Nonnull _Locked self)
 {
+    const pid_t pid = Process_GetCurrentId();
+
     IODriver_Super_DoClose(AGADriver);
 
     gdLock();
-    gdDestroyImagesOwnedBy(Process_GetCurrentId());
+    gdReleaseSprites(pid, NULL, 0);
+    gdDestroyImagesOwnedBy(pid);
     gdUnlock();
 }
 
@@ -115,6 +118,22 @@ errno_t AGADriver_UnmapImage(AGADriverRef _Nonnull self, int id)
 //
 // Sprites
 //
+
+errno_t AGADriver_AcquireSprites(AGADriverRef _Nonnull self, int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
+{
+    gdLock();
+    const errno_t err = gdAcquireSprites(Process_GetCurrentId(), basePriority, count, pOutSpriteIds);
+    gdUnlock();
+    return err;
+}
+
+errno_t AGADriver_ReleaseSprites(AGADriverRef _Nonnull self, const int* _Nullable spriteIds, size_t count)
+{
+    gdLock();
+    const errno_t err = gdReleaseSprites(Process_GetCurrentId(), spriteIds, count);
+    gdUnlock();
+    return err;
+}
 
 void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_caps_t* _Nonnull cp)
 {

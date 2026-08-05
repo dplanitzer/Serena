@@ -11,6 +11,8 @@
 #include <kpi/hid.h>
 #include <kpi/process.h>
 
+#define MOUSE_SPRITE_PRI 0
+
 IOCATS_DEF(g_cats, IOHID_DISPLAY);
 
 
@@ -20,6 +22,7 @@ errno_t AmiHIDDisplay_Create(AmiHIDDisplayRef _Nullable * _Nonnull pOutSelf)
     AmiHIDDisplayRef self;
     
     try(IODriver_Create(class(AmiHIDDisplay), g_cats, (IODriverRef*)&self));
+    self->cursorSpriteId = -1;
 
     *pOutSelf = self;
     return EOK;
@@ -40,8 +43,13 @@ errno_t AmiHIDDisplay_start(AmiHIDDisplayRef _Nonnull self)
 
 errno_t AmiHIDDisplay_obtainCursor(AmiHIDDisplayRef _Nonnull self)
 {
+    decl_try_err();
+
     gdLock();
-    const errno_t err = gdObtainCursor();
+    err = gdAcquireSprites(PID_KERNELD, MOUSE_SPRITE_PRI, 1, &self->cursorSpriteId);
+    if (err == EOK) {
+        gdShowSprite(PID_KERNELD, self->cursorSpriteId, true);
+    }
     gdUnlock();
     return err;
 }
@@ -49,7 +57,9 @@ errno_t AmiHIDDisplay_obtainCursor(AmiHIDDisplayRef _Nonnull self)
 void AmiHIDDisplay_releaseCursor(AmiHIDDisplayRef _Nonnull self)
 {
     gdLock();
-    gdReleaseCursor();
+    if (self->cursorSpriteId >= 0) {
+        gdReleaseSprites(PID_KERNELD, &self->cursorSpriteId, 1);
+    }
     // Keep the cursor memory around
     gdUnlock();
 }
@@ -64,7 +74,7 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
 
     gdLock();
     _gdWritePixels(self->cursorImage, planes, bytesPerRow, format);
-    err = _gdBindCursorImage(self->cursorImage);
+    err = _gdBindSpriteImage(PID_KERNELD, self->cursorSpriteId, self->cursorImage);
     gdUnlock();
     return err;
 }
@@ -72,14 +82,14 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nul
 void AmiHIDDisplay_setCursorPosition(AmiHIDDisplayRef _Nonnull self, int x, int y)
 {
     gdLock();
-    gdMoveCursor(x, y);
+    gdMoveSprite(PID_KERNELD, self->cursorSpriteId, x, y);
     gdUnlock();
 }
 
 void AmiHIDDisplay_setCursorVisible(AmiHIDDisplayRef _Nonnull self, bool isVisible)
 {
     gdLock();
-    gdShowCursor(isVisible);
+    gdShowSprite(PID_KERNELD, self->cursorSpriteId, isVisible);
     gdUnlock();
 }
 

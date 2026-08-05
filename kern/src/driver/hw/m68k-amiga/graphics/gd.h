@@ -44,6 +44,8 @@ extern void _gdClearPixels(struct image* _Nonnull self);
 extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 
 // Sprites
+extern errno_t gdAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds);
+extern errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count);
 extern errno_t gdMoveSprite(pid_t pid, int spriteId, int x, int y);
 extern errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);
@@ -69,13 +71,5 @@ extern errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
 extern errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
-
-
-// Mouse Cursor
-extern errno_t gdObtainCursor(void);
-extern void gdReleaseCursor();
-extern errno_t _gdBindCursorImage(struct image* _Nonnull img);
-extern void gdMoveCursor(int x, int y);
-extern void gdShowCursor(bool isVisible);
 
 #endif /* _GD_H */

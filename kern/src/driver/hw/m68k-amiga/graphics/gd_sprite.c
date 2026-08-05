@@ -14,7 +14,6 @@
 
 sprite_channel_t    g_sprite[SPRITE_COUNT];
 uint16_t* _Nonnull  g_null_sprite_data;
-static bool         g_mouse_cursor_active;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +113,7 @@ static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
     }
 }
 
-static sprite_channel_t* _Nullable sprite_channel_for_id(pid_t pid, int id)
+static sprite_channel_t* _Nullable _sprite_channel_for_id(pid_t pid, int id)
 {
     if (id >= 0 && id < SPRITE_COUNT) {
         sprite_channel_t* p = &g_sprite[id];
@@ -135,9 +134,85 @@ static sprite_channel_t* _Nullable sprite_channel_for_id(pid_t pid, int id)
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
+errno_t gdAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
+{
+    size_t alloced_count = 0;
+
+    if (count == 0) {
+        return EOK;
+    }
+
+    if (basePriority >= 0) {
+        for (int i = basePriority; i < (basePriority + __min(SPRITE_COUNT, count)) && (g_sprite[i].ownerPid == 0); i++) {
+            g_sprite[i].ownerPid = pid;
+            pOutSpriteIds[alloced_count++] = i;
+        }
+    }
+    else {
+        for (int i = 0; i < __min(SPRITE_COUNT, count); i++) {
+            if (g_sprite[i].ownerPid == 0) {
+                g_sprite[i].ownerPid = pid;
+                pOutSpriteIds[alloced_count++] = i;
+            }
+        }
+    }
+
+
+    if (alloced_count < count) {
+        // Couldn't get everything - undo what we did
+        for (size_t i = 0; i < alloced_count; i++) {
+            g_sprite[pOutSpriteIds[i]].ownerPid = 0;
+        }
+
+        return EAGAIN;
+    }
+    else {
+        return EOK;
+    }
+}
+
+static void _release_sprite(sprite_channel_t* _Nonnull scp)
+{
+    bool hasChanged = false;
+        
+    hasChanged |= _bind_sprite_image(scp, NULL);
+    _set_sprite_pos(scp, 0, 0);
+    hasChanged |= scp->isVisible;
+    scp->isVisible = false;
+    scp->ownerPid = 0;
+
+    if (hasChanged) {
+        _sprite_image_or_visibility_changed(scp);
+    }
+}
+
+errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count)
+{
+    if (spriteIds) {
+        for (size_t i = 0; i < count; i++) {
+            sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteIds[i]);
+
+            if (scp) {
+                _release_sprite(scp);
+            }
+        }
+    }
+    else {
+        for (size_t i = 0; i < SPRITE_COUNT; i++) {
+            sprite_channel_t* scp = _sprite_channel_for_id(pid, i);
+
+            if (scp) {
+                _release_sprite(scp);
+            }
+        }
+    }
+
+    return EOK;
+}
+
 errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
 {
-    sprite_channel_t* scp = sprite_channel_for_id(pid, spriteId);
+    sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
     if (scp == NULL) {
         return EINVAL;
@@ -150,9 +225,6 @@ errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
             return ENOTSUP;
         }
     }
-    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
-        return EBUSY;
-    }
 
 
     if (_bind_sprite_image(scp, img)) {
@@ -164,39 +236,36 @@ errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
 
 errno_t gdMoveSprite(pid_t pid, int spriteId, int x, int y)
 {
-    sprite_channel_t* scp = sprite_channel_for_id(pid, spriteId);
+    sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
-    if (scp == NULL) {
+    if (scp) {
+        _set_sprite_pos(scp, x, y);
+        return EOK;
+    }
+    else {
         return EINVAL;
     }
-    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
-        return EBUSY;
-    }
-
-    _set_sprite_pos(scp, x, y);
-    return EOK;
 }
 
 errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
 {
-    sprite_channel_t* scp = sprite_channel_for_id(pid, spriteId);
+    sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
-    if (scp == NULL) {
+    if (scp) {
+        const bool hasChange = scp->isVisible != isVisible;
+    
+        if (hasChange) {
+            scp->isVisible = isVisible;
+            if (scp->image) {
+                _sprite_image_or_visibility_changed(scp);
+            }
+        }
+
+        return EOK;
+    }
+    else {
         return EINVAL;
     }
-    if (spriteId == MOUSE_SPRITE_PRI && g_mouse_cursor_active) {
-        return EBUSY;
-    }
-
-
-    const bool hasChange = scp->isVisible != isVisible;
-    
-    if (hasChange) {
-        scp->isVisible = isVisible;
-        _sprite_image_or_visibility_changed(scp);
-    }
-
-    return EOK;
 }
 
 void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
@@ -205,93 +274,8 @@ void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
     cp->maxWidth = 16;
     cp->minHeight = 1;
     cp->maxHeight = 256;
-    cp->lowSpriteNum = (g_mouse_cursor_active) ? 1 : 0;
+    cp->lowSpriteNum = 0;
     cp->highSpriteNum = 7;
     cp->xScale = 1 << g_cur_video_config->hSprScale;
     cp->yScale = 1 << g_cur_video_config->vSprScale;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Mouse Cursor
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t gdObtainCursor(void)
-{
-    bool hasChanged = false;
-    sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
-
-    g_mouse_cursor_active = 1;
-    hasChanged |= _bind_sprite_image(scp, NULL);
-    _set_sprite_pos(scp, 0, 0);
-    hasChanged |= !scp->isVisible;
-    scp->isVisible = true;
-
-    if (hasChanged) {
-        _sprite_image_or_visibility_changed(scp);
-    }
-
-    return EOK;
-}
-
-void gdReleaseCursor()
-{
-    if (g_mouse_cursor_active) {
-        sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
-        bool hasChanged = false;
-        
-        hasChanged |= _bind_sprite_image(scp, NULL);
-        _set_sprite_pos(scp, 0, 0);
-        hasChanged |= scp->isVisible;
-        scp->isVisible = false;
-        g_mouse_cursor_active = 0;
-
-        if (hasChanged) {
-            _sprite_image_or_visibility_changed(scp);
-        }
-    }
-}
-
-errno_t _gdBindCursorImage(image_t* _Nonnull img)
-{
-    if (!g_mouse_cursor_active) {
-        return EBUSY;
-    }
-
-    if (img) {
-        if (_gdGetImageWidth(img) != HID_CURSOR_WIDTH
-            || _gdGetImageHeight(img) != HID_CURSOR_HEIGHT
-            || _gdGetImagePixelFormat(img) != GD_RGB_SPRITE_2) {
-            return ENOTSUP;
-        }
-    }
-
-
-    sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
-
-    if (_bind_sprite_image(scp, img)) {
-        _sprite_image_or_visibility_changed(scp);
-    }
-    return EOK;
-}
-
-void gdMoveCursor(int x, int y)
-{
-    if (g_mouse_cursor_active) {
-        _set_sprite_pos(&g_sprite[MOUSE_SPRITE_PRI], x, y);
-    }
-}
-
-void gdShowCursor(bool isVisible)
-{
-    if (g_mouse_cursor_active) {
-        sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
-        const bool hasChange = (scp->isVisible != isVisible);
-
-        if (hasChange) {
-            scp->isVisible = isVisible;
-            _sprite_image_or_visibility_changed(scp);
-        }
-    }
 }
