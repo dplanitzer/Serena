@@ -32,11 +32,7 @@ errno_t IOHIDDisplay_setCursor(IOHIDDisplayRef _Nonnull self, const IOHIDCursor*
     return EINVAL;
 }
 
-void IOHIDDisplay_setCursorPosition(IOHIDDisplayRef _Nonnull self, int x, int y)
-{
-}
-
-void IOHIDDisplay_setCursorVisible(IOHIDDisplayRef _Nonnull self, bool isVisible)
+void IOHIDDisplay_updateCursor(IOHIDDisplayRef _Nonnull self, int16_t x, int16_t y, unsigned int flags)
 {
 }
 
@@ -45,6 +41,5 @@ class_func_defs(IOHIDDisplay, IODriver,
 func_def(getScreenSize, IOHIDDisplay)
 func_def(setScreenConfigObserver, IOHIDDisplay)
 func_def(setCursor, IOHIDDisplay)
-func_def(setCursorPosition, IOHIDDisplay)
-func_def(setCursorVisible, IOHIDDisplay)
+func_def(updateCursor, IOHIDDisplay)
 );

@@ -90,17 +90,15 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const IOHIDCurso
     return err;
 }
 
-void AmiHIDDisplay_setCursorPosition(AmiHIDDisplayRef _Nonnull self, int x, int y)
+void AmiHIDDisplay_updateCursor(AmiHIDDisplayRef _Nonnull self, int16_t x, int16_t y, unsigned int flags)
 {
     gdLock();
-    gdMoveSprite(PID_KERNELD, self->cursorSpriteId, x, y);
-    gdUnlock();
-}
-
-void AmiHIDDisplay_setCursorVisible(AmiHIDDisplayRef _Nonnull self, bool isVisible)
-{
-    gdLock();
-    gdShowSprite(PID_KERNELD, self->cursorSpriteId, isVisible);
+    if ((flags & IOHID_CURSOR_CHANGE_POSITION) != 0) {
+        gdMoveSprite(PID_KERNELD, self->cursorSpriteId, x, y);
+    }
+    if ((flags & IOHID_CURSOR_CHANGE_VISIBILITY) != 0) {
+        gdShowSprite(PID_KERNELD, self->cursorSpriteId, (flags & IOHID_CURSOR_VISIBLE) ? true : false);
+    }
     gdUnlock();
 }
 
@@ -129,6 +127,5 @@ override_func_def(start, AmiHIDDisplay, IODriver)
 override_func_def(getScreenSize, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setScreenConfigObserver, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setCursor, AmiHIDDisplay, IOHIDDisplay)
-override_func_def(setCursorPosition, AmiHIDDisplay, IOHIDDisplay)
-override_func_def(setCursorVisible, AmiHIDDisplay, IOHIDDisplay)
+override_func_def(updateCursor, AmiHIDDisplay, IOHIDDisplay)
 );

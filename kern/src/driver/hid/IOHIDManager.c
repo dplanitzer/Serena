@@ -205,7 +205,7 @@ errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const hid_cursor_t
         // and the new hot spot offset.
         self->hotSpotX = cursor->hotSpotX;
         self->hotSpotY = cursor->hotSpotY;
-        IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        IOHIDDisplay_UpdateCursor(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY, IOHID_CURSOR_CHANGE_POSITION);
     }
     else {
         self->cursorWidth = 0;
@@ -231,8 +231,10 @@ static bool _show_cursor(IOHIDManagerRef _Nonnull _Locked self)
     }
 
     if (self->hiddenCount == 0) {
-        IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
-        IOHIDDisplay_SetCursorVisible(self->hidDisplay, true);
+        IOHIDDisplay_UpdateCursor(self->hidDisplay,
+            self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY,
+            IOHID_CURSOR_CHANGE_POSITION | IOHID_CURSOR_CHANGE_VISIBILITY | IOHID_CURSOR_VISIBLE
+        );
         return true;
     }
     else {
@@ -253,7 +255,7 @@ void IOHIDManager_ShowCursor(IOHIDManagerRef _Nonnull self)
 static void _hide_cursor(IOHIDManagerRef _Nonnull _Locked self)
 {
     if (self->hiddenCount == 0) {
-        IOHIDDisplay_SetCursorVisible(self->hidDisplay, false);
+        IOHIDDisplay_UpdateCursor(self->hidDisplay, 0, 0, IOHID_CURSOR_CHANGE_VISIBILITY);
     }
     if (self->hiddenCount < INT_MAX) {
         self->hiddenCount++;
@@ -272,7 +274,7 @@ void IOHIDManager_ObscureCursor(IOHIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->hiddenCount == 0) {
         self->isMouseObscured = true;
-        IOHIDDisplay_SetCursorVisible(self->hidDisplay, false);
+        IOHIDDisplay_UpdateCursor(self->hidDisplay, 0, 0, IOHID_CURSOR_CHANGE_VISIBILITY);
     }
     mtx_unlock(&self->mtx);
 }
@@ -893,11 +895,14 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
         }
 
         if (self->hiddenCount == 0 && self->hidDisplay) {
-            IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+            unsigned int flags = IOHID_CURSOR_CHANGE_POSITION;
+
             if (self->isMouseObscured) {
-                IOHIDDisplay_SetCursorVisible(self->hidDisplay, true);
+                flags |= IOHID_CURSOR_CHANGE_VISIBILITY;
+                flags |= IOHID_CURSOR_VISIBLE;
                 self->isMouseObscured = false;
             }
+            IOHIDDisplay_UpdateCursor(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY, flags);
         }
     }
 
@@ -946,7 +951,7 @@ static void _collect_framebuffer_size(IOHIDManagerRef _Nonnull self)
     }
 
     if (hasChanged) {
-        IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        IOHIDDisplay_UpdateCursor(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY, IOHID_CURSOR_CHANGE_POSITION);
     }
 }
 
