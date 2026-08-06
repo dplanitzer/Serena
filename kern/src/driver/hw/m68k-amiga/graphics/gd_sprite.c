@@ -24,7 +24,7 @@ uint16_t* _Nonnull  g_null_sprite_data;
 // Called when the position or visibility of a hardware sprite has changed.
 // Recalculates the sprxpos and sprxctl control words and updates them in the
 // sprite DMA data block.
-static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
+uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
 {
     const uint16_t h = _gdGetImageHeight(self->image);
     const video_conf_t * vc = g_cur_video_config;
@@ -85,7 +85,7 @@ bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, image_t* _Nullable pbo)
     return hasChanged;
 }
 
-static void _sprite_image_or_visibility_changed(const sprite_channel_t* _Nonnull spr)
+void _sprite_image_or_visibility_changed(const sprite_channel_t* _Nonnull spr)
 {
     copper_prog_t prog = copper_get_editable_prog();
         

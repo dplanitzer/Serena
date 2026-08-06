@@ -11,6 +11,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <driver/hid/IOHIDDisplay.h>
 #include <ext/try.h>
 #include <kpi/framebuffer.h>
 #include <sched/mtx.h>
@@ -43,7 +44,7 @@ extern errno_t gdWritePixels(pid_t pid, int id, const void* _Nonnull planes[], s
 extern errno_t _gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, struct image* _Nullable * _Nonnull pOutSelf);
 extern void _gdDestroyImage(struct image* _Nonnull self);
 extern void _gdClearPixels(struct image* _Nonnull self);
-extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
+
 
 // Sprites
 extern errno_t gdAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds);
@@ -74,5 +75,10 @@ extern errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
 extern errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode);
 extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
+
+
+// Cursor
+extern errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor);
+extern void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags);
 
 #endif /* _GD_H */

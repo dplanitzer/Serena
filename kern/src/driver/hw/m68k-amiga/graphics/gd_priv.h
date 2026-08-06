@@ -58,6 +58,7 @@ extern void _gdReleaseImage(image_t* _Nullable self);
 extern void _gdPublishImage(image_t* _Nonnull self, int id);
 extern void _gdConcealImage(image_t* _Nonnull self);
 extern image_t* _Nullable _gdGetImageById(pid_t pid, int id);
+extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 
 
 #define _gdGetImageId(__self) \
@@ -102,7 +103,21 @@ typedef struct sprite_channel {
     char                id;
 } sprite_channel_t;
 
+extern uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self);
 extern bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, image_t* _Nullable pbo);
+extern void _sprite_image_or_visibility_changed(const sprite_channel_t* _Nonnull spr);
+
+// Submit a change to the control word of the sprite 'spridx'. The new control
+// word will be written to the sprite data pointer 'sprptr'. The actual write
+// will happen in the next VBL interrupt.
+extern void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl);
+
+// Cancels a previously submitted sprite control word update.
+extern void sprite_ctl_cancel(int spridx);
+
+
+// Cursor
+extern errno_t _gdInitCursor(void);
 
 
 // Copper program instruction
@@ -193,15 +208,6 @@ extern copper_prog_t _Nonnull   g_copper_running_prog;
 extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
 extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
 extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, image_t* _Nullable pbo);
-
-
-// Submit a change to the control word of the sprite 'spridx'. The new control
-// word will be written to the sprite data pointer 'sprptr'. The actual write
-// will happen in the next VBL interrupt.
-extern void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl);
-
-// Cancels a previously submitted sprite control word update.
-extern void sprite_ctl_cancel(int spridx);
 
 
 #define MAX_CACHED_COPPER_PROGS 4

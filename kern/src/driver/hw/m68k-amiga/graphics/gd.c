@@ -51,6 +51,10 @@ errno_t gdInit(void)
     try(_gdInitCopper());
     
 
+    // Allocate the cursor image buffer
+    try(_gdInitCursor());
+    
+
     // Initialize the boot display
     gd_display_mode_t mode;
 
