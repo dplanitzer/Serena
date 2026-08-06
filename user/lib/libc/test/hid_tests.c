@@ -93,6 +93,7 @@ static const char* _hid_device_type_string(int type)
 
 void hid_test(int argc, char *argv[])
 {
+    hid_cursor_t cursor;
     hid_event_t evt;
     bool mc_vis = true;
     bool done = false;
@@ -121,8 +122,15 @@ void hid_test(int argc, char *argv[])
     printf("Press '2' to hide mouse cursor until move.\n");
     printf("Press 'q' to quit.\n\n");
 
-    assert_int_ge(0, fd_cntl(fd, HID_CMD_OBTAIN_CURSOR));
-    assert_int_ge(0, fd_cntl(fd, HID_CMD_SET_CURSOR, gArrow_Planes, sizeof(uint16_t), HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, HID_CURSOR_PIXELFORMAT, 1, 1));
+    cursor.type = HID_STRUCTURE_TYPE_CURSOR;
+    cursor.hotSpotX = 1;
+    cursor.hotSpotY = 1;
+    cursor.planes = (void**)gArrow_Planes;
+    cursor.bytesPerRow = 2;
+    cursor.width = HID_CURSOR_WIDTH;
+    cursor.height = HID_CURSOR_HEIGHT;
+    cursor.pixelFormat = HID_CURSOR_PIXELFORMAT;
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_SET_CURSOR, &cursor));
 
     while (!done) {
         assert_int_ge(0, fd_cntl(fd, HID_CMD_GET_EVENT, &NANOTIME_INF, &evt));
@@ -204,6 +212,6 @@ void hid_test(int argc, char *argv[])
     }
 
     assert_int_ge(0, fd_cntl(fd, HID_CMD_FLUSH_EVENTS));
-    assert_int_ge(0, fd_cntl(fd, HID_CMD_RELEASE_CURSOR));
+    assert_int_ge(0, fd_cntl(fd, HID_CMD_SET_CURSOR, NULL));
     fd_close(fd);
 }

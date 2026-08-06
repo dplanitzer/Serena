@@ -10,8 +10,10 @@
 #define IOHIDDisplay_h
 
 #include <driver/IODriver.h>
-#include <kpi/framebuffer.h>
+#include <kpi/hid.h>
 #include <sched/vcpu.h>
+
+typedef struct hid_cursor IOHIDCursor;
 
 
 // A HID display is an abstraction over a video/graphics card which is used by
@@ -46,24 +48,10 @@ open_class_funcs(IOHIDDisplay, IODriver,
     // Mouse Cursor
     //
 
-    // Obtains the mouse cursor. The mouse cursor is initially transparent and thus
-    // not visible on the screen. You assign an image to the mouse cursor by calling
-    // the BindMouseCursor() function. Note that calling this function may forcefully
-    // take ownership of the highest priority hardware sprites.
-    // Override: Required
-    // Default: Does nothing and returns ENOTSUP
-    errno_t (*obtainCursor)(void* _Nonnull self);
-
-    // Releases the mouse cursor and makes the underlying sprite available for
-    // other uses again.
-    // Override: Required
-    // Default: Does nothing
-    void (*releaseCursor)(void* _Nonnull self);
-
     // Sets the pixel image of the mouse cursor.
     // Override: Required
-    // Default: Does nothing and returns ENOTSUP
-    errno_t (*setCursor)(void* _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format);
+    // Default: Does nothing and returns EINVAL
+    errno_t (*setCursor)(void* _Nonnull self, const IOHIDCursor* _Nullable cursor);
 
     // Sets the position of the mouse cursor. Note that the mouse cursor is only
     // visible as long as at least some part of it is inside the display window
@@ -92,14 +80,8 @@ invoke_n(getScreenSize, IOHIDDisplay, __self, __w, __h)
 invoke_n(setScreenConfigObserver, IOHIDDisplay, __self, __vp, __signo)
 
 
-#define IOHIDDisplay_ObtainCursor(__self) \
-invoke_0(obtainCursor, IOHIDDisplay, __self)
-
-#define IOHIDDisplay_ReleaseCursor(__self) \
-invoke_0(releaseCursor, IOHIDDisplay, __self)
-
-#define IOHIDDisplay_SetCursor(__self, __planes, __bytesPerRow, __width, __height, __format) \
-invoke_n(setCursor, IOHIDDisplay, __self, __planes, __bytesPerRow, __width, __height, __format)
+#define IOHIDDisplay_SetCursor(__self, __cursor) \
+invoke_n(setCursor, IOHIDDisplay, __self, __cursor)
 
 #define IOHIDDisplay_SetCursorPosition(__self, __x, __y) \
 invoke_n(setCursorPosition, IOHIDDisplay, __self, __x, __y)

@@ -41,40 +41,54 @@ errno_t AmiHIDDisplay_start(AmiHIDDisplayRef _Nonnull self)
     return err;
 }
 
-errno_t AmiHIDDisplay_obtainCursor(AmiHIDDisplayRef _Nonnull self)
+errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const IOHIDCursor* _Nullable cursor)
 {
     decl_try_err();
+    bool doRelease = false;
 
-    gdLock();
-    err = gdAcquireSprites(PID_KERNELD, MOUSE_SPRITE_PRI, 1, &self->cursorSpriteId);
-    if (err == EOK) {
-        gdShowSprite(PID_KERNELD, self->cursorSpriteId, true);
+    if (cursor) {
+        if (cursor->type != HID_STRUCTURE_TYPE_CURSOR) {
+            return EINVAL;
+        }
+        if ((cursor->planes && cursor->bytesPerRow == 0) || cursor->width != HID_CURSOR_WIDTH || cursor->height != HID_CURSOR_HEIGHT || cursor->pixelFormat != HID_CURSOR_PIXELFORMAT) {
+            return EINVAL;
+        }
     }
-    gdUnlock();
-    return err;
-}
 
-void AmiHIDDisplay_releaseCursor(AmiHIDDisplayRef _Nonnull self)
-{
+
     gdLock();
-    if (self->cursorSpriteId >= 0) {
+    if (cursor) {
+        if (self->cursorSpriteId < 0) {
+            // Acquire the mouse cursor sprite, since we previously didn't have it
+            err = gdAcquireSprites(PID_KERNELD, MOUSE_SPRITE_PRI, 1, &self->cursorSpriteId);
+            if (err == EOK) {
+                err = _gdBindSpriteImage(PID_KERNELD, self->cursorSpriteId, self->cursorImage);
+                if (err == EOK) {
+                    gdShowSprite(PID_KERNELD, self->cursorSpriteId, true);
+                }
+                else {
+                    doRelease = true;
+                }
+            }
+        }
+
+
+        if (err == EOK) {
+            // Update the mouse cursor image
+            _gdWritePixels(self->cursorImage, cursor->planes, cursor->bytesPerRow, cursor->pixelFormat);
+        }
+    }
+    else if (self->cursorSpriteId >= 0) {
+        // 'cursor' is NULL and we got a mouse cursor -> free the sprite
+        // (but keep the cursor image memory around for future requests)
+        doRelease = true;
+    }
+
+
+    if (doRelease) {
         gdReleaseSprites(PID_KERNELD, &self->cursorSpriteId, 1);
+        self->cursorSpriteId = -1;
     }
-    // Keep the cursor memory around
-    gdUnlock();
-}
-
-errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format)
-{
-    decl_try_err();
-
-    if ((planes && bytesPerRow == 0) || width != HID_CURSOR_WIDTH || height != HID_CURSOR_HEIGHT || format != HID_CURSOR_PIXELFORMAT) {
-        return EINVAL;
-    }
-
-    gdLock();
-    _gdWritePixels(self->cursorImage, planes, bytesPerRow, format);
-    err = _gdBindSpriteImage(PID_KERNELD, self->cursorSpriteId, self->cursorImage);
     gdUnlock();
     return err;
 }
@@ -117,8 +131,6 @@ class_func_defs(AmiHIDDisplay, IOHIDDisplay,
 override_func_def(start, AmiHIDDisplay, IODriver)
 override_func_def(getScreenSize, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setScreenConfigObserver, AmiHIDDisplay, IOHIDDisplay)
-override_func_def(obtainCursor, AmiHIDDisplay, IOHIDDisplay)
-override_func_def(releaseCursor, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setCursor, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setCursorPosition, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setCursorVisible, AmiHIDDisplay, IOHIDDisplay)

@@ -178,47 +178,17 @@ void IOHIDManager_GetDeviceKeysDown(IOHIDManagerRef _Nonnull self, const hid_key
     *nKeysDown = oi;
 }
 
-errno_t IOHIDManager_ObtainCursor(IOHIDManagerRef _Nonnull self)
+errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const hid_cursor_t* _Nullable cursor)
 {
     decl_try_err();
 
-    mtx_lock(&self->mtx);
-    if (self->hidDisplay) {
-        err = IOHIDDisplay_ObtainCursor(self->hidDisplay);
-        if (err == EOK) {
-            self->cursorWidth = 0;
-            self->cursorHeight = 0;
-            self->hotSpotX = 0;
-            self->hotSpotY = 0;
-            self->hiddenCount = 0;
-            self->isMouseObscured = false;
-            self->isMouseShielded = false;
-            self->isMouseShieldEnabled = false;
+    if (cursor) {
+        if (cursor->type != HID_STRUCTURE_TYPE_CURSOR) {
+            return EINVAL;
         }
-    }
-    else {
-        err = ENODEV;
-    }
-    mtx_unlock(&self->mtx);
-
-    return err;
-}
-
-void IOHIDManager_ReleaseCursor(IOHIDManagerRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    if (self->hidDisplay) {
-        IOHIDDisplay_ReleaseCursor(self->hidDisplay);
-    }
-    mtx_unlock(&self->mtx);
-}
-
-errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, gd_pixfmt_t format, int hotSpotX, int hotSpotY)
-{
-    decl_try_err();
-
-    if (hotSpotX < 0 || hotSpotX >= width || hotSpotY < 0 || hotSpotY >= height) {
-        return EINVAL;
+        if (cursor->hotSpotX < 0 || cursor->hotSpotX >= cursor->width || cursor->hotSpotY < 0 || cursor->hotSpotY >= cursor->height) {
+            return EINVAL;
+        }
     }
 
 
@@ -228,13 +198,25 @@ errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const void* _Nulla
     }
 
 
-    try(IOHIDDisplay_SetCursor(self->hidDisplay, planes, bytesPerRow, width, height, format));
-    self->hotSpotX = hotSpotX;
-    self->hotSpotY = hotSpotY;
+    try(IOHIDDisplay_SetCursor(self->hidDisplay, cursor));
 
-    // Update the framebuffer mouse cursor position to line it up with our position
-    // and the new hot spot offset.
-    IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - hotSpotX, self->mouse.y - hotSpotY);
+    if (cursor) {
+        // Update the framebuffer mouse cursor position to line it up with our position
+        // and the new hot spot offset.
+        self->hotSpotX = cursor->hotSpotX;
+        self->hotSpotY = cursor->hotSpotY;
+        IOHIDDisplay_SetCursorPosition(self->hidDisplay, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+    }
+    else {
+        self->cursorWidth = 0;
+        self->cursorHeight = 0;
+        self->hotSpotX = 0;
+        self->hotSpotY = 0;
+        self->hiddenCount = 0;
+        self->isMouseObscured = false;
+        self->isMouseShielded = false;
+        self->isMouseShieldEnabled = false;
+    }
 
 catch:
     mtx_unlock(&self->mtx);

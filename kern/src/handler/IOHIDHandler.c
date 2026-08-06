@@ -82,24 +82,10 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return EOK;
         }
 
-        case HID_CMD_OBTAIN_CURSOR: {
-            return IOHIDManager_ObtainCursor(gIOHIDManager);
-        }
-
-        case HID_CMD_RELEASE_CURSOR:
-            IOHIDManager_ReleaseCursor(gIOHIDManager);
-            return EOK;
-
         case HID_CMD_SET_CURSOR: {
-            const void** planes = va_arg(ap, const void**);
-            const size_t bytesPerRow = va_arg(ap, size_t);
-            const int width = va_arg(ap, int);
-            const int height = va_arg(ap, int);
-            const gd_pixfmt_t format = va_arg(ap, gd_pixfmt_t);
-            const int hotSpotX = va_arg(ap, int);
-            const int hotSpotY = va_arg(ap, int);
+            const hid_cursor_t* cursor = va_arg(ap, const hid_cursor_t*);
 
-            return IOHIDManager_SetCursor(gIOHIDManager, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
+            return IOHIDManager_SetCursor(gIOHIDManager, cursor);
         }
 
         case HID_CMD_SHOW_CURSOR:
