@@ -176,9 +176,10 @@ static void _release_sprite(sprite_channel_t* _Nonnull scp)
     bool hasChanged = false;
         
     hasChanged |= _bind_sprite_image(scp, NULL);
-    _set_sprite_pos(scp, 0, 0);
-    hasChanged |= scp->isVisible;
-    scp->isVisible = false;
+    hasChanged |= !scp->isVisible;
+    scp->isVisible = true;
+    scp->x = 0;
+    scp->y = 0;
     scp->ownerPid = 0;
 
     if (hasChanged) {

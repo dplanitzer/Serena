@@ -149,8 +149,6 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 // are allocated.
 // 'If 'basePriority' is < 0 then 'count' sprites with an arbitrary and available
 // priority are allocated.
-// Note that a sprite is hidden by default. You must issue a gdCmdShowSprite()
-// command and bind an image to it to make it visible.
 // EAGAIN is returned if not enough sprites are available.
 // gdAcquireSprites(int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
 #define GDC_ACQUIRE_SPRITES \

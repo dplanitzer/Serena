@@ -63,10 +63,7 @@ errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const IOHIDCurso
             err = gdAcquireSprites(PID_KERNELD, MOUSE_SPRITE_PRI, 1, &self->cursorSpriteId);
             if (err == EOK) {
                 err = _gdBindSpriteImage(PID_KERNELD, self->cursorSpriteId, self->cursorImage);
-                if (err == EOK) {
-                    gdShowSprite(PID_KERNELD, self->cursorSpriteId, true);
-                }
-                else {
+                if (err != EOK) {
                     doRelease = true;
                 }
             }
