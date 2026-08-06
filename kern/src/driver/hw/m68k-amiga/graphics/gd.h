@@ -9,6 +9,8 @@
 #ifndef _GD_H
 #define _GD_H
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <ext/try.h>
 #include <kpi/framebuffer.h>
 #include <sched/mtx.h>
@@ -46,7 +48,7 @@ extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[],
 // Sprites
 extern errno_t gdAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds);
 extern errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count);
-extern errno_t gdMoveSprite(pid_t pid, int spriteId, int x, int y);
+extern errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y);
 extern errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);
 

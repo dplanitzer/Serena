@@ -95,24 +95,6 @@ static void _sprite_image_or_visibility_changed(const sprite_channel_t* _Nonnull
     }
 }
 
-static void _set_sprite_pos(sprite_channel_t* _Nonnull spr, int x, int y)
-{
-    spr->x = x;
-    spr->y = y;
-
-    if (spr->image) {
-        const uint32_t ctl = _calc_sprite_ctl(spr);
-
-        if (spr->isVisible) {
-            sprite_ctl_submit(spr->id, _gdGetImagePlane(spr->image, 0), ctl);
-        }
-        else {
-            uint32_t* sprptr = (uint32_t*)_gdGetImagePlane(spr->image, 0);
-            *sprptr = ctl;
-        }
-    }
-}
-
 static sprite_channel_t* _Nullable _sprite_channel_for_id(pid_t pid, int id)
 {
     if (id >= 0 && id < SPRITE_COUNT) {
@@ -235,38 +217,48 @@ errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
     return EOK;
 }
 
-errno_t gdMoveSprite(pid_t pid, int spriteId, int x, int y)
+errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y)
 {
     sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
-    if (scp) {
-        _set_sprite_pos(scp, x, y);
-        return EOK;
-    }
-    else {
+    if (scp == NULL) {
         return EINVAL;
     }
+
+    scp->x = x;
+    scp->y = y;
+
+    if (scp->image) {
+        const uint32_t ctl = _calc_sprite_ctl(scp);
+        uint32_t* ctl_ptr = (uint32_t*)_gdGetImagePlane(scp->image, 0);
+
+        if (scp->isVisible) {
+            sprite_ctl_submit(scp->id, ctl_ptr, ctl);
+        }
+        else {
+            *ctl_ptr = ctl;
+        }
+    }
+    return EOK;
 }
 
 errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
 {
     sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
-    if (scp) {
-        const bool hasChange = scp->isVisible != isVisible;
-    
-        if (hasChange) {
-            scp->isVisible = isVisible;
-            if (scp->image) {
-                _sprite_image_or_visibility_changed(scp);
-            }
-        }
-
-        return EOK;
-    }
-    else {
+    if (scp == NULL) {
         return EINVAL;
     }
+
+    if (scp->isVisible != isVisible) {
+        scp->isVisible = isVisible;
+
+        if (scp->image) {
+            _sprite_image_or_visibility_changed(scp);
+        }
+    }
+
+    return EOK;
 }
 
 void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
