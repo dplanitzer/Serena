@@ -273,38 +273,38 @@ void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int img_id)
 }
 
 
-void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int target, int img_id)
+void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int spr_id, int img_id)
 {
-    struct gd_op_bind_image* p = addr;
+    struct gd_op_sprite_image* p = addr;
 
-    p->opcode = GD_OPCODE_BIND_IMAGE;
-    p->target = target;
+    p->opcode = GD_OPCODE_SPRITE_IMAGE;
+    p->spriteId = spr_id;
     p->imageId = img_id;
 
-    return (char*)addr + sizeof(struct gd_op_bind_image);
+    return (char*)addr + sizeof(struct gd_op_sprite_image);
 }
 
 void* _Nonnull gdCmdMoveSprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y)
 {
-    struct gd_op_move_sprite* p = addr;
+    struct gd_op_sprite_move* p = addr;
 
-    p->opcode = GD_OPCODE_MOVE_SPRITE;
+    p->opcode = GD_OPCODE_SPRITE_MOVE;
     p->spriteId = spr_id;
     p->x = x;
     p->y = y;
 
-    return (char*)addr + sizeof(struct gd_op_move_sprite);
+    return (char*)addr + sizeof(struct gd_op_sprite_move);
 }
 
 void* _Nonnull gdCmdShowSprite(void* _Nonnull addr, int spr_id, bool isVisible)
 {
-    struct gd_op_show_sprite* p = addr;
+    struct gd_op_sprite_show* p = addr;
 
-    p->opcode = GD_OPCODE_SHOW_SPRITE;
+    p->opcode = GD_OPCODE_SPRITE_SHOW;
     p->spriteId = spr_id;
     p->visible = isVisible;
     
-    return (char*)addr + sizeof(struct gd_op_show_sprite);
+    return (char*)addr + sizeof(struct gd_op_sprite_show);
 }
 
 

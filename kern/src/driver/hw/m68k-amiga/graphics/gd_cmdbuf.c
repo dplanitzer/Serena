@@ -130,19 +130,19 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
             case GD_OPCODE_END:                // gd_opcode_t
                 return EOK;
 
-            case GD_OPCODE_BIND_IMAGE:         // gd_op_bind_image   //XXX will turn into gdCmdSpriteBufferLevel
-                try(gdBindImage(cmdbuf->ownerPid, ip->bind_image.target, ip->bind_image.imageId));
-                ilen = sizeof(struct gd_op_bind_image);
+            case GD_OPCODE_SPRITE_IMAGE:       // gd_op_sprite_image   //XXX will turn into gdCmdSpriteBufferLevel
+                try(gdBindSpriteImage(cmdbuf->ownerPid, ip->sprite_image.spriteId, ip->sprite_image.imageId));
+                ilen = sizeof(struct gd_op_sprite_image);
                 break;
 
-            case GD_OPCODE_MOVE_SPRITE:        // struct gd_op_move_sprite
-                try(gdMoveSprite(cmdbuf->ownerPid, ip->put_sprite.spriteId, ip->put_sprite.x, ip->put_sprite.y));
-                ilen = sizeof(struct gd_op_move_sprite);
+            case GD_OPCODE_SPRITE_MOVE:        // struct gd_op_sprite_move
+                try(gdMoveSprite(cmdbuf->ownerPid, ip->sprite_move.spriteId, ip->sprite_move.x, ip->sprite_move.y));
+                ilen = sizeof(struct gd_op_sprite_move);
                 break;
 
-            case GD_OPCODE_SHOW_SPRITE:        // struct gd_op_show_sprite
-                try(gdShowSprite(cmdbuf->ownerPid, ip->show_sprite.spriteId, ip->show_sprite.visible != 0));
-                ilen = sizeof(struct gd_op_show_sprite);
+            case GD_OPCODE_SPRITE_SHOW:        // struct gd_op_sprite_show
+                try(gdShowSprite(cmdbuf->ownerPid, ip->sprite_show.spriteId, ip->sprite_show.visible != 0));
+                ilen = sizeof(struct gd_op_sprite_show);
                 break;
 
             default:

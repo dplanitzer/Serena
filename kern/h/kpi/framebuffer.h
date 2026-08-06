@@ -32,18 +32,7 @@
 typedef int gd_pixfmt_t;
 
 
-// Image binding targets
-#define GD_SPRITE_0 0x20000
-#define GD_SPRITE_1 0x20001
-#define GD_SPRITE_2 0x20002
-#define GD_SPRITE_3 0x20003
-#define GD_SPRITE_4 0x20004
-#define GD_SPRITE_5 0x20005
-#define GD_SPRITE_6 0x20006
-#define GD_SPRITE_7 0x20007
-
-
-// Well known images
+// Pre-defined image names
 #define GD_FRONT_BUFFER 1
 
 
@@ -288,9 +277,9 @@ IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_RD, 0)
 #define GD_OPCODE_WRITE_PIXELS 200     // struct gd_op_write_pixels
 
 // Sprite command set
-#define GD_OPCODE_MOVE_SPRITE   300     // struct gd_op_move_sprite
-#define GD_OPCODE_SHOW_SPRITE   301     // struct gd_op_show_sprite
-#define GD_OPCODE_BIND_IMAGE    302     // struct gd_op_bind_image 
+#define GD_OPCODE_SPRITE_MOVE   300     // struct gd_op_sprite_move
+#define GD_OPCODE_SPRITE_SHOW   301     // struct gd_op_sprite_show
+#define GD_OPCODE_SPRITE_IMAGE    302     // struct gd_op_sprite_image 
 
 typedef unsigned short gd_opcode_t;
 
@@ -313,20 +302,20 @@ struct gd_op_write_pixels {
 
 
 // Sprite command set
-struct gd_op_bind_image {
+struct gd_op_sprite_image {
     gd_opcode_t opcode;
-    int         target;
+    int         spriteId;
     int         imageId;
 };
 
-struct gd_op_move_sprite {
+struct gd_op_sprite_move {
     gd_opcode_t opcode;
     int         spriteId;
     int16_t     x;
     int16_t     y;
 };
 
-struct gd_op_show_sprite {
+struct gd_op_sprite_show {
     gd_opcode_t opcode;
     int         spriteId;
     int16_t     visible;    // 'visible' != 0 -> show; otherwise hide
@@ -343,9 +332,9 @@ union vio_op {
     struct gd_op_write_pixels   write_pixels;
 
     // Sprite
-    struct gd_op_bind_image     bind_image;
-    struct gd_op_move_sprite    put_sprite;
-    struct gd_op_show_sprite    show_sprite;
+    struct gd_op_sprite_image   sprite_image;
+    struct gd_op_sprite_move    sprite_move;
+    struct gd_op_sprite_show    sprite_show;
 };
 
 

@@ -42,7 +42,7 @@ extern errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int que
 // In-kernel command buffer utilities
 extern void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int img_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 extern void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int img_id);
-extern void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int target, int img_id);
+extern void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int spr_id, int img_id);
 extern void* _Nonnull gdCmdMoveSprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y);
 extern void* _Nonnull gdCmdShowSprite(void* _Nonnull addr, int spr_id, bool isVisible);
 extern void* _Nonnull gdCmdEnd(void* _Nonnull addr);

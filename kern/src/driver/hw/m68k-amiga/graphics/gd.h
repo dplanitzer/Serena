@@ -35,7 +35,6 @@ extern errno_t gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixel
 extern errno_t gdDestroyImage(pid_t pid, int id);
 extern void gdDestroyImagesOwnedBy(pid_t pid);
 extern errno_t gdGetImageInfo(pid_t pid, int id, gd_image_info_t* _Nonnull pOutInfo);
-extern errno_t gdBindImage(pid_t pid, int target, int id);    //XXX
 extern errno_t gdMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
 extern errno_t gdUnmapImage(pid_t pid, int id);
 extern errno_t gdClearPixels(pid_t pid, int id);   // For use by AGADriver (clearing default framebuffer)
@@ -49,6 +48,7 @@ extern void _gdClearPixels(struct image* _Nonnull self);
 // Sprites
 extern errno_t gdAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds);
 extern errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count);
+extern errno_t gdBindSpriteImage(pid_t pid, int target, int id);    //XXX
 extern errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y);
 extern errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible);
 extern void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp);

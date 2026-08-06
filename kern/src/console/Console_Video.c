@@ -77,7 +77,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
     ip = self->cmdbuf.addr;
     ip = gdCmdShowSprite(ip, self->textCursorSpriteId, 0);
-    ip = gdCmdBindSpriteImage(ip, GD_SPRITE_0 + self->textCursorSpriteId, self->textCursorBufferId);
+    ip = gdCmdBindSpriteImage(ip, self->textCursorSpriteId, self->textCursorBufferId);
     ip = gdCmdEnd(ip);
 
     try(AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id));

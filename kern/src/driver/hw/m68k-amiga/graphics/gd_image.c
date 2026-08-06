@@ -258,24 +258,6 @@ errno_t gdGetImageInfo(pid_t pid, int id, gd_image_info_t* _Nonnull pOutInfo)
     return EOK;
 }
 
-errno_t gdBindImage(pid_t pid, int target, int id)
-{
-    image_t* self = (id != 0) ? _gdGetImageById(pid, id) : NULL;
-    
-    if (self || id == 0) {
-        switch (target & 0xffff0000) {
-            case GD_SPRITE_0:
-                return _gdBindSpriteImage(pid, target & 0x0000ffff, self);
-
-            default:
-                return EINVAL;
-        }
-    }
-    else {
-        return EINVAL;
-    }
-}
-
 errno_t gdMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
     image_t* self = _gdGetImageById(pid, id);

@@ -217,6 +217,18 @@ errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
     return EOK;
 }
 
+errno_t gdBindSpriteImage(pid_t pid, int spriteId, int imageId)
+{
+    image_t* img = (imageId != 0) ? _gdGetImageById(pid, imageId) : NULL;
+    
+    if (img || imageId == 0) {
+        return _gdBindSpriteImage(pid, spriteId, img);
+    }
+    else {
+        return EINVAL;
+    }
+}
+
 errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y)
 {
     sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
