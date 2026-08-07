@@ -40,7 +40,7 @@ extern errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const hid_c
 extern void IOHIDManager_ShowCursor(IOHIDManagerRef _Nonnull self);
 extern void IOHIDManager_HideCursor(IOHIDManagerRef _Nonnull self);
 extern void IOHIDManager_ObscureCursor(IOHIDManagerRef _Nonnull self);
-extern errno_t IOHIDManager_ShieldMouseCursor(IOHIDManagerRef _Nonnull self, int x, int y, int width, int height);
+extern errno_t IOHIDManager_ShieldMouseCursor(IOHIDManagerRef _Nonnull self, int displayId, int x, int y, int width, int height);
 
 
 // Returns the mouse hardware state

@@ -65,6 +65,21 @@ open_class_funcs(IOHIDDisplay, IODriver,
     // Override: Required
     // Default: Does nothing
     void (*updateCursor)(void* _Nonnull self, int16_t x, int16_t y, unsigned int flags);
+
+    // Set a mouse cursor shielding rectangle. Mouse cursor shielding is turned
+    // off if the area of teh specified rectangle is <= 0. Mouse cursor shielding
+    // is only relevant for HID displays which implement the mouse cursor in
+    // software. HID displays which implement the mouse cursor with the help of
+    // (sprite) hardware should simply return immediately and ignore the shielding
+    // rectangle parameters.
+    // The purpose of the shielding rectangle is to ensure that the mouse cursor
+    // is automatically hidden if it is inside the rectangle or it intersects
+    // one of the rectangle edges or corners. If the mouse cursor intersects the
+    // rectangle when this is function is called, then the mouse cursor should
+    // be hidden right away.
+    // The shielding rectangle coordinates are specified in terms of physical
+    // display pixels.
+    void (*shieldCursor)(void* _Nonnull self, int x, int y, int width, int height);
 );
 
 
@@ -84,5 +99,8 @@ invoke_n(setCursor, IOHIDDisplay, __self, __cursor)
 
 #define IOHIDDisplay_UpdateCursor(__self, __x, __y, __flags) \
 invoke_n(updateCursor, IOHIDDisplay, __self, __x, __y, __flags)
+
+#define IOHIDDisplay_ShieldCursor(__self, __x, __y, __width, __height) \
+invoke_n(shieldCursor, IOHIDDisplay, __self, __x, __y, __width, __height)
 
 #endif /* IOHIDDisplay_h */

@@ -36,10 +36,15 @@ void IOHIDDisplay_updateCursor(IOHIDDisplayRef _Nonnull self, int16_t x, int16_t
 {
 }
 
+void IOHIDDisplay_shieldCursor(IOHIDDisplayRef _Nonnull self, int x, int y, int width, int height)
+{
+}
+
 
 class_func_defs(IOHIDDisplay, IODriver,
 func_def(getScreenSize, IOHIDDisplay)
 func_def(setScreenConfigObserver, IOHIDDisplay)
 func_def(setCursor, IOHIDDisplay)
 func_def(updateCursor, IOHIDDisplay)
+func_def(shieldCursor, IOHIDDisplay)
 );

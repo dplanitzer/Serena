@@ -101,12 +101,13 @@ errno_t IOHIDHandler_control(struct IOHIDHandler* _Nonnull self, int cmd, va_lis
             return EOK;
 
         case HID_CMD_SHIELD_CURSOR: {
+            const int displayId = va_arg(ap, int);
             const int x = va_arg(ap, int);
             const int y = va_arg(ap, int);
             const int w = va_arg(ap, int);
             const int h = va_arg(ap, int);
 
-            return IOHIDManager_ShieldMouseCursor(gIOHIDManager, x, y, w, h);
+            return IOHIDManager_ShieldMouseCursor(gIOHIDManager, displayId, x, y, w, h);
         }
 
 #if __IOGPBUS__ > 0

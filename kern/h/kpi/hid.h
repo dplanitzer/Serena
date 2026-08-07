@@ -91,12 +91,20 @@ IOCMD_MAKE(IOPROTO_HID, 7, _IOCMD_ACC_WR, 0)
 #define HID_CMD_OBSCURE_CURSOR \
 IOCMD_MAKE(IOPROTO_HID, 8, _IOCMD_ACC_WR, 0)
 
-// Shields the mouse cursor. Call this function before drawing into the provided
-// rectangle on the screen to ensure that the mouse cursor image will be saved
-// and restored as needed. This function increment the cursor hidden count. Call
-// ShowCursor() to remove the shielding rectangle and to make the cursor visible
-// again.
-// shield_cursor(int x, int y, int width, int height)
+// Shields or unshields the mouse cursor. Shielding a mouse cursor means that
+// the mouse cursor is automatically hidden any time it intersects the provided
+// rectangle. Unshielding means that the mouse cursor is made visible again,
+// assuming that it isn't hidden for some other reason. The mouse cursor is
+// shielded if 'width' and 'height' are greater than 0. Otherwise it is
+// unshielded.
+// Shielding is only necessary if the display driver implements the mouse cursor
+// in software and you want to draw into the framebuffer. A hardware mouse cursor
+// implementation will ignore the shielding rectangle since the hardware takes
+// care of ensuring that drawing the mouse cursor and drawing into the
+// framebuffer won't clash.
+// The 'displayId' specifies the target display in a multi-monitor environment.
+// It is always 0 for a single monitor environment.
+// shield_cursor(int displayId, int x, int y, int width, int height)
 #define HID_CMD_SHIELD_CURSOR \
 IOCMD_MAKE(IOPROTO_HID, 9, _IOCMD_ACC_WR, 0)
 

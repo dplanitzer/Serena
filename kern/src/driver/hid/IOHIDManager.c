@@ -183,27 +183,18 @@ errno_t IOHIDManager_SetCursor(IOHIDManagerRef _Nonnull self, const hid_cursor_t
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    if (self->hidDisplay == NULL) {
-        throw(ENODEV);
-    }
-
-
-    try(IOHIDDisplay_SetCursor(self->hidDisplay, cursor));
-
-    if (cursor) {
-        self->hotSpotX = cursor->hotSpotX;
-        self->hotSpotY = cursor->hotSpotY;
+    if (self->hidDisplay) {
+        err = IOHIDDisplay_SetCursor(self->hidDisplay, cursor);
+        if (cursor == NULL && err == EOK) {
+            self->mouse.x = 0;
+            self->mouse.y = 0;
+            self->hiddenCount = 0;
+            self->isMouseObscured = false;
+        }
     }
     else {
-        self->cursorWidth = 0;
-        self->cursorHeight = 0;
-        self->hiddenCount = 0;
-        self->isMouseObscured = false;
-        self->isMouseShielded = false;
-        self->isMouseShieldEnabled = false;
+        err = ENODEV;
     }
-
-catch:
     mtx_unlock(&self->mtx);
     
     return err;
@@ -232,26 +223,20 @@ void IOHIDManager_ShowCursor(IOHIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (_show_cursor(self)) {
-        self->isMouseShieldEnabled = false;
         self->isMouseObscured = false;
     }
     mtx_unlock(&self->mtx);
 }
 
-static void _hide_cursor(IOHIDManagerRef _Nonnull _Locked self)
+void IOHIDManager_HideCursor(IOHIDManagerRef _Nonnull self)
 {
+    mtx_lock(&self->mtx);
     if (self->hiddenCount == 0) {
         IOHIDDisplay_UpdateCursor(self->hidDisplay, self->mouse.x, self->mouse.y, IOHID_CURSOR_CHANGE_VISIBILITY);
     }
     if (self->hiddenCount < INT_MAX) {
         self->hiddenCount++;
     }
-}
-
-void IOHIDManager_HideCursor(IOHIDManagerRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    _hide_cursor(self);
     mtx_unlock(&self->mtx);
 }
 
@@ -265,56 +250,21 @@ void IOHIDManager_ObscureCursor(IOHIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-static bool _shield_intersects_cursor(IOHIDManagerRef _Nonnull self)
+errno_t IOHIDManager_ShieldMouseCursor(IOHIDManagerRef _Nonnull self, int displayId, int x, int y, int width, int height)
 {
-    int r;
-
-    self->cursorBounds.l = self->mouse.x - self->hotSpotX;
-    self->cursorBounds.t = self->mouse.y - self->hotSpotY;
-    self->cursorBounds.r = self->cursorBounds.l + self->cursorWidth;
-    self->cursorBounds.b = self->cursorBounds.b + self->cursorHeight;
-    hid_rect_intersects(&self->shieldRect, &self->cursorBounds, r);
-
-    return (r) ? true : false;
-}
-
-#define _shield_cursor(__self) \
-_hide_cursor(__self); \
-(__self)->isMouseShielded = true
-
-#define _unshield_cursor(__self) \
-_show_cursor(__self); \
-(__self)->isMouseShielded = false
-
-errno_t IOHIDManager_ShieldMouseCursor(IOHIDManagerRef _Nonnull self, int x, int y, int width, int height)
-{
-    if (width < 0 || height < 0) {
-        return EINVAL;
-    }
+    decl_try_err();
 
     mtx_lock(&self->mtx);
-    // No need to shield if we're hidden already
-    if (self->hiddenCount == 0) {
-        int l = x;
-        int t = y;
-        int r = x + width;
-        int b = y + height;
-
-        self->shieldRect.l = __max(__min(l, INT16_MAX), 0);
-        self->shieldRect.t = __max(__min(t, INT16_MAX), 0);
-        self->shieldRect.r = __max(__min(r, INT16_MAX), 0);
-        self->shieldRect.b = __max(__min(b, INT16_MAX), 0);
-
-        self->isMouseShieldEnabled = ((self->shieldRect.r - self->shieldRect.l) > 0 && (self->shieldRect.b - self->shieldRect.t) > 0) ? true : false;
-
-        if (self->isMouseShieldEnabled) {
-            if (_shield_intersects_cursor(self)) {
-                _shield_cursor(self);
-            }
-        }
+    //XXX ignoring displayId for now
+    if (self->hidDisplay) {
+        IOHIDDisplay_ShieldCursor(self->hidDisplay, x, y, width, height);
     }
-
+    else {
+        err = ENODEV;
+    }
     mtx_unlock(&self->mtx);
+
+    return err;
 }
 
 // Returns the current mouse location in screen space.
@@ -866,30 +816,15 @@ static bool _collect_pointing_device_reports(IOHIDManagerRef _Nonnull self)
 
 
     // Move the mouse cursor image on screen if the mouse position has changed
-    if (hasPositionChange) {
-        if (self->isMouseShieldEnabled && self->hidDisplay) {
-            if (_shield_intersects_cursor(self)) {
-                if (!self->isMouseShielded) {
-                    _shield_cursor(self);
-                }
-            }
-            else {
-                if (self->isMouseShielded) {
-                    _unshield_cursor(self);
-                }
-            }
-        }
+    if (hasPositionChange && self->hiddenCount == 0 && self->hidDisplay) {
+        unsigned int flags = IOHID_CURSOR_CHANGE_POSITION;
 
-        if (self->hiddenCount == 0 && self->hidDisplay) {
-            unsigned int flags = IOHID_CURSOR_CHANGE_POSITION;
-
-            if (self->isMouseObscured) {
-                flags |= IOHID_CURSOR_CHANGE_VISIBILITY;
-                flags |= IOHID_CURSOR_VISIBLE;
-                self->isMouseObscured = false;
-            }
-            IOHIDDisplay_UpdateCursor(self->hidDisplay, self->mouse.x, self->mouse.y, flags);
+        if (self->isMouseObscured) {
+            flags |= IOHID_CURSOR_CHANGE_VISIBILITY;
+            flags |= IOHID_CURSOR_VISIBLE;
+            self->isMouseObscured = false;
         }
+        IOHIDDisplay_UpdateCursor(self->hidDisplay, self->mouse.x, self->mouse.y, flags);
     }
 
 

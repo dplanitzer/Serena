@@ -116,14 +116,8 @@ final_class_ivars(IOHIDManager, Object,
     hid_rect_t                  screenBounds;
     hid_rect_t                  shieldRect;
     hid_rect_t                  cursorBounds;   // updated only when needed
-    int16_t                     cursorWidth;
-    int16_t                     cursorHeight;
-    int16_t                     hotSpotX;
-    int16_t                     hotSpotY;
     int                         hiddenCount;
     bool                        isMouseObscured;
-    bool                        isMouseShielded;
-    bool                        isMouseShieldEnabled;
     bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
 
