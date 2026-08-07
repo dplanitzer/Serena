@@ -118,6 +118,7 @@ extern void sprite_ctl_cancel(int spridx);
 
 // Cursor
 extern errno_t _gdInitCursor(void);
+extern void _gdUpdateCursorOnDisplayChange(int16_t w, int16_t h);
 
 
 // Copper program instruction

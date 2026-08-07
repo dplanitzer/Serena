@@ -138,6 +138,9 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     g_cur_video_config = vc;
 
 
+    // Keep the mouse cursor inside the new display area
+    _gdUpdateCursorOnDisplayChange(g_cur_display_mode.width, g_cur_display_mode.height);
+
 
     if (g_screen_conf_observer) {
         vcpu_send_signal(g_screen_conf_observer, g_screen_conf_signal);

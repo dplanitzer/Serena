@@ -13,6 +13,8 @@
 #define MOUSE_SPRITE_PRI 0
 
 
+static int16_t              g_hot_spot_x;
+static int16_t              g_hot_spot_y;
 static image_t* _Nonnull    g_cursor_image;
 static int                  g_cursor_sprite_id;
 
@@ -34,6 +36,9 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
         if ((cursor->planes && cursor->bytesPerRow == 0) || cursor->width != HID_CURSOR_WIDTH || cursor->height != HID_CURSOR_HEIGHT || cursor->pixelFormat != HID_CURSOR_PIXELFORMAT) {
             return EINVAL;
         }
+        if (cursor->hotSpotX < 0 || cursor->hotSpotX >= cursor->width || cursor->hotSpotY < 0 || cursor->hotSpotY >= cursor->height) {
+            return EINVAL;
+        }
     }
 
 
@@ -51,8 +56,18 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
 
 
         if (err == EOK) {
-            // Update the mouse cursor image
+            // Update the mouse cursor image and hot spot
             _gdWritePixels(g_cursor_image, cursor->planes, cursor->bytesPerRow, cursor->pixelFormat);
+
+            if (g_hot_spot_x != cursor->hotSpotX || g_hot_spot_y != cursor->hotSpotY) {
+                const int16_t newX = g_sprite[MOUSE_SPRITE_PRI].x + g_hot_spot_x;   // gdUpdateCursor() does the (x) - cursor->hotSpot term
+                const int16_t newY = g_sprite[MOUSE_SPRITE_PRI].y + g_hot_spot_y;
+
+                g_hot_spot_x = cursor->hotSpotX;
+                g_hot_spot_y = cursor->hotSpotY;
+
+                gdUpdateCursor(newX, newY, IOHID_CURSOR_CHANGE_POSITION);
+            }
         }
     }
     else if (g_cursor_sprite_id >= 0) {
@@ -65,6 +80,8 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
     if (doRelease) {
         gdReleaseSprites(PID_KERNELD, &g_cursor_sprite_id, 1);
         g_cursor_sprite_id = -1;
+        g_hot_spot_x = 0;
+        g_hot_spot_y = 0;
     }
 
     return err;
@@ -80,8 +97,8 @@ void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
 
 
     if ((flags & IOHID_CURSOR_CHANGE_POSITION) != 0) {
-        scp->x = x;
-        scp->y = y;
+        scp->x = x - g_hot_spot_x;
+        scp->y = y - g_hot_spot_y;
 
         if (scp->image) {
             const uint32_t ctl = _calc_sprite_ctl(scp);
@@ -105,6 +122,30 @@ void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
             if (scp->image) {
                 _sprite_image_or_visibility_changed(scp);
             }
+        }
+    }
+}
+
+void _gdUpdateCursorOnDisplayChange(int16_t w, int16_t h)
+{
+    sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
+
+    if (scp->ownerPid == PID_KERNELD) {
+        int16_t x = scp->x + g_hot_spot_x;
+        int16_t y = scp->y + g_hot_spot_y;
+        bool hasChanged = false;
+
+        if (x >= w) {
+            x = w - 1;
+            hasChanged = true;
+        }
+        if (y >= h) {
+            y = h - 1;
+            hasChanged = true;
+        }
+
+        if (hasChanged) {
+            gdUpdateCursor(x, y, IOHID_CURSOR_CHANGE_POSITION);
         }
     }
 }
