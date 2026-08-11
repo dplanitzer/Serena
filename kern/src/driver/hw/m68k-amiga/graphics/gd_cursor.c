@@ -96,6 +96,19 @@ void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
     }
 
 
+    if ((flags & IOHID_CURSOR_CHANGE_VISIBILITY) != 0) {
+        const bool isVisible = (flags & IOHID_CURSOR_VISIBLE) ? true : false;
+
+        if (scp->isVisible != isVisible) {
+            scp->isVisible = isVisible;
+
+            if (scp->image) {
+                _sprite_image_or_visibility_changed(scp);
+            }
+        }
+    }
+
+
     if ((flags & IOHID_CURSOR_CHANGE_POSITION) != 0) {
         scp->x = x - g_hot_spot_x;
         scp->y = y - g_hot_spot_y;
@@ -109,18 +122,6 @@ void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
             }
             else {
                 *ctl_ptr = ctl;
-            }
-        }
-    }
-
-    if ((flags & IOHID_CURSOR_CHANGE_VISIBILITY) != 0) {
-        const bool isVisible = (flags & IOHID_CURSOR_VISIBLE) ? true : false;
-
-        if (scp->isVisible != isVisible) {
-            scp->isVisible = isVisible;
-
-            if (scp->image) {
-                _sprite_image_or_visibility_changed(scp);
             }
         }
     }
