@@ -273,14 +273,13 @@ errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
     return EOK;
 }
 
-void gdGetSpriteCaps(gd_sprite_caps_t* _Nonnull cp)
+void gdGetSpriteCaps(gd_sprite_constraints_t* _Nonnull cp)
 {
     cp->minWidth = 16;
     cp->maxWidth = 16;
     cp->minHeight = 1;
     cp->maxHeight = 256;
-    cp->lowSpriteNum = 0;
-    cp->highSpriteNum = 7;
-    cp->xScale = 1 << g_cur_video_config->hSprScale;
-    cp->yScale = 1 << g_cur_video_config->vSprScale;
+    cp->maxPriority = 7;
+    cp->xShift = g_cur_video_config->hSprScale;
+    cp->yShift = g_cur_video_config->vSprScale;
 }

@@ -137,7 +137,7 @@ errno_t AGADriver_ReleaseSprites(AGADriverRef _Nonnull self, const int* _Nullabl
     return err;
 }
 
-void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_caps_t* _Nonnull cp)
+void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_constraints_t* _Nonnull cp)
 {
     gdLock();
     gdGetSpriteCaps(cp);

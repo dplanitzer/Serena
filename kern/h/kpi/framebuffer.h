@@ -150,18 +150,18 @@ IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 #define GDC_RELEASE_SPRITES \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
-typedef struct gd_sprite_caps {
+typedef struct gd_sprite_constraints {
     int minWidth, maxWidth;
     int minHeight, maxHeight;
-    int lowSpriteNum, highSpriteNum;
-    int xScale;     // One sprite pixel corresponds to 'xScale' screen pixels along the horizontal axis
-    int yScale;
-} gd_sprite_caps_t;
+    int maxPriority;
+    int xShift;         // Convert display coordinates to sprite coordinates by shifting display pixels by 'xShift'/'yShift' to get sprite coordinates
+    int yShift;
+} gd_sprite_constraints_t;
 
 // Returns information about the limits of the sprite sub-system based on the
-// currently active screen and mouse cursor configuration.
-// get_sprite_info(sprite_info_t* _Nonnull info)
-#define GDC_SPRITE_CAPS \
+// currently active display.
+// gdGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull constraints)
+#define GDC_SPRITE_CONSTRAINTS \
 IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 
 
@@ -194,6 +194,7 @@ typedef struct gd_display_params {
 } gd_display_params_t;
 
 
+// gdGetDisplayInfo() flavors
 #define GD_DISPLAY_MODE     1
 #define GD_DISPLAY_PARAMS   2
 

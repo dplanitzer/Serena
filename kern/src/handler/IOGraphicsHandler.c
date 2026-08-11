@@ -105,8 +105,8 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             return AGADriver_ReleaseSprites(drv, spriteIds, count);
         }
 
-        case GDC_SPRITE_CAPS: {
-            gd_sprite_caps_t* cp = va_arg(ap, gd_sprite_caps_t*);
+        case GDC_SPRITE_CONSTRAINTS: {
+            gd_sprite_constraints_t* cp = va_arg(ap, gd_sprite_constraints_t*);
 
             AGADriver_GetSpriteCaps(drv, cp);
             return EOK;
