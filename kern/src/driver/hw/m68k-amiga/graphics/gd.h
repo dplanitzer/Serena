@@ -73,7 +73,7 @@ extern errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info);
 extern errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
 extern errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info);
 extern errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode);
-extern void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo);
+extern void gdSetDisplayChangeSignal(vcpu_t _Nullable vp, int signo);
 extern void gdSetLightPenEnabled(bool enabled);
 
 

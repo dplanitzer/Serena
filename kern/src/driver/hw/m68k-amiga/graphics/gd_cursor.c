@@ -125,27 +125,3 @@ void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
         }
     }
 }
-
-void _gdUpdateCursorOnDisplayChange(int16_t w, int16_t h)
-{
-    sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
-
-    if (scp->ownerPid == PID_KERNELD) {
-        int16_t x = scp->x + g_hot_spot_x;
-        int16_t y = scp->y + g_hot_spot_y;
-        bool hasChanged = false;
-
-        if (x >= w) {
-            x = w - 1;
-            hasChanged = true;
-        }
-        if (y >= h) {
-            y = h - 1;
-            hasChanged = true;
-        }
-
-        if (hasChanged) {
-            gdUpdateCursor(x, y, IOHID_CURSOR_CHANGE_POSITION);
-        }
-    }
-}

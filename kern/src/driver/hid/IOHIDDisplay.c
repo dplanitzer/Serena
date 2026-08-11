@@ -12,13 +12,13 @@
 // Screens
 //
 
-void IOHIDDisplay_getScreenSize(IOHIDDisplayRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+void IOHIDDisplay_getScreenResolution(IOHIDDisplayRef _Nonnull self, int16_t* _Nonnull pOutWidth, int16_t* _Nonnull pOutHeight)
 {
     *pOutWidth = 0;
     *pOutHeight = 0;
 }
 
-void IOHIDDisplay_setScreenConfigObserver(IOHIDDisplayRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+void IOHIDDisplay_setChangeSignal(IOHIDDisplayRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
 }
 
@@ -42,8 +42,8 @@ void IOHIDDisplay_shieldCursor(IOHIDDisplayRef _Nonnull self, int x, int y, int 
 
 
 class_func_defs(IOHIDDisplay, IODriver,
-func_def(getScreenSize, IOHIDDisplay)
-func_def(setScreenConfigObserver, IOHIDDisplay)
+func_def(getScreenResolution, IOHIDDisplay)
+func_def(setChangeSignal, IOHIDDisplay)
 func_def(setCursor, IOHIDDisplay)
 func_def(updateCursor, IOHIDDisplay)
 func_def(shieldCursor, IOHIDDisplay)

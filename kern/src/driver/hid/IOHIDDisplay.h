@@ -26,6 +26,25 @@ typedef struct hid_cursor IOHIDCursor;
 // the HID manager to manage the mouse cursor. It provides support for a
 // hardware (preferable) or software mouse cursor.
 //
+// A HID display which implements the mouse cursor in software must implement
+// support for mouse cursor shielding. NO shield is active by default. It is
+// made active when a call to teh shieldCursor() function is triggered. The
+// driver must hide the mouser cursor while it is inside the shielding rectangle
+// or the bounding box of the mouse cursor intersects the shielding rectangle.
+//
+// A HID display which implements a hardware accelerated mouse cursor does not
+// need to implement cursor shielding and it can completely ignore teh shielding
+// functionality.
+//
+// A HID display driver does not need to do anything to the mouse cursor when
+// the display mode changes. E.g. it does not need to reposition the mouse cursor
+// if its hot spot is outside a new display mode. The HID manager observers
+// display changes and it automatically repositions the mouse cursor as needed.
+//
+// A HID display manager should send a change signal only when the current 
+// display mode changes and a change signal has been set by calling the
+// setChangeSignal() function.
+//
 // A HID display is an exclusive device.
 //
 open_class(IOHIDDisplay, IODriver,
@@ -33,21 +52,21 @@ open_class(IOHIDDisplay, IODriver,
 open_class_funcs(IOHIDDisplay, IODriver,
 
     //
-    // Screens
+    // Display
     //
 
-    // Returns the width and height in terms of pixels of the currently active
-    // screen configuration.
+    // Returns the width and height (in pixels) of the currently active display
+    // configuration.
     // Override: Required
     // Default: Does nothing
-    void (*getScreenSize)(void* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
+    void (*getScreenResolution)(void* _Nonnull self, int16_t* _Nonnull pOutWidth, int16_t* _Nonnull pOutHeight);
 
     // Specifies a VP that should receive the signal 'signo' every time the
-    // current screen configuration changes. Turns notifications off if 'vp' is
+    // current display configuration changes. Turns notifications off if 'vp' is
     // NULL.
     // Override: Required
     // Default: Does nothing
-    void (*setScreenConfigObserver)(void* _Nonnull self, vcpu_t _Nullable vp, int signo);
+    void (*setChangeSignal)(void* _Nonnull self, vcpu_t _Nullable vp, int signo);
 
 
     //
@@ -87,11 +106,11 @@ open_class_funcs(IOHIDDisplay, IODriver,
 // Subclassers
 //
 
-#define IOHIDDisplay_GetScreenSize(__self, __w, __h) \
-invoke_n(getScreenSize, IOHIDDisplay, __self, __w, __h)
+#define IOHIDDisplay_GetScreenResolution(__self, __w, __h) \
+invoke_n(getScreenResolution, IOHIDDisplay, __self, __w, __h)
 
-#define IOHIDDisplay_SetScreenConfigObserver(__self, __vp, __signo) \
-invoke_n(setScreenConfigObserver, IOHIDDisplay, __self, __vp, __signo)
+#define IOHIDDisplay_SetChangeSignal(__self, __vp, __signo) \
+invoke_n(setChangeSignal, IOHIDDisplay, __self, __vp, __signo)
 
 
 #define IOHIDDisplay_SetCursor(__self, __cursor) \

@@ -643,7 +643,7 @@ static void _connect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRef _
         err = IODriver_Open(driver, O_RDWR);
         if (err == EOK) {
             self->hidDisplay = Object_Retain(driver);
-            IOHIDDisplay_SetScreenConfigObserver(self->hidDisplay, self->reportsCollector, SIGSCR);
+            IOHIDDisplay_SetChangeSignal(self->hidDisplay, self->reportsCollector, SIGSCR);
             _collect_framebuffer_size(self);
         }
     }
@@ -677,7 +677,7 @@ static void _disconnect_driver(IOHIDManagerRef _Nonnull _Locked self, IODriverRe
     }
     
     if ((IODriverRef)self->hidDisplay == driver) {
-        IOHIDDisplay_SetScreenConfigObserver(self->hidDisplay, NULL, 0);
+        IOHIDDisplay_SetChangeSignal(self->hidDisplay, NULL, 0);
 
         IODriver_Close(driver);
         Object_Release(driver);
@@ -854,13 +854,13 @@ static bool _collect_gamepad_reports(IOHIDManagerRef _Nonnull self)
 static void _collect_framebuffer_size(IOHIDManagerRef _Nonnull self)
 {
     bool hasChanged = false;
-    int w, h;
-    IOHIDDisplay_GetScreenSize(self->hidDisplay, &w, &h);
+    int16_t w, h;
 
+    IOHIDDisplay_GetScreenResolution(self->hidDisplay, &w, &h);
     self->screenBounds.l = 0;
     self->screenBounds.t = 0;
-    self->screenBounds.r = (int16_t)w;
-    self->screenBounds.b = (int16_t)h;
+    self->screenBounds.r = w;
+    self->screenBounds.b = h;
 
     if (self->mouse.x >= w) {
         self->mouse.x = w - 1;

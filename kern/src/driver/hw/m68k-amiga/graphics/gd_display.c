@@ -9,8 +9,8 @@
 #include "gd_priv.h"
 #include <kpi/process.h>
 
-static vcpu_t _Nullable     g_screen_conf_observer;
-static int                  g_screen_conf_signal;
+static vcpu_t _Nullable     g_display_change_vp;
+static int                  g_display_change_signo;
 uint16_t                    g_clut[CLUT_SIZE];
 uint8_t                     g_clut_size = CLUT_SIZE;
 static gd_display_mode_t    g_cur_display_mode;
@@ -138,12 +138,8 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     g_cur_video_config = vc;
 
 
-    // Keep the mouse cursor inside the new display area
-    _gdUpdateCursorOnDisplayChange(g_cur_display_mode.width, g_cur_display_mode.height);
-
-
-    if (g_screen_conf_observer) {
-        vcpu_send_signal(g_screen_conf_observer, g_screen_conf_signal);
+    if (g_display_change_vp) {
+        vcpu_send_signal(g_display_change_vp, g_display_change_signo);
     }
 
 
@@ -186,10 +182,10 @@ errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
     pOutMode->pixelFormat = vc->pixelFormat;
 }
 
-void gdSetScreenConfigObserver(vcpu_t _Nullable vp, int signo)
+void gdSetDisplayChangeSignal(vcpu_t _Nullable vp, int signo)
 {
-    g_screen_conf_observer = vp;
-    g_screen_conf_signal = signo;
+    g_display_change_vp = vp;
+    g_display_change_signo = signo;
 }
 
 void gdSetLightPenEnabled(bool enabled)

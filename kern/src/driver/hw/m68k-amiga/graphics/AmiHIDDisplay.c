@@ -45,7 +45,7 @@ void AmiHIDDisplay_updateCursor(AmiHIDDisplayRef _Nonnull self, int16_t x, int16
     gdUnlock();
 }
 
-void AmiHIDDisplay_getScreenSize(AmiHIDDisplayRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+void AmiHIDDisplay_getScreenResolution(AmiHIDDisplayRef _Nonnull self, int16_t* _Nonnull pOutWidth, int16_t* _Nonnull pOutHeight)
 {
     gd_display_mode_t mode;
 
@@ -57,17 +57,17 @@ void AmiHIDDisplay_getScreenSize(AmiHIDDisplayRef _Nonnull self, int* _Nonnull p
     *pOutHeight = mode.height;
 }
 
-void AmiHIDDisplay_setScreenConfigObserver(AmiHIDDisplayRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+void AmiHIDDisplay_setChangeSignal(AmiHIDDisplayRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
     gdLock();
-    gdSetScreenConfigObserver(vp, signo);
+    gdSetDisplayChangeSignal(vp, signo);
     gdUnlock();
 }
 
 
 class_func_defs(AmiHIDDisplay, IOHIDDisplay,
-override_func_def(getScreenSize, AmiHIDDisplay, IOHIDDisplay)
-override_func_def(setScreenConfigObserver, AmiHIDDisplay, IOHIDDisplay)
+override_func_def(getScreenResolution, AmiHIDDisplay, IOHIDDisplay)
+override_func_def(setChangeSignal, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(setCursor, AmiHIDDisplay, IOHIDDisplay)
 override_func_def(updateCursor, AmiHIDDisplay, IOHIDDisplay)
 );
