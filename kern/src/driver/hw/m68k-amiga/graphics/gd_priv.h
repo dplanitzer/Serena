@@ -224,10 +224,6 @@ extern const video_conf_t*      g_cur_video_config;
 
 extern errno_t _gdInitCopper(void);
 
-// Compiles a Copper program to display the null screen. The null screen shows
-// nothing.
-extern errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg);
-
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.

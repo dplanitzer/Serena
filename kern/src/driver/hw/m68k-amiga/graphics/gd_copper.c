@@ -37,33 +37,15 @@ static sem_t                    g_copper_notify_sem;
 static int                      g_retire_signo;
 static vcpu_t _Nullable         g_retire_vcpu;
 static int8_t                   g_copper_is_running_interlaced;
+static bool                     g_copper_scheduler_running;
 
 volatile uint8_t                g_sprite_change_pending;                // xref copper_asm.s
 sprite_ctl_change_t             g_sprite_change_table[SPRITE_COUNT];    // xref copper_asm.s
 
 
-static errno_t copper_init(copper_prog_t _Nonnull prog, int signo, vcpu_t _Nullable sigvp)
-{
-    decl_try_err();
-
-    sem_init(&g_copper_notify_sem, 0);
-
-    // Do a forced schedule of the null program
-    g_copper_ready_prog = NULL;
-    g_copper_running_prog = prog;
-    g_copper_running_prog->state = COP_STATE_RUNNING;
-    g_copper_is_running_interlaced = 0;
-    g_retire_signo = signo;
-    g_retire_vcpu = sigvp;
-
-catch:
-    return err;
-}
-
 static void copper_start(void)
 {
-    // Let the Copper run our null program
-    hw_chips->dmacon = DMACONF_COPEN | DMACONF_SPREN | DMACONF_BPLEN;
+    // Wait until the end of teh current frame to turn video related DMAs on
     chipset_wait_bof();
     hw_chips->cop1lc = g_copper_running_prog->odd_entry;
     hw_chips->copjmp1 = 0;
@@ -120,6 +102,12 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
     g_copper_ready_prog = prog;
     prog->state = COP_STATE_READY;
     irq_restore_mask(sim);
+
+
+    if (!g_copper_scheduler_running) {
+        g_copper_scheduler_running = true;
+        copper_start();
+    }
 
 
     if ((flags & COPFLAG_WAIT_RUNNING) == COPFLAG_WAIT_RUNNING) {
@@ -397,20 +385,18 @@ static void copper_manager(void* ignore)
 errno_t _gdInitCopper(void)
 {
     decl_try_err();
-    copper_prog_t nullCopperProg;
 
     wq_init(&g_copper_wq);
     g_copper_sigs = sig_bit(SIG_COPRUN);
 
-    try(create_null_copper_prog(&nullCopperProg));
     try(IOAcquireVirtualProcessor((vcpu_func_t)copper_manager, NULL, VCPU_QOS_URGENT, VCPU_PRI_NORMAL, &g_copper_vp));
+    IOResumeVirtualProcessor(g_copper_vp);
 
     
     // Initialize the Copper scheduler
-    copper_init(nullCopperProg, SIG_COPRUN, g_copper_vp);
-    copper_start();
-
-    IOResumeVirtualProcessor(g_copper_vp);
+    sem_init(&g_copper_notify_sem, 0);
+    g_retire_signo = SIG_COPRUN;
+    g_retire_vcpu = g_copper_vp;
 
 catch:
     return err;
@@ -421,11 +407,6 @@ catch:
 // MARK: -
 // MARK: Copper Program Generators
 ////////////////////////////////////////////////////////////////////////////////
-
-errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
-{
-    return create_screen_copper_prog(get_null_video_conf(), NULL, pOutProg);
-}
 
 errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, image_t* _Nullable pFrontBuffer, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
