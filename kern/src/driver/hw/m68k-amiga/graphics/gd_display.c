@@ -92,7 +92,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
 
 
     // Validate the display mode and parameters
-    const video_conf_t* vc = get_matching_video_conf(mode, params);
+    const video_conf_t* vc = _gdGetMatchingVideoConfig(mode, params);
     if (vc == NULL) {
         return ENOTSUP; //XXX ENOMATCH?
     }

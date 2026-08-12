@@ -134,12 +134,7 @@ const video_conf_t g_video_conf[NUM_VIDEO_CONFIGS] = {
 };
 
 
-const video_conf_t* _Nonnull get_null_video_conf(void)
-{
-    return (chipset_is_ntsc()) ? &g_video_conf[0] : &g_video_conf[9];
-}
-
-const video_conf_t* _Nullable get_matching_video_conf(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nonnull params)
+const video_conf_t* _Nullable _gdGetMatchingVideoConfig(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nonnull params)
 {
     for (size_t i = 0; i < NUM_VIDEO_CONFIGS; i++) {
         const video_conf_t* hwc = &g_video_conf[i];

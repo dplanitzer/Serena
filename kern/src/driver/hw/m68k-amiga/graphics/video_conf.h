@@ -38,12 +38,9 @@ typedef struct video_conf {
 extern const video_conf_t g_video_conf[NUM_VIDEO_CONFIGS];
 
 
-// Returns the video conf that should be used for a null Copper program.
-extern const video_conf_t* _Nonnull get_null_video_conf(void);
-
 // Looks up the video configuration that corresponds to the given screen
 // configuration.
-extern const video_conf_t* _Nullable get_matching_video_conf(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nonnull params);
+extern const video_conf_t* _Nullable _gdGetMatchingVideoConfig(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nonnull params);
 
 
 // Returns how many planes are needed to store a pixel in the given pixel format.
