@@ -9,6 +9,7 @@
 #ifndef IOHIDDisplay_h
 #define IOHIDDisplay_h
 
+#include <stdbool.h>
 #include <driver/IODriver.h>
 #include <kpi/hid.h>
 #include <sched/vcpu.h>
@@ -85,6 +86,14 @@ open_class_funcs(IOHIDDisplay, IODriver,
     // Default: Does nothing
     void (*updateCursor)(void* _Nonnull self, int16_t x, int16_t y, unsigned int flags);
 
+    // Returns true if the mouse cursor is implemented in software and thus
+    // requires shielding; false otherwise. The return value of this function
+    // is constant. This means that it will not change even if the display
+    // mode or cursor changes.
+    // Override: Optional
+    // Default: returns false
+    bool (*isCursorShieldingRequired)(void* _Nonnull self);
+
     // Set a mouse cursor shielding rectangle. Mouse cursor shielding is turned
     // off if the area of teh specified rectangle is <= 0. Mouse cursor shielding
     // is only relevant for HID displays which implement the mouse cursor in
@@ -98,6 +107,8 @@ open_class_funcs(IOHIDDisplay, IODriver,
     // be hidden right away.
     // The shielding rectangle coordinates are specified in terms of physical
     // display pixels.
+    // Override: Optional
+    // Default: Does nothing
     void (*shieldCursor)(void* _Nonnull self, int x, int y, int width, int height);
 );
 
@@ -118,6 +129,9 @@ invoke_n(setCursor, IOHIDDisplay, __self, __cursor)
 
 #define IOHIDDisplay_UpdateCursor(__self, __x, __y, __flags) \
 invoke_n(updateCursor, IOHIDDisplay, __self, __x, __y, __flags)
+
+#define IOHIDDisplay_IsCursorShieldingRequired(__self) \
+invoke_0(isCursorShieldingRequired, IOHIDDisplay, __self)
 
 #define IOHIDDisplay_ShieldCursor(__self, __x, __y, __width, __height) \
 invoke_n(shieldCursor, IOHIDDisplay, __self, __x, __y, __width, __height)

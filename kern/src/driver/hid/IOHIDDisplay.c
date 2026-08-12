@@ -36,6 +36,11 @@ void IOHIDDisplay_updateCursor(IOHIDDisplayRef _Nonnull self, int16_t x, int16_t
 {
 }
 
+bool IOHIDDisplay_isCursorShieldingRequired(IOHIDDisplayRef _Nonnull self)
+{
+    return false;
+}
+
 void IOHIDDisplay_shieldCursor(IOHIDDisplayRef _Nonnull self, int x, int y, int width, int height)
 {
 }
@@ -46,5 +51,6 @@ func_def(getScreenResolution, IOHIDDisplay)
 func_def(setChangeSignal, IOHIDDisplay)
 func_def(setCursor, IOHIDDisplay)
 func_def(updateCursor, IOHIDDisplay)
+func_def(isCursorShieldingRequired, IOHIDDisplay)
 func_def(shieldCursor, IOHIDDisplay)
 );
