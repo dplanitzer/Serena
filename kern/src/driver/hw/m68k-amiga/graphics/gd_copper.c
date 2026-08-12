@@ -63,21 +63,6 @@ static void copper_start(void)
     irq_enable_src(IRQ_ID_VBLANK);
 }
 
-static copper_prog_t _Nullable copper_acquire_retired_prog(void)
-{
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_t prog = g_copper_retired_progs;
-
-    if (prog) {
-        g_copper_retired_progs = prog->next;
-        prog->next = NULL;
-    }
-
-    irq_restore_mask(sim);
-
-    return prog;
-}
-
 static void _copper_prog_retire(copper_prog_t _Nonnull prog)
 {
     if (g_copper_retired_progs) {
@@ -361,6 +346,26 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
     return prog;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Copper Manager
+////////////////////////////////////////////////////////////////////////////////
+
+static copper_prog_t _Nullable copper_acquire_retired_prog(void)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_t prog = g_copper_retired_progs;
+
+    if (prog) {
+        g_copper_retired_progs = prog->next;
+        prog->next = NULL;
+    }
+
+    irq_restore_mask(sim);
+
+    return prog;
+}
 
 static void copper_manager(void* ignore)
 {
