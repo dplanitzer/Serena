@@ -7,7 +7,7 @@
 //
 
 #include "boot_screen.h"
-#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
+#include <driver/IOGraphicsDriver.h>
 #include <driver/IORegistry.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kpi/fd.h>
@@ -28,13 +28,13 @@ errno_t bt_open(bt_screen_t* _Nonnull bscr)
 
 
 
-    AGADriver_GetDisplayInfo(drv, GD_DISPLAY_MODE, &dpy_mode);
+    IOGraphicsDriver_GetDisplayInfo(drv, GD_DISPLAY_MODE, &dpy_mode);
     bscr->width = dpy_mode.width;
     bscr->height = dpy_mode.height;
     bscr->drv = drv;
 
 
-    try(AGADriver_MapImage(drv, GD_FRONT_BUFFER, GD_MAP_RW, &bscr->mp));
+    try(IOGraphicsDriver_MapImage(drv, GD_FRONT_BUFFER, GD_MAP_RW, &bscr->mp));
 
         
     // Draw the boot logo
@@ -71,7 +71,7 @@ void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->drv) {
-        AGADriver_UnmapImage(bscr->drv, GD_FRONT_BUFFER);
+        IOGraphicsDriver_UnmapImage(bscr->drv, GD_FRONT_BUFFER);
 
         IODriver_Close(bscr->drv);
         Object_Release(bscr->drv);

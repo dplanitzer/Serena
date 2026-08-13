@@ -51,7 +51,7 @@ extern errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_
 extern errno_t gdBindSpriteImage(pid_t pid, int target, int id);    //XXX
 extern errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y);
 extern errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible);
-extern void gdGetSpriteCaps(gd_sprite_constraints_t* _Nonnull cp);
+extern void gdGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull cp);
 
 extern errno_t _gdBindSpriteImage(pid_t pid, int spriteId, struct image* _Nullable img);
 

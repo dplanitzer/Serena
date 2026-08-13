@@ -36,6 +36,7 @@ class_ref(IODriver);
 #if __IOGPBUS__ > 0
 class_ref(IOGPBus);
 #endif
+class_ref(IOGraphicsDriver);
 class_ref(IOHIDBeamDevice);
 class_ref(IOHIDDevice);
 class_ref(IOHIDDisplay);

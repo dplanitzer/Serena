@@ -9,7 +9,7 @@
 #include "ConsolePriv.h"
 #include <assert.h>
 #include <string.h>
-#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
+#include <driver/IOGraphicsDriver.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
 #include <hal/hw/m68k-amiga/chipset.h>
@@ -37,11 +37,11 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     decl_try_err();
     gd_display_mode_t dpy_mode;
 
-    try(AGADriver_CreateCommandBuffer(self->drv, 128, &self->cmdbuf));
+    try(IOGraphicsDriver_CreateCommandBuffer(self->drv, 128, &self->cmdbuf));
 
 
     // Get the screen buffer information
-    AGADriver_GetDisplayInfo(self->drv, GD_DISPLAY_MODE, &dpy_mode);
+    IOGraphicsDriver_GetDisplayInfo(self->drv, GD_DISPLAY_MODE, &dpy_mode);
     self->pixelsWidth = dpy_mode.width;
     self->pixelsHeight = dpy_mode.height;
 
@@ -51,15 +51,15 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     ip = gdCmdClearPixels(ip, GD_FRONT_BUFFER);
     ip = gdCmdEnd(ip);
 
-    try(AGADriver_SubmitCommandBuffer(self->drv, GD_BLIT_QUEUE, self->cmdbuf.id));
+    try(IOGraphicsDriver_SubmitCommandBuffer(self->drv, GD_BLIT_QUEUE, self->cmdbuf.id));
 
 
     // Map the console framebuffer
-    try(AGADriver_MapImage(self->drv, GD_FRONT_BUFFER, GD_MAP_RW, &self->pixels));
+    try(IOGraphicsDriver_MapImage(self->drv, GD_FRONT_BUFFER, GD_MAP_RW, &self->pixels));
 
 
     // Allocate the text cursor (sprite)
-    try(AGADriver_AcquireSprites(self->drv, 2, 1, &self->textCursorSpriteId));
+    try(IOGraphicsDriver_AcquireSprites(self->drv, 2, 1, &self->textCursorSpriteId));
     self->flags.isTextCursorVisible = false;
     const bool isLace = (self->pixelsHeight > MAX_PAL_HEIGHT) ? true : false;
     const uint16_t* textCursorPlanes[2];
@@ -67,20 +67,20 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(AGADriver_CreateImage(self->drv, textCursorWidth, textCursorHeight, GD_RGB_SPRITE_2, &self->textCursorBufferId));
+    try(IOGraphicsDriver_CreateImage(self->drv, textCursorWidth, textCursorHeight, GD_RGB_SPRITE_2, &self->textCursorBufferId));
 
     ip = self->cmdbuf.addr;
     ip = gdCmdWritePixels(ip, self->textCursorBufferId, (void**)textCursorPlanes, 2, GD_COLOR_INDEX2);
     ip = gdCmdEnd(ip);
 
-    try(AGADriver_SubmitCommandBuffer(self->drv, GD_TRANSFER_QUEUE, self->cmdbuf.id));
+    try(IOGraphicsDriver_SubmitCommandBuffer(self->drv, GD_TRANSFER_QUEUE, self->cmdbuf.id));
 
     ip = self->cmdbuf.addr;
     ip = gdCmdShowSprite(ip, self->textCursorSpriteId, 0);
     ip = gdCmdBindSpriteImage(ip, self->textCursorSpriteId, self->textCursorBufferId);
     ip = gdCmdEnd(ip);
 
-    try(AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id));
+    try(IOGraphicsDriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id));
 
 
     // Initialize the text cursor timer
@@ -97,9 +97,9 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
 
-    AGADriver_UnmapImage(self->drv, GD_FRONT_BUFFER);
+    IOGraphicsDriver_UnmapImage(self->drv, GD_FRONT_BUFFER);
     //XXX just close the driver fd once the console is in user space. Will automatically free all driver resources
-    AGADriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
+    IOGraphicsDriver_DestroyCommandBuffer(self->drv, self->cmdbuf.id);
 }
 
 
@@ -121,7 +121,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[6] = clr[5];
     clr[7] = clr[5];
 
-    AGADriver_Clut(self->drv, 16, 8, clr);
+    IOGraphicsDriver_Clut(self->drv, 16, 8, clr);
 }
 
 // Sets the console's background color to the given color
@@ -143,7 +143,7 @@ static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
     ip = gdCmdShowSprite(ip, self->textCursorSpriteId, self->flags.isTextCursorOn);
     ip = gdCmdEnd(ip);
 
-    AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id);
+    IOGraphicsDriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id);
     mtx_unlock(&self->mtx);
 }
 
@@ -182,7 +182,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
 
     if (ip) {
         gdCmdEnd(ip);
-        AGADriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id);
+        IOGraphicsDriver_SubmitCommandBuffer(self->drv, GD_SPRITE_QUEUE, self->cmdbuf.id);
     }
 }
 

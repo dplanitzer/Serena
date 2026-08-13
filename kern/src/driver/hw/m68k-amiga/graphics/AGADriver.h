@@ -9,54 +9,10 @@
 #ifndef AGADriver_h
 #define AGADriver_h
 
-#include <driver/IODriver.h>
-#include <kpi/framebuffer.h>
+#include <driver/IOGraphicsDriver.h>
 
-
-final_class(AGADriver, IODriver);
-
+final_class(AGADriver, IOGraphicsDriver);
 
 extern errno_t AGADriver_Create(AGADriverRef _Nullable * _Nonnull pOutSelf);
-
-
-// Images
-extern errno_t AGADriver_CreateImage(AGADriverRef _Nonnull self, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId);
-extern errno_t AGADriver_DestroyImage(AGADriverRef _Nonnull self, int id);
-extern errno_t AGADriver_GetImageInfo(AGADriverRef _Nonnull self, int id, gd_image_info_t* _Nonnull pOutInfo);
-extern errno_t AGADriver_MapImage(AGADriverRef _Nonnull self, int id, int mode, gd_image_data_t* _Nonnull pOutMapping);
-extern errno_t AGADriver_UnmapImage(AGADriverRef _Nonnull self, int id);
-
-
-// Sprites
-extern errno_t AGADriver_AcquireSprites(AGADriverRef _Nonnull self, int basePriority, size_t count, int* _Nonnull pOutSpriteIds);
-extern errno_t AGADriver_ReleaseSprites(AGADriverRef _Nonnull self, const int* _Nullable spriteIds, size_t count);
-extern void AGADriver_GetSpriteCaps(AGADriverRef _Nonnull self, gd_sprite_constraints_t* _Nonnull cp);
-
-
-// Command buffers
-extern errno_t AGADriver_CreateCommandBuffer(AGADriverRef _Nonnull self, size_t size, gd_cmdbuf_desc_t* _Nonnull desc);
-extern errno_t AGADriver_DestroyCommandBuffer(AGADriverRef _Nonnull self, int id);
-extern errno_t AGADriver_SubmitCommandBuffer(AGADriverRef _Nonnull self, int queue_id, int cmds_id);
-
-
-// In-kernel command buffer utilities
-extern void* _Nonnull gdCmdWritePixels(void* _Nonnull addr, int img_id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
-extern void* _Nonnull gdCmdClearPixels(void* _Nonnull addr, int img_id);
-extern void* _Nonnull gdCmdBindSpriteImage(void* _Nonnull addr, int spr_id, int img_id);
-extern void* _Nonnull gdCmdMoveSprite(void* _Nonnull addr, int spr_id, int16_t x, int16_t y);
-extern void* _Nonnull gdCmdShowSprite(void* _Nonnull addr, int spr_id, bool isVisible);
-extern void* _Nonnull gdCmdEnd(void* _Nonnull addr);
-
-
-// CLUT
-extern errno_t AGADriver_Clut(AGADriverRef _Nonnull self, size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries);
-extern errno_t AGADriver_GetClut(AGADriverRef _Nonnull self, size_t idx, size_t count, gd_rgb32_t* _Nonnull entries);
-extern errno_t AGADriver_GetClutInfo(AGADriverRef _Nonnull self, gd_clut_info_t* _Nonnull info);
-
-
-// Display
-extern errno_t AGADriver_DisplayMode(AGADriverRef _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
-extern errno_t AGADriver_GetDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info);
-extern errno_t AGADriver_EnumDisplayModes(AGADriverRef _Nonnull self, int index, gd_display_mode_t* _Nonnull pOutMode);
 
 #endif /* AGADriver_h */

@@ -273,7 +273,7 @@ errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
     return EOK;
 }
 
-void gdGetSpriteCaps(gd_sprite_constraints_t* _Nonnull cp)
+void gdGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull cp)
 {
     cp->minWidth = 16;
     cp->maxWidth = 16;

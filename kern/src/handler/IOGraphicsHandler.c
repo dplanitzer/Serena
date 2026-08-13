@@ -7,7 +7,7 @@
 //
 
 #include "IOGraphicsHandler.h"
-#include <driver/hw/m68k-amiga/graphics/AGADriver.h>
+#include <driver/IOGraphicsDriver.h>
 
 
 errno_t IOGraphicsHandler_Create(InodeRef _Nonnull ip, fd_flags_t flags, HandlerRef _Nullable * _Nonnull pOutHandler)
@@ -30,20 +30,20 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             const gd_pixfmt_t fmt = va_arg(ap, gd_pixfmt_t);
             int* img_id = va_arg(ap, int*);
 
-            return AGADriver_CreateImage(drv, width, height, fmt, img_id);
+            return IOGraphicsDriver_CreateImage(drv, width, height, fmt, img_id);
         }
 
         case GDC_DESTROY_IMAGE: {
             int img_id = va_arg(ap, int);
 
-            return AGADriver_DestroyImage(drv, img_id);
+            return IOGraphicsDriver_DestroyImage(drv, img_id);
         }
 
         case GDC_GET_IMAGE_INFO: {
             int img_id = va_arg(ap, int);
             gd_image_info_t* si = va_arg(ap, gd_image_info_t*);
 
-            return AGADriver_GetImageInfo(drv, img_id, si);
+            return IOGraphicsDriver_GetImageInfo(drv, img_id, si);
         }
 
         case GDC_MAP_IMAGE: {
@@ -51,13 +51,13 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             int mode = va_arg(ap, int);
             gd_image_data_t* sm = va_arg(ap, gd_image_data_t*);
 
-            return AGADriver_MapImage(drv, img_id, mode, sm);
+            return IOGraphicsDriver_MapImage(drv, img_id, mode, sm);
         }
 
         case GDC_UNMAP_IMAGE: {
             const int img_id = va_arg(ap, int);
 
-            return AGADriver_UnmapImage(drv, img_id);
+            return IOGraphicsDriver_UnmapImage(drv, img_id);
         }
 
 
@@ -69,20 +69,20 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             size_t size = va_arg(ap, size_t);
             gd_cmdbuf_desc_t* desc = va_arg(ap, gd_cmdbuf_desc_t*);
 
-            return AGADriver_CreateCommandBuffer(drv, size, desc);
+            return IOGraphicsDriver_CreateCommandBuffer(drv, size, desc);
         }
 
         case GDC_DESTROY_CMDBUF: {
             int cmdimg_id = va_arg(ap, int);
 
-            return AGADriver_DestroyCommandBuffer(drv, cmdimg_id);
+            return IOGraphicsDriver_DestroyCommandBuffer(drv, cmdimg_id);
         }
 
         case GDC_SUBMIT_CMDBUF: {
             int queue_id = va_arg(ap, int);
             int cmdimg_id = va_arg(ap, int);
 
-            return AGADriver_SubmitCommandBuffer(drv, queue_id, cmdimg_id);
+            return IOGraphicsDriver_SubmitCommandBuffer(drv, queue_id, cmdimg_id);
         }
 
 
@@ -95,20 +95,20 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             size_t count = va_arg(ap, size_t);
             int* pOutSpriteIds = va_arg(ap, int*);
 
-            return AGADriver_AcquireSprites(drv, basePri, count, pOutSpriteIds);
+            return IOGraphicsDriver_AcquireSprites(drv, basePri, count, pOutSpriteIds);
         }
 
         case GDC_RELEASE_SPRITES: {
             const int* spriteIds = va_arg(ap, const int*);
             size_t count = va_arg(ap, size_t);
 
-            return AGADriver_ReleaseSprites(drv, spriteIds, count);
+            return IOGraphicsDriver_ReleaseSprites(drv, spriteIds, count);
         }
 
         case GDC_SPRITE_CONSTRAINTS: {
             gd_sprite_constraints_t* cp = va_arg(ap, gd_sprite_constraints_t*);
 
-            AGADriver_GetSpriteCaps(drv, cp);
+            IOGraphicsDriver_GetSpriteConstraints(drv, cp);
             return EOK;
         }
 
@@ -122,7 +122,7 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             const size_t count = va_arg(ap, size_t);
             const gd_rgb32_t* entries = va_arg(ap, const gd_rgb32_t*);
 
-            return AGADriver_Clut(drv, idx, count, entries);
+            return IOGraphicsDriver_Clut(drv, idx, count, entries);
         }
 
         case GDC_GET_CLUT: {
@@ -130,13 +130,13 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             const size_t count = va_arg(ap, size_t);
             gd_rgb32_t* entries = va_arg(ap, gd_rgb32_t*);
 
-            return AGADriver_GetClut(drv, idx, count, entries);
+            return IOGraphicsDriver_GetClut(drv, idx, count, entries);
         }
 
         case GDC_GET_CLUT_INFO: {
             gd_clut_info_t* info = va_arg(ap, gd_clut_info_t*);
 
-            return AGADriver_GetClutInfo(drv, info);
+            return IOGraphicsDriver_GetClutInfo(drv, info);
         }
 
 
@@ -149,21 +149,21 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
             const gd_display_params_t* params = va_arg(ap, const gd_display_params_t*);
             const int op = va_arg(ap, int);
 
-            return AGADriver_DisplayMode(drv, mode, params, op);
+            return IOGraphicsDriver_DisplayMode(drv, mode, params, op);
         }
 
         case GDC_GET_DISPLAY_INFO: {
             const int flavor = va_arg(ap, int);
             gd_display_info_ref_t info = va_arg(ap, gd_display_info_ref_t);
 
-            return AGADriver_GetDisplayInfo(drv, flavor, info);
+            return IOGraphicsDriver_GetDisplayInfo(drv, flavor, info);
         }
 
         case GDC_ENUM_DISPLAY_MODES: {
             const int index = va_arg(ap, int);
             gd_display_mode_t* mode = va_arg(ap, gd_display_mode_t*);
 
-            return AGADriver_EnumDisplayModes(drv, index, mode);
+            return IOGraphicsDriver_EnumDisplayModes(drv, index, mode);
         }
 
 
