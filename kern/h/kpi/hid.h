@@ -9,7 +9,7 @@
 #ifndef _KPI_HID_H
 #define _KPI_HID_H 1
 
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 
 
 #define HID_CURSOR_WIDTH    16

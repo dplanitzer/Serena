@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <driver/hid/IOHIDDisplay.h>
 #include <ext/try.h>
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>
 

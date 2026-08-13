@@ -12,7 +12,7 @@
 #include "Console.h"
 #include <kdispatch/kdispatch.h>
 #include <kern/cbuf.h>
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 #include <sched/mtx.h>
 #include "Color.h"
 #include "Font.h"

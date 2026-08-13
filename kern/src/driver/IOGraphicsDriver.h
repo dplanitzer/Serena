@@ -10,7 +10,7 @@
 #define IOGraphicsDriver_h_h
 
 #include <driver/IODriver.h>
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 
 
 open_class(IOGraphicsDriver, IODriver,

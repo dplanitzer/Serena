@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <ext/try.h>
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 #include <kobj/AnyRefs.h>
 
 typedef struct bt_screen {

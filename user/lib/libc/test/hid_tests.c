@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/nanotime.h>
-#include <serena/framebuffer.h>
+#include <kpi/gd_core.h>
 #include <serena/fd.h>
 #include <serena/file.h>
 #include <serena/hid.h>

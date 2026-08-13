@@ -10,7 +10,7 @@
 #define IOHIDBeamDevice_h
 
 #include <driver/IODriver.h>
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 
 
 // A HID beam device provides an abstraction over video hardware that allows a

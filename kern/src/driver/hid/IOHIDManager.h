@@ -12,7 +12,7 @@
 #include <kobj/Object.h>
 #include <ext/try.h>
 #include <kobj/Object.h>
-#include <kpi/framebuffer.h>
+#include <kpi/gd_core.h>
 #include <kpi/hid.h>
 #include <kpi/hid_event.h>
 
