@@ -1,15 +1,15 @@
 //
-//  gd.c
+//  gdc.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include <kern/kalloc.h>
 
-mtx_t   gd_mtx;
+mtx_t   gdc_mtx;
 bool    g_light_pen_enabled;
 
 #define ANSI_COLOR_COUNT    8
@@ -25,11 +25,11 @@ static const gd_rgb32_t ansi_clrs[ANSI_COLOR_COUNT] = {
 };
 
 
-errno_t gdInit(void)
+errno_t gdcInit(void)
 {
     decl_try_err();
 
-    mtx_init(&gd_mtx);
+    mtx_init(&gdc_mtx);
 
 
     // Create a null sprite
@@ -48,11 +48,11 @@ errno_t gdInit(void)
 
 
     // Allocate the Copper manager
-    try(_gdInitCopper());
+    try(_gdcInitCopper());
     
 
     // Allocate the cursor image buffer
-    try(_gdInitCursor());
+    try(_gdcInitCursor());
     
 
     // Initialize the boot display
@@ -77,9 +77,9 @@ errno_t gdInit(void)
     }
     mode.pixelFormat = GD_COLOR_INDEX3;
 
-    try(gdDisplayMode(&mode, NULL, GD_APPLY));
-    _gdClearPixels(g_cur_front_buffer);
-    gdClut(0, ANSI_COLOR_COUNT, ansi_clrs);
+    try(gdcDisplayMode(&mode, NULL, GD_APPLY));
+    _gdcClearPixels(g_cur_front_buffer);
+    gdcClut(0, ANSI_COLOR_COUNT, ansi_clrs);
 
 catch:
     return err;

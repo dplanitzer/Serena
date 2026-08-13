@@ -1,12 +1,12 @@
 //
-//  gd_sprite.c
+//  gdc_sprite.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include <ext/math.h>
 #include <kern/kalloc.h>
 #include <kpi/hid.h>
@@ -26,7 +26,7 @@ uint16_t* _Nonnull  g_null_sprite_data;
 // sprite DMA data block.
 uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
 {
-    const uint16_t h = _gdGetImageHeight(self->image);
+    const uint16_t h = _gdcGetImageHeight(self->image);
     const video_conf_t * vc = g_cur_video_config;
     const int16_t sprX = vc->hSprOrigin - 1 + (self->x >> vc->hSprScale);
     const int16_t sprY = vc->vSprOrigin + (self->y >> vc->vSprScale);
@@ -64,7 +64,7 @@ bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, image_t* _Nullable pbo)
         // Drop the sprite channel reference. Note that the currently running Copper
         // program still holds a reference on the sprite surface. This one will be
         // freed after the Copper program has been retired
-        _gdReleaseImage(spr->image);
+        _gdcReleaseImage(spr->image);
         spr->image = NULL;
 
         hasChanged = true;
@@ -74,9 +74,9 @@ bool _bind_sprite_image(sprite_channel_t* _Nonnull spr, image_t* _Nullable pbo)
     // Bind the new pixel buffer if there is one
     if (pbo) {
         spr->image = pbo;
-        _gdRetainImage(pbo);
+        _gdcRetainImage(pbo);
 
-        uint32_t* sprptr = (uint32_t*)_gdGetImagePlane(pbo, 0);
+        uint32_t* sprptr = (uint32_t*)_gdcGetImagePlane(pbo, 0);
         *sprptr = _calc_sprite_ctl(spr);
 
         hasChanged = true;
@@ -116,7 +116,7 @@ static sprite_channel_t* _Nullable _sprite_channel_for_id(pid_t pid, int id)
 // MARK: Sprite API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t gdAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
+errno_t gdcAcquireSprites(pid_t pid, int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
 {
     size_t alloced_count = 0;
 
@@ -169,7 +169,7 @@ static void _release_sprite(sprite_channel_t* _Nonnull scp)
     }
 }
 
-errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count)
+errno_t gdcReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count)
 {
     if (spriteIds) {
         for (size_t i = 0; i < count; i++) {
@@ -193,7 +193,7 @@ errno_t gdReleaseSprites(pid_t pid, const int* _Nullable spriteIds, size_t count
     return EOK;
 }
 
-errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
+errno_t _gdcBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
 {
     sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
@@ -201,10 +201,10 @@ errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
         return EINVAL;
     }
     if (img) {
-        if (_gdGetImageWidth(img) != SPRITE_WIDTH || _gdGetImageHeight(img) > MAX_SPRITE_HEIGHT) {
+        if (_gdcGetImageWidth(img) != SPRITE_WIDTH || _gdcGetImageHeight(img) > MAX_SPRITE_HEIGHT) {
             return ENOTSUP;
         }
-        if (_gdGetImagePixelFormat(img) != GD_RGB_SPRITE_2) {
+        if (_gdcGetImagePixelFormat(img) != GD_RGB_SPRITE_2) {
             return ENOTSUP;
         }
     }
@@ -217,19 +217,19 @@ errno_t _gdBindSpriteImage(pid_t pid, int spriteId, image_t* _Nullable img)
     return EOK;
 }
 
-errno_t gdBindSpriteImage(pid_t pid, int spriteId, int imageId)
+errno_t gdcBindSpriteImage(pid_t pid, int spriteId, int imageId)
 {
-    image_t* img = (imageId != 0) ? _gdGetImageById(pid, imageId) : NULL;
+    image_t* img = (imageId != 0) ? _gdcGetImageById(pid, imageId) : NULL;
     
     if (img || imageId == 0) {
-        return _gdBindSpriteImage(pid, spriteId, img);
+        return _gdcBindSpriteImage(pid, spriteId, img);
     }
     else {
         return EINVAL;
     }
 }
 
-errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y)
+errno_t gdcMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y)
 {
     sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
@@ -242,7 +242,7 @@ errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y)
 
     if (scp->image) {
         const uint32_t ctl = _calc_sprite_ctl(scp);
-        uint32_t* ctl_ptr = (uint32_t*)_gdGetImagePlane(scp->image, 0);
+        uint32_t* ctl_ptr = (uint32_t*)_gdcGetImagePlane(scp->image, 0);
 
         if (scp->isVisible) {
             sprite_ctl_submit(scp->id, ctl_ptr, ctl);
@@ -254,7 +254,7 @@ errno_t gdMoveSprite(pid_t pid, int spriteId, int16_t x, int16_t y)
     return EOK;
 }
 
-errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
+errno_t gdcShowSprite(pid_t pid, int spriteId, bool isVisible)
 {
     sprite_channel_t* scp = _sprite_channel_for_id(pid, spriteId);
 
@@ -273,7 +273,7 @@ errno_t gdShowSprite(pid_t pid, int spriteId, bool isVisible)
     return EOK;
 }
 
-void gdGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull cp)
+void gdcGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull cp)
 {
     cp->minWidth = 16;
     cp->maxWidth = 16;

@@ -1,12 +1,12 @@
 //
-//  gd_cursor.c
+//  gdc_cursor.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/6/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include <ext/math.h>
 #include <kpi/process.h>
 
@@ -18,13 +18,13 @@ static int16_t              g_hot_spot_y;
 static image_t* _Nonnull    g_cursor_image;
 static int                  g_cursor_sprite_id;
 
-errno_t _gdInitCursor(void)
+errno_t _gdcInitCursor(void)
 {
     g_cursor_sprite_id = -1;
-    return _gdCreateImage(PID_KERNELD, HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, &g_cursor_image);
+    return _gdcCreateImage(PID_KERNELD, HID_CURSOR_WIDTH, HID_CURSOR_HEIGHT, GD_RGB_SPRITE_2, &g_cursor_image);
 }
 
-errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
+errno_t gdcSetCursor(const IOHIDCursor* _Nullable cursor)
 {
     decl_try_err();
     bool doRelease = false;
@@ -45,9 +45,9 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
     if (cursor) {
         if (g_cursor_sprite_id < 0) {
             // Acquire the mouse cursor sprite, since we previously didn't have it
-            err = gdAcquireSprites(PID_KERNELD, MOUSE_SPRITE_PRI, 1, &g_cursor_sprite_id);
+            err = gdcAcquireSprites(PID_KERNELD, MOUSE_SPRITE_PRI, 1, &g_cursor_sprite_id);
             if (err == EOK) {
-                err = _gdBindSpriteImage(PID_KERNELD, g_cursor_sprite_id, g_cursor_image);
+                err = _gdcBindSpriteImage(PID_KERNELD, g_cursor_sprite_id, g_cursor_image);
                 if (err != EOK) {
                     doRelease = true;
                 }
@@ -57,16 +57,16 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
 
         if (err == EOK) {
             // Update the mouse cursor image and hot spot
-            _gdWritePixels(g_cursor_image, cursor->planes, cursor->bytesPerRow, cursor->pixelFormat);
+            _gdcWritePixels(g_cursor_image, cursor->planes, cursor->bytesPerRow, cursor->pixelFormat);
 
             if (g_hot_spot_x != cursor->hotSpotX || g_hot_spot_y != cursor->hotSpotY) {
-                const int16_t newX = g_sprite[MOUSE_SPRITE_PRI].x + g_hot_spot_x;   // gdUpdateCursor() does the (x) - cursor->hotSpot term
+                const int16_t newX = g_sprite[MOUSE_SPRITE_PRI].x + g_hot_spot_x;   // gdcUpdateCursor() does the (x) - cursor->hotSpot term
                 const int16_t newY = g_sprite[MOUSE_SPRITE_PRI].y + g_hot_spot_y;
 
                 g_hot_spot_x = cursor->hotSpotX;
                 g_hot_spot_y = cursor->hotSpotY;
 
-                gdUpdateCursor(newX, newY, IOHID_CURSOR_CHANGE_POSITION);
+                gdcUpdateCursor(newX, newY, IOHID_CURSOR_CHANGE_POSITION);
             }
         }
     }
@@ -78,7 +78,7 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
 
 
     if (doRelease) {
-        gdReleaseSprites(PID_KERNELD, &g_cursor_sprite_id, 1);
+        gdcReleaseSprites(PID_KERNELD, &g_cursor_sprite_id, 1);
         g_cursor_sprite_id = -1;
         g_hot_spot_x = 0;
         g_hot_spot_y = 0;
@@ -87,7 +87,7 @@ errno_t gdSetCursor(const IOHIDCursor* _Nullable cursor)
     return err;
 }
 
-void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
+void gdcUpdateCursor(int16_t x, int16_t y, unsigned int flags)
 {
     sprite_channel_t* scp = &g_sprite[MOUSE_SPRITE_PRI];
 
@@ -115,7 +115,7 @@ void gdUpdateCursor(int16_t x, int16_t y, unsigned int flags)
 
         if (scp->image) {
             const uint32_t ctl = _calc_sprite_ctl(scp);
-            uint32_t* ctl_ptr = (uint32_t*)_gdGetImagePlane(scp->image, 0);
+            uint32_t* ctl_ptr = (uint32_t*)_gdcGetImagePlane(scp->image, 0);
 
             if (scp->isVisible) {
                 sprite_ctl_submit(scp->id, ctl_ptr, ctl);

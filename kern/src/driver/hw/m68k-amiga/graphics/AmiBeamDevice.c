@@ -7,7 +7,7 @@
 //
 
 #include "AmiBeamDevice.h"
-#include "gd.h"
+#include "gdc.h"
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/hw/m68k-amiga/cia8520.h>
 #include <kpi/hid.h>
@@ -36,9 +36,9 @@ errno_t AmiBeamDevice_doOpen(IODriverRef _Nonnull _Locked self, fd_flags_t flags
     const errno_t err = IODriver_Super_DoOpen(AmiBeamDevice, flags);
 
     if (err == EOK) {
-        gdLock();
-        gdSetLightPenEnabled(true);
-        gdUnlock();
+        gdcLock();
+        gdcSetLightPenEnabled(true);
+        gdcUnlock();
     }
 
     return err;
@@ -48,9 +48,9 @@ void AmiBeamDevice_doClose(IODriverRef _Nonnull _Locked self)
 {
     IODriver_Super_DoClose(AmiBeamDevice);
 
-    gdLock();
-    gdSetLightPenEnabled(false);
-    gdUnlock();
+    gdcLock();
+    gdcSetLightPenEnabled(false);
+    gdcUnlock();
 }
 
 static void _wait_for_next_scanline(void)

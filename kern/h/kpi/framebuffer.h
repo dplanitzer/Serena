@@ -44,7 +44,7 @@ typedef struct gd_image_info {
 } gd_image_info_t;
 
 
-// Specifies what you want to do with the pixels when you call gdMapImage()
+// Specifies what you want to do with the pixels when you call gdcMapImage()
 #define GD_MAP_RDONLY  0
 #define GD_MAP_RW      1
 
@@ -102,12 +102,12 @@ IOCMD_MAKE(IOPROTO_FB, 1, _IOCMD_ACC_WR, 0)
 // Destroys the image with id 'id'. Returns EBUSY if the image is currently
 // mapped. Automatically unbinds the image if it is bound to a sprite and binds
 // the sprite target to a null image. Does nothing if 'id' is 0.
-// gdDestroyImage(int id)
+// gdcDestroyImage(int id)
 #define GDC_DESTROY_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 2, _IOCMD_ACC_WR, 0)
 
 // Returns information about the image with ID 'id'.
-// gdGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
+// gdcGetImageInfo(int id, gd_image_info_t* _Nonnull pOutInfo)
 #define GDC_GET_IMAGE_INFO \
 IOCMD_MAKE(IOPROTO_FB, 3, _IOCMD_ACC_RD, 0)
 
@@ -115,12 +115,12 @@ IOCMD_MAKE(IOPROTO_FB, 3, _IOCMD_ACC_RD, 0)
 // process to allow direct access to the pixel data. 'mode' specifies
 // whether the pixel data should be mapped for reading only or reading and
 // writing. Returns with 'pOutMapping' filled in.
-// gdMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
+// gdcMapImage(int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 #define GDC_MAP_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 4, _IOCMD_ACC_RDWR, 0)
 
 // Unmaps the pixels of the image 'id' and revokes access to the pixels.
-// gdUnmapImage(int id)
+// gdcUnmapImage(int id)
 #define GDC_UNMAP_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 
@@ -139,14 +139,14 @@ IOCMD_MAKE(IOPROTO_FB, 5, _IOCMD_ACC_RDWR, 0)
 // 'If 'basePriority' is < 0 then 'count' sprites with an arbitrary and available
 // priority are allocated.
 // EAGAIN is returned if not enough sprites are available.
-// gdAcquireSprites(int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
+// gdcAcquireSprites(int basePriority, size_t count, int* _Nonnull pOutSpriteIds)
 #define GDC_ACQUIRE_SPRITES \
 IOCMD_MAKE(IOPROTO_FB, 6, _IOCMD_ACC_WR, 0)
 
 // Releases 'count' sprites owned by the calling process. The sprite ids are
 // provided by the 'spriteIds' array. All sprites currently owned by the calling
 // process are released if 'spriteIds' is NULL.
-// gdReleaseSprites(const int* _Nullable spriteIds, size_t count)
+// gdcReleaseSprites(const int* _Nullable spriteIds, size_t count)
 #define GDC_RELEASE_SPRITES \
 IOCMD_MAKE(IOPROTO_FB, 7, _IOCMD_ACC_WR, 0)
 
@@ -160,7 +160,7 @@ typedef struct gd_sprite_constraints {
 
 // Returns information about the limits of the sprite sub-system based on the
 // currently active display.
-// gdGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull constraints)
+// gdcGetSpriteConstraints(gd_sprite_constraints_t* _Nonnull constraints)
 #define GDC_SPRITE_CONSTRAINTS \
 IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 

@@ -1,12 +1,12 @@
 //
-//  gd_cmdbuf.c
+//  gdc_cmdbuf.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/9/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include "video_conf.h"
 #include <ext/math.h>
 #include <ext/queue.h>
@@ -51,7 +51,7 @@ static cmdbuf_t* _Nullable _cmdbuf_for_id(pid_t pid, int id)
 
 
 
-errno_t gdCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
+errno_t gdcCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonnull desc)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf;
@@ -88,13 +88,13 @@ errno_t gdCreateCommandBuffer(pid_t pid, size_t reqSize, gd_cmdbuf_desc_t* _Nonn
     return EOK;
 }
 
-static void _gdDestroyCommandBuffer(cmdbuf_t* _Nonnull cmdbuf)
+static void _gdcDestroyCommandBuffer(cmdbuf_t* _Nonnull cmdbuf)
 {
     kfree(cmdbuf->op);
     kfree(cmdbuf);
 }
 
-errno_t gdDestroyCommandBuffer(pid_t pid, int id)
+errno_t gdcDestroyCommandBuffer(pid_t pid, int id)
 {
     if (id == 0) {
         return EOK;
@@ -105,16 +105,16 @@ errno_t gdDestroyCommandBuffer(pid_t pid, int id)
         return EINVAL;
     }
 
-    _gdDestroyCommandBuffer(cmdbuf);
+    _gdcDestroyCommandBuffer(cmdbuf);
 
     return EOK;
 }
 
-void gdDestroyCommandBuffersOwnedBy(pid_t pid)
+void gdcDestroyCommandBuffersOwnedBy(pid_t pid)
 {
     deque_for_each(&g_cmdbuf_list, struct cmdbuf, it,
         if (it->ownerPid == pid) {
-            _gdDestroyCommandBuffer(it);
+            _gdcDestroyCommandBuffer(it);
         }
     )
 }
@@ -131,17 +131,17 @@ static errno_t _exec_sprite_cmds(cmdbuf_t* cmdbuf)
                 return EOK;
 
             case GD_OPCODE_SPRITE_IMAGE:       // gd_op_sprite_image   //XXX will turn into gdCmdSpriteBufferLevel
-                try(gdBindSpriteImage(cmdbuf->ownerPid, ip->sprite_image.spriteId, ip->sprite_image.imageId));
+                try(gdcBindSpriteImage(cmdbuf->ownerPid, ip->sprite_image.spriteId, ip->sprite_image.imageId));
                 ilen = sizeof(struct gd_op_sprite_image);
                 break;
 
             case GD_OPCODE_SPRITE_MOVE:        // struct gd_op_sprite_move
-                try(gdMoveSprite(cmdbuf->ownerPid, ip->sprite_move.spriteId, ip->sprite_move.x, ip->sprite_move.y));
+                try(gdcMoveSprite(cmdbuf->ownerPid, ip->sprite_move.spriteId, ip->sprite_move.x, ip->sprite_move.y));
                 ilen = sizeof(struct gd_op_sprite_move);
                 break;
 
             case GD_OPCODE_SPRITE_SHOW:        // struct gd_op_sprite_show
-                try(gdShowSprite(cmdbuf->ownerPid, ip->sprite_show.spriteId, ip->sprite_show.visible != 0));
+                try(gdcShowSprite(cmdbuf->ownerPid, ip->sprite_show.spriteId, ip->sprite_show.visible != 0));
                 ilen = sizeof(struct gd_op_sprite_show);
                 break;
 
@@ -168,7 +168,7 @@ static errno_t _exec_transfer_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 return EOK;
 
             case GD_OPCODE_WRITE_PIXELS:       // struct gd_op_write_pixels
-                gdWritePixels(cmdbuf->ownerPid, ip->write_pixels.dstImageId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
+                gdcWritePixels(cmdbuf->ownerPid, ip->write_pixels.dstImageId, &ip->write_pixels.plane[0], ip->write_pixels.bytesPerRow, ip->write_pixels.format);
                 ilen = sizeof(struct gd_op_write_pixels) + (_gdGetPlaneCount(ip->write_pixels.format) - 1) * sizeof(void*);
                 break;
 
@@ -192,7 +192,7 @@ static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
                 return EOK;
 
             case GD_OPCODE_CLEAR_PIXELS:       // struct gd_op_clear_pixels
-                gdClearPixels(cmdbuf->ownerPid, ip->clear_pixels.dstImageId);
+                gdcClearPixels(cmdbuf->ownerPid, ip->clear_pixels.dstImageId);
                 ilen = sizeof(struct gd_op_clear_pixels);
                 break;
 
@@ -204,7 +204,7 @@ static errno_t _exec_blit_cmds(cmdbuf_t* _Nonnull cmdbuf)
     }
 }
 
-errno_t gdSubmitCommandBuffer(pid_t pid, int queue_id, int cmds_id)
+errno_t gdcSubmitCommandBuffer(pid_t pid, int queue_id, int cmds_id)
 {
     decl_try_err();
     cmdbuf_t* cmdbuf = _cmdbuf_for_id(pid, cmds_id);

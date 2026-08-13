@@ -7,7 +7,7 @@
 //
 
 #include "AmiHIDDisplay.h"
-#include "gd.h"
+#include "gdc.h"
 #include <kpi/hid.h>
 #include <kpi/process.h>
 
@@ -32,26 +32,26 @@ catch:
 
 errno_t AmiHIDDisplay_setCursor(AmiHIDDisplayRef _Nonnull self, const IOHIDCursor* _Nullable cursor)
 {
-    gdLock();
-    const errno_t err = gdSetCursor(cursor);
-    gdUnlock();
+    gdcLock();
+    const errno_t err = gdcSetCursor(cursor);
+    gdcUnlock();
     return err;
 }
 
 void AmiHIDDisplay_updateCursor(AmiHIDDisplayRef _Nonnull self, int16_t x, int16_t y, unsigned int flags)
 {
-    gdLock();
-    gdUpdateCursor(x, y, flags);
-    gdUnlock();
+    gdcLock();
+    gdcUpdateCursor(x, y, flags);
+    gdcUnlock();
 }
 
 void AmiHIDDisplay_getScreenResolution(AmiHIDDisplayRef _Nonnull self, int16_t* _Nonnull pOutWidth, int16_t* _Nonnull pOutHeight)
 {
     gd_display_mode_t mode;
 
-    gdLock();
-    gdGetDisplayInfo(GD_DISPLAY_MODE, &mode);
-    gdUnlock();
+    gdcLock();
+    gdcGetDisplayInfo(GD_DISPLAY_MODE, &mode);
+    gdcUnlock();
     
     *pOutWidth = mode.width;
     *pOutHeight = mode.height;
@@ -59,9 +59,9 @@ void AmiHIDDisplay_getScreenResolution(AmiHIDDisplayRef _Nonnull self, int16_t* 
 
 void AmiHIDDisplay_setChangeSignal(AmiHIDDisplayRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
-    gdLock();
-    gdSetDisplayChangeSignal(vp, signo);
-    gdUnlock();
+    gdcLock();
+    gdcSetDisplayChangeSignal(vp, signo);
+    gdcUnlock();
 }
 
 

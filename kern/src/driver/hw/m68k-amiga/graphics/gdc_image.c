@@ -1,12 +1,12 @@
 //
-//  gd_image.c
+//  gdc_image.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include "video_conf.h"
 #include <ext/math.h>
 #include <string.h>
@@ -74,13 +74,13 @@ static errno_t _alloc_multi_plane(image_t* _Nonnull self)
 
 static void _destroy(image_t* _Nonnull self)
 {
-    _gdConcealImage(self);
+    _gdcConcealImage(self);
     kfree(self->plane[0]);
     kfree(self);
 }
 
 
-errno_t _gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, image_t* _Nullable * _Nonnull pOutSelf)
+errno_t _gdcCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, image_t* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     image_t* self;
@@ -118,14 +118,14 @@ catch:
 }
 
 // Make the image publicly accessible by 'id'
-void _gdPublishImage(image_t* _Nonnull self, int id)
+void _gdcPublishImage(image_t* _Nonnull self, int id)
 {
     deque_add_first(&g_image_table, &self->chain);
     self->id = id;
 }
 
 // Make the image no longer publicly accessible by its id
-void _gdConcealImage(image_t* _Nonnull self)
+void _gdcConcealImage(image_t* _Nonnull self)
 {
     if (self->id != 0) {
         self->id = 0;
@@ -133,19 +133,19 @@ void _gdConcealImage(image_t* _Nonnull self)
     }
 }
 
-errno_t gdCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
+errno_t gdcCreateImage(pid_t pid, int width, int height, gd_pixfmt_t pixelFormat, int* _Nonnull pOutId)
 {
     image_t* self;
 
-    const errno_t err = _gdCreateImage(pid, width, height, pixelFormat, &self);
+    const errno_t err = _gdcCreateImage(pid, width, height, pixelFormat, &self);
     if (err == EOK) {
-        _gdPublishImage(self, g_next_image_id++);
-        *pOutId = _gdGetImageId(self);
+        _gdcPublishImage(self, g_next_image_id++);
+        *pOutId = _gdcGetImageId(self);
     }
     return err;
 }
 
-image_t* _Nullable _gdGetImageById(pid_t pid, int id)
+image_t* _Nullable _gdcGetImageById(pid_t pid, int id)
 {
     deque_for_each(&g_image_table, image_t, it,
         // Image owned by process or the kernel is fine. Kernel owned images are
@@ -157,7 +157,7 @@ image_t* _Nullable _gdGetImageById(pid_t pid, int id)
     return NULL;
 }
 
-void _gdReleaseImage(image_t* _Nullable self)
+void _gdcReleaseImage(image_t* _Nullable self)
 {
     if (self) {
         self->refCount--;
@@ -167,7 +167,7 @@ void _gdReleaseImage(image_t* _Nullable self)
     }
 }
 
-void _gdDestroyImage(image_t* _Nonnull self)
+void _gdcDestroyImage(image_t* _Nonnull self)
 {
     // Unschedule an upcoming Copper program first, to make sure that the currently
     // running Copper program can't change on us while we're inspecting it. GD is
@@ -199,15 +199,15 @@ void _gdDestroyImage(image_t* _Nonnull self)
     }
 
 
-    _gdConcealImage(self);
-    _gdReleaseImage(self);
+    _gdcConcealImage(self);
+    _gdcReleaseImage(self);
 
     if (next_prog) {
         copper_schedule(next_prog, 0);
     }
 }
 
-errno_t gdDestroyImage(pid_t pid, int id)
+errno_t gdcDestroyImage(pid_t pid, int id)
 {
     switch (id) {
         case 0:
@@ -221,62 +221,62 @@ errno_t gdDestroyImage(pid_t pid, int id)
     }
 
 
-    image_t* self = _gdGetImageById(pid, id);
+    image_t* self = _gdcGetImageById(pid, id);
     if (self) {
-        if (_gdIsImageMapped(self)) {
+        if (_gdcIsImageMapped(self)) {
             return EBUSY;
         }
 
-        _gdDestroyImage(self);
+        _gdcDestroyImage(self);
         return EOK;
     } else {
         return EINVAL;
     }
 }
 
-void gdDestroyImagesOwnedBy(pid_t pid)
+void gdcDestroyImagesOwnedBy(pid_t pid)
 {
     deque_for_each(&g_image_table, image_t, it,
         if (it->ownerPid == pid) {
-            _gdDestroyImage(it);
+            _gdcDestroyImage(it);
         }
     )
 }
 
-errno_t gdGetImageInfo(pid_t pid, int id, gd_image_info_t* _Nonnull pOutInfo)
+errno_t gdcGetImageInfo(pid_t pid, int id, gd_image_info_t* _Nonnull pOutInfo)
 {
-    image_t* self = _gdGetImageById(pid, id);
+    image_t* self = _gdcGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
     }
 
-    pOutInfo->width = _gdGetImageWidth(self);
-    pOutInfo->height = _gdGetImageHeight(self);
-    pOutInfo->pixelFormat = _gdGetImagePixelFormat(self);
+    pOutInfo->width = _gdcGetImageWidth(self);
+    pOutInfo->height = _gdcGetImageHeight(self);
+    pOutInfo->pixelFormat = _gdcGetImagePixelFormat(self);
 
     return EOK;
 }
 
-errno_t gdMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
+errno_t gdcMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMapping)
 {
-    image_t* self = _gdGetImageById(pid, id);
+    image_t* self = _gdcGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
     }
-    if (_gdIsImageMapped(self)) {
+    if (_gdcIsImageMapped(self)) {
         return EBUSY;
     }
-    if (_gdGetImagePixelFormat(self) == GD_RGB_SPRITE_2) {
+    if (_gdcGetImagePixelFormat(self) == GD_RGB_SPRITE_2) {
         // Disallow mapping sprite surfaces for now
         return ENOTSUP;
     }
 
-    pOutMapping->planeCount = _gdGetImagePlaneCount(self);
-    pOutMapping->bytesPerRow = _gdGetImageBytesPerRow(self);
+    pOutMapping->planeCount = _gdcGetImagePlaneCount(self);
+    pOutMapping->bytesPerRow = _gdcGetImageBytesPerRow(self);
     for (size_t i = 0; i < pOutMapping->planeCount; i++) {
-        pOutMapping->plane[i] = _gdGetImagePlane(self, i);
+        pOutMapping->plane[i] = _gdcGetImagePlane(self, i);
     }
 
     self->flags |= GD_IMAGE_MAPPED;
@@ -284,16 +284,16 @@ errno_t gdMapImage(pid_t pid, int id, int mode, gd_image_data_t* _Nonnull pOutMa
     return EOK;
 }
 
-errno_t gdUnmapImage(pid_t pid, int id)
+errno_t gdcUnmapImage(pid_t pid, int id)
 {
-    image_t* self = _gdGetImageById(pid, id);
+    image_t* self = _gdcGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
     }
 
 
-    if (_gdIsImageMapped(self)) {
+    if (_gdcIsImageMapped(self)) {
         self->flags &= ~GD_IMAGE_MAPPED;
         return EOK;
     }
@@ -302,7 +302,7 @@ errno_t gdUnmapImage(pid_t pid, int id)
     }
 }
 
-errno_t _gdWritePixels(image_t* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
+errno_t _gdcWritePixels(image_t* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
     if (self->pixelFormat == GD_RGB_SPRITE_2 && format == GD_COLOR_INDEX2) {
         const uint8_t* sp0 = planes[0];
@@ -336,18 +336,18 @@ errno_t _gdWritePixels(image_t* self, const void* _Nonnull planes[], size_t byte
     }
 }
 
-errno_t gdWritePixels(pid_t pid, int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
+errno_t gdcWritePixels(pid_t pid, int id, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format)
 {
-    image_t* pbo = _gdGetImageById(pid, id);
+    image_t* pbo = _gdcGetImageById(pid, id);
 
     if (pbo == NULL) {
         return EINVAL;
     }
 
-    return _gdWritePixels(pbo, planes, bytesPerRow, format);
+    return _gdcWritePixels(pbo, planes, bytesPerRow, format);
 }
 
-void _gdClearPixels(image_t* _Nonnull self)
+void _gdcClearPixels(image_t* _Nonnull self)
 {
     if (self->pixelFormat == GD_RGB_SPRITE_2) {
         uint16_t* pp = (uint16_t*)self->plane[0];
@@ -365,14 +365,14 @@ void _gdClearPixels(image_t* _Nonnull self)
     }
 }
 
-errno_t gdClearPixels(pid_t pid, int id)
+errno_t gdcClearPixels(pid_t pid, int id)
 {
-    image_t* self = _gdGetImageById(pid, id);
+    image_t* self = _gdcGetImageById(pid, id);
 
     if (self == NULL) {
         return EINVAL;
     }
 
-    _gdClearPixels(self);
+    _gdcClearPixels(self);
     return EOK;
 }

@@ -1,15 +1,15 @@
 //
-//  gd_priv.h
+//  gdc_priv.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/25/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _GD_PRIV_H
-#define _GD_PRIV_H
+#ifndef _GDC_PRIV_H
+#define _GDC_PRIV_H
 
-#include "gd.h"
+#include "gdc.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -50,46 +50,46 @@ typedef struct image {
     uint8_t             flags;
 } image_t;
 
-#define _gdRetainImage(__self) \
+#define _gdcRetainImage(__self) \
 (((image_t*)(__self))->refCount++)
 
-extern void _gdReleaseImage(image_t* _Nullable self);
+extern void _gdcReleaseImage(image_t* _Nullable self);
 
-extern void _gdPublishImage(image_t* _Nonnull self, int id);
-extern void _gdConcealImage(image_t* _Nonnull self);
-extern image_t* _Nullable _gdGetImageById(pid_t pid, int id);
-extern errno_t _gdWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
+extern void _gdcPublishImage(image_t* _Nonnull self, int id);
+extern void _gdcConcealImage(image_t* _Nonnull self);
+extern image_t* _Nullable _gdcGetImageById(pid_t pid, int id);
+extern errno_t _gdcWritePixels(struct image* self, const void* _Nonnull planes[], size_t bytesPerRow, gd_pixfmt_t format);
 
 
-#define _gdGetImageId(__self) \
+#define _gdcGetImageId(__self) \
 (((image_t*)(__self))->id)
 
 // Returns the pixel width of the surface.
-#define _gdGetImageWidth(__self) \
+#define _gdcGetImageWidth(__self) \
 ((__self)->width)
 
 // Returns the pixel height of the surface.
-#define _gdGetImageHeight(__self) \
+#define _gdcGetImageHeight(__self) \
 ((__self)->height)
 
 // Returns the number of planes in the surface.
-#define _gdGetImagePlaneCount(__self) \
+#define _gdcGetImagePlaneCount(__self) \
 ((__self)->planeCount)
 
 // Returns the bytes-per-row value
-#define _gdGetImageBytesPerRow(__self) \
+#define _gdcGetImageBytesPerRow(__self) \
 ((__self)->bytesPerRow)
 
 // Returns the pixel format
-#define _gdGetImagePixelFormat(__self) \
+#define _gdcGetImagePixelFormat(__self) \
 ((__self)->pixelFormat)
 
 // Returns the n-th plane of the surface.
-#define _gdGetImagePlane(__self, __idx) \
+#define _gdcGetImagePlane(__self, __idx) \
 ((__self)->plane[__idx])
 
 // Returns true if the surface is currently mapped
-#define _gdIsImageMapped(__self) \
+#define _gdcIsImageMapped(__self) \
 (((__self)->flags & GD_IMAGE_MAPPED) == GD_IMAGE_MAPPED)
 
 
@@ -117,7 +117,7 @@ extern void sprite_ctl_cancel(int spridx);
 
 
 // Cursor
-extern errno_t _gdInitCursor(void);
+extern errno_t _gdcInitCursor(void);
 
 
 // Copper program instruction
@@ -222,7 +222,7 @@ extern uint8_t                  g_clut_size;
 extern image_t*                 g_cur_front_buffer;
 extern const video_conf_t*      g_cur_video_config;
 
-extern errno_t _gdInitCopper(void);
+extern errno_t _gdcInitCopper(void);
 
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
@@ -231,4 +231,4 @@ extern errno_t create_screen_copper_prog(const video_conf_t* _Nonnull vc, image_
 
 extern copper_prog_t _Nullable copper_get_editable_prog(void);
 
-#endif /* _GD_PRIV_H */
+#endif /* _GDC_PRIV_H */

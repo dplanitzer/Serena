@@ -1,12 +1,12 @@
 //
-//  gd_copper.c
+//  gdc_copper.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include <driver/IOLib.h>
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
@@ -286,7 +286,7 @@ static errno_t _create_copper_prog(size_t instr_count, copper_prog_t _Nullable *
 static void _cache_copper_prog(copper_prog_t _Nonnull prog)
 {
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        _gdReleaseImage(prog->res.spr[i]);
+        _gdcReleaseImage(prog->res.spr[i]);
         prog->res.spr[i] = NULL;
     }
 
@@ -339,7 +339,7 @@ copper_prog_t _Nullable copper_get_editable_prog(void)
 
         for (int i = 0; i < SPRITE_COUNT; i++) {
             if (prog->res.spr[i]) {
-                _gdRetainImage(prog->res.spr[i]);
+                _gdcRetainImage(prog->res.spr[i]);
             }
         }
     }
@@ -369,7 +369,7 @@ static copper_prog_t _Nullable copper_acquire_retired_prog(void)
 
 static void copper_manager(void* ignore)
 {
-    gdLock();
+    gdcLock();
 
     for (;;) {
         copper_prog_t prog;
@@ -379,15 +379,15 @@ static void copper_manager(void* ignore)
             _cache_copper_prog(prog);
         }
 
-        gdUnlock();
+        gdcUnlock();
         vcpu_sigwait(&g_copper_wq, &g_copper_sigs, 0, TICKS_MAX, &signo);
-        gdLock();
+        gdcLock();
     }
 
-    gdUnlock();
+    gdcUnlock();
 }
 
-errno_t _gdInitCopper(void)
+errno_t _gdcInitCopper(void)
 {
     decl_try_err();
 

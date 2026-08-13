@@ -10,7 +10,7 @@
 #define AGADriverPriv_h
 
 #include "AGADriver.h"
-#include "gd.h"
+#include "gdc.h"
 
 
 final_class_ivars(AGADriver, IODriver,

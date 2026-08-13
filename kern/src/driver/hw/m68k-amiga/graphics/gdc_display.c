@@ -1,12 +1,12 @@
 //
-//  gd_framebuffer.c
+//  gdc_display.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/7/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "gd_priv.h"
+#include "gdc_priv.h"
 #include <kpi/process.h>
 
 static vcpu_t _Nullable     g_display_change_vp;
@@ -19,7 +19,7 @@ const video_conf_t*         g_cur_video_config;
 image_t*                    g_cur_front_buffer;
 
 
-errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
+errno_t gdcClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
 {
     if (idx + count > g_clut_size) {
         return EINVAL;
@@ -47,7 +47,7 @@ errno_t gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
     return EOK;
 }
 
-errno_t gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
+errno_t gdcGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 {
     if (idx + count > g_clut_size) {
         return EINVAL;
@@ -66,7 +66,7 @@ errno_t gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
     return EOK;
 }
 
-errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info)
+errno_t gdcGetClutInfo(gd_clut_info_t* _Nonnull info)
 {
     info->entryCount = g_clut_size;
     info->redBits = 4;
@@ -75,7 +75,7 @@ errno_t gdGetClutInfo(gd_clut_info_t* _Nonnull info)
     return EOK;
 }
 
-errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
+errno_t gdcDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
 {
     decl_try_err();
     image_t* front_buf;
@@ -105,7 +105,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
 
 
     // Allocate the framebuffer
-    err = _gdCreateImage(PID_KERNELD, mode->width, mode->height, mode->pixelFormat, &front_buf);
+    err = _gdcCreateImage(PID_KERNELD, mode->width, mode->height, mode->pixelFormat, &front_buf);
     if (err != EOK) {
         return err;
     }
@@ -114,7 +114,7 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     // Compile the Copper program(s) for the new framebuffer
     err = create_screen_copper_prog(vc, front_buf, &prog);
     if (err != EOK) {
-        _gdReleaseImage(front_buf);
+        _gdcReleaseImage(front_buf);
         return err;
     }
 
@@ -127,10 +127,10 @@ errno_t gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_p
     copper_schedule(prog, COPFLAG_WAIT_RUNNING);
 
     if (g_cur_front_buffer) {
-        _gdReleaseImage(g_cur_front_buffer);
+        _gdcReleaseImage(g_cur_front_buffer);
         g_cur_front_buffer = NULL;
     }
-    _gdPublishImage(front_buf, GD_FRONT_BUFFER);
+    _gdcPublishImage(front_buf, GD_FRONT_BUFFER);
 
     g_cur_display_mode = *mode;
     g_cur_display_params = (params) ? *params : (gd_display_params_t){0};
@@ -147,7 +147,7 @@ catch:
     return err;
 }
 
-errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
+errno_t gdcGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
 {
     switch (flavor) {
         case GD_DISPLAY_MODE: {
@@ -169,7 +169,7 @@ errno_t gdGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
     }
 }
 
-errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
+errno_t gdcEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
 {
     if (index < 0 || index >= NUM_VIDEO_CONFIGS) {
         return EINVAL;
@@ -182,13 +182,13 @@ errno_t gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
     pOutMode->pixelFormat = vc->pixelFormat;
 }
 
-void gdSetDisplayChangeSignal(vcpu_t _Nullable vp, int signo)
+void gdcSetDisplayChangeSignal(vcpu_t _Nullable vp, int signo)
 {
     g_display_change_vp = vp;
     g_display_change_signo = signo;
 }
 
-void gdSetLightPenEnabled(bool enabled)
+void gdcSetLightPenEnabled(bool enabled)
 {
     if (g_light_pen_enabled != enabled) {
         g_light_pen_enabled = enabled;
