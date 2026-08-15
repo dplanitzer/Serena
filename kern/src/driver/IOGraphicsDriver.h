@@ -60,7 +60,7 @@ open_class_funcs(IOGraphicsDriver, IODriver,
     //
 
     errno_t (*displayMode)(void* _Nonnull self, const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
-    errno_t (*getDisplayInfo)(void* _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info);
+    errno_t (*getDisplayInfo)(void* _Nonnull self, int flavor, gd_display_info_ref _Nonnull info);
     errno_t (*enumDisplayModes)(void* _Nonnull self, int index, gd_display_mode_t* _Nonnull pOutMode);
 );
 

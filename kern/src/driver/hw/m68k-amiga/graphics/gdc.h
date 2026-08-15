@@ -71,7 +71,7 @@ extern errno_t gdcGetClutInfo(gd_clut_info_t* _Nonnull info);
 
 // Display
 extern errno_t gdcDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op);
-extern errno_t gdcGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info);
+extern errno_t gdcGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull info);
 extern errno_t gdcEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode);
 extern void gdcSetDisplayChangeSignal(vcpu_t _Nullable vp, int signo);
 extern void gdcSetLightPenEnabled(bool enabled);

@@ -22,7 +22,7 @@
 // that the image width and height have to be > 1. The image may be directly
 // mapped into the address space of the owning process or manipulated with the
 // Blitter.
-// gdCreateImage(int width, int height, gd_pixfmt_t format, int* _Nonnull pOutId)
+// gdcCreateImage(int width, int height, gd_pixfmt_t format, int* _Nonnull pOutId)
 #define GDC_CREATE_IMAGE \
 IOCMD_MAKE(IOPROTO_FB, 1, _IOCMD_ACC_WR, 0)
 
@@ -91,25 +91,25 @@ IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 // Switches the display to the display mode 'mode' and applies the dynamic
 // display parameters 'params' if specified. The switch is executed on the next
 // VBL and the caller is blocked until teh switch has completed. 'op' specifies
-// how teh switch should be executed:
+// how the switch should be executed:
 // GD_APPLY - the switch is executed.
 // GD_CHECK - the call verifies whether the switch would succeed but it does not
 //            actually execute it. EOK is returned if the switch would be successful
 //            and a suitable error is returned if it would fail.
-// gdDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params* _Nullable params, int op)
+// gdcDisplayMode(const gd_display_mode_t* _Nonnull mode, const gd_display_params_t* _Nullable params, int op)
 #define GDC_DISPLAY_MODE \
 IOCMD_MAKE(IOPROTO_FB, 11, _IOCMD_ACC_WR, 0)
 
 // Returns the display info indicated by 'flavor'.
-// gdGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull pOutInfo)
+// gdcGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull pOutInfo)
 #define GDC_GET_DISPLAY_INFO \
 IOCMD_MAKE(IOPROTO_FB, 12, _IOCMD_ACC_RD, 0)
 
 // Returns the display mode with index 'index'. Returns EOK if a display mode
 // with such an index exists and EINVAL if not. Call this function with index 0
-// as teh first index and then with previous index + 1 until it returns EINVAL
+// as the first index and then with previous index + 1 until it returns EINVAL
 // to get all supported display modes.
-// gdEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
+// gdcEnumDisplayModes(int index, gd_display_mode_t* _Nonnull pOutMode)
 #define GDC_ENUM_DISPLAY_MODES \
 IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_RD, 0)
 
@@ -122,7 +122,7 @@ IOCMD_MAKE(IOPROTO_FB, 13, _IOCMD_ACC_RD, 0)
 // 'idx + count'. The provided color values are converted to the color resolution
 // that is actually supported by the CLUT. The color values will become visible
 // on the screen starting with the next VBL.
-// gdClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
+// gdcClut(size_t idx, size_t count, const gd_rgb32_t* _Nonnull entries)
 #define GDC_CLUT \
 IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 
@@ -131,13 +131,13 @@ IOCMD_MAKE(IOPROTO_FB, 14, _IOCMD_ACC_WR, 0)
 // color precision compared to the color values that were originally set by a
 // gdClut() command. Use gdGetClutInfo() receive information about the
 // supported CLUT color resolution.
-// gdGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
+// gdcGetClut(size_t idx, size_t count, gd_rgb32_t* _Nonnull entries)
 #define GDC_GET_CLUT \
 IOCMD_MAKE(IOPROTO_FB, 15, _IOCMD_ACC_RD, 0)
 
 // Returns information about the display CLUT. The number of color entries and
 // the physical color resolution is returned.
-// gdGetClutInfo(gd_clut_info_t* _Nonnull info)
+// gdcGetClutInfo(gd_clut_info_t* _Nonnull info)
 #define GDC_GET_CLUT_INFO \
 IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_RD, 0)
 
@@ -152,12 +152,12 @@ IOCMD_MAKE(IOPROTO_FB, 16, _IOCMD_ACC_RD, 0)
 // buffer. The call returns the base address and the actual buffer size in
 // 'desc' when successful. Note that the actual size may be greater than the
 // requested size. However it will never be smaller.
-// create_cmdbuf(size_t byteSize, const gd_cmdbuf_desc_t* _Nullable desc) -> id
+// gdcCreateCommandBuffer(size_t byteSize, const gd_cmdbuf_desc_t* _Nullable desc) -> id
 #define GDC_CREATE_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 17, _IOCMD_ACC_WR, 0)
 
 // Deallocates the command buffer 'id'.
-// destroy_cmdbuf(int id)
+// gdcDestroyCommandBuffer(int id)
 #define GDC_DESTROY_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_WR, 0)
 
@@ -166,7 +166,7 @@ IOCMD_MAKE(IOPROTO_FB, 18, _IOCMD_ACC_WR, 0)
 // asynchronously or synchronously. Malformed commands are ignored and execution
 // is terminated if either an end command is encountered or a malformed command
 // is encountered from which the command queue can not recover.
-// gdSubmitCommands(int queue_id, int cmds_id)
+// gdcSubmitCommandBuffer(int queue_id, int cmds_id)
 #define GDC_SUBMIT_CMDBUF \
 IOCMD_MAKE(IOPROTO_FB, 19, _IOCMD_ACC_WR, 0)
 

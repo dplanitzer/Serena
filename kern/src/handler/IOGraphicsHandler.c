@@ -154,7 +154,7 @@ errno_t IOGraphicsHandler_control(struct IOGraphicsHandler* _Nonnull self, int c
 
         case GDC_GET_DISPLAY_INFO: {
             const int flavor = va_arg(ap, int);
-            gd_display_info_ref_t info = va_arg(ap, gd_display_info_ref_t);
+            gd_display_info_ref info = va_arg(ap, gd_display_info_ref);
 
             return IOGraphicsDriver_GetDisplayInfo(drv, flavor, info);
         }

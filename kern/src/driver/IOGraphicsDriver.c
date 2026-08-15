@@ -94,7 +94,7 @@ errno_t IOGraphicsDriver_displayMode(IOGraphicsDriverRef _Nonnull self, const gd
     return ENOTSUP;
 }
 
-errno_t IOGraphicsDriver_getDisplayInfo(IOGraphicsDriverRef _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info)
+errno_t IOGraphicsDriver_getDisplayInfo(IOGraphicsDriverRef _Nonnull self, int flavor, gd_display_info_ref _Nonnull info)
 {
     return ENOTSUP;
 }

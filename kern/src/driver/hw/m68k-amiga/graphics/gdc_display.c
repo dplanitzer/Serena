@@ -147,7 +147,7 @@ catch:
     return err;
 }
 
-errno_t gdcGetDisplayInfo(int flavor, gd_display_info_ref_t _Nonnull info)
+errno_t gdcGetDisplayInfo(int flavor, gd_display_info_ref _Nonnull info)
 {
     switch (flavor) {
         case GD_DISPLAY_MODE: {

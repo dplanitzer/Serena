@@ -91,6 +91,11 @@ LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/h
 LIBDISPATCH_FILE := $(PRODUCT_LIB_DIR)/libdispatch.a
 
 
+LIBGD_PROJECT_DIR := $(LIB_DIR)/libgd
+LIBGD_HEADERS_DIR := $(LIBGD_PROJECT_DIR)/h
+LIBGD_FILE := $(PRODUCT_LIB_DIR)/libgd.a
+
+
 LIBM_PROJECT_DIR := $(LIB_DIR)/libm
 LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
 LIBM_FILE := $(PRODUCT_LIB_DIR)/libm.a
@@ -202,8 +207,8 @@ endif
 KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020 -DMACHINE_AMIGA
 KERNEL_CC_CONFIG := +$(VC_CFG_KERN) -c -c99 -cpp-comments -DMACHINE_AMIGA -D_POSIX_SOURCE=1 -D__TRY_BANG_LOD=1 -D__ASSERT_LOD=1
 
-USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020
-USER_CC_CONFIG := +$(VC_CFG) -c -c99 -cpp-comments -fpu=68881 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1
+USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020 -DMACHINE_AMIGA
+USER_CC_CONFIG := +$(VC_CFG) -c -c99 -cpp-comments -fpu=68881 -DMACHINE_AMIGA -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1
 
 KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/m68k-amiga-kern.ld -M$(PRODUCT_DIR)/kernel_mappings.txt
 USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/app.ld
@@ -241,6 +246,7 @@ include $(LIBC_PROJECT_DIR)/project.mk
 include $(LIBM_PROJECT_DIR)/project.mk
 include $(LIBCLAP_PROJECT_DIR)/project.mk
 include $(LIBDISPATCH_PROJECT_DIR)/project.mk
+include $(LIBGD_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk
 
@@ -256,7 +262,8 @@ include $(C_TEST_PROJECT_DIR)/project.mk
 include $(DQ_TEST_PROJECT_DIR)/project.mk
 
 
-build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE)
+build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE) \
+				$(LIBGD_FILE)
 
 build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(LIST_FILE) \
@@ -331,6 +338,7 @@ build-sdk: build-all-libs
 	$(call copy_contents_of_dir,$(LIBC_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBCLAP_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBDISPATCH_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy_contents_of_dir,$(LIBGD_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/kpi,$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/machine,$(SDK_INCLUDE_DIR)/)

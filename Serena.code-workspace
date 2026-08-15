@@ -3,17 +3,20 @@
 		{
 			"path": "kern"
 		},
-		{
-			"path": "user/lib/libm"
+			{
+			"path": "user/lib/libc"
 		},
 		{
-			"path": "user/lib/libdispatch"
+			"path": "user/lib/libm"
 		},
 		{
 			"path": "user/lib/libclap"
 		},
 		{
-			"path": "user/lib/libc"
+			"path": "user/lib/libdispatch"
+		},
+		{
+			"path": "user/lib/libgd"
 		},
 		{
 			"path": "user/cmd"

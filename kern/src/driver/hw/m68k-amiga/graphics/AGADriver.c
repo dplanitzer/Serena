@@ -57,7 +57,7 @@ void AGADriver_doClose(AGADriverRef _Nonnull _Locked self)
 
 errno_t AGADriver_getDFSInfo(AGADriverRef _Nonnull self, IODFSInfo* _Nonnull info)
 {
-    strcpy(info->name, "fb");
+    strcpy(info->name, "gd0");
     info->func = IOGraphicsHandler_Create;
     info->uid = UID_ROOT;
     info->gid = GID_ROOT;
@@ -181,7 +181,7 @@ errno_t AGADriver_displayMode(AGADriverRef _Nonnull self, const gd_display_mode_
     return err;
 }
 
-errno_t AGADriver_getDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_display_info_ref_t _Nonnull info)
+errno_t AGADriver_getDisplayInfo(AGADriverRef _Nonnull self, int flavor, gd_display_info_ref _Nonnull info)
 {
     gdcLock();
     const errno_t err = gdcGetDisplayInfo(flavor, info);

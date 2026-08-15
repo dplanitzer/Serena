@@ -125,7 +125,7 @@ typedef struct gd_display_params {
 #define GD_DISPLAY_MODE     1
 #define GD_DISPLAY_PARAMS   2
 
-typedef void* gd_display_info_ref_t;
+typedef void* gd_display_info_ref;
 
 
 // gdGetClutInfo()
