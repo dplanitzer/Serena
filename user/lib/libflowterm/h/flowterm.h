@@ -90,6 +90,45 @@ typedef struct ft_event {
 } ft_event_t;
 
 
+// Unicode PUA code points for function keys
+#define FT_CHAR_BACKSPACE       0x08
+#define FT_CHAR_TAB             0x09
+#define FT_CHAR_LF              0x0a
+#define FT_CHAR_CR              0x10
+#define FT_CHAR_ESCAPE          0x1b
+#define FT_CHAR_CURSOR_UP       0xf700
+#define FT_CHAR_CURSOR_DOWN     0xf701
+#define FT_CHAR_CURSOR_LEFT     0xf702
+#define FT_CHAR_CURSOR_RIGHT    0xf703
+#define FT_CHAR_FKEY_F1         0xf704
+#define FT_CHAR_FKEY_F2         0xf705
+#define FT_CHAR_FKEY_F3         0xf706
+#define FT_CHAR_FKEY_F4         0xf707
+#define FT_CHAR_FKEY_F5         0xf708
+#define FT_CHAR_FKEY_F6         0xf709
+#define FT_CHAR_FKEY_F7         0xf70a
+#define FT_CHAR_FKEY_F8         0xf70b
+#define FT_CHAR_FKEY_F9         0xf70c
+#define FT_CHAR_FKEY_F10        0xf70d
+#define FT_CHAR_FKEY_F11        0xf70e
+#define FT_CHAR_FKEY_F12        0xf70f
+#define FT_CHAR_FKEY_F13        0xf710
+#define FT_CHAR_FKEY_F14        0xf711
+#define FT_CHAR_FKEY_F15        0xf712
+#define FT_CHAR_FKEY_F16        0xf713
+#define FT_CHAR_FKEY_F17        0xf714
+#define FT_CHAR_FKEY_F18        0xf715
+#define FT_CHAR_FKEY_F19        0xf716
+#define FT_CHAR_FKEY_F20        0xf717
+#define FT_CHAR_INSERT          0xf727
+#define FT_CHAR_DELETE          0xf728  // Delete Forward
+#define FT_CHAR_HOME            0xf729
+#define FT_CHAR_BEGIN           0xf72a
+#define FT_CHAR_END             0xf72b
+#define FT_CHAR_PAGE_UP         0xf72c
+#define FT_CHAR_PAGE_DOWN       0xf72d
+
+
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
 // streams to change their configuration/state. Call the corresponding flowterm

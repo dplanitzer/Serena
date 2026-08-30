@@ -22,6 +22,9 @@
 			"path": "user/lib/libgd"
 		},
 		{
+			"path": "user/keymap"
+		},
+		{
 			"path": "user/cmd"
 		},
 		{

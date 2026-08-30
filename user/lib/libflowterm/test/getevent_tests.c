@@ -40,7 +40,7 @@ void getevent_test(int argc, char *argv[])
                 }
 
                 const char ch = (isprint(evt.data.character.unicode)) ? evt.data.character.unicode : '!';
-                printf("CHAR: '%c' - %d\n", ch, evt.data.character.unicode);
+                printf("CHAR: '%c' - 0x%x\n", ch, evt.data.character.unicode);
                 break;
             }
 

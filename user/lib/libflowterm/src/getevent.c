@@ -70,10 +70,97 @@ if (__evt) { \
     (__evt)->data.character.unicode = __ch; \
 }
 
-static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi)
+// First character in 'csi' is teh first character after the CSI prefix: '\e['. 
+static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
 {
-    //XXX parse CSI and create a suitable event
-    return NULL;
+#define TILDE_CSI_CODE_TABLE_SIZE   34
+    static const unsigned short g_tilde_csi_code_to_pua_code[TILDE_CSI_CODE_TABLE_SIZE] = {
+        FT_CHAR_HOME,
+        FT_CHAR_INSERT,
+        FT_CHAR_DELETE,
+        0,
+        FT_CHAR_PAGE_UP,
+        FT_CHAR_PAGE_DOWN,
+        0,
+        FT_CHAR_END,
+        0,
+        0,
+        FT_CHAR_FKEY_F1,
+        FT_CHAR_FKEY_F2,
+        FT_CHAR_FKEY_F3,
+        FT_CHAR_FKEY_F4,
+        FT_CHAR_FKEY_F5,
+        0,
+        FT_CHAR_FKEY_F6,
+        FT_CHAR_FKEY_F7,
+        FT_CHAR_FKEY_F8,
+        FT_CHAR_FKEY_F9,
+        FT_CHAR_FKEY_F10,
+        0,
+        FT_CHAR_FKEY_F11,
+        FT_CHAR_FKEY_F12,
+        FT_CHAR_FKEY_F13,
+        FT_CHAR_FKEY_F14,
+        0,
+        FT_CHAR_FKEY_F15,
+        FT_CHAR_FKEY_F16,
+        0,
+        FT_CHAR_FKEY_F17,
+        FT_CHAR_FKEY_F18,
+        FT_CHAR_FKEY_F19,
+        FT_CHAR_FKEY_F20,
+    };
+    int p0;
+
+    if (len == 0) {
+        return NULL;
+    }
+
+    ft_event_t* evt = _acquire_event();
+    if (evt == NULL) {
+        return NULL;
+    }
+
+    switch (csi[len - 1]) {
+        case '~':   // "\e[<INTEGER>~"
+            p0 = atoi(csi);
+            evt->type = FT_EVT_CHAR;
+            if (p0 >= 0 && p0 < TILDE_CSI_CODE_TABLE_SIZE) {
+                evt->data.character.unicode = g_tilde_csi_code_to_pua_code[p0 - 1];
+            }
+            else {
+                evt->data.character.unicode = 0;    //XXX find a better way to handle unknown CSIs here
+            }
+            break;
+
+        case 'A':   // "\e[A"
+            evt->type = FT_EVT_CHAR;
+            evt->data.character.unicode = FT_CHAR_CURSOR_UP;
+            break;
+
+        case 'B':   // "\e[B"
+            evt->type = FT_EVT_CHAR;
+            evt->data.character.unicode = FT_CHAR_CURSOR_DOWN;
+            break;
+
+        case 'D':   // "\e[D"
+            evt->type = FT_EVT_CHAR;
+            evt->data.character.unicode = FT_CHAR_CURSOR_LEFT;
+            break;
+
+        case 'C':   // "\e[C"
+            evt->type = FT_EVT_CHAR;
+            evt->data.character.unicode = FT_CHAR_CURSOR_RIGHT;
+            break;
+
+        default:
+            //XXX handle unknown CSIs better
+            evt->type = FT_EVT_CHAR;
+            evt->data.character.unicode = 0;
+            break;
+    }
+
+    return evt;
 }
 
 #define _append_csi_char(__ch) \
@@ -176,7 +263,7 @@ static int _wait_event(void)
                 if (ch >= '@' && ch <= '~') {
                     g_csi_buffer[g_csi_buffer_index] = '\0';
                     if (!g_csi_overflowed) {
-                        evt = _put_csi_event(g_csi_buffer);
+                        evt = _put_csi_event(g_csi_buffer, g_csi_buffer_index);
                     }
                     g_csi_buffer_index = 0;
                     g_csi_overflowed = false;
