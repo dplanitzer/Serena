@@ -17,22 +17,22 @@
 
 
 // File (descriptor) flags (fd_flags_t)
-#define O_RDONLY    0x0001
-#define O_WRONLY    0x0002
-#define O_RDWR      (O_RDONLY | O_WRONLY)
-#define O_EXCL      0x0004
-#define O_TRUNC     0x0008
-#define O_APPEND    0x0010
-#define O_NONBLOCK  0x0020
-#define O_PRSVEXEC  0x0040
+#define O_RDONLY        0x0001
+#define O_WRONLY        0x0002
+#define O_RDWR          (O_RDONLY | O_WRONLY)
+#define O_EXCL          0x0004
+#define O_TRUNC         0x0008
+#define O_APPEND        0x0010
+#define O_NONBLOCK      0x0020
+#define O_PERSISTEXEC   0x0040
 #if defined(__KERNEL__)
-#define O_EXONLY    0x10000
-#define O_USERSPACE 0x20000
+#define O_EXONLY        0x10000
+#define O_USERSPACE     0x20000
 #endif
 
 // File flags masks
 #define O_ACCMASK   (O_RDONLY | O_WRONLY | O_RDWR)
-#define O_MODMASK   (O_APPEND | O_NONBLOCK | O_PRSVEXEC)
+#define O_MODMASK   (O_APPEND | O_NONBLOCK | O_PERSISTEXEC)
 #if defined(__KERNEL__)
 #define O_USERMASK  (O_ACCMASK | O_MODMASK | O_EXCL | O_TRUNC)
 #endif

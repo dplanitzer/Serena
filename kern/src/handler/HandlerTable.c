@@ -265,7 +265,7 @@ void HandlerTable_CloseHandlersOnExec(HandlerTable* _Nonnull self)
     while (fd >= 0) {
         HandlerRef hnd = self->table[fd];
 
-        if (hnd && (Handler_GetFlags(hnd) & O_PRSVEXEC) == 0) {
+        if (hnd && (Handler_GetFlags(hnd) & O_PERSISTEXEC) == 0) {
             Object_Release(hnd);
             self->table[fd] = NULL;
         }

@@ -1,0 +1,48 @@
+# --------------------------------------------------------------------------
+# Build variables
+#
+
+LIBFLOWTERM_SOURCES_DIR := $(LIBFLOWTERM_PROJECT_DIR)/src
+LIBFLOWTERM_OBJS_DIR := $(LIB_OBJS_DIR)/LIBFLOWTERM
+
+LIBFLOWTERM_C_SOURCES := $(wildcard $(LIBFLOWTERM_SOURCES_DIR)/*.c)
+
+LIBFLOWTERM_OBJS := $(patsubst $(LIBFLOWTERM_SOURCES_DIR)/%.c, $(LIBFLOWTERM_OBJS_DIR)/%.o, $(LIBFLOWTERM_C_SOURCES))
+LIBFLOWTERM_DEPS := $(LIBFLOWTERM_OBJS:.o=.d)
+
+LIBFLOWTERM_C_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBFLOWTERM_HEADERS_DIR) -I$(LIBFLOWTERM_SOURCES_DIR)
+
+#LIBFLOWTERM_GENERATE_DEPS = -deps -depfile=$(patsubst $(LIBFLOWTERM_OBJS_DIR)/%.o,$(LIBFLOWTERM_OBJS_DIR)/%.d,$@)
+LIBFLOWTERM_GENERATE_DEPS := 
+LIBFLOWTERM_CC_DONTWARN :=
+
+
+# --------------------------------------------------------------------------
+# Build rules
+#
+
+.PHONY: clean-libflowterm $(LIBFLOWTERM_OBJS_DIR)
+
+
+build-libflowterm: $(LIBFLOWTERM_FILE)
+
+$(LIBFLOWTERM_OBJS): | $(LIBFLOWTERM_OBJS_DIR) $(PRODUCT_LIB_DIR)
+
+$(LIBFLOWTERM_OBJS_DIR):
+	$(call mkdir_if_needed,$(LIBFLOWTERM_OBJS_DIR))
+
+
+$(LIBFLOWTERM_FILE): $(LIBFLOWTERM_OBJS)
+	@echo Making libflowterm.a
+	$(LIBTOOL) create $@ $^
+
+
+-include $(LIBFLOWTERM_DEPS)
+
+$(LIBFLOWTERM_OBJS_DIR)/%.o : $(LIBFLOWTERM_SOURCES_DIR)/%.c
+	@echo $<
+	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(LIBFLOWTERM_C_INCLUDES) $(LIBFLOWTERM_CC_DONTWARN) $(LIBFLOWTERM_GENERATE_DEPS) -o $@ $<
+
+
+clean-libflowterm:
+	$(call rm_if_exists,$(LIBFLOWTERM_OBJS_DIR))

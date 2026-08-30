@@ -91,6 +91,11 @@ LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/h
 LIBDISPATCH_FILE := $(PRODUCT_LIB_DIR)/libdispatch.a
 
 
+LIBFLOWTERM_PROJECT_DIR := $(LIB_DIR)/libflowterm
+LIBFLOWTERM_HEADERS_DIR := $(LIBFLOWTERM_PROJECT_DIR)/h
+LIBFLOWTERM_FILE := $(PRODUCT_LIB_DIR)/libflowterm.a
+
+
 LIBGD_PROJECT_DIR := $(LIB_DIR)/libgd
 LIBGD_HEADERS_DIR := $(LIBGD_PROJECT_DIR)/h
 LIBGD_FILE := $(PRODUCT_LIB_DIR)/libgd.a
@@ -147,6 +152,9 @@ C_TEST_FILE := $(PRODUCT_DEMO_DIR)/ctest
 
 DQ_TEST_PROJECT_DIR := $(LIBDISPATCH_PROJECT_DIR)/test
 DQ_TEST_FILE := $(PRODUCT_DEMO_DIR)/dqtest
+
+FLOWTERM_TEST_PROJECT_DIR := $(LIBFLOWTERM_PROJECT_DIR)/test
+FLOWTERM_TEST_FILE := $(PRODUCT_DEMO_DIR)/flowterm_test
 
 
 # --------------------------------------------------------------------------
@@ -246,6 +254,7 @@ include $(LIBC_PROJECT_DIR)/project.mk
 include $(LIBM_PROJECT_DIR)/project.mk
 include $(LIBCLAP_PROJECT_DIR)/project.mk
 include $(LIBDISPATCH_PROJECT_DIR)/project.mk
+include $(LIBFLOWTERM_PROJECT_DIR)/project.mk
 include $(LIBGD_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk
@@ -260,10 +269,11 @@ include $(HELLODISPATCH_PROJECT_DIR)/project.mk
 include $(SNAKE_PROJECT_DIR)/project.mk
 include $(C_TEST_PROJECT_DIR)/project.mk
 include $(DQ_TEST_PROJECT_DIR)/project.mk
+include $(FLOWTERM_TEST_PROJECT_DIR)/project.mk
 
 
 build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE) \
-				$(LIBGD_FILE)
+				$(LIBFLOWTERM_FILE) $(LIBGD_FILE)
 
 build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) $(LIST_FILE) \
@@ -271,7 +281,7 @@ build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE)
 
 build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(C_TEST_FILE) \
-				 $(DQ_TEST_FILE)
+				 $(DQ_TEST_FILE) $(FLOWTERM_TEST_FILE)
 
 $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	@echo Making boot_disk.adf
@@ -303,6 +313,7 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(C_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DQ_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(FLOWTERM_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/admin/ $(BOOT_DMG_FILE)
@@ -338,6 +349,7 @@ build-sdk: build-all-libs
 	$(call copy_contents_of_dir,$(LIBC_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBCLAP_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBDISPATCH_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy_contents_of_dir,$(LIBFLOWTERM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBGD_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/kpi,$(SDK_INCLUDE_DIR)/)

@@ -76,13 +76,14 @@ extern int fd_type(int fd);
 
 
 // Returns a copy of the descriptor flags. -1 is returned ane errno is set to a
-// suitable error if teh descriptor is not valid.
+// suitable error if the descriptor is not valid.
 // @Concurrency: Safe
 extern fd_flags_t fd_flags(int fd);
 
 // Updates the descriptor flags by combining the current descriptor flags with
-// the new flags 'flags' based o the combination operation 'op'. Note that only
-// the O_MODMASK subset of the descriptor flags can be changed.
+// the new flags 'flags' based o the combination operation 'op'. Note that this
+// function only updates flags which are in the O_MODMASK subset. All other flags
+// are silently ignored.
 // @Concurrency: Safe
 extern int fd_setflags(int fd, int op, fd_flags_t flags);
 

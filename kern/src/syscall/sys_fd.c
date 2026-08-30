@@ -79,7 +79,7 @@ SYSCALL_2(fd_flags, int fd, fd_flags_t* _Nonnull pOutFlags)
     HandlerRef hnd;
 
     if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
-        *(pa->pOutFlags) = Handler_GetFlags(hnd);
+        *(pa->pOutFlags) = Handler_GetFlags(hnd) & O_USERMASK;
         Object_Release(hnd);
     }
     return err;
@@ -92,7 +92,7 @@ SYSCALL_3(fd_setflags, int fd, int op, fd_flags_t flags)
     HandlerRef hnd;
 
     if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
-        err = Handler_SetFlags(hnd, pa->op, pa->flags);
+        err = Handler_SetFlags(hnd, pa->op, pa->flags & O_USERMASK);
         Object_Release(hnd);
     }
     return err;

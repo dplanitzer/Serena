@@ -29,22 +29,27 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, fd_flags_t oflags, Hand
 
 errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
 {
-    if ((flags & ~O_MODMASK) != 0) {
-        return EINVAL;
-    }
+    const int mod_flags = flags & O_MODMASK;
 
     switch (op) {
         case FD_FOP_ADD:
-            atomic_int_fetch_or(&self->flags, flags);
+            atomic_int_fetch_or(&self->flags, mod_flags);
             break;
 
         case FD_FOP_REMOVE:
-            atomic_int_fetch_and(&self->flags, ~flags);
+            atomic_int_fetch_and(&self->flags, ~mod_flags);
             break;
 
-        case FD_FOP_REPLACE:
-            atomic_int_store(&self->flags, flags);
+        case FD_FOP_REPLACE: {
+            // We have to get all flags. Keep in mind that all flags outside the
+            // O_MODMASK are constant/read only. So overall the operation here
+            // is atomic although we do a separate read and write.
+            const int all_flags = atomic_int_load(&self->flags);
+            const int new_flags = (all_flags & ~O_MODMASK) | mod_flags;
+
+            atomic_int_store(&self->flags, new_flags);
             break;
+        }
 
         default:
             return EINVAL;

@@ -55,7 +55,7 @@ extern errno_t HandlerTable_CloseHandler(HandlerTable* _Nonnull self, int fd);
 // Close all handlers.
 extern void HandlerTable_CloseAll(HandlerTable* _Nonnull self);
 
-// Closes all handlers that don't have the O_PRSVEXEC flag set.
+// Closes all handlers that don't have the O_PERSISTEXEC flag set.
 extern void HandlerTable_CloseHandlersOnExec(HandlerTable* _Nonnull self);
 
 #endif /* HandlerTable_h */

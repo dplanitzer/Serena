@@ -16,6 +16,9 @@
 			"path": "user/lib/libdispatch"
 		},
 		{
+			"path": "user/lib/libflowterm"
+		},
+		{
 			"path": "user/lib/libgd"
 		},
 		{
