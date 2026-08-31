@@ -140,7 +140,6 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
     evt->type = FT_EVT_CHAR;
     evt->data.character.unicode = 0;
 
-
     switch (csi[0]) {
         case 'A':   // "\e[A"
             evt->type = FT_EVT_CHAR;
@@ -208,9 +207,9 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
                     break;
 
                 case 'R':   // "\e[row ; col R"     Cursor Position
-                    evt->type = FT_EVT_CURSOR_POSITION;
+                    evt->type = _FT_EVT_CURSOR_POSITION;
                     if (_parse_csi_params(csi, 2, p)) {
-                        evt->data.cursor.x = p[0];
+                        evt->data.cursor.y = p[0];
                         evt->data.cursor.x = p[1];
                     }
                     break;

@@ -16,7 +16,6 @@ void getevent_test(int argc, char *argv[])
 {
     bool done = false;
 
-    ft_init();
     printf("Exit with 'q'\n\n");
 
     while (!done) {
@@ -60,15 +59,9 @@ void getevent_test(int argc, char *argv[])
                 printf("MOUSE MOVE: (%d, %d), b:%d, m:0x%x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.button_number, evt.data.mouse.modifiers);
                 break;
 
-            case FT_EVT_CURSOR_POSITION:
-                printf("CURSOR: (%d, %d)\n", evt.data.cursor.x, evt.data.cursor.y);
-                break;
-
             default:
                 printf("UNKNOWN: %d\n", evt.type);
                 break;
         }
     }
-
-    ft_cleanup();
 }

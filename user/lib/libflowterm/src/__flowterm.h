@@ -12,6 +12,11 @@
 #include <flowterm.h>
 #include <errno.h>
 
+#define _FT_EVT_CURSOR_POSITION  15
+
+#define _FT_MSK_CURSOR_POSITION  (1u << (unsigned int)_FT_EVT_CURSOR_POSITION)
+
+
 extern int              __ft_termin_fd;
 extern FILE* _Nonnull   __ft_termout_fp;
 

@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
+#include <flowterm.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,6 +16,8 @@
 #include <serena/clock.h>
 
 
+
+extern void curpos_test(int argc, char *argv[]);
 
 extern void getevent_test(int argc, char *argv[]);
 
@@ -28,6 +31,7 @@ typedef struct test {
 
 
 static const test_t gTests[] = {
+    {"curpos", curpos_test},
     {"getevents", getevent_test},
 
     {"", NULL}
@@ -66,7 +70,10 @@ int main(int argc, char *argv[])
 
     if (testToRun) {
         printf("Running Test: %s\n", name);
+
+        ft_init();
         testToRun->func(argc, argv);
+        ft_cleanup();
 
         puts("ok");
         exit(0);

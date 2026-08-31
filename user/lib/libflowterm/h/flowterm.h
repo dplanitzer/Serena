@@ -28,7 +28,6 @@ extern void ft_cleanup(void);
 #define FT_EVT_MOUSE_DRAG       4
 #define FT_EVT_MOUSE_MOVE       5
 #define FT_EVT_MOUSE_WHEEL      6
-#define FT_EVT_CURSOR_POSITION  7
 
 // Event masks
 #define FT_MSK_NULL             (1u << (unsigned int)FT_EVT_NULL)
@@ -37,7 +36,6 @@ extern void ft_cleanup(void);
 #define FT_MSK_MOUSE_DOWN       (1u << (unsigned int)FT_EVT_MOUSE_DOWN)
 #define FT_MSK_MOUSE_DRAG       (1u << (unsigned int)FT_EVT_MOUSE_DRAG)
 #define FT_MSK_MOUSE_MOVE       (1u << (unsigned int)FT_EVT_MOUSE_MOVE)
-#define FT_MSK_CURSOR_POSITION  (1u << (unsigned int)FT_EVT_CURSOR_POSITION)
 
 #define FT_ANY_CHAR             (FT_MSK_CHAR)
 #define FT_ANY_MOUSE            (FT_MSK_MOUSE_UP | FT_MSK_MOUSE_DOWN | FT_MSK_MOUSE_DRAG | FT_MSK_MOUSE_MOVE)
@@ -156,5 +154,9 @@ extern int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnu
 // this mouse event is internally discarded and ft_getchar() continues to wait
 // until a character event becomes available.
 extern int ft_getchar(unsigned int flags);
+
+
+// Returns the current cursor position.
+extern void ft_curpos(int* _Nonnull x, int* _Nonnull y);
 
 #endif /* _FLOWTERM_H */

@@ -29,6 +29,7 @@ unsigned int ft_mousecntl(unsigned int mask)
     }
 
     fputs(esc_seq, __ft_termout_fp);
+    fflush(__ft_termout_fp);
 
     return old_mask;
 }
