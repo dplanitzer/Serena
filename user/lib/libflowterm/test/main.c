@@ -18,6 +18,7 @@
 
 
 extern void curpos_test(int argc, char *argv[]);
+extern void screensize_test(int argc, char *argv[]);
 
 extern void getevent_test(int argc, char *argv[]);
 
@@ -33,6 +34,7 @@ typedef struct test {
 static const test_t gTests[] = {
     {"curpos", curpos_test},
     {"getevents", getevent_test},
+    {"screensize", screensize_test},
 
     {"", NULL}
 };

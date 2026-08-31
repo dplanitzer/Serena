@@ -139,6 +139,11 @@ typedef struct ft_event {
 // streams to change their configuration/state. Call the corresponding flowterm
 // functions instead so that flowterm can manage configuration and state changes
 // correctly.
+//
+// Concurrency: please note that flowterm assumes that all code that wants to
+// receive events or that uses any of the output related functions run on the
+// same vcpu.
+
 
 extern FILE* _Nonnull ft_termin(FILE* _Nonnull stream);
 extern FILE* _Nonnull ft_termout(FILE* _Nonnull stream);
@@ -158,5 +163,8 @@ extern int ft_getchar(unsigned int flags);
 
 // Returns the current cursor position.
 extern void ft_curpos(int* _Nonnull x, int* _Nonnull y);
+
+// Returns the size of the terminal screen.
+extern void ft_screensize(int* _Nonnull width, int* _Nonnull height);
 
 #endif /* _FLOWTERM_H */

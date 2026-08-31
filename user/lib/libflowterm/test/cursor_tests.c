@@ -18,3 +18,11 @@ void curpos_test(int argc, char *argv[])
     ft_curpos(&x, &y);
     printf("x: %d, y: %d\n", x, y);
 }
+
+void screensize_test(int argc, char *argv[])
+{
+    int w, h;
+
+    ft_screensize(&w, &h);
+    printf("w: %d, h: %d\n", w, h);
+}
