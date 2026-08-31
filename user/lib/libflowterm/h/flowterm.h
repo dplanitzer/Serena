@@ -23,23 +23,24 @@ extern void ft_cleanup(void);
 // Event types
 #define FT_EVT_NULL             0
 #define FT_EVT_CHAR             1
-#define FT_EVT_MOUSE_DOWN       2
-#define FT_EVT_MOUSE_UP         3
-#define FT_EVT_SCROLL_WHEEL     4
-#define FT_EVT_CURSOR_POSITION  5
-#define FT_EVT_SCREEN_SIZE      6
+#define FT_EVT_MOUSE_UP         2
+#define FT_EVT_MOUSE_DOWN       3
+#define FT_EVT_MOUSE_DRAG       4
+#define FT_EVT_MOUSE_MOVE       5
+#define FT_EVT_MOUSE_WHEEL      6
+#define FT_EVT_CURSOR_POSITION  7
 
 // Event masks
 #define FT_MSK_NULL             (1u << (unsigned int)FT_EVT_NULL)
 #define FT_MSK_CHAR             (1u << (unsigned int)FT_EVT_CHAR)
-#define FT_MSK_MOUSE_DOWN       (1u << (unsigned int)FT_EVT_MOUSE_DOWN)
 #define FT_MSK_MOUSE_UP         (1u << (unsigned int)FT_EVT_MOUSE_UP)
-#define FT_MSK_SCROLL_WHEEL     (1u << (unsigned int)FT_EVT_SCROLL_WHEEL)
+#define FT_MSK_MOUSE_DOWN       (1u << (unsigned int)FT_EVT_MOUSE_DOWN)
+#define FT_MSK_MOUSE_DRAG       (1u << (unsigned int)FT_EVT_MOUSE_DRAG)
+#define FT_MSK_MOUSE_MOVE       (1u << (unsigned int)FT_EVT_MOUSE_MOVE)
 #define FT_MSK_CURSOR_POSITION  (1u << (unsigned int)FT_EVT_CURSOR_POSITION)
-#define FT_MSK_SCREEN_SIZE      (1u << (unsigned int)FT_EVT_SCREEN_SIZE)
 
 #define FT_ANY_CHAR             (FT_MSK_CHAR)
-#define FT_ANY_MOUSE            (FT_MSK_MOUSE_DOWN | FT_MSK_MOUSE_UP | FT_MSK_SCROLL_WHEEL)
+#define FT_ANY_MOUSE            (FT_MSK_MOUSE_UP | FT_MSK_MOUSE_DOWN | FT_MSK_MOUSE_DRAG | FT_MSK_MOUSE_MOVE)
 #define FT_ANY                  (FT_MSK_NULL | FT_ANY_CHAR | FT_ANY_MOUSE)
 
 
@@ -60,12 +61,8 @@ struct ft_char_data {
 struct ft_mouse_data {
     int	x;
 	int	y;
-	unsigned int buttons;
-};
-
-struct ft_scroll_wheel_data {
-    int	dx;
-	int	dy;
+	int button_number;
+    int modifiers;
 };
 
 struct ft_cursor_data {
@@ -73,21 +70,31 @@ struct ft_cursor_data {
 	int	y;
 };
 
-struct ft_screen_data {
-    int	x;
-	int	y;
-};
-
 typedef struct ft_event {
     int  type;
 	union {
-        struct ft_char_data			    character;
-        struct ft_mouse_data			mouse;
-        struct ft_scroll_wheel_data	    scroll_wheel;
-        struct ft_cursor_data			cursor;
-        struct ft_screen_data			screen;
+        struct ft_char_data		character;
+        struct ft_mouse_data	mouse;
+        struct ft_cursor_data   cursor;
 	}   data;
 } ft_event_t;
+
+
+// Mouse button numbers
+#define FT_MOUSE_BUTTON_LEFT    0
+#define FT_MOUSE_BUTTON_MIDDLE  1
+#define FT_MOUSE_BUTTON_RIGHT   2
+#define FT_MOUSE_WHEEL_UP       64
+#define FT_MOUSE_WHEEL_DOWN     65
+#define FT_MOUSE_WHEEL_LEFT     66
+#define FT_MOUSE_WHEEL_RIGHT    67
+
+
+// Mouse modifier flags
+#define FT_MODIFIER_SHIFT   4
+#define FT_MODIFIER_ALT     8
+#define FT_MODIFIER_CTRL    16
+#define FT_MODIFIER_MASK    (FT_MODIFIER_SHIFT | FT_MODIFIER_ALT | FT_MODIFIER_CTRL)
 
 
 // Unicode PUA code points for function keys

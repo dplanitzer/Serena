@@ -44,24 +44,24 @@ void getevent_test(int argc, char *argv[])
                 break;
             }
 
-            case FT_EVT_MOUSE_DOWN:
-                printf("MOUSE DOWN: (%d, %d) - %x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.buttons);
-                break;
-
             case FT_EVT_MOUSE_UP:
-                printf("MOUSE DOWN: (%d, %d) - %x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.buttons);
+                printf("MOUSE UP: (%d, %d), b:%d, m:0x%x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.button_number, evt.data.mouse.modifiers);
                 break;
 
-            case FT_EVT_SCROLL_WHEEL:
-                printf("SCROLL WHEEL: (%d, %d)\n", evt.data.scroll_wheel.dx, evt.data.scroll_wheel.dy);
+            case FT_EVT_MOUSE_DOWN:
+                printf("MOUSE DOWN: (%d, %d), b:%d, m:0x%x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.button_number, evt.data.mouse.modifiers);
+                break;
+
+            case FT_EVT_MOUSE_DRAG:
+                printf("MOUSE DRAG: (%d, %d), b:%d, m:0x%x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.button_number, evt.data.mouse.modifiers);
+                break;
+
+            case FT_EVT_MOUSE_MOVE:
+                printf("MOUSE MOVE: (%d, %d), b:%d, m:0x%x\n", evt.data.mouse.x, evt.data.mouse.y, evt.data.mouse.button_number, evt.data.mouse.modifiers);
                 break;
 
             case FT_EVT_CURSOR_POSITION:
                 printf("CURSOR: (%d, %d)\n", evt.data.cursor.x, evt.data.cursor.y);
-                break;
-
-            case FT_EVT_SCREEN_SIZE:
-                printf("SCREEN: %d, %d\n", evt.data.screen.x, evt.data.screen.y);
                 break;
 
             default:

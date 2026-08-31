@@ -70,6 +70,21 @@ if (__evt) { \
     (__evt)->data.character.unicode = __ch; \
 }
 
+static bool _parse_csi_params(const char* _Nonnull csi, int paramsCount, int* _Nonnull params)
+{
+    char* ep = NULL;
+
+    for (int i = 0; i < paramsCount; i++) {
+        params[i] = (int)strtol(csi, &ep, 10);
+        if ((paramsCount > 1) && (i < (paramsCount - 1)) && (*ep != ';')) {
+            return false;
+        }
+        csi = (const char*)(ep + 1);
+    }
+
+    return true;
+}
+
 // First character in 'csi' is teh first character after the CSI prefix: '\e['. 
 static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
 {
@@ -110,7 +125,7 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
         FT_CHAR_FKEY_F19,
         FT_CHAR_FKEY_F20,
     };
-    int p0;
+    int p[3];
 
     if (len == 0) {
         return NULL;
@@ -120,19 +135,13 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
     if (evt == NULL) {
         return NULL;
     }
+    //XXX We mark the CSI event as invalid/broken CSI by default. Find a better
+    //XXX way to handle these kind of situations 
+    evt->type = FT_EVT_CHAR;
+    evt->data.character.unicode = 0;
 
-    switch (csi[len - 1]) {
-        case '~':   // "\e[<INTEGER>~"
-            p0 = atoi(csi);
-            evt->type = FT_EVT_CHAR;
-            if (p0 >= 0 && p0 < TILDE_CSI_CODE_TABLE_SIZE) {
-                evt->data.character.unicode = g_tilde_csi_code_to_pua_code[p0 - 1];
-            }
-            else {
-                evt->data.character.unicode = 0;    //XXX find a better way to handle unknown CSIs here
-            }
-            break;
 
+    switch (csi[0]) {
         case 'A':   // "\e[A"
             evt->type = FT_EVT_CHAR;
             evt->data.character.unicode = FT_CHAR_CURSOR_UP;
@@ -153,10 +162,59 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
             evt->data.character.unicode = FT_CHAR_CURSOR_RIGHT;
             break;
 
-        default:
-            //XXX handle unknown CSIs better
-            evt->type = FT_EVT_CHAR;
-            evt->data.character.unicode = 0;
+        case 'M':   // "\e [ M Cb Cx Cy"        Legacy Mouse Event
+            if (len == 4) {
+                evt->type = FT_EVT_MOUSE_DOWN;
+                evt->data.mouse.modifiers = 0;
+                evt->data.mouse.button_number = csi[1] - 32;
+                evt->data.mouse.x = csi[2] - 32;
+                evt->data.mouse.y = csi[3] - 32;
+            }
+            break;
+
+        case '<':   // "\e [ < Cb ; Cx ; Cy (M|m)"  SGR Mouse Event
+            if (_parse_csi_params(csi + 1, 3, p)) {
+                const bool isButtonPressed = (csi[len - 1] == 'M');
+                const bool hasMotion = (p[0] & 32);
+
+                if (hasMotion) {
+                    evt->type = (isButtonPressed) ? FT_EVT_MOUSE_DRAG : FT_EVT_MOUSE_MOVE;
+                } else {
+                    evt->type = (isButtonPressed) ? FT_EVT_MOUSE_DOWN : FT_EVT_MOUSE_UP;
+                }
+                evt->data.mouse.modifiers = p[0] & FT_MODIFIER_MASK;
+                evt->data.mouse.button_number = p[0] & ~FT_MODIFIER_MASK;
+                evt->data.mouse.x = p[1];
+                evt->data.mouse.y = p[2];
+            }
+            break;
+
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            switch (csi[len - 1]) {
+                case '~':   // "\e[ INTEGER ~"
+                    evt->type = FT_EVT_CHAR;
+                    if (_parse_csi_params(csi, 1, p) && p[0] >= 0 && p[0] < TILDE_CSI_CODE_TABLE_SIZE) {
+                        evt->data.character.unicode = g_tilde_csi_code_to_pua_code[p[0] - 1];
+                    }
+                    break;
+
+                case 'R':   // "\e[row ; col R"     Cursor Position
+                    evt->type = FT_EVT_CURSOR_POSITION;
+                    if (_parse_csi_params(csi, 2, p)) {
+                        evt->data.cursor.x = p[0];
+                        evt->data.cursor.x = p[1];
+                    }
+                    break;
+            }
             break;
     }
 
