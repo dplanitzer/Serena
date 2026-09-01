@@ -209,10 +209,7 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
 
                 case 'R':   // "\e[row ; col R"     Cursor Position
                     evt->type = _FT_EVT_CURSOR_POSITION;
-                    if (_parse_csi_params(csi, 2, p)) {
-                        evt->data.cursor.y = p[0];
-                        evt->data.cursor.x = p[1];
-                    }
+                    _parse_csi_params(csi, 2, &evt->data.report.param[0]);
                     break;
 
                 default:
@@ -228,7 +225,7 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
 
 
     if (doGenericReport) {
-        _parse_csi_params(csi, FT_MAX_REPORT_PARAMS, &evt->data.report.params[0]);
+        _parse_csi_params(csi, FT_MAX_REPORT_PARAMS, &evt->data.report.param[0]);
         evt->data.report.first_char = csi[0];
         evt->data.report.last_char = csi[len - 1];
     }

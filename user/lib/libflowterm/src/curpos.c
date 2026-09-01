@@ -17,8 +17,8 @@ void ft_curpos(int* _Nonnull x, int* _Nonnull y)
     fflush(__ft_termout_fp);
     
     if (ft_getevent(_FT_MSK_CURSOR_POSITION, 0, &evt) == 0) {
-        *x = evt.data.cursor.x;
-        *y = evt.data.cursor.y;
+        *x = evt.data.report.param[1];
+        *y = evt.data.report.param[0];
     }
     else {
         *x = 1;

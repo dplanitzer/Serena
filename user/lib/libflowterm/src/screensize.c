@@ -18,8 +18,8 @@ void ft_screensize(int* _Nonnull width, int* _Nonnull height)
     fflush(__ft_termout_fp);
     
     if (ft_getevent(_FT_MSK_CURSOR_POSITION, 0, &evt) == 0) {
-        *width = evt.data.cursor.x;
-        *height = evt.data.cursor.y;
+        *width = evt.data.report.param[1];
+        *height = evt.data.report.param[0];
     }
     else {
         *width = 40;

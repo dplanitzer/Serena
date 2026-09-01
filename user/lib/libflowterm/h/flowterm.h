@@ -76,12 +76,7 @@ struct ft_mouse_data {
 struct ft_report_data {
     char            first_char;
     char            last_char;
-    unsigned short  params[FT_MAX_REPORT_PARAMS];
-};
-
-struct ft_cursor_data {
-    int	x;
-	int	y;
+    unsigned short  param[FT_MAX_REPORT_PARAMS];
 };
 
 typedef struct ft_event {
@@ -90,7 +85,6 @@ typedef struct ft_event {
         struct ft_char_data		character;
         struct ft_mouse_data	mouse;
         struct ft_report_data   report;
-        struct ft_cursor_data   cursor;
 	}   data;
 } ft_event_t;
 
