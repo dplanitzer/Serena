@@ -11,15 +11,6 @@
 
 #include <stdio.h>
 
-// Initializes flowterm. Call this function before you call any other flowterm
-// function.
-extern int ft_init(void);
-
-// Frees all resources used by flowterm and resets the terminal back to its
-// default configuration. Call this function before exiting your app.
-extern void ft_cleanup(void);
-
-
 // Event types
 #define FT_EVT_NULL             0
 #define FT_EVT_CHAR             1
@@ -145,6 +136,10 @@ typedef struct ft_event {
 #define FT_CHAR_PAGE_DOWN       0xf72d
 
 
+// Terminal status codes
+#define FT_OK   0
+
+
 //
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
@@ -163,6 +158,15 @@ typedef struct ft_event {
 //
 
 
+// Initializes flowterm. Call this function before you call any other flowterm
+// function.
+extern int ft_init(void);
+
+// Frees all resources used by flowterm and resets the terminal back to its
+// default configuration. Call this function before exiting your app.
+extern void ft_cleanup(void);
+
+
 // Set the terminal input to 'stream'. The default terminal input stream is stdin.
 // Note that the provided stream has to be backed by a file descriptor.
 extern FILE* _Nonnull ft_termin(FILE* _Nonnull stream);
@@ -176,6 +180,14 @@ extern void ft_drain(void);
 
 // Flush all buffered output to the terminal.
 extern void ft_flush(void);
+
+
+// Returns the status of the terminal. FT_OK is returned if the connection to
+// the terminal works and there is actually a terminal on the other side.
+// Otherwise a suitable code is returned. A code < 0 indicates a connection
+// problem (see errno for more detailed error info) and a code > FT_OK indicates
+// a problem with the terminal itself.
+extern int ft_status(void);
 
 
 extern unsigned int ft_mousecntl(unsigned int mask);

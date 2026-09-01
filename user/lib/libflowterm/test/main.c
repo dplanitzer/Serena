@@ -19,6 +19,7 @@
 
 extern void curpos_test(int argc, char *argv[]);
 extern void screensize_test(int argc, char *argv[]);
+extern void status_test(int argc, char *argv[]);
 
 extern void getevent_test(int argc, char *argv[]);
 
@@ -35,6 +36,7 @@ static const test_t gTests[] = {
     {"curpos", curpos_test},
     {"getevent", getevent_test},
     {"screensize", screensize_test},
+    {"status", status_test},
 
     {"", NULL}
 };

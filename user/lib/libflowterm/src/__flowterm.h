@@ -12,9 +12,15 @@
 #include <flowterm.h>
 #include <errno.h>
 
-#define _FT_EVT_CURSOR_POSITION  15
+// ft_getevent() generates these special event codes for well-known terminal
+// reports that are handled by flowterm internally. All other terminal reports
+// are mapped to the generic FT_EVT_REPORT event type and are made visible to
+// the app.
+#define _FT_EVT_CURSOR_POSITION 15
+#define _FT_EVT_STATUS          16
 
-#define _FT_MSK_CURSOR_POSITION  (1u << (unsigned int)_FT_EVT_CURSOR_POSITION)
+#define _FT_MSK_CURSOR_POSITION (1u << (unsigned int)_FT_EVT_CURSOR_POSITION)
+#define _FT_MSK_STATUS          (1u << (unsigned int)_FT_EVT_STATUS)
 
 
 extern int              __ft_termin_fd;

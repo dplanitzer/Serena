@@ -1,5 +1,5 @@
 //
-//  cursor_tests.c
+//  query_tests.c
 //  libflowterm Tests
 //
 //  Created by Dietmar Planitzer on 8/30/26.
@@ -25,4 +25,11 @@ void screensize_test(int argc, char *argv[])
 
     ft_screensize(&w, &h);
     printf("w: %d, h: %d\n", w, h);
+}
+
+// Expected: 0, 0
+void status_test(int argc, char *argv[])
+{
+    errno = 0;
+    printf("status: %d, errno: %d\n", ft_status(), errno);
 }

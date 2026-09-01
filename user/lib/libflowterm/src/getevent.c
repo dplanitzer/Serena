@@ -212,6 +212,11 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
                     _parse_csi_params(csi, 2, &evt->data.report.param[0]);
                     break;
 
+                case 'n':   // "\e[0n", "\e[3n"
+                    evt->type = _FT_EVT_STATUS;
+                    _parse_csi_params(csi, 1, &evt->data.report.param[0]);
+                    break;
+
                 default:
                     doGenericReport = true;
                     break;
