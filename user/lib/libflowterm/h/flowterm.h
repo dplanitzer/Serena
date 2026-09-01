@@ -28,6 +28,9 @@ extern void ft_cleanup(void);
 #define FT_EVT_MOUSE_DRAG       4
 #define FT_EVT_MOUSE_MOVE       5
 #define FT_EVT_MOUSE_WHEEL      6
+#define FT_EVT_REPORT           7
+#define FT_EVT_INVALID_REPORT   8
+
 
 // Event masks
 #define FT_MSK_NULL             (1u << (unsigned int)FT_EVT_NULL)
@@ -36,10 +39,17 @@ extern void ft_cleanup(void);
 #define FT_MSK_MOUSE_DOWN       (1u << (unsigned int)FT_EVT_MOUSE_DOWN)
 #define FT_MSK_MOUSE_DRAG       (1u << (unsigned int)FT_EVT_MOUSE_DRAG)
 #define FT_MSK_MOUSE_MOVE       (1u << (unsigned int)FT_EVT_MOUSE_MOVE)
+#define FT_MSK_REPORT           (1u << (unsigned int)FT_EVT_REPORT)
+#define FT_MSK_INVALID_REPORT   (1u << (unsigned int)FT_EVT_INVALID_REPORT)
 
 #define FT_ANY_CHAR             (FT_MSK_CHAR)
 #define FT_ANY_MOUSE            (FT_MSK_MOUSE_UP | FT_MSK_MOUSE_DOWN | FT_MSK_MOUSE_DRAG | FT_MSK_MOUSE_MOVE)
-#define FT_ANY                  (FT_MSK_NULL | FT_ANY_CHAR | FT_ANY_MOUSE)
+#define FT_ANY_REPORT           (FT_MSK_REPORT | FT_MSK_INVALID_REPORT)
+#define FT_ANY                  (FT_MSK_NULL | FT_ANY_CHAR | FT_ANY_MOUSE | FT_ANY_REPORT)
+
+
+// Max parameters for a terminal report event
+#define FT_MAX_REPORT_PARAMS    8
 
 
 // ft_getevent() / ft_getchar() flags
@@ -63,6 +73,12 @@ struct ft_mouse_data {
     int modifiers;
 };
 
+struct ft_report_data {
+    char            first_char;
+    char            last_char;
+    unsigned short  params[FT_MAX_REPORT_PARAMS];
+};
+
 struct ft_cursor_data {
     int	x;
 	int	y;
@@ -73,6 +89,7 @@ typedef struct ft_event {
 	union {
         struct ft_char_data		character;
         struct ft_mouse_data	mouse;
+        struct ft_report_data   report;
         struct ft_cursor_data   cursor;
 	}   data;
 } ft_event_t;

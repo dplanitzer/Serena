@@ -33,7 +33,7 @@ typedef struct test {
 
 static const test_t gTests[] = {
     {"curpos", curpos_test},
-    {"getevents", getevent_test},
+    {"getevent", getevent_test},
     {"screensize", screensize_test},
 
     {"", NULL}

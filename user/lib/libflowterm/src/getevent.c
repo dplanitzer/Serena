@@ -9,6 +9,7 @@
 #include "__flowterm.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <ext/math.h>
 #include <ext/queue.h>
 #include <serena/fd.h>
 
@@ -70,12 +71,12 @@ if (__evt) { \
     (__evt)->data.character.unicode = __ch; \
 }
 
-static bool _parse_csi_params(const char* _Nonnull csi, int paramsCount, int* _Nonnull params)
+static bool _parse_csi_params(const char* _Nonnull csi, int paramsCount, unsigned short* _Nonnull params)
 {
     char* ep = NULL;
 
     for (int i = 0; i < paramsCount; i++) {
-        params[i] = (int)strtol(csi, &ep, 10);
+        params[i] = (unsigned short)strtol(csi, &ep, 10);
         if ((paramsCount > 1) && (i < (paramsCount - 1)) && (*ep != ';')) {
             return false;
         }
@@ -125,7 +126,8 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
         FT_CHAR_FKEY_F19,
         FT_CHAR_FKEY_F20,
     };
-    int p[3];
+    unsigned short p[4];
+    bool doGenericReport = false;
 
     if (len == 0) {
         return NULL;
@@ -135,10 +137,7 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
     if (evt == NULL) {
         return NULL;
     }
-    //XXX We mark the CSI event as invalid/broken CSI by default. Find a better
-    //XXX way to handle these kind of situations 
-    evt->type = FT_EVT_CHAR;
-    evt->data.character.unicode = 0;
+    evt->type = FT_EVT_INVALID_REPORT;
 
     switch (csi[0]) {
         case 'A':   // "\e[A"
@@ -201,7 +200,9 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
             switch (csi[len - 1]) {
                 case '~':   // "\e[ INTEGER ~"
                     evt->type = FT_EVT_CHAR;
-                    if (_parse_csi_params(csi, 1, p) && p[0] >= 0 && p[0] < TILDE_CSI_CODE_TABLE_SIZE) {
+                    if (_parse_csi_params(csi, 1, p)
+                        && (p[0] > 0 && p[0] < TILDE_CSI_CODE_TABLE_SIZE)
+                        && g_tilde_csi_code_to_pua_code[p[0] - 1] != 0) {
                         evt->data.character.unicode = g_tilde_csi_code_to_pua_code[p[0] - 1];
                     }
                     break;
@@ -213,8 +214,23 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
                         evt->data.cursor.x = p[1];
                     }
                     break;
+
+                default:
+                    doGenericReport = true;
+                    break;
             }
             break;
+
+        default:
+            doGenericReport = true;
+            break;
+    }
+
+
+    if (doGenericReport) {
+        _parse_csi_params(csi, FT_MAX_REPORT_PARAMS, &evt->data.report.params[0]);
+        evt->data.report.first_char = csi[0];
+        evt->data.report.last_char = csi[len - 1];
     }
 
     return evt;
