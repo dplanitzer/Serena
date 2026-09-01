@@ -134,6 +134,7 @@ typedef struct ft_event {
 #define FT_CHAR_PAGE_DOWN       0xf72d
 
 
+//
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
 // streams to change their configuration/state. Call the corresponding flowterm
@@ -143,10 +144,28 @@ typedef struct ft_event {
 // Concurrency: please note that flowterm assumes that all code that wants to
 // receive events or that uses any of the output related functions run on the
 // same vcpu.
+//
+// Buffering:
+// * Terminal input: not buffered and turns off buffering on the provided input
+//                   stream.
+// * Terminal output: buffered
+//
 
 
+// Set the terminal input to 'stream'. The default terminal input stream is stdin.
+// Note that the provided stream has to be backed by a file descriptor.
 extern FILE* _Nonnull ft_termin(FILE* _Nonnull stream);
+
+// Set the terminal output to 'stream'. The default terminal output stream is
+// stdout.
 extern FILE* _Nonnull ft_termout(FILE* _Nonnull stream);
+
+// Drain all buffered events from the terminal input.
+extern void ft_drain(void);
+
+// Flush all buffered output to the terminal.
+extern void ft_flush(void);
+
 
 extern unsigned int ft_mousecntl(unsigned int mask);
 extern int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull evt);

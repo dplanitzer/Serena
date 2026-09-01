@@ -349,14 +349,14 @@ int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull pOut
         struct ft_event_node* the_evt = NULL;
         struct ft_event_node* prev_evt = NULL;
 
-        queue_for_each(&g_evt_queue, struct ft_event_node, it, {
+        queue_for_each(&g_evt_queue, struct ft_event_node, it,
             if (((1u << (unsigned int)it->evt.type) & mask) != 0) {
                 the_evt = it;
                 break;
             }
 
             prev_evt = it;
-        });
+        );
 
 
         if (the_evt) {
@@ -374,4 +374,14 @@ int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull pOut
             return EOF;
         }
     }
+}
+
+void ft_drain(void)
+{
+    while (!queue_empty(&g_evt_queue)) {
+        queue_node_t* evt = queue_remove_first(&g_evt_queue);
+        _queue_add_first(&g_evt_cache, evt);
+    }
+
+    //XXX use fd_cntl() to drain the terminal input stream
 }
