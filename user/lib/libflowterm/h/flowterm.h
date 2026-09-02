@@ -145,6 +145,18 @@ typedef struct ft_event {
 #define FT_ON   1
 
 
+// Text styles
+#define FT_PLAIN            0
+#define FT_BOLD             1
+#define FT_DIM              2
+#define FT_ITALIC           4
+#define FT_UNDERLINE        8
+#define FT_BLINK            16
+#define FT_INVERSE          32
+#define FT_HIDDEN           64
+#define FT_STRIKETHROUGH    128
+
+
 //
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
@@ -235,5 +247,8 @@ extern void ft_moveto(int x, int y);
 // cursor up and a negative 'dx' moves the cursor to the left. Note that cursor
 // coordinates are 1-based.
 extern void ft_move(int dx, int dy);
+
+
+extern void ft_style(unsigned int flags);
 
 #endif /* _FLOWTERM_H */
