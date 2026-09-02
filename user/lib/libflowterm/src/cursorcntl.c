@@ -1,5 +1,5 @@
 //
-//  cursor.c
+//  cursorcntl.c
 //  libflowterm
 //
 //  Created by Dietmar Planitzer on 9/1/26.
@@ -7,16 +7,6 @@
 //
 
 #include "__flowterm.h"
-
-void ft_savecursor(void)
-{
-    fputs("\0337", __ft_termout_fp);
-}
-
-void ft_restorecursor(void)
-{
-    fputs("\0338", __ft_termout_fp);
-}
 
 void ft_cursorcntl(unsigned int flags)
 {

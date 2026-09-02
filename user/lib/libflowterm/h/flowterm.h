@@ -217,12 +217,23 @@ extern void ft_curpos(int* _Nonnull x, int* _Nonnull y);
 extern void ft_screensize(int* _Nonnull width, int* _Nonnull height);
 
 
-extern void ft_savecursor(void);
-extern void ft_restorecursor(void);
+// Saves/restores the current text cursor position, text style, text foreground
+// and background colors.
+extern void ft_save(void);
+extern void ft_restore(void);
 
+
+// Configures various text cursor properties. E.g. whether the text cursor is
+// on or off.
 extern void ft_cursorcntl(unsigned int flags);
 
+// Moves the text cursor to the specified absolute position (x, y). Note that
+// cursor coordinates are 1-based.
 extern void ft_moveto(int x, int y);
+
+// Moves the text cursor by 'dx' and 'dy' cells. A negative 'dy' moves the
+// cursor up and a negative 'dx' moves the cursor to the left. Note that cursor
+// coordinates are 1-based.
 extern void ft_move(int dx, int dy);
 
 #endif /* _FLOWTERM_H */
