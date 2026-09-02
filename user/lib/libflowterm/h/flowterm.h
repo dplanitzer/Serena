@@ -140,6 +140,11 @@ typedef struct ft_event {
 #define FT_OK   0
 
 
+// Cursor control options
+#define FT_OFF  0
+#define FT_ON   1
+
+
 //
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
@@ -155,6 +160,8 @@ typedef struct ft_event {
 // * Terminal input: not buffered and turns off buffering on the provided input
 //                   stream.
 // * Terminal output: buffered
+//
+// Coordinates: all coordinates are 1-based.
 //
 
 
@@ -208,5 +215,14 @@ extern void ft_curpos(int* _Nonnull x, int* _Nonnull y);
 
 // Returns the size of the terminal screen.
 extern void ft_screensize(int* _Nonnull width, int* _Nonnull height);
+
+
+extern void ft_savecursor(void);
+extern void ft_restorecursor(void);
+
+extern void ft_cursorcntl(unsigned int flags);
+
+extern void ft_moveto(int x, int y);
+extern void ft_move(int dx, int dy);
 
 #endif /* _FLOWTERM_H */

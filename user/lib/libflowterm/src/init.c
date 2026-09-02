@@ -8,6 +8,8 @@
 
 #include "__flowterm.h"
 
+char __ft_outbuf[_FT_OUTBUF_SIZE];
+
 
 int ft_init(void)
 {

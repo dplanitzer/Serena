@@ -31,4 +31,16 @@ extern void _ft_config_termin(unsigned int flags);
 
 extern void _ft_init_events(void);
 
+
+#define _FT_ITOA_BUF_SIZE   6       // Longest possible digit sequence + trailing NUL character
+#define _FT_ITOA_MAX        65535
+#define _FT_ITOA_MIN        0
+
+extern char* _Nonnull __ft_itoa(int val, char* _Nonnull buf);
+
+
+// Work buffer to construct escape sequences to send them to the terminal
+#define _FT_OUTBUF_SIZE 64
+extern char __ft_outbuf[_FT_OUTBUF_SIZE];
+
 #endif /* _FLOWTERM_PRIV_H */
