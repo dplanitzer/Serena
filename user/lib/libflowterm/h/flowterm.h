@@ -157,6 +157,17 @@ typedef struct ft_event {
 #define FT_STRIKETHROUGH    128
 
 
+// Fixed ANSI color palette
+#define FT_BLACK        0
+#define FT_RED          1
+#define FT_GREEN        2
+#define FT_YELLOW       3
+#define FT_BLUE         4
+#define FT_MAGENTA      5
+#define FT_CYAN         6
+#define FT_WHITE        7
+
+
 //
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
@@ -249,6 +260,13 @@ extern void ft_moveto(int x, int y);
 extern void ft_move(int dx, int dy);
 
 
+// Sets the text style to the combination of 'flags'. Pass FT_PLAIN to reset the
+// text style back to a simple, plain text style.
 extern void ft_style(unsigned int flags);
+
+// Sets the text foreground and background colors to one of the ANSI fixed
+// color palette entries.
+extern void ft_fgcolor(int color);
+extern void ft_bgcolor(int color);
 
 #endif /* _FLOWTERM_H */
