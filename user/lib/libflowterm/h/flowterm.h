@@ -240,6 +240,10 @@ extern void ft_curpos(int* _Nonnull x, int* _Nonnull y);
 extern void ft_screensize(int* _Nonnull width, int* _Nonnull height);
 
 
+// Clears the screen.
+extern void ft_cls(void);
+
+
 // Saves/restores the current text cursor position, text style, text foreground
 // and background colors.
 extern void ft_save(void);
@@ -249,6 +253,9 @@ extern void ft_restore(void);
 // Configures various text cursor properties. E.g. whether the text cursor is
 // on or off.
 extern void ft_cursorcntl(unsigned int flags);
+
+// Moves the cursor to the home location, which is (1, 1).
+extern void ft_home(void);
 
 // Moves the text cursor to the specified absolute position (x, y). Note that
 // cursor coordinates are 1-based.
