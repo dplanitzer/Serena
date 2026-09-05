@@ -281,5 +281,8 @@ extern void ft_bgcolor(int color);
 // length 'count'. 'ch' is the character that should be used to draw the line.
 // No line is drawn if 'ch' is 0 or 'count' is <= 0.
 extern void ft_hline(unsigned int ch, int count);
- 
+
+// Similar to hline(), but draws a vertical line.
+extern void ft_vline(unsigned int ch, int count);
+
 #endif /* _FLOWTERM_H */
