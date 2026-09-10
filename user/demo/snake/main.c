@@ -22,20 +22,22 @@
 #include "utils.h"
 
 
-#define PLAYFIELD_WIDTH 40
-#define PLAYFIELD_HEIGHT 18
+#define PLAYFIELD_WIDTH     40
+#define PLAYFIELD_HEIGHT    18
+
 
 static nanotime_t game_loop_delay;
 
 static int playfield_x, playfield_y;
 
-static int snake_head_x, snake_head_y;
-static int snake_body_len;
-static int snake_body_x[100], snake_body_y[100];
+static int snake_len;
+static int snake_x[100], snake_y[100];
 
 static int fruit_x, fruit_y;
 
-static int key, score;
+static int dx, dy;
+static int prev_dx, prev_dy;
+static int score;
 static bool game_over;
 
 static char buf[1024];
@@ -45,21 +47,17 @@ static char playfield_width_buf[4];
 
 static void place_fruit(void)
 {
-    for (;;) {
+    bool done = false;
+
+    while (!done) {
         fruit_x = rand() % PLAYFIELD_WIDTH;
         fruit_y = rand() % PLAYFIELD_HEIGHT;
+        done = true;
 
-        if (fruit_x != snake_head_x && fruit_y != snake_head_y) {
-            bool hasMatch = false;
 
-            for (int i = 0; i < snake_body_len; i++) {
-                if (fruit_x == snake_body_x[i] && fruit_y == snake_body_y[i]) {
-                    hasMatch = true;
-                    break;
-                }
-            }
-
-            if (!hasMatch) {
+        for (int i = 0; i < snake_len; i++) {
+            if (fruit_x == snake_x[i] && fruit_y == snake_y[i]) {
+                done = false;
                 break;
             }
         }
@@ -74,8 +72,10 @@ static void setup(void)
     cursor_on(false);
 
     game_over = false;
-    snake_body_len = 0;
-    key = 0;
+    dx = 0;
+    dy = 0;
+    prev_dx = 0;
+    prev_dy = 0;
     score = 0;
 
     nanotime_from_ms(&game_loop_delay, 160);
@@ -86,9 +86,10 @@ static void setup(void)
     itoa(playfield_x, playfield_l_edge_buf, 10);
     itoa(PLAYFIELD_WIDTH, playfield_width_buf, 10);
 
-    snake_head_x = PLAYFIELD_WIDTH / 2;
-    snake_head_y = PLAYFIELD_HEIGHT / 2;
-    
+    snake_len = 1;
+    snake_x[0] = PLAYFIELD_WIDTH / 2;
+    snake_y[0] = PLAYFIELD_HEIGHT / 2;
+
     place_fruit();
 }
 
@@ -101,32 +102,39 @@ static void cleanup(void)
 
 static void input(void)
 {
+    prev_dx = dx;
+    prev_dy = dy;
+
     switch (getchar()) {
     case 'a':
     case 'A':
-        if (key != 2) {
-            key = 1;
+        if (prev_dx != 1) {
+            dx = -1;
+            dy =  0;
         }
         break;
 
     case 'd':
     case 'D':
-        if (key != 1) {
-            key = 2;
+        if (prev_dx != -1) {
+            dx = 1;
+            dy = 0;
         }
         break;
 
     case 'w':
     case 'W':
-        if (key != 4) {
-            key = 3;
+        if (prev_dy != 1) {
+            dx =  0;
+            dy = -1;
         }
         break;
 
     case 's':
     case 'S':
-        if (key != 3) {
-            key = 4;
+        if (prev_dy != -1) {
+            dx = 0;
+            dy = 1;
         }
         break;
 
@@ -183,10 +191,10 @@ static void draw(void)
 
 
     // Draw the snake
-    b = mv_to(b, snake_head_x + playfield_x + 1, snake_head_y + playfield_y + 1);
+    b = mv_to(b, snake_x[0] + playfield_x + 1, snake_y[0] + playfield_y + 1);
     *b++ = 'O';
-    for (int i = 0; i < snake_body_len; i++) {
-        b = mv_to(b, snake_body_x[i] + playfield_x + 1, snake_body_y[i] + playfield_y + 1);
+    for (int i = 1; i < snake_len; i++) {
+        b = mv_to(b, snake_x[i] + playfield_x + 1, snake_y[i] + playfield_y + 1);
         *b++ = 'o';
     }
 
@@ -195,54 +203,35 @@ static void draw(void)
 
 static void logic(void)
 {
+    if (dx == 0 && dy == 0) {
+        return;
+    }
+
+
     // Make the snake body follow the snake head
-    int prevX = snake_body_x[0];
-    int prevY = snake_body_y[0];
-    int prev2X, prev2Y;
-    snake_body_x[0] = snake_head_x;
-    snake_body_y[0] = snake_head_y;
-    for (int i = 1; i < snake_body_len; i++) {
-        prev2X = snake_body_x[i];
-        prev2Y = snake_body_y[i];
-        snake_body_x[i] = prevX;
-        snake_body_y[i] = prevY;
-        prevX = prev2X;
-        prevY = prev2Y;
+    for (int i = snake_len - 1; i >= 1; i--) {
+        snake_x[i] = snake_x[i - 1];
+        snake_y[i] = snake_y[i - 1];
     }
     
 
-    // Update snake location based on keyboard input
-    switch (key) {
-    case 1:
-        snake_head_x--;
-        break;
-
-    case 2:
-        snake_head_x++;
-        break;
-
-    case 3:
-        snake_head_y--;
-        break;
-
-    case 4:
-        snake_head_y++;
-        break;
-
-    default:
-        break;
-    }
+    // Update the snake head location based on user input
+    snake_x[0] += dx;
+    snake_y[0] += dy;
 
 
-    // Snake hitting walls -> game over
-    if (snake_head_x < 0 || snake_head_x >= PLAYFIELD_WIDTH || snake_head_y < 0 || snake_head_y >= PLAYFIELD_HEIGHT) {
+    // Snake head hits a wall -> game over
+    if (snake_x[0] < 0 || snake_x[0] >= PLAYFIELD_WIDTH || snake_y[0] < 0 || snake_y[0] >= PLAYFIELD_HEIGHT) {
         game_over = true;
     }
     
 
-    // Snake hitting itself -> game over
-    for (int i = 0; i < snake_body_len; i++) {
-        if (snake_body_x[i] == snake_head_x && snake_body_y[i] == snake_head_y) {
+    // Snake head hits snake body -> game over
+    const int hx = snake_x[0];
+    const int hy = snake_y[0];
+
+    for (int i = 1; i < snake_len; i++) {
+        if (hx == snake_x[i] && hy == snake_y[i]) {
             game_over = true;
             break;
         }
@@ -250,24 +239,28 @@ static void logic(void)
 
 
     // Snake head hits fruit -> increase score and grow snake
-    if (snake_head_x == fruit_x && snake_head_y == fruit_y) {
+    if (hx == fruit_x && hy == fruit_y) {
         place_fruit();
 
         score += 10;
-        snake_body_len++;
+        snake_len++;
+        snake_x[snake_len - 1] = snake_x[snake_len - 2];
+        snake_y[snake_len - 1] = snake_y[snake_len - 2];
     }
 }
 
 static void game_loop(void* ctx)
 {
-    if (game_over) {
+    input();
+    logic();
+
+    if (!game_over) {
+        draw();
+    }
+    else {
         cleanup();
         exit(0);
     }
-
-    draw();
-    input();
-    logic();
 }
 
 
