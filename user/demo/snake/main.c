@@ -18,6 +18,7 @@
 #include <time.h>
 #include <ext/stdlib.h>
 #include <ext/nanotime.h>
+#include <serena/clock.h>
 #include <serena/file.h>
 #include "utils.h"
 
@@ -90,6 +91,10 @@ static void setup(void)
     snake_x[0] = PLAYFIELD_WIDTH / 2;
     snake_y[0] = PLAYFIELD_HEIGHT / 2;
 
+    nanotime_t now;
+    clock_time(CLOCK_MONOTONIC, &now);
+    srand(now.tv_sec);
+    
     place_fruit();
 }
 
