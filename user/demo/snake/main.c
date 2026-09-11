@@ -27,12 +27,20 @@
 #define PLAYFIELD_HEIGHT    18
 
 
+#define DRAW_FULL_FRAME         1
+#define DRAW_SNAKE_MOVE         2
+#define DRAW_SNAKE_GROWTH       4
+#define DRAW_FRUIT_PLACEMENT    8
+#define DRAW_SCORE_CHANGE       16
+
+
 static nanotime_t game_loop_delay;
 
 static int playfield_x, playfield_y;
 
 static int snake_len;
 static int snake_x[100], snake_y[100];
+static int snake_old_tail_x, snake_old_tail_y;
 
 static int fruit_x, fruit_y;
 
@@ -40,6 +48,7 @@ static int dx, dy;
 static int prev_dx, prev_dy;
 static int score;
 static bool game_over;
+static int draw_flags;
 
 static char buf[1024];
 static char playfield_l_edge_buf[4];
@@ -63,6 +72,8 @@ static void place_fruit(void)
             }
         }
     }
+
+    draw_flags |= DRAW_FRUIT_PLACEMENT;
 }
 
 static void setup(void)
@@ -96,6 +107,8 @@ static void setup(void)
     srand(now.tv_sec);
     
     place_fruit();
+
+    draw_flags |= DRAW_FULL_FRAME;
 }
 
 static void cleanup(void)
@@ -157,7 +170,7 @@ static void input(void)
     }
 }
 
-static void draw(void)
+static void draw_frame(void)
 {
     char* b = buf;
 
@@ -206,11 +219,68 @@ static void draw(void)
     (void)fd_write(FD_STDOUT, buf, b - buf);
 }
 
+static void draw_changes(int flags)
+{
+    char* b = buf;
+
+    if ((flags & DRAW_FRUIT_PLACEMENT) != 0) {
+        b = mv_to(b, fruit_x + playfield_x + 1, fruit_y + playfield_y + 1);
+        *b++ = '*';
+    }
+
+
+    if ((flags & DRAW_SNAKE_MOVE) != 0) {
+        b = mv_to(b, snake_x[0] + playfield_x + 1, snake_y[0] + playfield_y + 1);
+        *b++ = 'O';
+
+        if (snake_len > 1) {
+            b = mv_to(b, snake_x[1] + playfield_x + 1, snake_y[1] + playfield_y + 1);
+            *b++ = 'o';
+        }
+
+        // Note: we keep the last snake segment on the screen if the snake has
+        // grown in length. This old segment is the new snake segment for this
+        // frame. 
+        if ((flags & DRAW_SNAKE_GROWTH) == 0) {
+            b = mv_to(b, snake_old_tail_x + playfield_x + 1, snake_old_tail_y + playfield_y + 1);
+            *b++ = ' ';
+        }
+    }
+
+
+    if ((flags & DRAW_SCORE_CHANGE) != 0) {
+        b = mv_to(b, 7, PLAYFIELD_HEIGHT + 3);
+        itoa(score, b, 10);
+        b = strcat_x(b, "\n");
+    }
+
+
+    (void)fd_write(FD_STDOUT, buf, b - buf);
+}
+
+static void draw(void)
+{
+    if ((draw_flags & DRAW_FULL_FRAME) != 0) {
+        draw_frame();
+    }
+    else if ((draw_flags & (DRAW_SCORE_CHANGE|DRAW_SNAKE_MOVE|DRAW_SNAKE_GROWTH|DRAW_FRUIT_PLACEMENT)) != 0) {
+        draw_changes(draw_flags);
+    }
+
+    draw_flags = 0;
+}
+
 static void logic(void)
 {
     if (dx == 0 && dy == 0) {
         return;
     }
+
+
+    // Save the old tail of the snake so that the draw_changes() function can
+    // erase the tail from the screen
+    snake_old_tail_x = snake_x[snake_len - 1];
+    snake_old_tail_y = snake_y[snake_len - 1];
 
 
     // Make the snake body follow the snake head
@@ -223,6 +293,8 @@ static void logic(void)
     // Update the snake head location based on user input
     snake_x[0] += dx;
     snake_y[0] += dy;
+
+    draw_flags |= DRAW_SNAKE_MOVE;
 
 
     // Snake head hits a wall -> game over
@@ -251,6 +323,9 @@ static void logic(void)
         snake_len++;
         snake_x[snake_len - 1] = snake_x[snake_len - 2];
         snake_y[snake_len - 1] = snake_y[snake_len - 2];
+
+        //draw_flags |= DRAW_SNAKE_GROWTH;  XXX leaves artifacts on the screen
+        draw_flags |= DRAW_SCORE_CHANGE;
     }
 }
 
