@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <ext/string.h>
+#include <flowterm.h>
 #include <time.h>
 #include <ext/stdlib.h>
 #include <ext/nanotime.h>
@@ -34,6 +35,7 @@
 #define DRAW_SCORE_CHANGE       16
 
 
+static ft_event_t event;
 static nanotime_t game_loop_delay;
 
 static int playfield_x, playfield_y;
@@ -78,10 +80,9 @@ static void place_fruit(void)
 
 static void setup(void)
 {
-    setbuf(stdin, NULL);
+    ft_init();
     setbuf(stdout, NULL);
-    fd_setflags(FD_STDIN, FD_FOP_ADD, O_NONBLOCK);
-    cursor_on(false);
+    ft_cursorcntl(FT_OFF);
 
     game_over = false;
     dx = 0;
@@ -90,7 +91,7 @@ static void setup(void)
     prev_dy = 0;
     score = 0;
 
-    nanotime_from_ms(&game_loop_delay, 160);
+    nanotime_from_ms(&game_loop_delay, 140);
 
     playfield_x = (80 - (PLAYFIELD_WIDTH + 2)) / 2;
     playfield_y = 0;
@@ -113,19 +114,16 @@ static void setup(void)
 
 static void cleanup(void)
 {
-    cursor_on(true);
-    fd_setflags(FD_STDIN, FD_FOP_REMOVE, O_NONBLOCK);
+    ft_cleanup();
 }
 
 
-static void input(void)
+static void handle_key_event(const ft_event_t* _Nonnull evt)
 {
-    prev_dx = dx;
-    prev_dy = dy;
-
-    switch (getchar()) {
+    switch (evt->data.character.unicode) {
     case 'a':
     case 'A':
+    case FT_CHAR_CURSOR_LEFT:
         if (prev_dx != 1) {
             dx = -1;
             dy =  0;
@@ -134,6 +132,7 @@ static void input(void)
 
     case 'd':
     case 'D':
+    case FT_CHAR_CURSOR_RIGHT:
         if (prev_dx != -1) {
             dx = 1;
             dy = 0;
@@ -142,6 +141,7 @@ static void input(void)
 
     case 'w':
     case 'W':
+    case FT_CHAR_CURSOR_UP:
         if (prev_dy != 1) {
             dx =  0;
             dy = -1;
@@ -150,23 +150,39 @@ static void input(void)
 
     case 's':
     case 'S':
+    case FT_CHAR_CURSOR_DOWN:
         if (prev_dy != -1) {
             dx = 0;
             dy = 1;
         }
         break;
 
-    case 0x1b:
+    case 3:     // Ctrl-C
+    case 17:    // Ctrl-Q
+    case FT_CHAR_ESCAPE:
         game_over = true;
-        break;
-
-    case EOF:
-        // no key pressed
-        clearerr(stdin);
         break;
 
     default:
         break;
+    }
+}
+
+static void input(void)
+{
+    prev_dx = dx;
+    prev_dy = dy;
+
+    if (ft_getevent(FT_ANY, FT_NONBLOCKING, &event)) {
+        switch (event.type) {
+            case FT_EVT_CHAR:
+                handle_key_event(&event);
+                break;
+
+            default:
+                // ignore
+                break;
+        }
     }
 }
 
@@ -324,7 +340,7 @@ static void logic(void)
         snake_x[snake_len - 1] = snake_x[snake_len - 2];
         snake_y[snake_len - 1] = snake_y[snake_len - 2];
 
-        //draw_flags |= DRAW_SNAKE_GROWTH;  XXX leaves artifacts on the screen
+        //draw_flags |= DRAW_SNAKE_GROWTH;  //XXX leaves artifacts on the screen
         draw_flags |= DRAW_SCORE_CHANGE;
     }
 }
