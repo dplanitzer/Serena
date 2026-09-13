@@ -17,6 +17,7 @@
 #include <ext/string.h>
 #include <flowterm.h>
 #include <time.h>
+#include <ext/math.h>
 #include <ext/stdlib.h>
 #include <ext/nanotime.h>
 #include <serena/clock.h>
@@ -119,7 +120,7 @@ static void cleanup(void)
 }
 
 
-static void handle_key_event(const ft_event_t* _Nonnull evt)
+static void handle_key(const ft_event_t* _Nonnull evt)
 {
     switch (evt->data.character.unicode) {
     case 3:     // Ctrl-C
@@ -177,6 +178,23 @@ static void handle_key_event(const ft_event_t* _Nonnull evt)
     }
 }
 
+static void handle_mouse(const ft_event_t* _Nonnull evt)
+{
+    const int vec_x = evt->data.mouse.x - snake_x[0];
+    const int vec_y = evt->data.mouse.y - snake_y[0];
+
+    if (__abs(vec_x) >= __abs(vec_y)) {
+        // X axis
+        dx = (vec_x < 0) ? -1 : 1;
+        dy = 0;
+    }
+    else {
+        // Y axis
+        dx = 0;
+        dy = (vec_y < 0) ? -1 : 1;
+    }
+}
+
 static void input(void)
 {
     prev_dx = dx;
@@ -185,7 +203,12 @@ static void input(void)
     if (ft_getevent(FT_ANY, FT_NONBLOCKING, &event)) {
         switch (event.type) {
             case FT_EVT_CHAR:
-                handle_key_event(&event);
+                handle_key(&event);
+                break;
+
+            case FT_EVT_MOUSE_DOWN:
+            case FT_EVT_MOUSE_DRAG:
+                handle_mouse(&event);
                 break;
 
             default:
