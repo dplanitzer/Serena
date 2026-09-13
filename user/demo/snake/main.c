@@ -84,7 +84,7 @@ static void setup(void)
 {
     ft_init();
     setbuf(stdout, NULL);
-    ft_cursorcntl(FT_OFF);
+    ft_cursor(FT_OFF);
 
     game_over = false;
     dx = 0;

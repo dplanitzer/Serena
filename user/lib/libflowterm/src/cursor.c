@@ -1,5 +1,5 @@
 //
-//  cursorcntl.c
+//  cursor.c
 //  libflowterm
 //
 //  Created by Dietmar Planitzer on 9/1/26.
@@ -8,11 +8,11 @@
 
 #include "__flowterm.h"
 
-void ft_cursorcntl(unsigned int flags)
+void ft_cursor(int op)
 {
     const char* csi;
 
-    if ((flags & FT_ON) == FT_ON) {
+    if (op == FT_ON) {
         csi = "\033[?25h";
     }
     else {

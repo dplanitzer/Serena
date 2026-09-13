@@ -250,9 +250,9 @@ extern void ft_save(void);
 extern void ft_restore(void);
 
 
-// Configures various text cursor properties. E.g. whether the text cursor is
-// on or off.
-extern void ft_cursorcntl(unsigned int flags);
+// Shows or hides the terminal text cursor. Use FT_ON toshow it and FT_OFF to
+// hide it.
+extern void ft_cursor(int op);
 
 // Moves the cursor to the home location, which is (1, 1).
 extern void ft_home(void);
