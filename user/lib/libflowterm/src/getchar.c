@@ -18,18 +18,13 @@ int ft_getchar(unsigned int flags)
             return EOF;
         }
 
-        switch (evt.type) {
-            case FT_EVT_CHAR:
-                return evt.data.character.unicode;
-
-            case FT_EVT_NULL:
-                return 0;
+        if (evt.type == FT_EVT_CHAR) {
+            return evt.data.character.unicode;
         }
 
-        // discard event and continue waiting if non-blocking isn't set; otherwise
-        // treat it as 'no character event available'.
-        if ((flags & FT_NONBLOCKING) == FT_NONBLOCKING) {
-            return 0;
-        }
+        // Not a character event - discard the event and try again. This is true
+        // for blocking and non-blocking modes. Non-blocking mode will continue
+        // to spin until no more events are queued or we eventually get a queued
+        // character event.
     }
 }

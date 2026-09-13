@@ -220,7 +220,19 @@ extern void ft_flush(void);
 extern int ft_status(void);
 
 
+// Configures the generation of mouse events. Mouse event generation may be
+// turned on or off. It is turned off by default. Turning mouse event generation
+// on will cause the console to show a mouse cursor. Additionally allows you to
+// control whether mouse motion events should be generated or not. Mouse motion
+// events are turned off by default and only mouse clicks are registered. 
 extern unsigned int ft_mousecntl(unsigned int mask);
+
+// Blocks the caller until a character, mouse or terminal report event arrives.
+// Specify the FT_NONBLOCKING option if the function should return without
+// blocking if no events are available. The function returns -1 and errno is set
+// to EAGAIN in this case.
+// 'mask' controls which kinds of events the function will wait for. The event
+// record is returned in 'evt'.
 extern int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull evt);
 
 // Returns the next available character. Blocks the caller until a character is
