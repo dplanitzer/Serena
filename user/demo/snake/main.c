@@ -25,7 +25,7 @@
 
 
 #define PLAYFIELD_WIDTH     40
-#define PLAYFIELD_HEIGHT    18
+#define PLAYFIELD_HEIGHT    17
 
 
 #define DRAW_FULL_FRAME         1
@@ -50,6 +50,7 @@ static int dx, dy;
 static int prev_dx, prev_dy;
 static int score;
 static bool game_over;
+static bool game_paused;
 static int draw_flags;
 
 static char buf[1024];
@@ -121,6 +122,23 @@ static void cleanup(void)
 static void handle_key_event(const ft_event_t* _Nonnull evt)
 {
     switch (evt->data.character.unicode) {
+    case 3:     // Ctrl-C
+    case 17:    // Ctrl-Q
+    case FT_CHAR_ESCAPE:
+        game_over = true;
+        break;
+
+    case ' ':
+        game_paused = !game_paused;
+        break;
+    }
+
+    if (game_paused || game_over) {
+        return;
+    }
+
+
+    switch (evt->data.character.unicode) {
     case 'a':
     case 'A':
     case FT_CHAR_CURSOR_LEFT:
@@ -155,15 +173,6 @@ static void handle_key_event(const ft_event_t* _Nonnull evt)
             dx = 0;
             dy = 1;
         }
-        break;
-
-    case 3:     // Ctrl-C
-    case 17:    // Ctrl-Q
-    case FT_CHAR_ESCAPE:
-        game_over = true;
-        break;
-
-    default:
         break;
     }
 }
@@ -213,6 +222,7 @@ static void draw_frame(void)
     itoa(score, b, 10);
     b = strcat_x(b, "\n\n");
     b = strcpy_x(b, "Press W, A, S, D to move the snake.\n");
+    b = strcpy_x(b, "Press SPACE to pause/resume the game.\n");
     b = strcpy_x(b, "Press ESC to quit the game.");
 
     (void)fd_write(FD_STDOUT, buf, b - buf);
@@ -276,6 +286,10 @@ static void draw_changes(int flags)
 
 static void draw(void)
 {
+    if (game_paused || game_over) {
+        return;
+    }
+
     if ((draw_flags & DRAW_FULL_FRAME) != 0) {
         draw_frame();
     }
@@ -288,7 +302,7 @@ static void draw(void)
 
 static void logic(void)
 {
-    if (dx == 0 && dy == 0) {
+    if (game_paused || game_over || (dx == 0 && dy == 0)) {
         return;
     }
 
@@ -330,6 +344,10 @@ static void logic(void)
         }
     }
 
+    if (game_over) {
+        return;
+    }
+
 
     // Snake head hits fruit -> increase score and grow snake
     if (hx == fruit_x && hy == fruit_y) {
@@ -349,11 +367,9 @@ static void game_loop(void* ctx)
 {
     input();
     logic();
-
-    if (!game_over) {
-        draw();
-    }
-    else {
+    draw();
+    
+    if (game_over) {
         cleanup();
         exit(0);
     }
