@@ -187,8 +187,8 @@ typedef struct ft_event {
 
 
 // Initializes flowterm. Call this function before you call any other flowterm
-// function.
-extern int ft_init(void);
+// function. Pass 0 for 'flags' for now. 
+extern int ft_init(unsigned int flags);
 
 // Frees all resources used by flowterm and resets the terminal back to its
 // default configuration. Call this function before exiting your app.

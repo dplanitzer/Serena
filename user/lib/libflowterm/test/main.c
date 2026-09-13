@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     if (testToRun) {
         printf("Running Test: %s\n", name);
 
-        ft_init();
+        ft_init(0);
         testToRun->func(argc, argv);
         ft_cleanup();
 

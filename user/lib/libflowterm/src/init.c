@@ -11,7 +11,7 @@
 char __ft_outbuf[_FT_OUTBUF_SIZE];
 
 
-int ft_init(void)
+int ft_init(unsigned int flags)
 {
     _ft_init_events();
 

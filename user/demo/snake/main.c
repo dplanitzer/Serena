@@ -82,7 +82,7 @@ static void place_fruit(void)
 
 static void setup(void)
 {
-    ft_init();
+    ft_init(0);
     setbuf(stdout, NULL);
     ft_cursor(FT_OFF);
 
