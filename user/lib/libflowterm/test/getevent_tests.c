@@ -28,10 +28,6 @@ void getevent_test(int argc, char *argv[])
 
 
         switch (evt.type) {
-            case FT_EVT_NULL:
-                puts("NULL");
-                break;
-
             case FT_EVT_CHAR: {
                 if (evt.data.character.unicode == 'q') {
                     done = true;
