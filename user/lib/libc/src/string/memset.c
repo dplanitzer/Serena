@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <__string.h>
+#include "__string.h"
 
 
 void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)

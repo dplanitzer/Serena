@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <__string.h>
+#include "__string.h"
 
 
 // Optimized version of memcpy_rev() which requires that 'src' and 'dst' pointers
