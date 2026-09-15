@@ -22,6 +22,7 @@ extern void screensize_test(int argc, char *argv[]);
 extern void status_test(int argc, char *argv[]);
 
 extern void getevent_test(int argc, char *argv[]);
+extern void getevent_nb_test(int argc, char *argv[]);
 
 
 typedef void (*test_func_t)(int argc, char *argv[]);
@@ -35,6 +36,7 @@ typedef struct test {
 static const test_t gTests[] = {
     {"curpos", curpos_test},
     {"getevent", getevent_test},
+    {"geteventnb", getevent_nb_test},
     {"screensize", screensize_test},
     {"status", status_test},
 

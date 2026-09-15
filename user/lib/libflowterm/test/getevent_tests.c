@@ -12,7 +12,7 @@
 #include <stdbool.h>
 
 
-void getevent_test(int argc, char *argv[])
+static void getevent_loop(unsigned int flags)
 {
     bool done = false;
 
@@ -21,9 +21,14 @@ void getevent_test(int argc, char *argv[])
     while (!done) {
         ft_event_t evt;
 
-        if (ft_getevent(FT_ANY, 0, &evt) < 0) {
-            printf("EOF with errno: %d\n", errno);
-            break;
+        if (ft_getevent(FT_ANY, flags, &evt) < 0) {
+            if ((flags & FT_NONBLOCKING) == FT_NONBLOCKING) {
+                continue;
+            }
+            else {
+                printf("EOF with errno: %d\n", errno);
+                break;
+            }
         }
 
 
@@ -60,4 +65,15 @@ void getevent_test(int argc, char *argv[])
                 break;
         }
     }
+}
+
+
+void getevent_test(int argc, char *argv[])
+{
+    getevent_loop(0);
+}
+
+void getevent_nb_test(int argc, char *argv[])
+{
+    getevent_loop(FT_NONBLOCKING);
 }
