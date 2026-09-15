@@ -200,7 +200,7 @@ static void input(void)
     prev_dx = dx;
     prev_dy = dy;
 
-    if (ft_getevent(FT_ANY, FT_NONBLOCKING, &event)) {
+    if (!ft_getevent(FT_ANY, FT_NONBLOCKING, &event)) {
         switch (event.type) {
             case FT_EVT_CHAR:
                 handle_key(&event);
