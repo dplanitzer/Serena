@@ -1,6 +1,6 @@
 # Quick Tour
 
-The shell supports a wide array of functionality. From running executables, to printing text to the screen, doing mathematical calculations, to to interactive text input, etc.
+The shell supports a wide array of functionality. From running executables, to printing text to the screen, doing mathematical calculations, to interactive text input and much more.
 
 The following line is an example of how to print text to the screen. The 'cls' command clears the screen and the 'echo' command prints the text in double quotes to the screen:
 
