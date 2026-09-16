@@ -17,6 +17,7 @@ void ft_fgcolor(int color)
     }
 
     *p++ = '\033';
+    *p++ = '[';
     *p++ = '3';
     *p++ = color + '0';
     *p++ = 'm';
@@ -34,6 +35,7 @@ void ft_bgcolor(int color)
     }
 
     *p++ = '\033';
+    *p++ = '[';
     *p++ = '4';
     *p++ = color + '0';
     *p++ = 'm';
