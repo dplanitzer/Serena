@@ -32,7 +32,7 @@ extern void _ft_config_termin(unsigned int flags);
 extern void _ft_init_events(void);
 
 
-#define _FT_ITOA_BUF_SIZE   6       // Longest possible digit sequence + trailing NUL character
+#define _FT_ITOA_BUF_SIZE   5       // Longest possible digit sequence for a escape sequence parameter
 #define _FT_ITOA_MAX        65535
 #define _FT_ITOA_MIN        0
 

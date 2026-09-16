@@ -39,12 +39,12 @@ FILE* _Nonnull ft_termout(FILE* _Nonnull stream)
 
 char* _Nonnull __ft_itoa(int val, char* _Nonnull buf)
 {
-    char *ep = &buf[_FT_ITOA_BUF_SIZE - 1];
-    char *p = ep;
+    static char digits[_FT_ITOA_BUF_SIZE];
+    char* ep = &digits[_FT_ITOA_BUF_SIZE];
+    char *p = ep - 1;
 
     val = __max(__min(val, _FT_ITOA_MAX), _FT_ITOA_MIN);
 
-    *p-- = '\0';
     do {
         const div_t r = div(val, 10);
 
@@ -52,5 +52,10 @@ char* _Nonnull __ft_itoa(int val, char* _Nonnull buf)
         val = r.quot;
     } while (val);
 
-    return ep;
+    p++;
+    while (p < ep) {
+        *buf++ = *p++;
+    }
+
+    return buf;
 }

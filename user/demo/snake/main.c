@@ -20,9 +20,7 @@
 #include <ext/math.h>
 #include <ext/stdlib.h>
 #include <ext/nanotime.h>
-#include <serena/clock.h>
 #include <serena/file.h>
-#include "utils.h"
 
 
 #define PLAYFIELD_WIDTH     40
@@ -54,10 +52,6 @@ static bool game_over;
 static bool game_paused;
 static int draw_flags;
 
-static char buf[1024];
-static char playfield_l_edge_buf[4];
-static char playfield_width_buf[4];
-
 
 static void place_fruit(void)
 {
@@ -83,7 +77,6 @@ static void place_fruit(void)
 static void setup(void)
 {
     ft_init(0);
-    setbuf(stdout, NULL);
     ft_cursor(FT_OFF);
 
     game_over = false;
@@ -98,16 +91,11 @@ static void setup(void)
     playfield_x = (80 - (PLAYFIELD_WIDTH + 2)) / 2;
     playfield_y = 0;
 
-    itoa(playfield_x, playfield_l_edge_buf, 10);
-    itoa(PLAYFIELD_WIDTH, playfield_width_buf, 10);
-
     snake_len = 1;
     snake_x[0] = PLAYFIELD_WIDTH / 2;
     snake_y[0] = PLAYFIELD_HEIGHT / 2;
 
-    nanotime_t now;
-    clock_time(CLOCK_MONOTONIC, &now);
-    srand(now.tv_sec);
+    srand(time(NULL));
     
     place_fruit();
 
@@ -218,93 +206,73 @@ static void input(void)
     }
 }
 
-static void draw_frame(void)
+static void draw_full_frame(void)
 {
-    char* b = buf;
+    ft_cls();
 
-    // Draw the playfield
-    b = cls(b);
-    b = mv_by_precomp(b, playfield_l_edge_buf);
-    b = h_line(b, '-', PLAYFIELD_WIDTH + 2);
-    *b++ = '\n';
+    // Playfield
+    ft_moveto(playfield_x + 1, playfield_y + 1);
+    ft_hline('-', PLAYFIELD_WIDTH + 2);
+    ft_moveto(playfield_x + 1, playfield_y + 2);
+    ft_vline('|', PLAYFIELD_HEIGHT);
+    ft_moveto(playfield_x + PLAYFIELD_WIDTH + 2, playfield_y + 2);
+    ft_vline('|', PLAYFIELD_HEIGHT);
+    ft_moveto(playfield_x + 1, playfield_y + PLAYFIELD_HEIGHT + 2);
+    ft_hline('-', PLAYFIELD_WIDTH + 2);
 
-    for (int i = 0; i < PLAYFIELD_HEIGHT; i++) {
-        b = mv_by_precomp(b, playfield_l_edge_buf);
-        *b++ = '|';
-        b = mv_by_precomp(b, playfield_width_buf);
-        *b++ = '|';
-        *b++ = '\n';
-    }
+    // Info
+    fiprintf(stdout, "\n\nScore: %d\n\n", score);
+    fputs("Press W, A, S, D to move the snake.\n", stdout);
+    fputs("Press SPACE to pause/resume the game.\n", stdout);
+    fputs("Press ESC to quit the game.", stdout);
 
-    b = mv_by_precomp(b, playfield_l_edge_buf);
-    b = h_line(b, '-', PLAYFIELD_WIDTH + 2);
-    *b++ = '\n';
-    *b++ = '\n';
+    // Fruit
+    ft_moveto(fruit_x + playfield_x + 2, fruit_y + playfield_y + 2);
+    putc('*', stdout);
 
-    b = strcpy_x(b, "Score: ");
-    itoa(score, b, 10);
-    b = strcat_x(b, "\n\n");
-    b = strcpy_x(b, "Press W, A, S, D to move the snake.\n");
-    b = strcpy_x(b, "Press SPACE to pause/resume the game.\n");
-    b = strcpy_x(b, "Press ESC to quit the game.");
-
-    (void)fd_write(FD_STDOUT, buf, b - buf);
-
-
-    // Draw the fruit
-    b = buf;
-    b = mv_to(b, fruit_x + playfield_x + 1, fruit_y + playfield_y + 1);
-    *b++ = '*';
-
-
-    // Draw the snake
-    b = mv_to(b, snake_x[0] + playfield_x + 1, snake_y[0] + playfield_y + 1);
-    *b++ = 'O';
+    // Snake
+    ft_moveto(snake_x[0] + playfield_x + 2, snake_y[0] + playfield_y + 2);
+    putc('O', stdout);
     for (int i = 1; i < snake_len; i++) {
-        b = mv_to(b, snake_x[i] + playfield_x + 1, snake_y[i] + playfield_y + 1);
-        *b++ = 'o';
+        ft_moveto(snake_x[i] + playfield_x + 2, snake_y[i] + playfield_y + 2);
+        putc('o', stdout);
     }
-
-    (void)fd_write(FD_STDOUT, buf, b - buf);
 }
 
-static void draw_changes(int flags)
+static void draw_delta_frame(int flags)
 {
-    char* b = buf;
+    // +2 in here for (1) adjusting to 1-based coords and (2) skipping over the
+    // left/top playfield border
 
     if ((flags & DRAW_FRUIT_PLACEMENT) != 0) {
-        b = mv_to(b, fruit_x + playfield_x + 1, fruit_y + playfield_y + 1);
-        *b++ = '*';
+        ft_moveto(fruit_x + playfield_x + 2, fruit_y + playfield_y + 2);
+        putc('*', stdout);
     }
 
 
     if ((flags & DRAW_SNAKE_MOVE) != 0) {
-        b = mv_to(b, snake_x[0] + playfield_x + 1, snake_y[0] + playfield_y + 1);
-        *b++ = 'O';
+        ft_moveto(snake_x[0] + playfield_x + 2, snake_y[0] + playfield_y + 2);
+        putc('O', stdout);
 
         if (snake_len > 1) {
-            b = mv_to(b, snake_x[1] + playfield_x + 1, snake_y[1] + playfield_y + 1);
-            *b++ = 'o';
+            ft_moveto(snake_x[1] + playfield_x + 2, snake_y[1] + playfield_y + 2);
+            putc('o', stdout);
         }
 
         // Note: we keep the last snake segment on the screen if the snake has
         // grown in length. This old segment is the new snake segment for this
         // frame. 
         if ((flags & DRAW_SNAKE_GROWTH) == 0) {
-            b = mv_to(b, snake_old_tail_x + playfield_x + 1, snake_old_tail_y + playfield_y + 1);
-            *b++ = ' ';
+            ft_moveto(snake_old_tail_x + playfield_x + 2, snake_old_tail_y + playfield_y + 2);
+            putc(' ', stdout);
         }
     }
 
 
     if ((flags & DRAW_SCORE_CHANGE) != 0) {
-        b = mv_to(b, 7, PLAYFIELD_HEIGHT + 3);
-        itoa(score, b, 10);
-        b = strcat_x(b, "\n");
+        ft_moveto(7 + 1, PLAYFIELD_HEIGHT + 4);
+        fiprintf(stdout, "%d", score);
     }
-
-
-    (void)fd_write(FD_STDOUT, buf, b - buf);
 }
 
 static void draw(void)
@@ -314,13 +282,14 @@ static void draw(void)
     }
 
     if ((draw_flags & DRAW_FULL_FRAME) != 0) {
-        draw_frame();
+        draw_full_frame();
     }
     else if ((draw_flags & (DRAW_SCORE_CHANGE|DRAW_SNAKE_MOVE|DRAW_SNAKE_GROWTH|DRAW_FRUIT_PLACEMENT)) != 0) {
-        draw_changes(draw_flags);
+        draw_delta_frame(draw_flags);
     }
 
     draw_flags = 0;
+    ft_flush();
 }
 
 static void logic(void)

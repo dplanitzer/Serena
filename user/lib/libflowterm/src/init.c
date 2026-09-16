@@ -18,5 +18,7 @@ int ft_init(unsigned int flags)
     ft_termin(stdin);
     ft_termout(stdout);
 
+    setvbuf(stdout, NULL, _IOFBF, 80*25);
+    
     return 0;
 }
