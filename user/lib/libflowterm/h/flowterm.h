@@ -166,6 +166,20 @@ typedef struct ft_event {
 #define FT_WHITE        7
 
 
+// Structure used to define the characters that ft_drawrect() should use to draw
+// a rectangle outline.
+typedef struct rectstyle {
+    unsigned int top_left;
+    unsigned int top;
+    unsigned int top_right;
+    unsigned int right;
+    unsigned int bottom_right;
+    unsigned int bottom;
+    unsigned int bottom_left;
+    unsigned int left;
+} ft_rectstyle;
+
+
 //
 // Note the flowterm takes control of the provided input/output stream. An
 // important implication of this is that you should _not_ call fd_cntl() on those
@@ -287,13 +301,14 @@ extern void ft_fgcolor(int color);
 extern void ft_bgcolor(int color);
 
 
-// Draws a horizontal line starting at the current cursor position and with
-// length 'count'. 'ch' is the character that should be used to draw the line.
+// Draws a horizontal line of length 'count' from left to right, starting at the
+// current cursor. 'ch' is the character that should be used to draw the line.
 // No line is drawn if 'ch' is 0 or 'count' is <= 0.
 extern void ft_hline(unsigned int ch, int count);
 
-// Similar to hline(), but draws a vertical line.
+// Similar to hline(), but draws a vertical line from top to bottom.
 extern void ft_vline(unsigned int ch, int count);
+
 
 // Fills a rectangle with the character 'ch'. The top-left corner of the rectangle
 // is at the current cursor position, 'width' is the width and 'height' is the
@@ -302,5 +317,24 @@ extern void ft_fillrect(unsigned int ch, int width, int height);
 
 // Clears a rectangular area by filling it with the ' ' (space) character.
 extern void ft_clearrect(int width, int height);
+
+
+// Draw top and bottom edges with '-', left and right edges with '|' and all
+// corners with '-';
+extern const ft_rectstyle ft_rectstyle_hflat;
+
+// Draw top and bottom edges with '-', left and right edges with '|' and all
+// corners with '|';
+extern const ft_rectstyle ft_rectstyle_vflat;
+
+// Draw top and bottom edges with '-', left and right edges with '|' and all
+// corners with '+';
+extern const ft_rectstyle ft_rectstyle_plus;
+
+
+// Draws the outline of a rectangle. The top-left corner of the rectangle is
+// given by the current cursor position, 'width' is its width and 'height' its
+// height. 'style' specifies the drawing style that should be used.
+extern void ft_drawrect(const ft_rectstyle* _Nonnull style, int width, int height);
 
 #endif /* _FLOWTERM_H */

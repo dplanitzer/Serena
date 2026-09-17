@@ -213,13 +213,7 @@ static void draw_full_frame(void)
     // Playfield
     ft_fgcolor(FT_GREEN);
     ft_moveto(playfield_x + 1, playfield_y + 1);
-    ft_hline('-', PLAYFIELD_WIDTH + 2);
-    ft_moveto(playfield_x + 1, playfield_y + 2);
-    ft_vline('|', PLAYFIELD_HEIGHT);
-    ft_moveto(playfield_x + PLAYFIELD_WIDTH + 2, playfield_y + 2);
-    ft_vline('|', PLAYFIELD_HEIGHT);
-    ft_moveto(playfield_x + 1, playfield_y + PLAYFIELD_HEIGHT + 2);
-    ft_hline('-', PLAYFIELD_WIDTH + 2);
+    ft_drawrect(&ft_rectstyle_hflat, PLAYFIELD_WIDTH + 2, PLAYFIELD_HEIGHT + 2);
 
     // Info
     fiprintf(stdout, "\n\nScore: %d\n\n", score);

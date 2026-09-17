@@ -22,7 +22,10 @@ void ft_vline(unsigned int ch, int count)
     __ft_outbuf[5] = '[';
     __ft_outbuf[6] = 'D';
 
-    while (count-- > 0) {
+    // avoid triggering a v-scroll by not doing any v-cursor movement after the
+    // last character has been printed
+    while (count-- > 1) {
         fputs(__ft_outbuf, __ft_termout_fp);
     }
+    putc(ch, __ft_termout_fp);
 }

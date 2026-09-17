@@ -42,5 +42,6 @@ extern char* _Nonnull __ft_itoa(int val, char* _Nonnull buf);
 // Work buffer to construct escape sequences to send them to the terminal
 #define _FT_OUTBUF_SIZE 64
 extern char __ft_outbuf[_FT_OUTBUF_SIZE];
+extern char __ft_outbuf_alt[_FT_OUTBUF_SIZE];
 
 #endif /* _FLOWTERM_PRIV_H */
