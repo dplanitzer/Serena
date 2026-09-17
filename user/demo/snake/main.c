@@ -20,7 +20,6 @@
 #include <ext/math.h>
 #include <ext/stdlib.h>
 #include <ext/nanotime.h>
-#include <serena/file.h>
 
 
 #define INFO_HEIGHT 5
