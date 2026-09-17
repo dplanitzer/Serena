@@ -14,11 +14,11 @@
 #include <dispatch.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <ext/string.h>
 #include <flowterm.h>
 #include <time.h>
 #include <ext/math.h>
 #include <ext/stdlib.h>
+#include <ext/string.h>
 #include <ext/nanotime.h>
 
 
