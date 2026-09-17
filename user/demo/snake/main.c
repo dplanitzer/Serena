@@ -24,7 +24,7 @@
 
 
 #define PLAYFIELD_WIDTH     40
-#define PLAYFIELD_HEIGHT    17
+#define PLAYFIELD_HEIGHT    18
 
 
 #define DRAW_FULL_FRAME         1
@@ -218,8 +218,7 @@ static void draw_full_frame(void)
     // Info
     fiprintf(stdout, "\n\nScore: %d\n\n", score);
     fputs("Press W, A, S, D to move the snake.\n", stdout);
-    fputs("Press SPACE to pause/resume the game.\n", stdout);
-    fputs("Press ESC to quit the game.", stdout);
+    fputs("Press SPACE to pause/resume the game and ESC to quit.\n", stdout);
 
     // Fruit
     ft_fgcolor(FT_RED);
