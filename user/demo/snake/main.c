@@ -23,9 +23,7 @@
 #include <serena/file.h>
 
 
-#define PLAYFIELD_WIDTH     40
-#define PLAYFIELD_HEIGHT    18
-
+#define INFO_HEIGHT 5
 
 #define DRAW_FULL_FRAME         1
 #define DRAW_SNAKE_MOVE         2
@@ -38,6 +36,7 @@ static ft_event_t event;
 static nanotime_t game_loop_delay;
 
 static int playfield_x, playfield_y;
+static int playfield_width, playfield_height;
 
 static int snake_len;
 static int snake_x[100], snake_y[100];
@@ -58,8 +57,8 @@ static void place_fruit(void)
     bool done = false;
 
     while (!done) {
-        fruit_x = rand() % PLAYFIELD_WIDTH;
-        fruit_y = rand() % PLAYFIELD_HEIGHT;
+        fruit_x = rand() % playfield_width;
+        fruit_y = rand() % playfield_height;
         done = true;
 
 
@@ -79,6 +78,12 @@ static void setup(void)
     ft_init(0);
     ft_cursor(FT_OFF);
 
+    int screen_width, screen_height;
+    ft_screensize(&screen_width, &screen_height);
+
+    playfield_width = __min(40, screen_width - 2);
+    playfield_height = __min(screen_height, 22 + INFO_HEIGHT) - 2 - INFO_HEIGHT;
+
     game_over = false;
     dx = 0;
     dy = 0;
@@ -88,12 +93,12 @@ static void setup(void)
 
     nanotime_from_ms(&game_loop_delay, 140);
 
-    playfield_x = (80 - (PLAYFIELD_WIDTH + 2)) / 2;
+    playfield_x = (screen_width - (playfield_width + 2)) / 2;
     playfield_y = 0;
 
     snake_len = 1;
-    snake_x[0] = PLAYFIELD_WIDTH / 2;
-    snake_y[0] = PLAYFIELD_HEIGHT / 2;
+    snake_x[0] = playfield_width / 2;
+    snake_y[0] = playfield_height / 2;
 
     srand(time(NULL));
     
@@ -213,12 +218,12 @@ static void draw_full_frame(void)
     // Playfield
     ft_fgcolor(FT_GREEN);
     ft_moveto(playfield_x + 1, playfield_y + 1);
-    ft_drawrect(&ft_rectstyle_hflat, PLAYFIELD_WIDTH + 2, PLAYFIELD_HEIGHT + 2);
+    ft_drawrect(&ft_rectstyle_hflat, playfield_width + 2, playfield_height + 2);
 
-    // Info
+    // Info (limit height to INFO_HEIGHT)
     fiprintf(stdout, "\n\nScore: %d\n\n", score);
     fputs("Press W, A, S, D to move the snake.\n", stdout);
-    fputs("Press SPACE to pause/resume the game and ESC to quit.\n", stdout);
+    fputs("Press SPACE to pause/resume the game and ESC to quit.", stdout);
 
     // Fruit
     ft_fgcolor(FT_RED);
@@ -269,7 +274,7 @@ static void draw_delta_frame(int flags)
 
     if ((flags & DRAW_SCORE_CHANGE) != 0) {
         ft_fgcolor(FT_GREEN);
-        ft_moveto(7 + 1, PLAYFIELD_HEIGHT + 4);
+        ft_moveto(7 + 1, playfield_height + 4);
         fiprintf(stdout, "%d", score);
     }
 }
@@ -319,7 +324,7 @@ static void logic(void)
 
 
     // Snake head hits a wall -> game over
-    if (snake_x[0] < 0 || snake_x[0] >= PLAYFIELD_WIDTH || snake_y[0] < 0 || snake_y[0] >= PLAYFIELD_HEIGHT) {
+    if (snake_x[0] < 0 || snake_x[0] >= playfield_width || snake_y[0] < 0 || snake_y[0] >= playfield_height) {
         game_over = true;
     }
     
