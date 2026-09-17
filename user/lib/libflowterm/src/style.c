@@ -13,6 +13,7 @@ void ft_style(unsigned int flags)
     char* p = __ft_outbuf;
 
     *p++ = '\033';
+    *p++ = '[';
     *p++ = '0';
 
     if (flags != 0) {

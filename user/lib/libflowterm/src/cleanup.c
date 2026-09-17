@@ -16,8 +16,9 @@ void ft_cleanup(void)
         fd_setflags(__ft_termin_fd, FD_FOP_REMOVE, O_NONBLOCK);
     }
 
-    // Turn cursor back on and change the colors back to black bg and green fg
-    fputs("\033[?25h", __ft_termout_fp);
-    fputs("\033[32m\033[40m", __ft_termout_fp);
+    // - turn cursor back on
+    // - turn font styling off
+    // - change the colors back to black bg and green fg
+    fputs("\033[?25h\033[0m\033[32m\033[40m", __ft_termout_fp);
     fflush(__ft_termout_fp);
 }
