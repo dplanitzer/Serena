@@ -295,4 +295,12 @@ extern void ft_hline(unsigned int ch, int count);
 // Similar to hline(), but draws a vertical line.
 extern void ft_vline(unsigned int ch, int count);
 
+// Fills a rectangle with the character 'ch'. The top-left corner of the rectangle
+// is at the current cursor position, 'width' is the width and 'height' is the
+// height of the rectangle.
+extern void ft_fillrect(unsigned int ch, int width, int height);
+
+// Clears a rectangular area by filling it with the ' ' (space) character.
+extern void ft_clearrect(int width, int height);
+
 #endif /* _FLOWTERM_H */
