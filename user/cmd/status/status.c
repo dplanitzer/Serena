@@ -221,6 +221,10 @@ static bool init(void)
     ft_init(0);
     ft_cursor(FT_OFF);
 
+    int w, h;
+    ft_screensize(&w, &h);
+    
+
     if (run_procs_setup() != 0) {
         return false;
     }
@@ -231,7 +235,7 @@ static bool init(void)
     }
 
     table_set_cell_func(g_table, (table_cell_func_t)display_rp, NULL);
-    table_set_viewport(g_table, 0, 18); //XXX hard coded display height for NTSC. Should dynamically adjust with true terminal height 
+    table_set_viewport(g_table, 0, h - 7); 
     table_set_fill_viewport(g_table, true);
 
     return true;
