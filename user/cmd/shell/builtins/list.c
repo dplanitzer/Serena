@@ -1,11 +1,13 @@
 //
 //  list.c
-//  cmds
+//  sh
 //
 //  Created by Dietmar Planitzer on 4/22/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include "Interpreter.h"
+#include "Utilities.h"
 #include <clap.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -234,9 +236,16 @@ CLAP_DECL(params,
 );
 
 
-int main(int argc, char* argv[])
+int cmd_list(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
-    clap_parse(0, params, argc, argv);
+    default_path[0] = ".";
+    paths = (clap_string_array_t){default_path, 1};
+
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    if (clap_should_exit(status)) {
+        OpStack_PushVoid(ip->opStack);
+        return clap_exit_code(status);
+    }
 
     
     bool hasError = false;
@@ -276,5 +285,7 @@ int main(int argc, char* argv[])
         }
     }
 
+    OpStack_PushVoid(ip->opStack);
+    
     return (hasError) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
