@@ -10,12 +10,12 @@
 #include <errno.h>
 #include <limits.h>
 #include <ext/stdlib.h>
+#include <flowterm.h>
 #include <stdio.h>
 #include <string.h>
 #include <ext/math.h>
 #include <ext/nanotime.h>
 #include <serena/clock.h>
-#include <serena/fd.h>
 #include "run_proc.h"
 #include "table.h"
 #include "utils.h"
@@ -203,7 +203,7 @@ static void display_status(void)
 
 
     table_set_row_count(g_table, nprocs);
-    term_cls();
+    ft_cls();
 
     const run_procs_info_t* rp_info = run_procs_info();
     printf("CPU usage: %d%% user, %d%% sys, %d%% idle\n", rp_info->usr_cpu_usage, rp_info->sys_cpu_usage, rp_info->idle_cpu_usage);
@@ -212,10 +212,15 @@ static void display_status(void)
     printf("RAM: %s total\n\n", fmt_mem_size(rp_info->phys_mem_size, num_buf));
     
     table_draw(g_table);
+
+    ft_flush();
 }
 
 static bool init(void)
 {
+    ft_init(0);
+    ft_cursor(FT_OFF);
+
     if (run_procs_setup() != 0) {
         return false;
     }
@@ -229,17 +234,13 @@ static bool init(void)
     table_set_viewport(g_table, 0, 18); //XXX hard coded display height for NTSC. Should dynamically adjust with true terminal height 
     table_set_fill_viewport(g_table, true);
 
-    term_cursor_on(false);
-    fd_setflags(FD_STDIN, FD_FOP_ADD, O_NONBLOCK);
-
     return true;
 }
 
 static void cleanup(void)
 {
-    term_cls();
-    term_cursor_on(true);
-    fd_setflags(FD_STDIN, FD_FOP_REMOVE, O_NONBLOCK);
+    ft_cls();
+    ft_cleanup();
 }
 
 static void main_loop(void)
@@ -247,14 +248,12 @@ static void main_loop(void)
     nanotime_t wt;
     nanotime_from_ms(&wt, 250);
     unsigned int counter = 0;
-    char ch;
 
     for (;;) {
         clock_sleep(CLOCK_MONOTONIC, 0, &wt);
 
-        ch = '\0';
-        fd_read(FD_STDIN, &ch, 1);
 
+        const int ch = ft_getchar(FT_NONBLOCKING);
         if (ch == 'q' || ch == 'Q' || ch == 'x' || ch == 'X') {
             break;
         }

@@ -15,9 +15,5 @@
 #define FMT_MEM_SIZE_BUFFER_SIZE    8
 #define FMT_DURATION_BUFFER_SIZE    9
 
-extern void term_cursor_on(bool onOff);
-extern void term_cls(void);
-extern void term_move_to(int x, int y);
-
 extern char* _Nonnull fmt_mem_size(uint64_t msize, char* _Nonnull buf);
 extern char* _Nonnull fmt_duration(const nanotime_t* _Nonnull dur, char* _Nonnull buf);
