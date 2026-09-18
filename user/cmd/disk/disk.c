@@ -9,6 +9,7 @@
 #include <clap.h>
 #include <ctype.h>
 #include <errno.h>
+#include <flowterm.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -77,7 +78,9 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
     size_t t = 0, trackCount = ip->cylinders * ip->heads;
     int ok = 1;
     
-    fputs("\033[?25l", stdout);
+    ft_cursor(FT_OFF);
+    ft_flush();
+
     // Try format_disk() first
     if (fd_cntl(ioc, IOCMD_DISK_FORMAT, 0) != 0) {
         if (errno == ENOTSUP) {
@@ -87,7 +90,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
             fd_seek(ioc, 0ll, SEEK_SET);
             while (t < trackCount) {
                 printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
-                fflush(stdout);
+                ft_flush();
         
                 if (fd_cntl(ioc, IOCMD_DISK_FORMAT_TRACK, 0) != 0) {
                     ok = 0;
@@ -101,7 +104,9 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
             ok = 0;
         }
     }
-    puts("\033[?25h");
+
+    ft_cursor(FT_ON);
+    ft_flush();
 
     return ok;
 }
@@ -488,6 +493,8 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
+    ft_init(0);
+
     clap_parse(0, params, argc, argv);
     
     if (!strcmp(cmd_id, "format")) {
@@ -526,6 +533,8 @@ int main(int argc, char* argv[])
         errno = EINVAL;
     }
 
+
+    ft_cleanup();
 
     if (errno == EOK) {
         return EXIT_SUCCESS;
