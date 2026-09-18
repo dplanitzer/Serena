@@ -7,6 +7,7 @@
 //
 
 #include <errno.h>
+#include <flowterm.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,9 +31,19 @@ static void on_shell_termination(void* _Nullable ignore);
 static int gFailedCounter;
 
 
-static _Noreturn void halt_machine(void)
+static _Noreturn void halt_machine(const char* _Nullable msg, const char* _Nullable param)
 {
+    if (msg) {
+        fputs(msg, stdout);
+        if (param) {
+            fputs(param, stdout);
+        }
+        putchar('\n');
+    }
+
     puts("Halting...");
+    fflush(stdout);
+
     while (1);
     /* NOT REACHED */
 }
@@ -116,8 +127,8 @@ static void login_user(void)
     proc_setcwd(homePath);
 
     if (start_shell(shellPath, homePath) != 0) {
-        printf("Error: %s.\n", strerror(errno));
-        halt_machine();
+        halt_machine("Error: ", strerror(errno));
+        /* NOT REACHED */
     }
 }
 
@@ -131,8 +142,7 @@ static void on_shell_termination(void* _Nullable ignore)
     const int r = proc_wait(WAIT_FOR_TERMINATED, WAIT_ANY, 0, WAIT_NONBLOCKING, &ps);
 
     if (r == -1) {
-        printf("Error: %s.\n", strerror(errno));
-        halt_machine();
+        halt_machine("Error: ", strerror(errno));
         /* NOT REACHED */
     }
 
@@ -141,8 +151,7 @@ static void on_shell_termination(void* _Nullable ignore)
     }
 
     if (gFailedCounter == 2) {
-        printf("Error: unexpected shell (%d) termination with status: %d:%d.\n", ps.pid, ps.reason, ps.u.status);
-        halt_machine();
+        halt_machine("Error: unexpected repeated shell termination", NULL);
         /* NOT REACHED */
     }
 
@@ -156,8 +165,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }
-    const char* termPath = argv[1];
-
+    const char* termPath = argv[1];    
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
@@ -185,8 +193,13 @@ int main(int argc, char *argv[])
     sig_route(SIG_ROUTE_ADD, SIG_CHILD, SIG_TARGET_VCPU, VCPUID_MAIN);
     
 
-    printf("\033[36mSerena OS v0.9.0-alpha\033[0m\nCopyright 2023 - 2026, Dietmar Planitzer.\n\n");
+    ft_init(0);
 
+    ft_fgcolor(FT_CYAN);
+    puts("Serena OS v0.9.0-alpha");
+    ft_style(FT_PLAIN);
+    puts("Copyright 2023 - 2026, Dietmar Planitzer.\n");
+    ft_flush();
     
     // Log the user in and then return from our closure. Our VP will be moved
     // over to the shell and run the shell until it exits. Our 'on_shell_termination'
