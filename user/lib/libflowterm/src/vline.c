@@ -10,7 +10,7 @@
 
 void ft_vline(unsigned int ch, int count)
 {
-    if (ch == '\0' || count <= 0) {
+    if (!__ft_termout_do_esc || ch == '\0' || count <= 0) {
         return;
     }
 

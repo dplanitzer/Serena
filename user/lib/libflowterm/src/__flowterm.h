@@ -23,13 +23,14 @@
 #define _FT_MSK_STATUS          (1u << (unsigned int)_FT_EVT_STATUS)
 
 
-extern int              __ft_termin_fd;
+extern int              __ft_termin_fd;         // >= 0 if valid; -1 if not valid
 extern FILE* _Nonnull   __ft_termout_fp;
+extern bool             __ft_termout_do_esc;    // true if escape sequence capable; false otherwise
 
 
-extern void _ft_config_termin(unsigned int flags);
+extern void __ft_config_termin(unsigned int flags);
 
-extern void _ft_init_events(void);
+extern void __ft_init_events(void);
 
 
 #define _FT_ITOA_BUF_SIZE   5       // Longest possible digit sequence for a escape sequence parameter

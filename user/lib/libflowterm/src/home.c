@@ -10,5 +10,7 @@
 
 void ft_home(void)
 {
-    fputs("\033[H", __ft_termout_fp);
+    if (__ft_termout_do_esc) {
+        fputs("\033[H", __ft_termout_fp);
+    }
 }

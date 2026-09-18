@@ -14,12 +14,10 @@ char __ft_outbuf_alt[_FT_OUTBUF_SIZE];
 
 int ft_init(unsigned int flags)
 {
-    _ft_init_events();
+    __ft_init_events();
 
     ft_termin(stdin);
     ft_termout(stdout);
-
-    setvbuf(stdout, NULL, _IOFBF, 80*25);
-    
+        
     return 0;
 }

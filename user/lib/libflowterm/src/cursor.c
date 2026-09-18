@@ -10,14 +10,9 @@
 
 void ft_cursor(int op)
 {
-    const char* csi;
+    if (__ft_termout_do_esc) {
+        const char* csi = (op == FT_ON) ? "\033[?25h" : "\033[?25l";
 
-    if (op == FT_ON) {
-        csi = "\033[?25h";
+        fputs(csi, __ft_termout_fp);
     }
-    else {
-        csi = "\033[?25l";
-    }
-
-    fputs(csi, __ft_termout_fp);
 }

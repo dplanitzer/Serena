@@ -11,6 +11,11 @@
 
 void ft_move(int dx, int dy)
 {
+    if (!__ft_termout_do_esc) {
+        return;
+    }
+
+    
     char* p = __ft_outbuf;
 
     if (dx != 0) {

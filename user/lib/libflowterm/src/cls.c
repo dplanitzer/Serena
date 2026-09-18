@@ -10,5 +10,14 @@
 
 void ft_cls(void)
 {
-    fputs("\033[2J\033[H", __ft_termout_fp);
+    const char* str;
+
+    if (__ft_termout_do_esc) {
+        str = "\033[2J\033[H";
+    }
+    else {
+        str = "\n\n";
+    }
+
+    fputs(str, __ft_termout_fp);
 }

@@ -41,7 +41,7 @@ static short        g_csi_buffer_index = 0;
 static bool         g_csi_overflowed = false;
 
 
-void _ft_init_events(void)
+void __ft_init_events(void)
 {
     for (int i = 0; i < EVENT_NODE_COUNT; i++) {
         queue_add_last(&g_evt_cache, &g_evt_nodes[i].node);
@@ -361,7 +361,12 @@ static int _wait_event(void)
 
 int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull pOutEvent)
 {
-    _ft_config_termin(flags);
+    if (__ft_termin_fd < 0) {
+        pOutEvent->type = FT_EVT_EOF;
+        return 0;
+    }
+
+    __ft_config_termin(flags);
 
     for (;;) {
         struct ft_event_node* the_evt = NULL;
@@ -389,7 +394,13 @@ int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull pOut
 
 
         if (_wait_event() < 0) {
-            return EOF;
+            if (g_termin_buffer_size == 0) {
+                pOutEvent->type = FT_EVT_EOF;
+                return 0;
+            }
+            else {
+                return EOF;
+            }
         }
     }
 }

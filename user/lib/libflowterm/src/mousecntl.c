@@ -16,6 +16,11 @@ unsigned int ft_mousecntl(unsigned int mask)
     const unsigned int old_mask = g_mouse_cntl;
     const char* esc_seq;
 
+    if (!__ft_termout_do_esc) {
+        return old_mask;
+    }
+
+
     if ((mask & FT_ENABLED) == FT_ENABLED) {
         if ((mask & FT_MOTION) == FT_MOTION) {
             esc_seq = "\033[?1000h\033[?1003h\033[?1006h";

@@ -13,6 +13,13 @@ void ft_curpos(int* _Nonnull x, int* _Nonnull y)
 {
     ft_event_t evt;
 
+    if (!__ft_termout_do_esc) {
+        *x = 1;
+        *y = 1;
+        return;
+    }
+
+    
     fputs("\033[6n", __ft_termout_fp);
     fflush(__ft_termout_fp);
     

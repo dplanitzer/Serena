@@ -13,6 +13,13 @@ void ft_screensize(int* _Nonnull width, int* _Nonnull height)
 {
     ft_event_t evt;
 
+    if (!__ft_termout_do_esc) {
+        *width = 40;
+        *height = 25;
+        return;
+    }
+
+    
     // Save cursor; move it to impossible location (will get clipped); query cursor position; restore cursor
     fputs("\0337\033[9999;9999f\033[6n\0338", __ft_termout_fp);
     fflush(__ft_termout_fp);

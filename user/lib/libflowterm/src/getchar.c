@@ -21,6 +21,10 @@ int ft_getchar(unsigned int flags)
         if (evt.type == FT_EVT_CHAR) {
             return evt.data.character.unicode;
         }
+        else if (evt.type == FT_EVT_EOF) {
+            errno = 0;
+            return EOF;
+        }
 
         // Not a character event - discard the event and try again. This is true
         // for blocking and non-blocking modes. Non-blocking mode will continue

@@ -24,7 +24,7 @@ const ft_rectstyle ft_rectstyle_plus = {'+', '-', '+', '|', '+', '-', '+', '|'};
 
 void ft_drawrect(const ft_rectstyle* _Nonnull style, int width, int height)
 {
-    if (width <= 0 || height <= 0) {
+    if (!__ft_termout_do_esc || width <= 0 || height <= 0) {
         return;
     }
 

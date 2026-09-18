@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 // Event types
+#define FT_EVT_EOF              0
 #define FT_EVT_CHAR             1
 #define FT_EVT_MOUSE_UP         2
 #define FT_EVT_MOUSE_DOWN       3
@@ -209,13 +210,19 @@ extern int ft_init(unsigned int flags);
 extern void ft_cleanup(void);
 
 
-// Set the terminal input to 'stream'. The default terminal input stream is stdin.
-// Note that the provided stream has to be backed by a file descriptor.
-extern FILE* _Nonnull ft_termin(FILE* _Nonnull stream);
+// Set the terminal input to 'stream' and returns the previous input stream. The
+// default terminal input stream is stdin. Note that the provided stream should
+// be backed by a file descriptor.
+extern FILE* _Nullable ft_termin(FILE* _Nonnull stream);
 
 // Set the terminal output to 'stream'. The default terminal output stream is
 // stdout.
 extern FILE* _Nonnull ft_termout(FILE* _Nonnull stream);
+
+// Returns a value > 0 if terminal output is actually connected to a terminal
+// and // a value == 0 if the output is connected to something else like a file
+// or pipe.
+extern int ft_isterm(void);
 
 // Drain all buffered events from the terminal input.
 extern void ft_drain(void);
@@ -245,6 +252,8 @@ extern unsigned int ft_mousecntl(unsigned int mask);
 // to EAGAIN in this case.
 // 'mask' controls which kinds of events the function will wait for. The event
 // record is returned in 'evt'.
+// AN EOF event is returned if either the current input stream is not a valid
+// or teh underlying stream read operation has encountered an EOF condition. 
 extern int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull evt);
 
 // Returns the next available character. Blocks the caller until a character is
@@ -254,6 +263,7 @@ extern int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnu
 // available. If e.g. mouse events are enabled and a mouse event is pending then
 // this mouse event is internally discarded and ft_getchar() continues to wait
 // until a character event becomes available.
+// This function returns EOF and sets errno to 0 if it encounters an EOF condition.
 extern int ft_getchar(unsigned int flags);
 
 

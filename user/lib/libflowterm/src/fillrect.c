@@ -10,7 +10,7 @@
 
 void ft_fillrect(unsigned int ch, int width, int height)
 {
-    if (width <= 0 || height <= 0) {
+    if (!__ft_termout_do_esc || width <= 0 || height <= 0) {
         return;
     }
 

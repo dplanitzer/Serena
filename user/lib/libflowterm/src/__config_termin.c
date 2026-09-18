@@ -1,5 +1,5 @@
 //
-//  _config_termin.c
+//  __config_termin.c
 //  libflowterm
 //
 //  Created by Dietmar Planitzer on 8/22/26.
@@ -15,7 +15,7 @@ static int          g_termin_mode;
 static unsigned int g_termin_flags;
 
 
-void _ft_config_termin(unsigned int flags)
+void __ft_config_termin(unsigned int flags)
 {    
     if (g_termin_flags != (flags & FLAGS_MASK)) {
         if ((flags & FT_NONBLOCKING) == FT_NONBLOCKING) {

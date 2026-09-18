@@ -12,7 +12,7 @@ void ft_fgcolor(int color)
 {
     char* p = __ft_outbuf;
 
-    if (color < FT_BLACK || color > FT_WHITE) {
+    if (!__ft_termout_do_esc || color < FT_BLACK || color > FT_WHITE) {
         return;
     }
 
@@ -30,7 +30,7 @@ void ft_bgcolor(int color)
 {
     char* p = __ft_outbuf;
 
-    if (color < FT_BLACK || color > FT_WHITE) {
+    if (!__ft_termout_do_esc || color < FT_BLACK || color > FT_WHITE) {
         return;
     }
 

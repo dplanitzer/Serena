@@ -10,6 +10,11 @@
 
 void ft_moveto(int x, int y)
 {
+    if (!__ft_termout_do_esc) {
+        return;
+    }
+
+    
     char* p = __ft_outbuf;
 
     *p++ = '\033';

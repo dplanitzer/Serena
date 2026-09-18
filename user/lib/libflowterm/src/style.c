@@ -10,6 +10,11 @@
 
 void ft_style(unsigned int flags)
 {
+    if (!__ft_termout_do_esc) {
+        return;
+    }
+
+    
     char* p = __ft_outbuf;
 
     *p++ = '\033';
