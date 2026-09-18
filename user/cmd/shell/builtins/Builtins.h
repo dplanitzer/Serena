@@ -39,6 +39,7 @@ extern int cmd_proc(struct Interpreter* _Nonnull ip, int argc, char** argv, char
 extern int cmd_pushcd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_pwd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_save(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_shutdown(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_uptime(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_vars(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_wait(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);

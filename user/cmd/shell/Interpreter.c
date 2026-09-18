@@ -144,6 +144,7 @@ static void Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd);
     NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd);
     NameTable_DeclareName(self->nameTable, "save", cmd_save);
+    NameTable_DeclareName(self->nameTable, "shutdown", cmd_shutdown);
     NameTable_DeclareName(self->nameTable, "uptime", cmd_uptime);
     NameTable_DeclareName(self->nameTable, "vars", cmd_vars);
     NameTable_DeclareName(self->nameTable, "wait", cmd_wait);

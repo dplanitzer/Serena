@@ -131,7 +131,6 @@ DISK_FILE := $(PRODUCT_CMD_DIR)/disk
 LOGIN_FILE := $(PRODUCT_CMD_DIR)/login
 MAKEDIR_FILE := $(PRODUCT_CMD_DIR)/makedir
 RENAME_FILE := $(PRODUCT_CMD_DIR)/rename
-SHUTDOWN_FILE := $(PRODUCT_CMD_DIR)/shutdown
 TOUCH_FILE := $(PRODUCT_CMD_DIR)/touch
 TYPE_FILE := $(PRODUCT_CMD_DIR)/type
 
@@ -277,7 +276,7 @@ build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE) \
 build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) \
 				$(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
-				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE)
+				$(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE)
 
 build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(C_TEST_FILE) \
 				 $(DQ_TEST_FILE) $(FLOWTERM_TEST_FILE)
@@ -304,7 +303,6 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(SHUTDOWN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(STATUS_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TOUCH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)

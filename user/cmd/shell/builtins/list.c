@@ -226,7 +226,7 @@ static bool is_dir(const char* _Nonnull path)
 static const char* default_path[1] = {"."};
 static clap_string_array_t paths = {default_path, 1};
 
-CLAP_DECL(params,
+static CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("list [-a | --all] <path>"),
