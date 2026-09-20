@@ -288,6 +288,14 @@ extern void ft_restore(void);
 // hide it.
 extern void ft_cursor(int op);
 
+// Selects insert (FT_ON) or replace mode (FT_OFF). Note that ft_init() selects
+// replace mode by default.
+extern void ft_insertmode(int op);
+
+// Enables auto-wrap (FT_ON) or disables it (FT_OFF).
+extern void ft_autowrap(int op);
+
+
 // Moves the cursor to the home location, which is (1, 1).
 extern void ft_home(void);
 

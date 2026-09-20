@@ -18,6 +18,8 @@ int ft_init(unsigned int flags)
 
     ft_termin(stdin);
     ft_termout(stdout);
-        
+    
+    ft_insertmode(FT_OFF);
+    
     return 0;
 }
