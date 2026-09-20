@@ -445,7 +445,7 @@ static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
     int x, y;
     int w, h;
 
-    //XXX using these makes the line reader hang for some reason
+    //XXX using these makes the line reader hang after doing a ft_cls() for some reason
 //    ft_curpos(&x, &y);
 //    ft_screensize(&w, &h);
     con_screen_t scr;
