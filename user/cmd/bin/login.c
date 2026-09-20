@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
     ft_init(0);
 
     ft_fgcolor(FT_CYAN);
-    puts("Serena OS v0.9.0-alpha");
+    puts("Serena OS v0.85.0-alpha");
     ft_style(FT_PLAIN);
     puts("Copyright 2023 - 2026, Dietmar Planitzer.\n");
     ft_flush();

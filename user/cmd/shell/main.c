@@ -50,10 +50,9 @@ int main(int argc, char *argv[])
     if (isInteractive) {
         if (!arg_isLogin) {
             ft_fgcolor(FT_CYAN);
-            fputs("\nSerena Shell v0.9.0-alpha\n", stdout);
+            fputs("\nSerena Shell v0.85.0-alpha\n", stdout);
             ft_style(FT_PLAIN);
             fputs("Copyright 2023 - 2026, Dietmar Planitzer.\n\n", stdout);
-            ft_flush();
         }
 
         Shell_Run(sh);
