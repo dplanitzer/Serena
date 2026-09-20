@@ -195,7 +195,10 @@ typedef struct rectstyle {
 // Buffering:
 // * Terminal input: not buffered and turns off buffering on the provided input
 //                   stream.
-// * Terminal output: buffered
+// * Terminal output: does not changing buffering on the provided stream. It is
+//                    your responsibility to configure the buffering mode as
+//                    needed before or after you pass the stream to ft_termout()
+//                    or ft_init().
 //
 // Coordinates: all coordinates are 1-based.
 //
@@ -274,7 +277,7 @@ extern void ft_curpos(int* _Nonnull x, int* _Nonnull y);
 extern void ft_screensize(int* _Nonnull width, int* _Nonnull height);
 
 
-// Clears the screen.
+// Clears the screen and moves the cursor to the home position (1, 1).
 extern void ft_cls(void);
 
 

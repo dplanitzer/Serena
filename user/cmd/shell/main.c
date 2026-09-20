@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <clap.h>
+#include <flowterm.h>
 #include <serena/signal.h>
 #include <serena/vcpu.h>
 #include "Utilities.h"
@@ -35,6 +36,8 @@ int main(int argc, char *argv[])
 {
     _abort_on_nomem();
 
+    ft_init(0);
+
     clap_parse(0, params, argc, argv);
     const bool isInteractive = (arg_strings.count == 0) ? true : false;
 
@@ -46,7 +49,11 @@ int main(int argc, char *argv[])
     ShellRef sh = Shell_Create(isInteractive);
     if (isInteractive) {
         if (!arg_isLogin) {
-            fputs("\n\033[36mSerena Shell v0.9.0-alpha\033[0m\nCopyright 2023 - 2026, Dietmar Planitzer.\n\n", stdout);
+            ft_fgcolor(FT_CYAN);
+            fputs("\nSerena Shell v0.9.0-alpha\n", stdout);
+            ft_style(FT_PLAIN);
+            fputs("Copyright 2023 - 2026, Dietmar Planitzer.\n\n", stdout);
+            ft_flush();
         }
 
         Shell_Run(sh);
@@ -67,6 +74,7 @@ int main(int argc, char *argv[])
         }
     }
     Shell_Destroy(sh);
+    ft_cleanup();
 
     exit((errno == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
 }

@@ -16,9 +16,6 @@
 #define kLineReader_ScreenWidth   -1
 
 typedef struct LineReader {
-    int     fd_in;
-    int     fd_out;
-
     // Prompt
     char*   prompt;
     size_t  promptLength;

@@ -46,7 +46,6 @@ FILE* _Nonnull ft_termout(FILE* _Nonnull stream)
 
     __ft_termout_fp = stream;
     __ft_termout_do_esc = __ft_isterm(stream);
-    setvbuf(stream, NULL, _IOFBF, 80*25);
 
     return old_fp;
 }

@@ -217,13 +217,14 @@ static void display_status(void)
 }
 
 static bool init(void)
-{
+{    
     ft_init(0);
     ft_cursor(FT_OFF);
     ft_flush();
 
     int w, h;
     ft_screensize(&w, &h);
+    setvbuf(stdout, NULL, _IOFBF, w*h);
     
 
     if (run_procs_setup() != 0) {

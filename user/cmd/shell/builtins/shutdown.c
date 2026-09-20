@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <serena/filesystem.h>
 #include <clap.h>
+#include <flowterm.h>
 
 
 static CLAP_DECL(params,
@@ -25,7 +26,8 @@ static void do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
     fs_sync();
     
     fputs("It is now safe to turn power to your computer off.\n", stdout);
-    fputs("\033[?25l", stdout);
+    ft_cursor(FT_OFF);
+    ft_flush();
 
     for (;;) {
         // do nothing

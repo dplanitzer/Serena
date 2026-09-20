@@ -76,9 +76,11 @@ static void setup(void)
 {
     ft_init(0);
     ft_cursor(FT_OFF);
+    ft_flush();
 
     int screen_width, screen_height;
     ft_screensize(&screen_width, &screen_height);
+    setvbuf(stdout, NULL, _IOFBF, screen_width * screen_height);
 
     playfield_width = __min(40, screen_width - 2);
     playfield_height = __min(screen_height, 22 + INFO_HEIGHT) - 2 - INFO_HEIGHT;

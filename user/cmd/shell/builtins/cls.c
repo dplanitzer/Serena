@@ -7,9 +7,9 @@
 //
 
 #include "Interpreter.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <clap.h>
+#include <flowterm.h>
 
 
 static CLAP_DECL(params,
@@ -26,8 +26,8 @@ int cmd_cls(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode = EXIT_SUCCESS;
     
     if (!clap_should_exit(status)) {
-        fputs("\033[2J\033[H", stdout);
-        fflush(stdout);
+        ft_cls();
+        ft_flush();
     }
     else {
         exitCode = clap_exit_code(status);
