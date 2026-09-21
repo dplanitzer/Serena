@@ -51,7 +51,7 @@ static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _No
 
 ////////////////////////////////////////////////////////////////////////////////
 
-InterpreterRef _Nonnull Interpreter_Create(LineReaderRef _Nonnull lineReader)
+InterpreterRef _Nonnull Interpreter_Create(rl_t _Nonnull lineReader)
 {
     InterpreterRef self = calloc(1, sizeof(Interpreter));
     
@@ -115,14 +115,14 @@ errno_t Interpreter_IterateVariables(InterpreterRef _Nonnull self, RunStackItera
 // Returns the number of entries that currently exist in the history.
 int Interpreter_GetHistoryCount(InterpreterRef _Nonnull self)
 {
-    return (self->lineReader) ? LineReader_GetHistoryCount(self->lineReader) : 0;
+    return (self->lineReader) ? rl_historycount(self->lineReader) : 0;
 }
 
 // Returns a reference to the history entry at the given index. Entries are
 // ordered ascending from oldest to newest.
 const char* _Nonnull Interpreter_GetHistoryAt(InterpreterRef _Nonnull self, int idx)
 {
-    return (self->lineReader) ? LineReader_GetHistoryAt(self->lineReader, idx) : "";
+    return (self->lineReader) ? rl_historyat(self->lineReader, idx) : "";
 }
 
 

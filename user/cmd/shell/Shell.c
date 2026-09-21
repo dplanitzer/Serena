@@ -21,9 +21,9 @@ ShellRef _Nonnull Shell_Create(bool isInteractive)
     ShellRef self = calloc(1, sizeof(Shell));
 
     if (isInteractive) {
-        self->lineReader = LineReader_Create(0, kLineReader_ScreenWidth);
-        LineReader_SetPrompt(self->lineReader, ">");
-        LineReader_SetHistoryCapacity(self->lineReader, 10);
+        self->lineReader = rl_create(0, RL_SCREEN_WIDTH);
+        rl_setprompt(self->lineReader, ">");
+        rl_sethistorycapacity(self->lineReader, 10);
     }
     self->parser = Parser_Create();
     self->interpreter = Interpreter_Create(self->lineReader);
@@ -38,7 +38,7 @@ void Shell_Destroy(ShellRef _Nullable self)
         self->interpreter = NULL;
         Parser_Destroy(self->parser);
         self->parser = NULL;
-        LineReader_Destroy(self->lineReader);
+        rl_destroy(self->lineReader);
         self->lineReader = NULL;
         free(self);
     }
@@ -71,7 +71,7 @@ int Shell_Run(ShellRef _Nonnull self)
     Script* script = Script_Create();
 
     while (true) {
-        char* line = LineReader_ReadLine(self->lineReader);
+        char* line = rl_readline(self->lineReader);
 
         putchar('\n');
         _Shell_ExecuteString(self, line, script, true);    // No script scope in interactive mode

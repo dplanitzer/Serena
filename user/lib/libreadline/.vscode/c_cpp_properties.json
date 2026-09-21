@@ -1,16 +1,13 @@
 {
     "configurations": [
         {
-            "name": "cmd",
+            "name": "libgd",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/../lib/libc/h/*",
-                "${workspaceFolder}/../lib/libclap/h/*",
-                "${workspaceFolder}/../lib/libdispatch/h/*",
-                "${workspaceFolder}/../lib/libflowterm/h/*",
-                "${workspaceFolder}/../lib/libm/h/**",
-                "${workspaceFolder}/../lib/libreadline/h/*",
-                "${workspaceFolder}/../../kern/h/*"
+                "${workspaceFolder}/h/*",
+                "${workspaceFolder}/src/*",
+                "${workspaceFolder}/../libc/h/*",
+                "${workspaceFolder}/../libflowterm/h/*",
+                "${workspaceFolder}/../../../kern/h/*"
             ],
             "defines": [
                 "__IDE__",
@@ -22,7 +19,8 @@
                 "__SERENA__",
                 "_POSIX_SOURCE=1",
                 "___STDC_HOSTED__=1",
-                "__STDC_WANT_LIB_EXT1__=1"
+                "__STDC_WANT_LIB_EXT1__=1",
+                "MACHINE_AMIGA=1"
             ],        
             "compilerPath": "",
             "cStandard": "c99",

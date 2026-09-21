@@ -9,14 +9,13 @@
 #ifndef Shell_h
 #define Shell_h
 
-#include "LineReader.h"
 #include "Interpreter.h"
 #include "Parser.h"
 
 typedef struct Shell {
-    LineReaderRef _Nullable     lineReader;
-    Parser* _Nonnull            parser;
-    InterpreterRef _Nonnull     interpreter;
+    rl_t _Nullable          lineReader;
+    Parser* _Nonnull        parser;
+    InterpreterRef _Nonnull interpreter;
 } Shell;
 typedef Shell* ShellRef;
 

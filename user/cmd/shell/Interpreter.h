@@ -12,12 +12,11 @@
 #include "Script.h"
 #include "ArgumentVector.h"
 #include "EnvironCache.h"
-#include "LineReader.h"
 #include "NameTable.h"
 #include "OpStack.h"
 #include "RunStack.h"
 #include "StackAllocator.h"
-
+#include <readline.h>
 
 typedef enum ExecuteOptions {
     kExecute_PushScope = 1,     // Push a scope before running the script and pop it afterwards
@@ -34,7 +33,7 @@ typedef struct CDEntry {
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
     
-    LineReaderRef _Weak         lineReader;
+    rl_t _Weak                  lineReader;
     NameTable* _Nonnull         nameTable;
     OpStack* _Nonnull           opStack;
     RunStack* _Nonnull          runStack;
@@ -48,7 +47,7 @@ typedef struct Interpreter {
 typedef Interpreter* InterpreterRef;
 
 
-extern InterpreterRef _Nonnull Interpreter_Create(LineReaderRef _Nonnull lineReader);
+extern InterpreterRef _Nonnull Interpreter_Create(rl_t _Nonnull lineReader);
 extern void Interpreter_Destroy(InterpreterRef _Nullable self);
 
 // Interprets 'pScript' and executes all its statements.

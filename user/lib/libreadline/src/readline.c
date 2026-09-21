@@ -1,12 +1,12 @@
 //
-//  LineReader.c
-//  sh
+//  readline.c
+//  readline
 //
 //  Created by Dietmar Planitzer on 12/29/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "LineReader.h"
+#include "__readline.h"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -19,15 +19,15 @@
 #include <serena/fd.h>
 
 
-static void LineReader_DeleteHistory(LineReaderRef _Nonnull self);
-static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self);
-static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull pNewLine);
-static void LineReader_PrintInputLine(LineReaderRef _Nonnull self);
+static void rl_delete_history(rl_t _Nonnull self);
+static void rl_save_line_if_dirty(rl_t _Nonnull self);
+static void rl_set_line(rl_t _Nonnull self, const char* _Nonnull pNewLine);
+static void rl_print_input_line(rl_t _Nonnull self);
 
 
-LineReaderRef _Nonnull LineReader_Create(int x, int width)
+rl_t _Nonnull rl_create(int x, int width)
 {
-    LineReaderRef self = calloc(1, sizeof(LineReader));
+    rl_t self = calloc(1, sizeof(struct readline));
 
     self->lrX = x;
     self->lrWidth = width;
@@ -46,10 +46,10 @@ LineReaderRef _Nonnull LineReader_Create(int x, int width)
     return self;
 }
 
-void LineReader_Destroy(LineReaderRef _Nullable self)
+void rl_destroy(rl_t _Nullable self)
 {
     if (self) {
-        LineReader_DeleteHistory(self);
+        rl_delete_history(self);
         
         free(self->prompt);
         self->prompt = NULL;
@@ -64,7 +64,7 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nonnull str)
+void rl_setprompt(rl_t _Nonnull self, const char* _Nonnull str)
 {
     size_t j = 0, len = strlen(str);
 
@@ -91,7 +91,7 @@ void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nonnull str)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Deletes all entries in the history
-static void LineReader_DeleteHistory(LineReaderRef _Nonnull self)
+static void rl_delete_history(rl_t _Nonnull self)
 {
     if (self->history) {
         for (int i = 0; i < self->historyCount; i++) {
@@ -110,9 +110,9 @@ static void LineReader_DeleteHistory(LineReaderRef _Nonnull self)
 // Sets the history capacity. This is the maximum number of entries the history
 // will keep. Note that changing the history capacity deletes whatever is
 // currently stored in the history. The history capacity is 0 by default.
-void LineReader_SetHistoryCapacity(LineReaderRef _Nonnull self, size_t capacity)
+void rl_sethistorycapacity(rl_t _Nonnull self, size_t capacity)
 {
-    LineReader_DeleteHistory(self);
+    rl_delete_history(self);
 
     self->history = calloc(capacity, sizeof(char*));
     self->historyCapacity = capacity;
@@ -121,20 +121,20 @@ void LineReader_SetHistoryCapacity(LineReaderRef _Nonnull self, size_t capacity)
 }
 
 // Returns the number of entries that currently exist in the history.
-int LineReader_GetHistoryCount(LineReaderRef _Nonnull self)
+int rl_historycount(rl_t _Nonnull self)
 {
     return self->historyCount;
 }
 
 // Returns a reference to the history entry at the given index. Entries are
 // ordered ascending from oldest to newest.
-const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int idx)
+const char* _Nonnull rl_historyat(rl_t _Nonnull self, int idx)
 {
     return self->history[idx];
 }
 
 #if 0
-static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _Nonnull info)
+static void rl_print_history(rl_t _Nonnull self, const char* _Nonnull info)
 {
     printf("\nafter %s:\n", info);
     if (self->historyCount > 0) {
@@ -150,7 +150,7 @@ static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _No
 
 // Removes all entries in the history that exactly match 'pLine'. Returns true
 // if at least one entry was removed from the stack and false otherwise.
-static bool LineReader_RemoveFromHistory(LineReaderRef _Nonnull self, char* _Nonnull pLine)
+static bool rl_remove_history(rl_t _Nonnull self, char* _Nonnull pLine)
 {
     int nRemoved = 0;
 
@@ -175,7 +175,7 @@ static bool LineReader_RemoveFromHistory(LineReaderRef _Nonnull self, char* _Non
     return (nRemoved > 0) ? true : false;
 }
 
-static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull pLine)
+static void rl_push_history(rl_t _Nonnull self, char* _Nonnull pLine)
 {
     if (self->historyCapacity == 0) {
         return;
@@ -199,7 +199,7 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
     // reset the historyIndex to the top of the stack if it turns out that we
     // effectively pulled the entry to which historyIndex pointed, to the top
     // of the history stack.
-    const bool didPullUp = LineReader_RemoveFromHistory(self, pLine);
+    const bool didPullUp = rl_remove_history(self, pLine);
 
 
     // Add 'pLine' to the history. It replaces the oldest entry if the history
@@ -224,19 +224,19 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
     }
 }
 
-static void LineReader_MoveHistoryUp(LineReaderRef _Nonnull self)
+static void rl_history_up(rl_t _Nonnull self)
 {
     if (self->historyCount == 0 || self->historyIndex < 1) {
         return;
     }
 
-    LineReader_SaveLineIfDirty(self);
+    rl_save_line_if_dirty(self);
 
     self->historyIndex--;
-    LineReader_SetLine(self, self->history[self->historyIndex]);
+    rl_set_line(self, self->history[self->historyIndex]);
 }
 
-static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
+static void rl_history_down(rl_t _Nonnull self)
 {
     if (self->historyCount == 0 || self->historyIndex == self->historyCount) {
         return;
@@ -244,9 +244,9 @@ static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
 
     self->historyIndex++;
     if (self->historyIndex < self->historyCount) {
-        LineReader_SetLine(self, self->history[self->historyIndex]);
+        rl_set_line(self, self->history[self->historyIndex]);
     } else {
-        LineReader_SetLine(self, self->savedLine);
+        rl_set_line(self, self->savedLine);
         free(self->savedLine);
         self->savedLine = NULL;
     }
@@ -255,7 +255,7 @@ static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
+static void rl_save_line_if_dirty(rl_t _Nonnull self)
 {
     if (self->isDirty) {
         free(self->savedLine);
@@ -267,7 +267,7 @@ static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
 // Replaces the content of the input line with the given string and moves the
 // text cursor after the last character in the line. Note that this function
 // does not mark the line reader input as dirty.
-static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull new_line)
+static void rl_set_line(rl_t _Nonnull self, const char* _Nonnull new_line)
 {
     memset(self->line, ' ', self->textLastCol + 1);
     self->textLastCol = -1;
@@ -287,7 +287,7 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
     ft_cursor(FT_ON);
 }
 
-static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
+static void rl_print_prompt(rl_t _Nonnull self)
 {
     if (self->promptWidth > 0) {
         ft_moveto(self->promptX + 1, self->lrY + 1);
@@ -295,7 +295,7 @@ static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
     }
 }
 
-static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
+static void rl_print_input_line(rl_t _Nonnull self)
 {
     if (self->textLastCol >= 0) {
         ft_moveto(self->inputAreaFirstCol + 1, self->lrY + 1);
@@ -306,24 +306,24 @@ static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
+static void rl_on_user_input(rl_t _Nonnull self)
 {
     self->isDirty = true;
     self->historyIndex = self->historyCount;
 }
 
-static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
+static void rl_cursor_bol(rl_t _Nonnull self)
 {
     self->cursorX = 0;
     ft_moveto(self->inputAreaFirstCol + 1, self->lrY + 1);
 }
 
-static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
+static void rl_cursor_eol(rl_t _Nonnull self)
 {
     self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
     ft_moveto(self->inputAreaFirstCol + self->textLastCol + 1 + 1, self->lrY + 1);}
 
-static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
+static void rl_cursor_left(rl_t _Nonnull self)
 {
     if (self->cursorX > 0) {
         self->cursorX--;
@@ -331,7 +331,7 @@ static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
     }
 }
 
-static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
+static void rl_cursor_right(rl_t _Nonnull self)
 {
     if (self->cursorX <= self->textLastCol && self->cursorX < self->lineLastCol) {
         self->cursorX++;
@@ -339,19 +339,19 @@ static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
     }
 }
 
-static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
+static void rl_cls(rl_t _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
     ft_cursor(FT_OFF);
     ft_cls();
-    LineReader_PrintPrompt(self);
-    LineReader_PrintInputLine(self);
+    rl_print_prompt(self);
+    rl_print_input_line(self);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
     ft_cursor(FT_ON);
 }
 
-static void LineReader_Backspace(LineReaderRef _Nonnull self)
+static void rl_input_bs(rl_t _Nonnull self)
 {
     if (self->cursorX == 0 || self->textLastCol < 0) {
         return;
@@ -372,10 +372,10 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
     ft_cursor(FT_ON);
 
-    LineReader_OnUserInput(self);
+    rl_on_user_input(self);
 }
 
-static void LineReader_Delete(LineReaderRef _Nonnull self)
+static void rl_input_del(rl_t _Nonnull self)
 {
     if (self->cursorX > self->textLastCol) {
         return;
@@ -394,10 +394,10 @@ static void LineReader_Delete(LineReaderRef _Nonnull self)
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
     ft_cursor(FT_ON);
 
-    LineReader_OnUserInput(self);
+    rl_on_user_input(self);
 }
 
-static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
+static void rl_input_char(rl_t _Nonnull self, int ch)
 {
     const int doInsert = self->flags.isInsertMode && self->cursorX < self->lineLastCol && self->cursorX <= self->textLastCol;
 
@@ -437,10 +437,10 @@ static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
         self->cursorX++;
     }
 
-    LineReader_OnUserInput(self);
+    rl_on_user_input(self);
 }
 
-static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
+static int rl_layout(rl_t _Nonnull self)
 {
     int x, y;
     int w, h;
@@ -499,9 +499,9 @@ static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
     return 0;
 }
 
-char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
+char* _Nonnull rl_readline(rl_t _Nonnull self)
 {
-    if (LineReader_CalcLayout(self) < 0) {
+    if (rl_layout(self) < 0) {
         return "";
     }
 
@@ -517,7 +517,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
 
     // Print the prompt
-    LineReader_PrintPrompt(self);
+    rl_print_prompt(self);
     ft_flush();
 
 
@@ -533,35 +533,35 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
             case 1:     // Ctrl-a
             case FT_CHAR_HOME:
-                LineReader_MoveCursorToBeginningOfLine(self);
+                rl_cursor_bol(self);
                 break;
 
             case 5:     // Ctrl-e
             case FT_CHAR_END:
-                LineReader_MoveCursorToEndOfLine(self);
+                rl_cursor_eol(self);
                 break;
 
             case 8:     // Backspace
-                LineReader_Backspace(self);
+                rl_input_bs(self);
                 break;
                 
             case 12:    // Ctrl-l
-                LineReader_ClearScreen(self);
+                rl_cls(self);
                 break;
 
             case 4:     // Ctrl-d
             case FT_CHAR_DELETE:
-                LineReader_Delete(self);
+                rl_input_del(self);
                 break;
 
             case 2:     // Ctrl-b
             case FT_CHAR_CURSOR_LEFT:
-                LineReader_MoveCursorLeft(self);
+                rl_cursor_left(self);
                 break;
 
             case 6:     // Ctrl-f
             case FT_CHAR_CURSOR_RIGHT:
-                LineReader_MoveCursorRight(self);
+                rl_cursor_right(self);
                 break;
 
             case 9:     // Ctrl-i
@@ -571,17 +571,17 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
             case 16:    // Ctrl-p
             case FT_CHAR_CURSOR_UP:
-                LineReader_MoveHistoryUp(self);
+                rl_history_up(self);
                 break;
 
             case 14:    // Ctrl-n
             case FT_CHAR_CURSOR_DOWN:
-                LineReader_MoveHistoryDown(self);
+                rl_history_down(self);
                 break;
 
             default:
                 if (isprint(ch)) {
-                    LineReader_InputCharacter(self, ch);
+                    rl_input_char(self, ch);
                 }
                 break;
         }
@@ -597,7 +597,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
     ft_flush();
 
     self->line[self->textLastCol + 1] = '\0';
-    LineReader_PushHistory(self, self->line);
+    rl_push_history(self, self->line);
 
     return self->line;
 }

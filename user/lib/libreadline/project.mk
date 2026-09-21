@@ -1,0 +1,48 @@
+# --------------------------------------------------------------------------
+# Build variables
+#
+
+LIBREADLINE_SOURCES_DIR := $(LIBREADLINE_PROJECT_DIR)/src
+LIBREADLINE_OBJS_DIR := $(LIB_OBJS_DIR)/LIBREADLINE
+
+LIBREADLINE_C_SOURCES := $(wildcard $(LIBREADLINE_SOURCES_DIR)/*.c)
+
+LIBREADLINE_OBJS := $(patsubst $(LIBREADLINE_SOURCES_DIR)/%.c, $(LIBREADLINE_OBJS_DIR)/%.o, $(LIBREADLINE_C_SOURCES))
+LIBREADLINE_DEPS := $(LIBREADLINE_OBJS:.o=.d)
+
+LIBREADLINE_C_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(LIBFLOWTERM_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBREADLINE_HEADERS_DIR) -I$(LIBREADLINE_SOURCES_DIR)
+
+#LIBREADLINE_GENERATE_DEPS = -deps -depfile=$(patsubst $(LIBREADLINE_OBJS_DIR)/%.o,$(LIBREADLINE_OBJS_DIR)/%.d,$@)
+LIBREADLINE_GENERATE_DEPS := 
+LIBREADLINE_CC_DONTWARN :=
+
+
+# --------------------------------------------------------------------------
+# Build rules
+#
+
+.PHONY: clean-libreadline $(LIBREADLINE_OBJS_DIR)
+
+
+build-libreadline: $(LIBREADLINE_FILE)
+
+$(LIBREADLINE_OBJS): | $(LIBREADLINE_OBJS_DIR) $(PRODUCT_LIB_DIR)
+
+$(LIBREADLINE_OBJS_DIR):
+	$(call mkdir_if_needed,$(LIBREADLINE_OBJS_DIR))
+
+
+$(LIBREADLINE_FILE): $(LIBREADLINE_OBJS)
+	@echo Making libreadline.a
+	$(LIBTOOL) create $@ $^
+
+
+-include $(LIBREADLINE_DEPS)
+
+$(LIBREADLINE_OBJS_DIR)/%.o : $(LIBREADLINE_SOURCES_DIR)/%.c
+	@echo $<
+	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(LIBREADLINE_C_INCLUDES) $(LIBREADLINE_CC_DONTWARN) $(LIBREADLINE_GENERATE_DEPS) -o $@ $<
+
+
+clean-libreadline:
+	$(call rm_if_exists,$(LIBREADLINE_OBJS_DIR))

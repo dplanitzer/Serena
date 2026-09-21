@@ -106,6 +106,11 @@ LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
 LIBM_FILE := $(PRODUCT_LIB_DIR)/libm.a
 
 
+LIBREADLINE_PROJECT_DIR := $(LIB_DIR)/libreadline
+LIBREADLINE_HEADERS_DIR := $(LIBREADLINE_PROJECT_DIR)/h
+LIBREADLINE_FILE := $(PRODUCT_LIB_DIR)/libreadline.a
+
+
 #---------------------------------------------------------------------------
 # Commands
 #
@@ -254,6 +259,8 @@ include $(LIBCLAP_PROJECT_DIR)/project.mk
 include $(LIBDISPATCH_PROJECT_DIR)/project.mk
 include $(LIBFLOWTERM_PROJECT_DIR)/project.mk
 include $(LIBGD_PROJECT_DIR)/project.mk
+include $(LIBREADLINE_PROJECT_DIR)/project.mk
+
 
 include $(KERNEL_PROJECT_DIR)/project.mk
 
@@ -271,7 +278,7 @@ include $(FLOWTERM_TEST_PROJECT_DIR)/project.mk
 
 
 build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE) \
-				$(LIBFLOWTERM_FILE) $(LIBGD_FILE)
+				$(LIBFLOWTERM_FILE) $(LIBREADLINE_FILE) $(LIBGD_FILE)
 
 build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				$(COPY_FILE) $(CPU_FILE) $(DELETE_FILE) \
@@ -348,6 +355,7 @@ build-sdk: build-all-libs
 	$(call copy_contents_of_dir,$(LIBFLOWTERM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBGD_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy_contents_of_dir,$(LIBREADLINE_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/kpi,$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/machine,$(SDK_INCLUDE_DIR)/)
 #XXX remove '__*.h' header files since they are OS private header files

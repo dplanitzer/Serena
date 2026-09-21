@@ -1,21 +1,18 @@
 //
-//  LineReader.h
-//  sh
+//  __readline.h
+//  readline
 //
 //  Created by Dietmar Planitzer on 12/29/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef LineReader_h
-#define LineReader_h
+#ifndef __READLINE_H_
+#define __READLINE_H_
 
+#include <readline.h>
 #include <stdbool.h>
-#include <stddef.h>
 
-
-#define kLineReader_ScreenWidth   -1
-
-typedef struct LineReader {
+struct readline {
     // Prompt
     char*   prompt;
     size_t  promptLength;
@@ -51,24 +48,7 @@ typedef struct LineReader {
         unsigned int    hasTermInsertMode:1;
         unsigned int    reserved:30;
     }       flags;
-} LineReader;
-typedef LineReader* LineReaderRef;
+};
 
 
-// Create a new line reader. The line reader spans a single row which shows the
-// prompt on the left side and an input field to the right of the prompt. The
-// left edge of the prompt appears at 'x' and the line reader is 'width' columns
-// wide (prompt + input line length). Pass kLineReader_ScreenWidth as 'width' to
-// make the line reader as wide as the screen. Note that 'x' is zero based.
-extern LineReaderRef _Nonnull LineReader_Create(int x, int width);
-extern void LineReader_Destroy(LineReaderRef _Nullable self);
-
-extern char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self);
-
-extern void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nonnull str);
-extern void LineReader_SetHistoryCapacity(LineReaderRef _Nonnull self, size_t capacity);
-
-extern int LineReader_GetHistoryCount(LineReaderRef _Nonnull self);
-extern const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int idx);
-
-#endif  /* LineReader_h */
+#endif  /* __READLINE_H_ */
