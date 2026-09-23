@@ -20,29 +20,39 @@
 
 
 static void rl_delete_history(rl_t _Nonnull self);
+static void rl_set_max_history_count(rl_t _Nonnull self, size_t capacity);
 static void rl_save_line_if_dirty(rl_t _Nonnull self);
 static void rl_set_line(rl_t _Nonnull self, const char* _Nonnull pNewLine);
 static void rl_print_input_line(rl_t _Nonnull self);
 
 
-rl_t _Nonnull rl_create(int x, int width)
+rl_t _Nullable rl_create(const rl_create_info_t* _Nonnull info)
 {
+    if (info->tag != RL_CREATE_STRUCT_TAG) {
+        return NULL;
+    }
+
     rl_t self = calloc(1, sizeof(struct readline));
 
-    self->lrX = x;
-    self->lrWidth = width;
+    if (self) {
+        self->lrX = info->x;
+        self->lrWidth = info->width;
 
-    self->prompt = malloc(8);
-    self->prompt[0] = '\0';
-    self->promptLength = 0;
-    self->promptCapacity = 8;
+        self->savedLine = NULL;
+        self->isDirty = false;
 
-    self->savedLine = NULL;
-    self->isDirty = false;
-
-    self->flags.isInsertMode = 1;
-    self->flags.hasTermInsertMode = 1;
+        self->flags.isInsertMode = 1;
+        self->flags.hasTermInsertMode = 1;
     
+
+        if (info->max_history_count > 0) {
+            rl_set_max_history_count(self, info->max_history_count);
+        }
+        if (info->prompt && info->prompt[0] != '\0') {
+            rl_set_prompt(self, info->prompt);
+        }
+    }
+
     return self;
 }
 
@@ -64,28 +74,15 @@ void rl_destroy(rl_t _Nullable self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void rl_setprompt(rl_t _Nonnull self, const char* _Nonnull str)
+void rl_set_prompt(rl_t _Nonnull self, const char* _Nonnull str)
 {
-    size_t j = 0, len = strlen(str);
+    char* np = strdup(str);
 
-    self->promptLength = 0;
-    self->prompt[0] = '\0';
-
-
-    if ((len + 1) > self->promptCapacity) {
-        self->prompt = realloc(self->prompt, len + 1);
-        self->promptCapacity = len + 1;
+    if (np) {
+        free(self->prompt);
+        self->prompt = np;
+        self->promptLength = strlen(str);
     }
-    
-
-    for (size_t i = 0; i < len; i++) {
-        if (isprint(str[i])) {
-            self->prompt[j++] = str[i];
-        }
-    }
-
-    self->prompt[j] = '\0';
-    self->promptLength = j;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +91,7 @@ void rl_setprompt(rl_t _Nonnull self, const char* _Nonnull str)
 static void rl_delete_history(rl_t _Nonnull self)
 {
     if (self->history) {
-        for (int i = 0; i < self->historyCount; i++) {
+        for (size_t i = 0; i < self->historyCount; i++) {
             free(self->history[i]);
             self->history[i] = NULL;
         }
@@ -110,7 +107,7 @@ static void rl_delete_history(rl_t _Nonnull self)
 // Sets the history capacity. This is the maximum number of entries the history
 // will keep. Note that changing the history capacity deletes whatever is
 // currently stored in the history. The history capacity is 0 by default.
-void rl_sethistorycapacity(rl_t _Nonnull self, size_t capacity)
+static void rl_set_max_history_count(rl_t _Nonnull self, size_t capacity)
 {
     rl_delete_history(self);
 
@@ -121,16 +118,22 @@ void rl_sethistorycapacity(rl_t _Nonnull self, size_t capacity)
 }
 
 // Returns the number of entries that currently exist in the history.
-int rl_historycount(rl_t _Nonnull self)
+size_t rl_history_count(rl_t _Nonnull self)
 {
     return self->historyCount;
 }
 
 // Returns a reference to the history entry at the given index. Entries are
-// ordered ascending from oldest to newest.
-const char* _Nonnull rl_historyat(rl_t _Nonnull self, int idx)
+// ordered ascending from oldest to newest. Returns NULL if 'idx' is out of range.
+const char* _Nullable rl_history_at(rl_t _Nonnull self, size_t idx)
 {
-    return self->history[idx];
+    if (idx < self->historyCount) {
+        return self->history[idx];
+    }
+    else {
+        errno = EINVAL;
+        return NULL;
+    }
 }
 
 #if 0
@@ -152,13 +155,13 @@ static void rl_print_history(rl_t _Nonnull self, const char* _Nonnull info)
 // if at least one entry was removed from the stack and false otherwise.
 static bool rl_remove_history(rl_t _Nonnull self, char* _Nonnull pLine)
 {
-    int nRemoved = 0;
+    size_t nRemoved = 0;
 
-    for (int i = 0; i < self->historyCount; i++) {
+    for (size_t i = 0; i < self->historyCount; i++) {
         if (!strcmp(pLine, self->history[i])) {
             free(self->history[i]);
             // 0 1 2 3 4 5 6 7
-            for (int j = i + 1; j < self->historyCount; j++) {
+            for (size_t j = i + 1; j < self->historyCount; j++) {
                 self->history[j - 1] = self->history[j];
             }
             self->history[self->historyCount - 1] = NULL;
@@ -184,7 +187,7 @@ static void rl_push_history(rl_t _Nonnull self, char* _Nonnull pLine)
 
     // Only add 'pLine' if it isn't empty or purely whitespace
     bool isUseful = false;
-    for (int i = 0; pLine[i] != '\0'; i++) {
+    for (size_t i = 0; pLine[i] != '\0'; i++) {
         if (!isspace(pLine[i])) {
             isUseful = true;
             break;
@@ -207,7 +210,7 @@ static void rl_push_history(rl_t _Nonnull self, char* _Nonnull pLine)
     if (self->historyCount == self->historyCapacity) {
         free(self->history[0]);
 
-        for (int i = 1; i < self->historyCount; i++) {
+        for (size_t i = 1; i < self->historyCount; i++) {
             self->history[i - 1] = self->history[i];
         }
 
@@ -499,7 +502,7 @@ static int rl_layout(rl_t _Nonnull self)
     return 0;
 }
 
-char* _Nonnull rl_readline(rl_t _Nonnull self)
+const char* _Nonnull rl_readline(rl_t _Nonnull self)
 {
     if (rl_layout(self) < 0) {
         return "";
@@ -599,5 +602,5 @@ char* _Nonnull rl_readline(rl_t _Nonnull self)
     self->line[self->textLastCol + 1] = '\0';
     rl_push_history(self, self->line);
 
-    return self->line;
+    return (const char*)self->line;
 }

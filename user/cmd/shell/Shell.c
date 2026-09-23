@@ -21,9 +21,16 @@ ShellRef _Nonnull Shell_Create(bool isInteractive)
     ShellRef self = calloc(1, sizeof(Shell));
 
     if (isInteractive) {
-        self->lineReader = rl_create(0, RL_SCREEN_WIDTH);
-        rl_setprompt(self->lineReader, ">");
-        rl_sethistorycapacity(self->lineReader, 10);
+        rl_create_info_t info;
+
+        info.tag = RL_CREATE_STRUCT_TAG;
+        info.flags = 0;
+        info.x = 0;
+        info.width = RL_SCREEN_WIDTH;
+        info.max_history_count = 10;
+        info.prompt = ">";
+
+        self->lineReader = rl_create(&info);
     }
     self->parser = Parser_Create();
     self->interpreter = Interpreter_Create(self->lineReader);
@@ -71,7 +78,7 @@ int Shell_Run(ShellRef _Nonnull self)
     Script* script = Script_Create();
 
     while (true) {
-        char* line = rl_readline(self->lineReader);
+        const char* line = rl_readline(self->lineReader);
 
         putchar('\n');
         _Shell_ExecuteString(self, line, script, true);    // No script scope in interactive mode

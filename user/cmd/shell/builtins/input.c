@@ -27,8 +27,16 @@ static CLAP_DECL(params,
 static void do_input(InterpreterRef _Nonnull ip)
 {
     // XXX figure out what to do about the max length. I.e. should probably be controllable with an argument
-    rl_t lineReader = rl_create(0, RL_SCREEN_WIDTH); 
-    rl_setprompt(lineReader, prompt);
+    rl_create_info_t info;
+
+    info.tag = RL_CREATE_STRUCT_TAG;
+    info.flags = 0;
+    info.x = 0;
+    info.width = RL_SCREEN_WIDTH;
+    info.max_history_count = 0;
+    info.prompt = prompt;
+
+    rl_t lineReader = rl_create(&info); 
     
     OpStack_PushCString(ip->opStack, rl_readline(lineReader));
         
