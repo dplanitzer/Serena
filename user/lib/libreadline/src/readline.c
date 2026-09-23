@@ -283,11 +283,9 @@ static void rl_set_line(rl_t _Nonnull self, const char* _Nonnull new_line)
     self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
 
 
-    ft_cursor(FT_OFF);
     ft_moveto(self->inputAreaFirstCol + 1, self->lrY + 1);
     fwrite(self->line, 1, self->lineLastCol + 1, stdout);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
-    ft_cursor(FT_ON);
 }
 
 static void rl_print_prompt(rl_t _Nonnull self)
@@ -346,12 +344,10 @@ static void rl_cls(rl_t _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
-    ft_cursor(FT_OFF);
     ft_cls();
     rl_print_prompt(self);
     rl_print_input_line(self);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
-    ft_cursor(FT_ON);
 }
 
 static void rl_input_bs(rl_t _Nonnull self)
@@ -369,11 +365,9 @@ static void rl_input_bs(rl_t _Nonnull self)
     self->cursorX--;
     self->textLastCol--;
 
-    ft_cursor(FT_OFF);
     putc(8, stdout);
     fwrite(&self->line[self->cursorX], 1, (self->textLastCol + 2) - self->cursorX, stdout);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
-    ft_cursor(FT_ON);
 
     rl_on_user_input(self);
 }
@@ -392,10 +386,8 @@ static void rl_input_del(rl_t _Nonnull self)
 
     self->textLastCol--;
 
-    ft_cursor(FT_OFF);
     fwrite(&self->line[self->cursorX], 1, (self->textLastCol + 2) - self->cursorX, stdout);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
-    ft_cursor(FT_ON);
 
     rl_on_user_input(self);
 }
@@ -416,10 +408,8 @@ static void rl_input_char(rl_t _Nonnull self, int ch)
             ft_insertmode(FT_OFF);
         }
         else {
-            ft_cursor(FT_OFF);
             fwrite(&self->line[self->cursorX], 1, __min(self->textLastCol + 2, self->lineLastCol + 1) - self->cursorX, stdout);
             ft_moveto(self->inputAreaFirstCol + self->cursorX + 1 + 1, self->lrY + 1);
-            ft_cursor(FT_ON);
         }
 
         if (self->textLastCol < self->lineLastCol) {
