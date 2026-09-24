@@ -356,9 +356,9 @@ extern void ft_move(int dx, int dy);
 
 // Applies the text style 'style', the foreground color 'fg' and the background
 // color 'bg' to the current text style state of the terminal. If FT_RESET is
-// specified then this style is always applied first. After that all non-reset
-// text styles are applied and finally all reset styles are applied. A color
-// which is passed as NULL remains unchanged.
+// specified then the current text style is first reset back to the defaults.
+// After that all non-reset text styles are applied and finally all reset styles
+// are applied. A color which is passed as NULL remains unchanged.
 extern void ft_style(ft_textstyle_t style, const ft_color_t* _Nullable fg, const ft_color_t* _Nullable bg);
 
 // Convenience macro to reset the text style back to plain with default
