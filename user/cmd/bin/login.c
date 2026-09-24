@@ -195,11 +195,10 @@ int main(int argc, char *argv[])
 
     ft_init(0);
 
-    ft_fgcolor(FT_CYAN);
+    ft_fgcolor(&ft_ansi_cyan);
     puts("Serena OS v0.85.0-alpha");
-    ft_style(FT_PLAIN);
+    ft_fgcolor(&ft_ansi_default);
     puts("Copyright 2023 - 2026, Dietmar Planitzer.\n");
-    ft_flush();
     
     // Log the user in and then return from our closure. Our VP will be moved
     // over to the shell and run the shell until it exits. Our 'on_shell_termination'

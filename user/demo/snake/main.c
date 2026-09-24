@@ -217,7 +217,7 @@ static void draw_full_frame(void)
     ft_cls();
 
     // Playfield
-    ft_fgcolor(FT_GREEN);
+    ft_fgcolor(&ft_ansi_green);
     ft_moveto(playfield_x + 1, playfield_y + 1);
     ft_drawrect(&ft_rectstyle_hflat, playfield_width + 2, playfield_height + 2);
 
@@ -227,12 +227,12 @@ static void draw_full_frame(void)
     fputs("Press SPACE to pause/resume the game and ESC to quit.", stdout);
 
     // Fruit
-    ft_fgcolor(FT_RED);
+    ft_fgcolor(&ft_ansi_red);
     ft_moveto(fruit_x + playfield_x + 2, fruit_y + playfield_y + 2);
     putc('*', stdout);
 
     // Snake
-    ft_fgcolor(FT_YELLOW);
+    ft_fgcolor(&ft_ansi_yellow);
     ft_moveto(snake_x[0] + playfield_x + 2, snake_y[0] + playfield_y + 2);
     putc('O', stdout);
     for (int i = 1; i < snake_len; i++) {
@@ -247,14 +247,14 @@ static void draw_delta_frame(int flags)
     // left/top playfield border
 
     if ((flags & DRAW_FRUIT_PLACEMENT) != 0) {
-        ft_fgcolor(FT_RED);
+        ft_fgcolor(&ft_ansi_red);
         ft_moveto(fruit_x + playfield_x + 2, fruit_y + playfield_y + 2);
         putc('*', stdout);
     }
 
 
     if ((flags & DRAW_SNAKE_MOVE) != 0) {
-        ft_fgcolor(FT_YELLOW);
+        ft_fgcolor(&ft_ansi_yellow);
         ft_moveto(snake_x[0] + playfield_x + 2, snake_y[0] + playfield_y + 2);
         putc('O', stdout);
 
@@ -274,7 +274,7 @@ static void draw_delta_frame(int flags)
 
 
     if ((flags & DRAW_SCORE_CHANGE) != 0) {
-        ft_fgcolor(FT_GREEN);
+        ft_fgcolor(&ft_ansi_green);
         ft_moveto(7 + 1, playfield_height + 4);
         fiprintf(stdout, "%d", score);
     }

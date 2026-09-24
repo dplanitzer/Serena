@@ -144,27 +144,69 @@ typedef struct ft_event {
 #define FT_ON   1
 
 
-// Text styles
-#define FT_PLAIN            0
-#define FT_BOLD             1
-#define FT_DIM              2
-#define FT_ITALIC           4
-#define FT_UNDERLINE        8
-#define FT_BLINK            16
-#define FT_INVERSE          32
-#define FT_HIDDEN           64
-#define FT_STRIKETHROUGH    128
+// Ignore text style
+#define FT_IGNORE           0
+
+// Reset text style and colors back to plain and default
+#define FT_RESET            0x1
+
+// Add a text style
+#define FT_BOLD             0x2 
+#define FT_DIM              0x4
+#define FT_ITALIC           0x8
+#define FT_UNDERLINE        0x10
+#define FT_BLINK            0x20
+#define FT_INVERSE          0x40
+#define FT_HIDDEN           0x80
+#define FT_STRIKETHROUGH    0x100
+
+// Remove a text style
+#define FT_RESET_BOLD_DIM       0x200 
+#define FT_RESET_ITALIC         0x800
+#define FT_RESET_UNDERLINE      0x1000
+#define FT_RESET_BLINK          0x2000
+#define FT_RESET_INVERSE        0x4000
+#define FT_RESET_HIDDEN         0x8000
+#define FT_RESET_STRIKETHROUGH  0x10000
+
+typedef unsigned int ft_textstyle_t;
 
 
-// Fixed ANSI color palette
-#define FT_BLACK        0
-#define FT_RED          1
-#define FT_GREEN        2
-#define FT_YELLOW       3
-#define FT_BLUE         4
-#define FT_MAGENTA      5
-#define FT_CYAN         6
-#define FT_WHITE        7
+// Fixed ANSI color codes
+#define FT_ANSI_BLACK   0
+#define FT_ANSI_RED     1
+#define FT_ANSI_GREEN   2
+#define FT_ANSI_YELLOW  3
+#define FT_ANSI_BLUE    4
+#define FT_ANSI_MAGENTA 5
+#define FT_ANSI_CYAN    6
+#define FT_ANSI_WHITE   7
+#define FT_ANSI_DEFAULT 9   // Reset foreground/background color to the default color value
+
+
+// Color models
+#define FT_COLOR_MODEL_ANSI 0
+
+
+// Terminal color description
+typedef struct ft_color {
+    int     model;
+    union {
+        int     ansi;
+    }       color;
+} ft_color_t;
+
+
+// Fixed ANSI colors
+extern const ft_color_t ft_ansi_black;
+extern const ft_color_t ft_ansi_red;
+extern const ft_color_t ft_ansi_green;
+extern const ft_color_t ft_ansi_yellow;
+extern const ft_color_t ft_ansi_blue;
+extern const ft_color_t ft_ansi_magenta;
+extern const ft_color_t ft_ansi_cyan;
+extern const ft_color_t ft_ansi_white;
+extern const ft_color_t ft_ansi_default;    // Reset foreground/background color to the default color value
 
 
 // Structure used to define the characters that ft_drawrect() should use to draw
@@ -312,14 +354,25 @@ extern void ft_moveto(int x, int y);
 extern void ft_move(int dx, int dy);
 
 
-// Sets the text style to the combination of 'flags'. Pass FT_PLAIN to reset the
-// text style back to a simple, plain text style.
-extern void ft_style(unsigned int flags);
+// Applies the text style 'style', the foreground color 'fg' and the background
+// color 'bg' to the current text style state of the terminal. If FT_RESET is
+// specified then this style is always applied first. After that all non-reset
+// text styles are applied and finally all reset styles are applied. A color
+// which is passed as NULL remains unchanged.
+extern void ft_style(ft_textstyle_t style, const ft_color_t* _Nullable fg, const ft_color_t* _Nullable bg);
 
-// Sets the text foreground and background colors to one of the ANSI fixed
-// color palette entries.
-extern void ft_fgcolor(int color);
-extern void ft_bgcolor(int color);
+// Convenience macro to reset the text style back to plain with default
+// foreground and background colors.
+#define ft_resetstyle() \
+ft_style(FT_RESET, NULL, NULL)
+
+// Convenience macro to just change the foreground color.
+#define ft_fgcolor(clr_ptr) \
+ft_style(FT_IGNORE, clr_ptr, NULL)
+
+// Convenience macro to just change the background color.
+#define ft_bgcolor(clr_ptr) \
+ft_style(FT_IGNORE, NULL, clr_ptr)
 
 
 // Draws a horizontal line of length 'count' from left to right, starting at the

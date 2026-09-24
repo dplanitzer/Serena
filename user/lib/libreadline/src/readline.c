@@ -506,7 +506,7 @@ const char* _Nonnull rl_readline(rl_t _Nonnull self)
     ft_insertmode(FT_OFF);
     ft_autowrap(FT_OFF);
     ft_cursor(FT_ON);
-    ft_style(FT_PLAIN);
+    ft_resetstyle();
 
 
     // Print the prompt
@@ -586,7 +586,7 @@ const char* _Nonnull rl_readline(rl_t _Nonnull self)
     // Replace mode, auto-wrap on, reset character attributes
     ft_insertmode(FT_OFF);
     ft_autowrap(FT_ON);
-    ft_style(FT_PLAIN);
+    ft_resetstyle();
     ft_flush();
 
     self->line[self->textLastCol + 1] = '\0';

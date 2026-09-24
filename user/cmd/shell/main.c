@@ -49,9 +49,9 @@ int main(int argc, char *argv[])
     ShellRef sh = Shell_Create(isInteractive);
     if (isInteractive) {
         if (!arg_isLogin) {
-            ft_fgcolor(FT_CYAN);
+            ft_fgcolor(&ft_ansi_cyan);
             fputs("\nSerena Shell v0.85.0-alpha\n", stdout);
-            ft_style(FT_PLAIN);
+            ft_fgcolor(&ft_ansi_default);
             fputs("Copyright 2023 - 2026, Dietmar Planitzer.\n\n", stdout);
         }
 
