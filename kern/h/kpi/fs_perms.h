@@ -40,6 +40,10 @@
 #define FS_OTH_W    02
 #define FS_OTH_X    01
 
+#define FS_ANY_R    (FS_USR_R | FS_GRP_R | FS_OTH_R)
+#define FS_ANY_W    (FS_USR_W | FS_GRP_W | FS_OTH_W)
+#define FS_ANY_X    (FS_USR_X | FS_GRP_X | FS_OTH_X)
+
 #define FS_PRM_RWX  07
 #define FS_PRM_R    04
 #define FS_PRM_W    02

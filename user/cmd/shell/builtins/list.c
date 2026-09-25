@@ -10,6 +10,7 @@
 #include "Utilities.h"
 #include <clap.h>
 #include <errno.h>
+#include <flowterm.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
@@ -48,6 +49,7 @@ static int  size_w;
 static int  date_w;
 
 static bool print_all;
+static bool colorize = true;
 
 static struct tm    date;
 
@@ -97,6 +99,36 @@ static int format_inode(const char* _Nonnull path, const char* _Nonnull entryNam
     return 0;
 }
 
+static void print_filename(const char* _Nonnull filename, const fs_attr_t* _Nonnull attr)
+{
+    if (colorize) {
+        const ft_color_t* clr;
+
+        switch (attr->file_type) {
+            case FS_FTYPE_DEV:  clr = &ft_ansi_yellow;  break;
+            case FS_FTYPE_DIR:  clr = &ft_ansi_cyan;    break;
+            case FS_FTYPE_FIFO: clr = &ft_ansi_yellow;  break;
+            case FS_FTYPE_LNK:  clr = &ft_ansi_magenta; break;
+
+            default:
+                if ((attr->permissions & FS_ANY_X) != 0) {
+                    clr = &ft_ansi_green;
+                } else {
+                    clr = &ft_ansi_white;
+                }
+                break;
+        }
+
+        ft_fgcolor(clr);
+    }
+
+    ft_puts(filename);
+    
+    if (colorize) {
+        ft_resetstyle();
+    }
+}
+
 static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
     fs_attr_t attr;
@@ -107,11 +139,11 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
     }
     
     switch (attr.file_type) {
-        case FS_FTYPE_DEV:   tc = 'h'; break;
-        case FS_FTYPE_DIR:   tc = 'd'; break;
-        case FS_FTYPE_FIFO:   tc = 'p'; break;
-        case FS_FTYPE_LNK:   tc = 'l'; break;
-        default:        tc = '-'; break;
+        case FS_FTYPE_DEV:  tc = 'h'; break;
+        case FS_FTYPE_DIR:  tc = 'd'; break;
+        case FS_FTYPE_FIFO: tc = 'p'; break;
+        case FS_FTYPE_LNK:  tc = 'l'; break;
+        default:            tc = '-'; break;
     }
     buf[0] = tc;
 
@@ -126,7 +158,7 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
 
     localtime_r(&attr.mod_time.tv_sec, &date);
         
-    printf("%s %*d  %*u %*u  %*lld  ",
+    ft_printf("%s %*d  %*u %*u  %*lld  ",
         buf,
         nlink_w, attr.nlink,
         uid_w, attr.uid,
@@ -139,14 +171,15 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
             date.tm_year + 1900);
     }
     else {
-        printf("%s %d %0.2d:%0.2d  ",
+        ft_printf("%s %d %0.2d:%0.2d  ",
             __gc_abbrev_ymon(date.tm_mon + 1),
             date.tm_mday,
             date.tm_hour,
             date.tm_min);
     }
-    fputs(entryName, stdout);
-    fputc('\n', stdout);
+
+    print_filename(entryName, &attr);
+    ft_putc('\n');
 
     return 0;
 }
