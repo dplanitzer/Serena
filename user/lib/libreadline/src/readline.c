@@ -284,7 +284,7 @@ static void rl_set_line(rl_t _Nonnull self, const char* _Nonnull new_line)
 
 
     ft_moveto(self->inputAreaFirstCol + 1, self->lrY + 1);
-    fwrite(self->line, 1, self->lineLastCol + 1, stdout);
+    ft_write(self->line, self->lineLastCol + 1);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
 }
 
@@ -292,7 +292,7 @@ static void rl_print_prompt(rl_t _Nonnull self)
 {
     if (self->promptWidth > 0) {
         ft_moveto(self->promptX + 1, self->lrY + 1);
-        fwrite(self->prompt, 1, self->promptLength, stdout);
+        ft_write(self->prompt, self->promptLength);
     }
 }
 
@@ -300,7 +300,7 @@ static void rl_print_input_line(rl_t _Nonnull self)
 {
     if (self->textLastCol >= 0) {
         ft_moveto(self->inputAreaFirstCol + 1, self->lrY + 1);
-        fwrite(self->line, 1, self->textLastCol + 1, stdout);
+        ft_write(self->line, self->textLastCol + 1);
     }
 }
 
@@ -365,8 +365,8 @@ static void rl_input_bs(rl_t _Nonnull self)
     self->cursorX--;
     self->textLastCol--;
 
-    putc(8, stdout);
-    fwrite(&self->line[self->cursorX], 1, (self->textLastCol + 2) - self->cursorX, stdout);
+    ft_putc(8);
+    ft_write(&self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
 
     rl_on_user_input(self);
@@ -386,7 +386,7 @@ static void rl_input_del(rl_t _Nonnull self)
 
     self->textLastCol--;
 
-    fwrite(&self->line[self->cursorX], 1, (self->textLastCol + 2) - self->cursorX, stdout);
+    ft_write(&self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
     ft_moveto(self->inputAreaFirstCol + self->cursorX + 1, self->lrY + 1);
 
     rl_on_user_input(self);
@@ -404,11 +404,11 @@ static void rl_input_char(rl_t _Nonnull self, int ch)
 
         if (self->flags.hasTermInsertMode) {
             ft_insertmode(FT_ON);
-            putc(self->line[self->cursorX], stdout);
+            ft_putc(self->line[self->cursorX]);
             ft_insertmode(FT_OFF);
         }
         else {
-            fwrite(&self->line[self->cursorX], 1, __min(self->textLastCol + 2, self->lineLastCol + 1) - self->cursorX, stdout);
+            ft_write(&self->line[self->cursorX], __min(self->textLastCol + 2, self->lineLastCol + 1) - self->cursorX);
             ft_moveto(self->inputAreaFirstCol + self->cursorX + 1 + 1, self->lrY + 1);
         }
 
@@ -419,7 +419,7 @@ static void rl_input_char(rl_t _Nonnull self, int ch)
     else {
         self->line[self->cursorX] = ch;
 
-        putc(self->line[self->cursorX], stdout);
+        ft_putc(self->line[self->cursorX]);
 
         if (self->textLastCol < self->cursorX) {
             self->textLastCol = self->cursorX;

@@ -222,22 +222,22 @@ static void draw_full_frame(void)
     ft_drawrect(&ft_rectstyle_hflat, playfield_width + 2, playfield_height + 2);
 
     // Info (limit height to INFO_HEIGHT)
-    fiprintf(stdout, "\n\nScore: %d\n\n", score);
-    fputs("Press W, A, S, D to move the snake.\n", stdout);
-    fputs("Press SPACE to pause/resume the game and ESC to quit.", stdout);
+    ft_iprintf("\n\nScore: %d\n\n", score);
+    ft_puts("Press W, A, S, D to move the snake.\n");
+    ft_puts("Press SPACE to pause/resume the game and ESC to quit.");
 
     // Fruit
     ft_fgcolor(&ft_ansi_red);
     ft_moveto(fruit_x + playfield_x + 2, fruit_y + playfield_y + 2);
-    putc('*', stdout);
+    ft_putc('*');
 
     // Snake
     ft_fgcolor(&ft_ansi_yellow);
     ft_moveto(snake_x[0] + playfield_x + 2, snake_y[0] + playfield_y + 2);
-    putc('O', stdout);
+    ft_putc('O');
     for (int i = 1; i < snake_len; i++) {
         ft_moveto(snake_x[i] + playfield_x + 2, snake_y[i] + playfield_y + 2);
-        putc('o', stdout);
+        ft_putc('o');
     }
 }
 
@@ -249,18 +249,18 @@ static void draw_delta_frame(int flags)
     if ((flags & DRAW_FRUIT_PLACEMENT) != 0) {
         ft_fgcolor(&ft_ansi_red);
         ft_moveto(fruit_x + playfield_x + 2, fruit_y + playfield_y + 2);
-        putc('*', stdout);
+        ft_putc('*');
     }
 
 
     if ((flags & DRAW_SNAKE_MOVE) != 0) {
         ft_fgcolor(&ft_ansi_yellow);
         ft_moveto(snake_x[0] + playfield_x + 2, snake_y[0] + playfield_y + 2);
-        putc('O', stdout);
+        ft_putc('O');
 
         if (snake_len > 1) {
             ft_moveto(snake_x[1] + playfield_x + 2, snake_y[1] + playfield_y + 2);
-            putc('o', stdout);
+            ft_putc('o');
         }
 
         // Note: we keep the last snake segment on the screen if the snake has
@@ -268,7 +268,7 @@ static void draw_delta_frame(int flags)
         // frame. 
         if ((flags & DRAW_SNAKE_GROWTH) == 0) {
             ft_moveto(snake_old_tail_x + playfield_x + 2, snake_old_tail_y + playfield_y + 2);
-            putc(' ', stdout);
+            ft_putc(' ');
         }
     }
 
@@ -276,7 +276,7 @@ static void draw_delta_frame(int flags)
     if ((flags & DRAW_SCORE_CHANGE) != 0) {
         ft_fgcolor(&ft_ansi_green);
         ft_moveto(7 + 1, playfield_height + 4);
-        fiprintf(stdout, "%d", score);
+        ft_iprintf("%d", score);
     }
 }
 

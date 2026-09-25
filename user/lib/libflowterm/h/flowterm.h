@@ -420,4 +420,36 @@ extern const ft_rectstyle ft_rectstyle_plus;
 // height. 'style' specifies the drawing style that should be used.
 extern void ft_drawrect(const ft_rectstyle* _Nonnull style, int width, int height);
 
+
+// Writes 'nbytes' from 'buf' to the terminal and returns the number of bytes
+// actually written.
+#define ft_write(buf, nbytes) \
+fwrite(buf, 1, nbytes, termout)
+
+// Writes the string 'str' to the terminal and returns the number of characters
+// actually written. Note that this function behaves like fputs() and thus it
+// does not implicitly append a newline at the end of the string.
+#define ft_puts(str) \
+fputs(str, termout)
+
+// Writes the character 'ch' to the terminal.
+#define ft_putc(ch) \
+putc(ch, termout)
+
+// Writes a formatted C string to the terminal. Supports all printf() format
+// specifiers including floating-point related ones.
+#define ft_printf(format, ...) \
+fprintf(termout, format, __VA_ARGS__)
+
+#define ft_vprintf(format, ap) \
+vfprintf(termout, format, ap)
+
+// Writes a formatted C string to the terminal. Only non-floating-point related
+// format specifiers are supported.
+#define ft_iprintf(format, ...) \
+fiprintf(termout, format, __VA_ARGS__)
+
+#define ft_viprintf(format, ap) \
+vfiprintf(termout, format, ap)
+
 #endif /* _FLOWTERM_H */
