@@ -20,8 +20,8 @@ void ft_curpos(int* _Nonnull x, int* _Nonnull y)
     }
 
     
-    fputs("\033[6n", __ft_termout_fp);
-    fflush(__ft_termout_fp);
+    fputs("\033[6n", termout);
+    fflush(termout);
     
     if (ft_getevent(_FT_MSK_CURSOR_POSITION, 0, &evt) == 0) {
         *x = evt.data.report.param[1];

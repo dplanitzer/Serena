@@ -63,14 +63,14 @@ void ft_drawrect(const ft_rectstyle* _Nonnull style, int width, int height)
     *l_to_r   = '\0';
 
 
-    putc(style->top_left, __ft_termout_fp);
+    putc(style->top_left, termout);
     ft_hline(style->top, width - 2);
-    putc(style->top_right, __ft_termout_fp);
+    putc(style->top_right, termout);
 
     for (int y = 0; y < height - 2; y++) {
         const char* p = (y & 1) ? l_to_r0 : r_to_l0;
 
-        fputs(p, __ft_termout_fp);
+        fputs(p, termout);
     }
 
     if ((height - 3) & 1) {
@@ -96,9 +96,9 @@ void ft_drawrect(const ft_rectstyle* _Nonnull style, int width, int height)
         *p++ = 'D';
         *p = '\0';
     }
-    fputs(__ft_outbuf_alt, __ft_termout_fp);
+    fputs(__ft_outbuf_alt, termout);
 
-    putc(style->bottom_left, __ft_termout_fp);
+    putc(style->bottom_left, termout);
     ft_hline(style->bottom, width - 2);
-    putc(style->bottom_right, __ft_termout_fp);
+    putc(style->bottom_right, termout);
 }

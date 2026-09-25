@@ -126,5 +126,5 @@ void ft_style(ft_textstyle_t style, const ft_color_t* _Nullable fg, const ft_col
     *p++ = 'm';
     *p = '\0';
 
-    fputs(__ft_outbuf, __ft_termout_fp);
+    fputs(__ft_outbuf, termout);
 }

@@ -19,5 +19,5 @@ void ft_cls(void)
         str = "\n\n";
     }
 
-    fputs(str, __ft_termout_fp);
+    fputs(str, termout);
 }

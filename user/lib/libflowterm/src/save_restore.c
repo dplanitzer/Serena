@@ -11,13 +11,13 @@
 void ft_save(void)
 {
     if (__ft_termout_do_esc) {
-        fputs("\0337", __ft_termout_fp);
+        fputs("\0337", termout);
     }
 }
 
 void ft_restore(void)
 {
     if (__ft_termout_do_esc) {
-        fputs("\0338", __ft_termout_fp);
+        fputs("\0338", termout);
     }
 }

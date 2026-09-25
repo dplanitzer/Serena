@@ -27,10 +27,10 @@ void ft_hline(unsigned int ch, int count)
     __ft_outbuf[7] = (char)ch;
 
     while (count8-- > 0) {
-        fputs(__ft_outbuf, __ft_termout_fp);
+        fputs(__ft_outbuf, termout);
     }
     if (count1 > 0) {
         __ft_outbuf[count1] = '\0';
-        fputs(__ft_outbuf, __ft_termout_fp);
+        fputs(__ft_outbuf, termout);
     }
 }

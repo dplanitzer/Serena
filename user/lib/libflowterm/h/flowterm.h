@@ -239,7 +239,7 @@ typedef struct rectstyle {
 //                   stream.
 // * Terminal output: does not changing buffering on the provided stream. It is
 //                    your responsibility to configure the buffering mode as
-//                    needed before or after you pass the stream to ft_termout()
+//                    needed before or after you pass the stream to ft_settermout()
 //                    or ft_init().
 //
 // Coordinates: all coordinates are 1-based.
@@ -255,14 +255,23 @@ extern int ft_init(unsigned int flags);
 extern void ft_cleanup(void);
 
 
-// Set the terminal input to 'stream' and returns the previous input stream. The
-// default terminal input stream is stdin. Note that the provided stream should
-// be backed by a file descriptor.
-extern FILE* _Nullable ft_termin(FILE* _Nonnull stream);
+// Input stream from the terminal
+extern FILE* _Nonnull   termin;
 
-// Set the terminal output to 'stream'. The default terminal output stream is
-// stdout.
-extern FILE* _Nonnull ft_termout(FILE* _Nonnull stream);
+// Output stream to the terminal
+extern FILE* _Nonnull   termout;
+
+
+// Sets the terminal input to 'stream' and returns 0 on success. Returns -1 if
+// the provided stream is not compatible with flowterm. The default terminal
+// input stream is stdin. Note that the provided stream should be backed by a
+// file descriptor.
+extern int ft_settermin(FILE* _Nonnull stream);
+
+// Sets the terminal output to 'stream' and returns 0 on success. Returns -1 if
+// the provided stream is not compatible with flowterm. The default terminal
+// output stream is stdout.
+extern int ft_settermout(FILE* _Nonnull stream);
 
 // Returns a value > 0 if terminal output is actually connected to a terminal
 // and // a value == 0 if the output is connected to something else like a file

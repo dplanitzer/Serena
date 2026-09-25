@@ -9,10 +9,11 @@
 #include "__flowterm.h"
 #include <serena/fd.h>
 
-static FILE* _Nullable  __ft_termin_fp;
-int                     __ft_termin_fd = -1;    // >= 0 if valid; -1 if not valid
-FILE* _Nonnull          __ft_termout_fp;
-bool                    __ft_termout_do_esc;    // true if escape sequence capable; false otherwise
+FILE* _Nonnull  termin;
+FILE* _Nonnull  termout;
+
+int     __ft_termin_fd = -1;    // >= 0 if valid; -1 if not valid
+bool    __ft_termout_do_esc;    // true if escape sequence capable; false otherwise
 
 
 static bool __ft_isterm(FILE* _Nullable s)
@@ -22,35 +23,32 @@ static bool __ft_isterm(FILE* _Nullable s)
     return (fd >= 0 && fd_type(fd) == FD_TYPE_TERMINAL) ? true : false;
 }
 
-FILE* _Nullable ft_termin(FILE* _Nonnull stream)
+int ft_settermin(FILE* _Nonnull stream)
 {
-    FILE* old_fp = __ft_termin_fp;
     const int fd = fileno(stream);
-
-    if (fd >= 0) {
-        __ft_termin_fd = fd;
-        __ft_termin_fp = stream;
-        setvbuf(__ft_termin_fp, NULL, _IONBF, 0);
-    }
-    else {
-        __ft_termin_fd = -1;
-        __ft_termin_fp = NULL;
+    
+    if (fd < 0) {
+        errno = EINVAL;
+        return -1;
     }
 
-    return old_fp;
+
+    __ft_termin_fd = fd;
+    termin = stream;
+    setvbuf(termin, NULL, _IONBF, 0);
+    
+    return 0;
 }
 
-FILE* _Nonnull ft_termout(FILE* _Nonnull stream)
+int ft_settermout(FILE* _Nonnull stream)
 {
-    FILE* old_fp = __ft_termout_fp;
-
-    __ft_termout_fp = stream;
+    termout = stream;
     __ft_termout_do_esc = __ft_isterm(stream);
 
-    return old_fp;
+    return 0;
 }
 
 int ft_isterm(void)
 {
-    return __ft_isterm(__ft_termout_fp);
+    return __ft_isterm(termout);
 }

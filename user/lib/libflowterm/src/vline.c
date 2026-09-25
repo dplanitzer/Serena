@@ -25,7 +25,7 @@ void ft_vline(unsigned int ch, int count)
     // avoid triggering a v-scroll by not doing any v-cursor movement after the
     // last character has been printed
     while (count-- > 1) {
-        fputs(__ft_outbuf, __ft_termout_fp);
+        fputs(__ft_outbuf, termout);
     }
-    putc(ch, __ft_termout_fp);
+    putc(ch, termout);
 }

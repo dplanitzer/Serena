@@ -23,9 +23,8 @@
 #define _FT_MSK_STATUS          (1u << (unsigned int)_FT_EVT_STATUS)
 
 
-extern int              __ft_termin_fd;         // >= 0 if valid; -1 if not valid
-extern FILE* _Nonnull   __ft_termout_fp;
-extern bool             __ft_termout_do_esc;    // true if escape sequence capable; false otherwise
+extern int  __ft_termin_fd;         // >= 0 if valid; -1 if not valid
+extern bool __ft_termout_do_esc;    // true if escape sequence capable; false otherwise
 
 
 extern void __ft_config_termin(unsigned int flags);

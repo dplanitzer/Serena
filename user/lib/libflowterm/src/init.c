@@ -16,8 +16,8 @@ int ft_init(unsigned int flags)
 {
     __ft_init_events();
 
-    ft_termin(stdin);
-    ft_termout(stdout);
+    ft_settermin(stdin);
+    ft_settermout(stdout);
     
     ft_insertmode(FT_OFF);
     

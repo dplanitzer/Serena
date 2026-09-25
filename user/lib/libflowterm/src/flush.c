@@ -11,5 +11,5 @@
 
 void ft_flush(void)
 {
-    fflush(__ft_termout_fp);
+    fflush(termout);
 }

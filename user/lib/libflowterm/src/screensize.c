@@ -21,8 +21,8 @@ void ft_screensize(int* _Nonnull width, int* _Nonnull height)
 
     
     // Save cursor; move it to impossible location (will get clipped); query cursor position; restore cursor
-    fputs("\0337\033[9999;9999f\033[6n\0338", __ft_termout_fp);
-    fflush(__ft_termout_fp);
+    fputs("\0337\033[9999;9999f\033[6n\0338", termout);
+    fflush(termout);
     
     if (ft_getevent(_FT_MSK_CURSOR_POSITION, 0, &evt) == 0) {
         *width = evt.data.report.param[1];

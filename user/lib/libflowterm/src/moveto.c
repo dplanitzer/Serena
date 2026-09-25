@@ -25,5 +25,5 @@ void ft_moveto(int x, int y)
     *p++ = 'f';
     *p = '\0';
 
-    fputs(__ft_outbuf, __ft_termout_fp);
+    fputs(__ft_outbuf, termout);
 }

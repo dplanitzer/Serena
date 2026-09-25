@@ -19,7 +19,7 @@ void ft_cleanup(void)
     if (__ft_termout_do_esc) {
         // - turn cursor back on
         // - turn font styling off and reset colors to defaults
-        fputs("\033[?25h\033[0m", __ft_termout_fp);
-        fflush(__ft_termout_fp);
+        fputs("\033[?25h\033[0m", termout);
+        fflush(termout);
     }
 }

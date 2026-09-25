@@ -33,8 +33,8 @@ unsigned int ft_mousecntl(unsigned int mask)
         esc_seq = "\033[?1000l";
     }
 
-    fputs(esc_seq, __ft_termout_fp);
-    fflush(__ft_termout_fp);
+    fputs(esc_seq, termout);
+    fflush(termout);
 
     return old_mask;
 }

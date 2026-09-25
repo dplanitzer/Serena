@@ -34,5 +34,5 @@ void ft_move(int dx, int dy)
     
     *p = '\0';
 
-    fputs(__ft_outbuf, __ft_termout_fp);
+    fputs(__ft_outbuf, termout);
 }
