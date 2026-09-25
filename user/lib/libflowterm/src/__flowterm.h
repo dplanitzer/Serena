@@ -28,6 +28,7 @@ extern bool __ft_termout_do_esc;    // true if escape sequence capable; false ot
 
 
 extern void __ft_config_termin(unsigned int flags);
+extern bool __ft_isterm(FILE* _Nullable s);
 
 extern void __ft_init_events(void);
 
