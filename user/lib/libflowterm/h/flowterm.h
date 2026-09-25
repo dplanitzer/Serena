@@ -282,7 +282,8 @@ extern int ft_isterm(void);
 extern void ft_drain(void);
 
 // Flush all buffered output to the terminal.
-extern void ft_flush(void);
+#define ft_flush() \
+fflush(termout)
 
 
 // Returns the status of the terminal. FT_OK is returned if the connection to
