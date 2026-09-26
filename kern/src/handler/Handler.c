@@ -44,10 +44,15 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
             // We have to get all flags. Keep in mind that all flags outside the
             // O_MODMASK are constant/read only. So overall the operation here
             // is atomic although we do a separate read and write.
-            const int all_flags = atomic_int_load(&self->flags);
-            const int new_flags = (all_flags & ~O_MODMASK) | mod_flags;
+            int old_flags = atomic_int_load(&self->flags);
+            
+            for(;;) {
+                const int new_flags = (old_flags & ~O_MODMASK) | mod_flags;
 
-            atomic_int_store(&self->flags, new_flags);
+                if (atomic_int_compare_exchange_strong(&self->flags, &old_flags, new_flags)) {
+                    break;
+                }
+            }
             break;
         }
 
