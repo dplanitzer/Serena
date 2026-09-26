@@ -33,6 +33,10 @@ static void getevent_loop(unsigned int flags)
 
 
         switch (evt.type) {
+            case FT_EVT_EOF:
+                puts("EOF");
+                break;
+
             case FT_EVT_CHAR: {
                 if (evt.data.character.unicode == 'q') {
                     done = true;
@@ -61,7 +65,7 @@ static void getevent_loop(unsigned int flags)
                 break;
 
             default:
-                printf("UNKNOWN: %d\n", evt.type);
+                printf("UNKNOWN TYPE: %d\n", evt.type);
                 break;
         }
     }
