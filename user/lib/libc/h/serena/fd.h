@@ -75,17 +75,18 @@ extern int fd_attr(int fd, fs_attr_t* _Nonnull attr);
 extern int fd_type(int fd);
 
 
-// Returns a copy of the descriptor flags. -1 is returned ane errno is set to a
-// suitable error if the descriptor is not valid.
+// Returns a copy of the current descriptor flags. -1 is returned and errno is
+// set to a suitable error if the descriptor 'fd' is not valid.
 // @Concurrency: Safe
 extern fd_flags_t fd_flags(int fd);
 
-// Updates the descriptor flags by combining the current descriptor flags with
-// the new flags 'flags' based o the combination operation 'op'. Note that this
-// function only updates flags which are in the O_MODMASK subset. All other flags
-// are silently ignored.
+// Atomically updates the descriptor flags by combining the current descriptor
+// flags with the modifiable flags 'flags' based on the combination operation
+// 'op'. Note that this function only updates those descriptor flags which are
+// in the modifiable subset (O_MODMASK). All other flags are silently ignored.
+// Returns the old flags on success and -1 on failure.
 // @Concurrency: Safe
-extern int fd_setflags(int fd, int op, fd_flags_t flags);
+extern fd_flags_t fd_setflags(int fd, int op, fd_flags_t flags);
 
 
 // Creates a new reference to the descriptor 'fd' and assigns it to a new

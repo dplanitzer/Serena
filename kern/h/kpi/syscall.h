@@ -92,7 +92,7 @@ enum {
     SC_vcpu_setstate,       // int vcpu_setstate(vcpuid_t id, int flavor, const vcpu_state_ref _Nonnull state)
     SC_fs_setlabel,         // errno_t fs_setlabel(fsid_t fsid, const char* _Nonnull label)
     SC_woa_wakeup,          // woa_wakeup(volatile atomic_int* _Nonnull addr, int flags)
-    SC_fd_flags,            // errno_t fd_flags(int fd, fd_flags_t* _Nonnull flags)
+    SC_unused_8,            // UNUSED
     SC_fd_dup,              // errno_t fd_dup(int fd, int min_fd, int* _Nonnull new_fd)
     SC_proc_self,           // pid_t proc_self(void)
 };

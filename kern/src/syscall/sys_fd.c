@@ -72,28 +72,23 @@ SYSCALL_2(fd_type, int fd, int* _Nonnull pOutType)
     return err;
 }
 
-SYSCALL_2(fd_flags, int fd, fd_flags_t* _Nonnull pOutFlags)
+SYSCALL_4(fd_setflags, int fd, int op, fd_flags_t flags, fd_flags_t* _Nonnull pOldFlags)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
     HandlerRef hnd;
+    int old_flags;
 
     if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
-        *(pa->pOutFlags) = Handler_GetFlags(hnd) & O_USERMASK;
+        if (pa->op == _FD_FOP_GET) {
+            old_flags = Handler_GetFlags(hnd) & O_USERMASK;
+        }
+        else {
+            err = Handler_SetFlags(hnd, pa->op, pa->flags & O_USERMASK, &old_flags);
+        }
         Object_Release(hnd);
-    }
-    return err;
-}
 
-SYSCALL_3(fd_setflags, int fd, int op, fd_flags_t flags)
-{
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-    HandlerRef hnd;
-
-    if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
-        err = Handler_SetFlags(hnd, pa->op, pa->flags & O_USERMASK);
-        Object_Release(hnd);
+        *(pa->pOldFlags) = old_flags & O_USERMASK;
     }
     return err;
 }

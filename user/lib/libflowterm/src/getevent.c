@@ -252,20 +252,18 @@ static int _read_lookahead_byte(void)
     // work correctly with serial terminals. We're currently assuming that
     // we're always talking to the local console which inserts a CSI atomically.
     // Timeout e.g. 20ms to 100ms or so.  
-    const fd_flags_t oflags = fd_flags(__ft_termin_fd);
-    fd_setflags(__ft_termin_fd, FD_FOP_ADD, O_NONBLOCK);
+    char ch;
+    const fd_flags_t oflags = fd_setflags(__ft_termin_fd, FD_FOP_ADD, O_NONBLOCK);
+    const size_t nBytesRead = fd_read(__ft_termin_fd, &ch, 1);
 
-    char by;
-    const size_t nBytesRead = fd_read(__ft_termin_fd, &by, 1);
+    fd_setflags(__ft_termin_fd, FD_FOP_REPLACE, oflags);
     errno = 0;
-
-    const int r = fd_setflags(__ft_termin_fd, FD_FOP_REPLACE, oflags);
 
     if (nBytesRead == -1) {
         return EOF;
     }
     else {
-        return by;
+        return ch;
     }
 }
 

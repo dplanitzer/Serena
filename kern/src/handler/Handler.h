@@ -95,10 +95,10 @@ open_class_funcs(Handler, Object,
 
 // Returns the handler flags that were passed to it at open() time.
 #define Handler_GetFlags(/*_Nonnull*/ __self) \
-((unsigned int)atomic_int_load(&((HandlerRef)(__self))->flags))
+((fd_flags_t)atomic_int_load(&((HandlerRef)(__self))->flags))
 
 // Updates the handler flags. Note that only a subset of the flags are modifiable.
-extern errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags);
+extern errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, fd_flags_t flags, fd_flags_t* _Nullable pOldFlags);
 
 
 #define Handler_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \

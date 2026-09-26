@@ -13,7 +13,7 @@ fd_flags_t fd_flags(int fd)
 {
     fd_flags_t flags;
 
-    if (_syscall(SC_fd_flags, fd, &flags) == 0) {
+    if (_syscall(SC_fd_setflags, fd, _FD_FOP_GET, 0, &flags) == 0) {
         return flags;
     }
     else {

@@ -9,7 +9,14 @@
 #include <serena/fd.h>
 #include <kpi/syscall.h>
 
-int fd_setflags(int fd, int op, int flags)
+fd_flags_t fd_setflags(int fd, int op, fd_flags_t flags)
 {
-    return (int)_syscall(SC_fd_setflags, fd, op, flags);
+    fd_flags_t old_flags;
+
+    if(_syscall(SC_fd_setflags, fd, op, flags, &old_flags) == 0) {
+        return old_flags;
+    }
+    else {
+        return -1;
+    }
 }

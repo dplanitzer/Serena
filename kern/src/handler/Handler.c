@@ -27,24 +27,26 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, fd_flags_t oflags, Hand
 
 
 
-errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
+errno_t Handler_SetFlags(HandlerRef _Nonnull self, fd_flags_t op, int flags, fd_flags_t* _Nullable pOldFlags)
 {
+    decl_try_err();
     const int mod_flags = flags & O_MODMASK;
+    int old_flags;
 
     switch (op) {
         case FD_FOP_ADD:
-            atomic_int_fetch_or(&self->flags, mod_flags);
+            old_flags = atomic_int_fetch_or(&self->flags, mod_flags);
             break;
 
         case FD_FOP_REMOVE:
-            atomic_int_fetch_and(&self->flags, ~mod_flags);
+            old_flags = atomic_int_fetch_and(&self->flags, ~mod_flags);
             break;
 
-        case FD_FOP_REPLACE: {
+        case FD_FOP_REPLACE:
             // We have to get all flags. Keep in mind that all flags outside the
             // O_MODMASK are constant/read only. So overall the operation here
             // is atomic although we do a separate read and write.
-            int old_flags = atomic_int_load(&self->flags);
+            old_flags = atomic_int_load(&self->flags);
             
             for(;;) {
                 const int new_flags = (old_flags & ~O_MODMASK) | mod_flags;
@@ -54,13 +56,17 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, int flags)
                 }
             }
             break;
-        }
 
         default:
-            return EINVAL;
+            old_flags = 0;
+            err = EINVAL;
     }
 
-    return EOK;
+    if (pOldFlags) {
+        *pOldFlags = old_flags;
+    }
+
+    return err;
 }
 
 
