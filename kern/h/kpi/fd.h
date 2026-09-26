@@ -42,7 +42,7 @@
 #define FD_FOP_REPLACE  1
 #define FD_FOP_ADD      2
 #define FD_FOP_REMOVE   3
-#define _FD_FOP_GET     4
+#define _FD_FOP_NOP     4
 
 
 // Descriptor types.
