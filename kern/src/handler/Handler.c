@@ -43,9 +43,6 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, fd_flags_t op, int flags, fd_
             break;
 
         case FD_FOP_REPLACE:
-            // We have to get all flags. Keep in mind that all flags outside the
-            // O_MODMASK are constant/read only. So overall the operation here
-            // is atomic although we do a separate read and write.
             old_flags = atomic_int_load(&self->flags);
             
             for(;;) {
