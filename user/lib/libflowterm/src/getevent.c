@@ -267,28 +267,35 @@ static int _read_lookahead_byte(void)
     }
 }
 
-static int _fill_buffer(void)
+// Returns -1 on error (including EAGAIN in case of non-blocking), 0 on EOF and
+// > 0 if bytes have been read.
+static ssize_t _fill_buffer(void)
 {
-    const ssize_t nBytesRead = fd_read(__ft_termin_fd, g_termin_buffer, TERMIN_BUFFER_CAPACITY);
+    const ssize_t r = fd_read(__ft_termin_fd, g_termin_buffer, TERMIN_BUFFER_CAPACITY);
 
-    if (nBytesRead < 0) {
-        return EOF;
+    if (r > 0) {
+        g_termin_buffer_index = 0;
+        g_termin_buffer_size = r;
     }
 
-    g_termin_buffer_index = 0;
-    g_termin_buffer_size = nBytesRead;
-
-    return 0;
+    return r;
 }
 
+// Waits until enough bytes have arrived to generate at least one new event and
+// enqueue it in the event queue. Does not block the caller if the termin
+// descriptor is configured as NONBLOCKING.
+// Returns -1 on error (including EAGAIN in case of non-blocking), 0 on EOF and
+// 1 on event has arrived.
 static int _wait_event(void)
 {
     for (;;) {
         ft_event_t* evt = NULL;
+        int r;
 
         if ((g_termin_buffer_index == g_termin_buffer_size) && (g_termin_state != STATE_ESC)) {
-            if (_fill_buffer() < 0) {
-                return EOF;
+            r = _fill_buffer();
+            if (r <= 0) {
+                return (int)r;
             }
         }
 
@@ -353,7 +360,7 @@ static int _wait_event(void)
         }
     }
 
-    return 0;
+    return 1;
 }
 
 
@@ -390,15 +397,13 @@ int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull pOut
             return 0;
         }
 
-
-        if (_wait_event() < 0) {
-            if (g_termin_buffer_size == 0) {
-                pOutEvent->type = FT_EVT_EOF;
-                return 0;
-            }
-            else {
-                return EOF;
-            }
+        const int r = _wait_event();
+        if (r < 0) {
+            return -1;
+        }
+        else if (r == 0) {
+            pOutEvent->type = FT_EVT_EOF;
+            return 0;
         }
     }
 }
