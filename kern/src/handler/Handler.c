@@ -27,13 +27,17 @@ errno_t Handler_Create(Class* _Nonnull pClass, int type, fd_flags_t oflags, Hand
 
 
 
-errno_t Handler_SetFlags(HandlerRef _Nonnull self, fd_flags_t op, int flags, fd_flags_t* _Nullable pOldFlags)
+errno_t Handler_SetFlags(HandlerRef _Nonnull self, int op, fd_flags_t flags, fd_flags_t* _Nullable pOldFlags)
 {
     decl_try_err();
     const int mod_flags = flags & O_MODMASK;
     int old_flags;
 
     switch (op) {
+        case _FD_FOP_NOP:
+            old_flags = atomic_int_load(&self->flags);
+            break;
+
         case FD_FOP_ADD:
             old_flags = atomic_int_fetch_or(&self->flags, mod_flags);
             break;
@@ -57,6 +61,7 @@ errno_t Handler_SetFlags(HandlerRef _Nonnull self, fd_flags_t op, int flags, fd_
         default:
             old_flags = 0;
             err = EINVAL;
+            break;
     }
 
     if (pOldFlags) {

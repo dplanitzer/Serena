@@ -80,15 +80,12 @@ SYSCALL_4(fd_setflags, int fd, int op, fd_flags_t flags, fd_flags_t* _Nonnull pO
     int old_flags;
 
     if ((err = HandlerTable_CopyHandler(&pp->HandlerTable, pa->fd, &hnd)) == EOK) {
-        if (pa->op == _FD_FOP_NOP) {
-            old_flags = Handler_GetFlags(hnd) & O_USERMASK;
-        }
-        else {
-            err = Handler_SetFlags(hnd, pa->op, pa->flags & O_USERMASK, &old_flags);
-        }
+        err = Handler_SetFlags(hnd, pa->op, pa->flags & O_USERMASK, &old_flags);
         Object_Release(hnd);
 
-        *(pa->pOldFlags) = old_flags & O_USERMASK;
+        if (err == EOK) {
+            *(pa->pOldFlags) = old_flags & O_USERMASK;
+        }
     }
     return err;
 }

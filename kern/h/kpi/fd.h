@@ -39,10 +39,10 @@
 
 
 // fd_setflags() operation modes
+#define _FD_FOP_NOP     0
 #define FD_FOP_REPLACE  1
 #define FD_FOP_ADD      2
 #define FD_FOP_REMOVE   3
-#define _FD_FOP_NOP     4
 
 
 // Descriptor types.
