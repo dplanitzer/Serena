@@ -84,7 +84,7 @@ extern fd_flags_t fd_flags(int fd);
 // flags with the modifiable flags 'flags' based on the combination operation
 // 'op'. Note that this function only updates those descriptor flags which are
 // in the modifiable subset (O_MODMASK). All other flags are silently ignored.
-// Returns the old flags on success and -1 on failure.
+// Returns the O_MODMASK subset of the old flags on success and -1 on failure.
 // @Concurrency: Safe
 extern fd_flags_t fd_setflags(int fd, int op, fd_flags_t flags);
 
