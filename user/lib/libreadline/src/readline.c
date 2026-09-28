@@ -438,18 +438,8 @@ static int rl_layout(rl_t _Nonnull self)
     int x, y;
     int w, h;
 
-    //XXX using these makes the line reader hang after doing a ft_cls() for some reason
-//    ft_curpos(&x, &y);
-//    ft_screensize(&w, &h);
-    con_screen_t scr;
-    con_cursor_t crs;
-
-    fd_cntl(FD_STDOUT, IOCMD_TTY_SCREEN, &scr);
-    fd_cntl(FD_STDOUT, IOCMD_TTY_CURSOR, &crs);
-    x = crs.x;
-    y = crs.y;
-    w = scr.columns;
-    h = scr.rows;
+    ft_curpos(&x, &y);
+    ft_screensize(&w, &h);
 
     self->lrY = y - 1;
     self->promptX = self->lrX;
