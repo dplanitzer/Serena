@@ -15,8 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/math.h>
-#include <serena/console.h>
-#include <serena/fd.h>
 
 
 static void rl_delete_history(rl_t _Nonnull self);
