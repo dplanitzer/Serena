@@ -376,6 +376,10 @@ extern void ft_style(ft_textstyle_t style, const ft_color_t* _Nullable fg, const
 #define ft_resetstyle() \
 ft_style(FT_RESET, NULL, NULL)
 
+// Changes the text style only.
+#define ft_textstyle(style) \
+ft_style(style, NULL, NULL)
+
 // Convenience macro to just change the foreground color.
 #define ft_fgcolor(clr_ptr) \
 ft_style(FT_IGNORE, clr_ptr, NULL)
