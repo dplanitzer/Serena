@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 struct readline {
+
     // Prompt
     char* _Nullable prompt;
     size_t          promptLength;
@@ -25,8 +26,7 @@ struct readline {
     int             cursorX;            // current cursor X position in line
 
     // Geometry (everything is zero based)
-    int             lrX;
-    int             lrY;                // initialized by CalcLayout()
+    int             lrX;                // initialized by CalcLayout()
     int             lrWidth;
     int             promptX;
     int             promptWidth;
@@ -45,7 +45,8 @@ struct readline {
     struct __Flags {
         unsigned int    isInsertMode:1;
         unsigned int    hasTermInsertMode:1;
-        unsigned int    reserved:30;
+        unsigned int    isLayoutValid:1;
+        unsigned int    reserved:29;
     }                   flags;
 };
 

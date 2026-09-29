@@ -12,10 +12,14 @@
 #include <stddef.h>
 
 
+// Tag to mark a rl_create_info structure
 #define RL_CREATE_STRUCT_TAG    0
 
 // Line reader input line should be as wide as the terminal screen
 #define RL_SCREEN_WIDTH -1
+
+// Flags to indicate what has changed when doing a rl_notify() call
+#define RL_NOTIFY_SCREEN_CHANGED    1   // Screen width or height has changed
 
 
 typedef struct rl_create_info {
@@ -53,6 +57,13 @@ extern const char* _Nonnull rl_readline(rl_t _Nonnull self);
 // Sets the prompt to the string 'str'. The string is copied. Note that the
 // string may contain escape sequences.
 extern void rl_set_prompt(rl_t _Nonnull self, const char* _Nonnull str);
+
+
+// Call this function with an appropriate set of flags to inform the line reader
+// that something about the environment has changed and that it should update its
+// internal state accordingly. I.e. call this when the console screen size has
+// changed.
+extern void rl_notify(rl_t _Nonnull self, int flags);
 
 
 // Returns the number of entries currently stored in the history.

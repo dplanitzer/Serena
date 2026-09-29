@@ -41,6 +41,7 @@ rl_t _Nullable rl_create(const rl_create_info_t* _Nonnull info)
 
         self->flags.isInsertMode = 1;
         self->flags.hasTermInsertMode = 1;
+        self->flags.isLayoutValid = 0;
     
 
         if (info->max_history_count > 0) {
@@ -80,8 +81,17 @@ void rl_set_prompt(rl_t _Nonnull self, const char* _Nonnull str)
         free(self->prompt);
         self->prompt = np;
         self->promptLength = strlen(str);
+        self->flags.isLayoutValid = 0;
     }
 }
+
+void rl_notify(rl_t _Nonnull self, int flags)
+{
+    if ((flags & RL_NOTIFY_SCREEN_CHANGED) == RL_NOTIFY_SCREEN_CHANGED) {
+        self->flags.isLayoutValid = 0;
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -431,15 +441,16 @@ static void rl_input_char(rl_t _Nonnull self, int ch)
     rl_on_user_input(self);
 }
 
+// Only invoked if a variable has changed that depends on:
+// - screen width
+// - prompt length
+// See flags.isLayoutValid
 static int rl_layout(rl_t _Nonnull self)
 {
-    int x, y;
     int w, h;
 
-    ft_curpos(&x, &y);
     ft_screensize(&w, &h);
 
-    self->lrY = y - 1;
     self->promptX = self->lrX;
     self->promptWidth = self->promptLength;
 
@@ -469,12 +480,6 @@ static int rl_layout(rl_t _Nonnull self)
         self->lineCapacity = lineCapacity;
     }
 
-    if (self->lineCapacity > 0) {
-        memset(self->line, ' ', lineLength);
-        self->line[lineLength] = '\0';
-    }
-    self->cursorX = 0;
-    self->textLastCol = -1;
     self->lineLastCol = lineLength - 1;
 
     return 0;
@@ -482,9 +487,21 @@ static int rl_layout(rl_t _Nonnull self)
 
 const char* _Nonnull rl_readline(rl_t _Nonnull self)
 {
-    if (rl_layout(self) < 0) {
-        return "";
+    // Recalculate the layout if needed
+    if (!self->flags.isLayoutValid) {
+        if (rl_layout(self) < 0) {
+            return "";
+        }
+        self->flags.isLayoutValid = 1;
     }
+
+    // Clear the input line
+    if (self->lineCapacity > 0) {
+        memset(self->line, ' ', self->lineLastCol);
+        self->line[self->lineLastCol + 1] = '\0';
+    }
+    self->cursorX = 0;
+    self->textLastCol = -1;
 
     self->isDirty = false;
     self->historyIndex = self->historyCount;
