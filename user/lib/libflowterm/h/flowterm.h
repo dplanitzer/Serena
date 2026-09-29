@@ -358,6 +358,10 @@ extern void ft_home(void);
 // cursor coordinates are 1-based.
 extern void ft_moveto(int x, int y);
 
+// Moves the text cursor to the specified column. Note that cursor coordinates
+// are 1-based.
+extern void ft_movetox(int x);
+
 // Moves the text cursor by 'dx' and 'dy' cells. A negative 'dy' moves the
 // cursor up and a negative 'dx' moves the cursor to the left. Note that cursor
 // coordinates are 1-based.
