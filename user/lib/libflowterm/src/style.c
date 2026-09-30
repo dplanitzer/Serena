@@ -82,12 +82,48 @@ static char* _Nonnull __reset_textstyle(ft_textstyle_t style, char* _Nonnull p)
 
 static char* _Nonnull __add_color(const ft_color_t* _Nonnull clr, bool isFg, char* _Nonnull p)
 {
-    if (clr->model == FT_COLOR_MODEL_ANSI && clr->color.ansi >= FT_ANSI_BLACK && clr->color.ansi <= FT_ANSI_DEFAULT) {
-        if (*(p - 1) != '[') {
+    switch (clr->model) {
+        case FT_COLOR_MODEL_ANSI:
+            if (clr->color.ansi >= FT_ANSI_BLACK && clr->color.ansi <= FT_ANSI_DEFAULT) {
+                if (*(p - 1) != '[') {
+                    *p++ = ';';
+                }
+                *p++ = (isFg) ? '3' : '4';
+                *p++ = clr->color.ansi + '0';
+            }
+            break;
+
+        case FT_COLOR_MODEL_INDEXED:
+            if (clr->color.ansi >= 0 && clr->color.ansi <= 255) {
+                if (*(p - 1) != '[') {
+                    *p++ = ';';
+                }
+                *p++ = (isFg) ? '3' : '4';
+                *p++ = '8';
+                *p++ = ';';
+                *p++ = '5';
+                *p++ = ';';
+                 p = __ft_itoa(clr->color.index, p);
+                *p++ = 'm';
+            }
+            break;
+
+        case FT_COLOR_MODEL_RGB:
+            if (*(p - 1) != '[') {
+                *p++ = ';';
+            }
+            *p++ = (isFg) ? '3' : '4';
+            *p++ = '8';
             *p++ = ';';
-        }
-        *p++ = (isFg) ? '3' : '4';
-        *p++ = clr->color.ansi + '0';
+            *p++ = '2';
+            *p++ = ';';
+             p = __ft_itoa(clr->color.rgb.r, p);
+            *p++ = ';';
+             p = __ft_itoa(clr->color.rgb.g, p);
+            *p++ = ';';
+             p = __ft_itoa(clr->color.rgb.b, p);
+            *p++ = 'm';
+            break;
     }
 
     return p;

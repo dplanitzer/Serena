@@ -212,14 +212,25 @@ typedef unsigned int ft_textstyle_t;
 
 
 // Color models
-#define FT_COLOR_MODEL_ANSI 0
+#define FT_COLOR_MODEL_ANSI     0   // 8 fixed colors (see FT_ANSI_XXX definitions)
+#define FT_COLOR_MODEL_INDEXED  1   // 256 entry color palette: 0-15 standard and bright ANSI colors; 16-231 6x6x6 color cube; 232-255 grey scale map from dark grey to nearly white
+#define FT_COLOR_MODEL_RGB      2   // 16.8 million colors
+
+typedef struct ft_color24 {
+    unsigned char   r;
+    unsigned char   g;
+    unsigned char   b;
+    unsigned char   x;
+} ft_color24_t;
 
 
 // Terminal color description
 typedef struct ft_color {
     int     model;
     union {
-        int     ansi;
+        int             ansi;
+        int             index;
+        ft_color24_t    rgb;
     }       color;
 } ft_color_t;
 
