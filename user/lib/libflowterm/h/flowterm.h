@@ -135,6 +135,11 @@ typedef struct ft_event {
 #define FT_CHAR_PAGE_DOWN       0xf72d
 
 
+// Keypad modes
+#define FT_KEYPAD_NUMERIC   0   // Default mode - send standard ASCII characters for keypad keys
+#define FT_KEYPAD_APP_MODE  1   // Send FT_CHAR_KEYPAD_XXX characters for keypad keys
+
+
 // Terminal status codes
 #define FT_OK   0
 
@@ -300,6 +305,10 @@ extern int ft_status(void);
 // control whether mouse motion events should be generated or not. Mouse motion
 // events are turned off by default and only mouse clicks are registered. 
 extern unsigned int ft_mousecntl(unsigned int mask);
+
+// Configures the keypad mode based on 'mode'.
+extern void ft_keypadmode(int mode);
+
 
 // Blocks the caller until a character, mouse or terminal report event arrives.
 // Specify the FT_NONBLOCKING option if the function should return without
