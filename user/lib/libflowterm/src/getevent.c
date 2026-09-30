@@ -22,9 +22,10 @@ struct ft_event_node {
 #define TERMIN_BUFFER_CAPACITY  16
 #define CSI_BUFFER_CAPACITY     128
 
-#define STATE_TEXT      0
-#define STATE_ESC       1
-#define STATE_CSI       2       // Inside an escape sequence payload
+#define STATE_TEXT          0
+#define STATE_ESC           1
+#define STATE_BRACKET_CSI   2   // Inside an 'ESC [' escape sequence payload [payload length: N chars]
+#define STATE_APP_MODE_CSI  3   // Inside an 'ESC O' escape sequence payload (keypad app mode) [payload length: 1 char]
 
 
 static queue_t              g_evt_queue;
@@ -86,8 +87,8 @@ static bool _parse_csi_params(const char* _Nonnull csi, int paramsCount, unsigne
     return true;
 }
 
-// First character in 'csi' is teh first character after the CSI prefix: '\e['. 
-static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
+// First character in 'csi' is the first character after the CSI prefix: '\e['. 
+static ft_event_t* _Nullable _put_esc_bracket_event(const char* _Nonnull csi, short len)
 {
 #define TILDE_CSI_CODE_TABLE_SIZE   34
     static const unsigned short g_tilde_csi_code_to_pua_code[TILDE_CSI_CODE_TABLE_SIZE] = {
@@ -238,6 +239,54 @@ static ft_event_t* _Nullable _put_csi_event(const char* _Nonnull csi, short len)
     return evt;
 }
 
+// Character 'ch' is the first (and last) character after the 'ESC O' CSI.
+static ft_event_t* _Nullable _put_app_mode_event(char ch)
+{
+    unsigned int uch;
+    ft_event_t* evt = _acquire_event();
+    
+    if (evt == NULL) {
+        return NULL;
+    }
+
+    switch (ch) {
+        case 'P':   uch = FT_CHAR_KEYPAD_PF1; break;
+        case 'Q':   uch = FT_CHAR_KEYPAD_PF2; break;
+        case 'R':   uch = FT_CHAR_KEYPAD_PF3; break;
+        case 'S':   uch = FT_CHAR_KEYPAD_PF4; break;
+        case 'w':   uch = FT_CHAR_KEYPAD_7; break;
+        case 'x':   uch = FT_CHAR_KEYPAD_8; break;
+        case 'y':   uch = FT_CHAR_KEYPAD_9; break;
+        case 'm':   uch = FT_CHAR_KEYPAD_MINUS; break;
+        case 't':   uch = FT_CHAR_KEYPAD_4; break;
+        case 'u':   uch = FT_CHAR_KEYPAD_5; break;
+        case 'v':   uch = FT_CHAR_KEYPAD_6; break;
+        case 'l':   uch = FT_CHAR_KEYPAD_COMMA; break;
+        case 'q':   uch = FT_CHAR_KEYPAD_1; break;
+        case 'r':   uch = FT_CHAR_KEYPAD_2; break;
+        case 's':   uch = FT_CHAR_KEYPAD_3; break;
+        case 'M':   uch = FT_CHAR_KEYPAD_ENTER; break;
+        case 'p':   uch = FT_CHAR_KEYPAD_0; break;
+        case 'n':   uch = FT_CHAR_KEYPAD_PERIOD; break;
+        case 'j':   uch = FT_CHAR_KEYPAD_MUL; break;
+        case 'k':   uch = FT_CHAR_KEYPAD_DIV; break;
+        default:    uch = 0; break;
+    }
+
+    if (uch > 0) {
+        evt->type = FT_EVT_CHAR;
+        evt->data.character.unicode = uch;
+    }
+    else {
+        evt->type = FT_EVT_INVALID_REPORT;
+        evt->data.report.first_char = ch;
+        evt->data.report.last_char = ch;
+    }
+
+    return evt;
+}
+
+
 #define _append_csi_char(__ch) \
 if (g_csi_buffer_index < CSI_BUFFER_CAPACITY) { \
     g_csi_buffer[g_csi_buffer_index++] = __ch; \
@@ -325,7 +374,10 @@ static int _wait_event(void)
 
 
                 if (ch == '[') {
-                    g_termin_state = STATE_CSI;
+                    g_termin_state = STATE_BRACKET_CSI;
+                }
+                else if (ch == 'O') {
+                    g_termin_state = STATE_APP_MODE_CSI;
                 }
                 else {
                     // not a CSI
@@ -335,7 +387,8 @@ static int _wait_event(void)
                 break;
             }
 
-            case STATE_CSI: {
+            case STATE_BRACKET_CSI: {
+                // payload length: N characters
                 const char ch = g_termin_buffer[g_termin_buffer_index++];
 
                 _append_csi_char(ch);
@@ -343,13 +396,20 @@ static int _wait_event(void)
                 if (ch >= '@' && ch <= '~') {
                     g_csi_buffer[g_csi_buffer_index] = '\0';
                     if (!g_csi_overflowed) {
-                        evt = _put_csi_event(g_csi_buffer, g_csi_buffer_index);
+                        evt = _put_esc_bracket_event(g_csi_buffer, g_csi_buffer_index);
                     }
                     g_csi_buffer_index = 0;
                     g_csi_overflowed = false;
 
                     g_termin_state = STATE_TEXT;
                 }
+                break;
+            }
+
+            case STATE_APP_MODE_CSI: {
+                // payload length: 1 character
+                evt = _put_app_mode_event(g_termin_buffer[g_termin_buffer_index++]);
+                g_termin_state = STATE_TEXT;
                 break;
             }
         }

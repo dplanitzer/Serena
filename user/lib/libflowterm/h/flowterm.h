@@ -134,6 +134,28 @@ typedef struct ft_event {
 #define FT_CHAR_PAGE_UP         0xf72c
 #define FT_CHAR_PAGE_DOWN       0xf72d
 
+// Unicode PUA code points for application mode keypad keys
+#define FT_CHAR_KEYPAD_PF1      0xf750
+#define FT_CHAR_KEYPAD_PF2      0xf751
+#define FT_CHAR_KEYPAD_PF3      0xf752
+#define FT_CHAR_KEYPAD_PF4      0xf753
+#define FT_CHAR_KEYPAD_7        0xf754
+#define FT_CHAR_KEYPAD_8        0xf755
+#define FT_CHAR_KEYPAD_9        0xf756
+#define FT_CHAR_KEYPAD_MINUS    0xf757
+#define FT_CHAR_KEYPAD_4        0xf758
+#define FT_CHAR_KEYPAD_5        0xf759
+#define FT_CHAR_KEYPAD_6        0xf75a
+#define FT_CHAR_KEYPAD_COMMA    0xf75b
+#define FT_CHAR_KEYPAD_1        0xf75c
+#define FT_CHAR_KEYPAD_2        0xf75d
+#define FT_CHAR_KEYPAD_3        0xf75e
+#define FT_CHAR_KEYPAD_ENTER    0xf75d
+#define FT_CHAR_KEYPAD_0        0xf75e
+#define FT_CHAR_KEYPAD_PERIOD   0xf75f
+#define FT_CHAR_KEYPAD_MUL      0xf760
+#define FT_CHAR_KEYPAD_DIV      0xf761
+
 
 // Keypad modes
 #define FT_KEYPAD_NUMERIC   0   // Default mode - send standard ASCII characters for keypad keys
