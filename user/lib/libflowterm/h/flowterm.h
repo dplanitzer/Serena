@@ -150,11 +150,11 @@ typedef struct ft_event {
 #define FT_CHAR_KEYPAD_1        0xf75c
 #define FT_CHAR_KEYPAD_2        0xf75d
 #define FT_CHAR_KEYPAD_3        0xf75e
-#define FT_CHAR_KEYPAD_ENTER    0xf75d
-#define FT_CHAR_KEYPAD_0        0xf75e
-#define FT_CHAR_KEYPAD_PERIOD   0xf75f
-#define FT_CHAR_KEYPAD_MUL      0xf760
-#define FT_CHAR_KEYPAD_DIV      0xf761
+#define FT_CHAR_KEYPAD_ENTER    0xf75f
+#define FT_CHAR_KEYPAD_0        0xf760
+#define FT_CHAR_KEYPAD_PERIOD   0xf761
+#define FT_CHAR_KEYPAD_MUL      0xf762
+#define FT_CHAR_KEYPAD_DIV      0xf763
 
 
 // Keypad modes

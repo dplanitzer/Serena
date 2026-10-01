@@ -487,6 +487,11 @@ static int rl_layout(rl_t _Nonnull self)
 
 const char* _Nonnull rl_readline(rl_t _Nonnull self)
 {
+    static const char g_app_mode_keypad[] = {
+        '7', '8', '9', '-', '4', '5', '6', ',', '1', '2', '3', '\n', '0', '.', '*', '/'
+    };
+
+
     // Recalculate the layout if needed
     if (!self->flags.isLayoutValid) {
         if (rl_layout(self) < 0) {
@@ -575,6 +580,25 @@ const char* _Nonnull rl_readline(rl_t _Nonnull self)
             case 14:    // Ctrl-n
             case FT_CHAR_CURSOR_DOWN:
                 rl_history_down(self);
+                break;
+
+            case FT_CHAR_KEYPAD_7:
+            case FT_CHAR_KEYPAD_8:
+            case FT_CHAR_KEYPAD_9:
+            case FT_CHAR_KEYPAD_MINUS:
+            case FT_CHAR_KEYPAD_4:
+            case FT_CHAR_KEYPAD_5:
+            case FT_CHAR_KEYPAD_6:
+            case FT_CHAR_KEYPAD_COMMA:
+            case FT_CHAR_KEYPAD_1:
+            case FT_CHAR_KEYPAD_2:
+            case FT_CHAR_KEYPAD_3:
+            case FT_CHAR_KEYPAD_ENTER:
+            case FT_CHAR_KEYPAD_0:
+            case FT_CHAR_KEYPAD_PERIOD:
+            case FT_CHAR_KEYPAD_MUL:
+            case FT_CHAR_KEYPAD_DIV:
+                rl_input_char(self, g_app_mode_keypad[ch - FT_CHAR_KEYPAD_7]);
                 break;
 
             default:
