@@ -103,7 +103,7 @@ size_t fread(void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE *
 
 
     char* dst = buffer;
-    uint64_t nBytesToRead = (uint64_t)size * count;
+    uint64_t nBytesToRead = (size > 1) ? (uint64_t)size * count : (uint64_t)count;
     uint64_t nBytesRead = 0;
     ssize_t res;
 
@@ -120,7 +120,7 @@ size_t fread(void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE *
 
 
     if (nBytesRead > 0ull) {
-        r = nBytesRead / size;
+        r = (size > 1) ? nBytesRead / size : nBytesRead;
     }
     else if (res == 0) {
         s->flags.hasEof = 1;
