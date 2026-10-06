@@ -275,7 +275,7 @@ typedef struct rectstyle {
 // Buffering:
 // * Terminal input: not buffered and turns off buffering on the provided input
 //                   stream.
-// * Terminal output: does not changing buffering on the provided stream. It is
+// * Terminal output: does not change buffering on the provided stream. It is
 //                    your responsibility to configure the buffering mode as
 //                    needed before or after you pass the stream to ft_settermout()
 //                    or ft_init().
@@ -312,7 +312,7 @@ extern int ft_settermin(FILE* _Nonnull stream);
 extern int ft_settermout(FILE* _Nonnull stream);
 
 // Returns a value > 0 if terminal output is actually connected to a terminal
-// and // a value == 0 if the output is connected to something else like a file
+// and a value == 0 if the output is connected to something else like a file
 // or pipe.
 extern int ft_isterm(void);
 
@@ -349,8 +349,8 @@ extern void ft_keypadmode(int mode);
 // to EAGAIN in this case.
 // 'mask' controls which kinds of events the function will wait for. The event
 // record is returned in 'evt'.
-// AN EOF event is returned if either the current input stream is not a valid
-// or teh underlying stream read operation has encountered an EOF condition. 
+// AN EOF event is returned if either the current input stream is not valid
+// or the underlying stream read operation has encountered an EOF condition. 
 extern int ft_getevent(unsigned int mask, unsigned int flags, ft_event_t* _Nonnull evt);
 
 // Returns the next available character. Blocks the caller until a character is
@@ -400,8 +400,8 @@ extern void ft_home(void);
 // cursor coordinates are 1-based.
 extern void ft_moveto(int x, int y);
 
-// Moves the text cursor to the specified column. Note that cursor coordinates
-// are 1-based.
+// Moves the text cursor to the specified column in the current row. Note that
+// cursor coordinates are 1-based.
 extern void ft_movetox(int x);
 
 // Moves the text cursor by 'dx' and 'dy' cells. A negative 'dy' moves the
@@ -414,7 +414,9 @@ extern void ft_move(int dx, int dy);
 // color 'bg' to the current text style state of the terminal. If FT_RESET is
 // specified then the current text style is first reset back to the defaults.
 // After that all non-reset text styles are applied and finally all reset styles
-// are applied. A color which is passed as NULL remains unchanged.
+// are applied. A color which is passed as NULL remains unchanged. You can change
+// the text color(s) without changing the text style by specifying FT_IGNORE for
+// the text style.
 extern void ft_style(ft_textstyle_t style, const ft_color_t* _Nullable fg, const ft_color_t* _Nullable bg);
 
 // Convenience macro to reset the text style back to plain with default
@@ -436,8 +438,8 @@ ft_style(FT_IGNORE, NULL, clr_ptr)
 
 
 // Draws a horizontal line of length 'count' from left to right, starting at the
-// current cursor. 'ch' is the character that should be used to draw the line.
-// No line is drawn if 'ch' is 0 or 'count' is <= 0.
+// current cursor position. 'ch' is the character that should be used to draw
+// the line. No line is drawn if 'ch' is 0 or 'count' is <= 0.
 extern void ft_hline(unsigned int ch, int count);
 
 // Similar to hline(), but draws a vertical line from top to bottom.
