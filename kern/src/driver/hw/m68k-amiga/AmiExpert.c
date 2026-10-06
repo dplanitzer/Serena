@@ -85,7 +85,7 @@ static void _on_ram_exp_detected(struct AmiExpert* _Nonnull self, IODriverRef _N
 }
 
 // This function effectively "leaks" drivers when it fails. This doesn't matter
-// because this platform controller never frees its children anyway.
+// because this platform expert never frees its children anyway.
 void AmiExpert_onLaunched(struct AmiExpert* _Nonnull self)
 {
     decl_try_err();

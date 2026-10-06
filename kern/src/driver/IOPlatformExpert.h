@@ -14,8 +14,8 @@
 struct SMG_Header;
 
 
-// A platform controller is the root driver of a platform. All other drivers are
-// direct or indirect children of the platform controller. It represents the
+// A platform expert is the root driver of a platform. All other drivers are
+// direct or indirect children of the platform expert. It represents the
 // motherboard hardware in that sense and it kicks off the detection of hardware
 // that is part of the motherboard.
 // Subclasses should override onLaunched(), detect motherboard devices there,
@@ -40,7 +40,7 @@ open_class_funcs(IOPlatformExpert, IODriver,
 
 extern IOPlatformExpertRef gIOPlatformExpert;
 
-// Creates a platform controller instance.
+// Creates a platform expert instance.
 extern errno_t IOPlatformExpert_Create(Class* _Nonnull pClass, IODriverRef _Nullable * _Nonnull pOutSelf);
 
 

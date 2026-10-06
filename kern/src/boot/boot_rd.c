@@ -13,7 +13,7 @@
 #include <kpi/smg.h>
 
 
-// Checks whether the platform controller is able to provide a boot-able disk image
+// Checks whether the platform expert is able to provide a boot-able disk image
 // for a ROM/RAM disk and creates a ROM/RAM disk with the name '/vd-bus/rd0' from
 // that image if so. Otherwise does nothing.
 void auto_discover_boot_rd(void)
