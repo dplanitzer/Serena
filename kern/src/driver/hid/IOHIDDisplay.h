@@ -29,12 +29,12 @@ typedef struct hid_cursor IOHIDCursor;
 //
 // A HID display which implements the mouse cursor in software must implement
 // support for mouse cursor shielding. NO shield is active by default. It is
-// made active when a call to teh shieldCursor() function is triggered. The
+// made active when a call to the shieldCursor() function is triggered. The
 // driver must hide the mouser cursor while it is inside the shielding rectangle
 // or the bounding box of the mouse cursor intersects the shielding rectangle.
 //
 // A HID display which implements a hardware accelerated mouse cursor does not
-// need to implement cursor shielding and it can completely ignore teh shielding
+// need to implement cursor shielding and it can completely ignore the shielding
 // functionality.
 //
 // A HID display driver does not need to do anything to the mouse cursor when
@@ -95,7 +95,7 @@ open_class_funcs(IOHIDDisplay, IODriver,
     bool (*isCursorShieldingRequired)(void* _Nonnull self);
 
     // Set a mouse cursor shielding rectangle. Mouse cursor shielding is turned
-    // off if the area of teh specified rectangle is <= 0. Mouse cursor shielding
+    // off if the area of the specified rectangle is <= 0. Mouse cursor shielding
     // is only relevant for HID displays which implement the mouse cursor in
     // software. HID displays which implement the mouse cursor with the help of
     // (sprite) hardware should simply return immediately and ignore the shielding

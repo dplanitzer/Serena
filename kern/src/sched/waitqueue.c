@@ -38,7 +38,7 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 
 ticks_t wq_calc_deadline(clock_ref_t _Nonnull clock, int flags, const nanotime_t* _Nonnull wtp)
 {
-    //XXX for now. Add support for conversion from 'clock' to teh scheduler clock
+    //XXX for now. Add support for conversion from 'clock' to the scheduler clock
     assert(clock == g_mono_clock);
 
     if (nanotime_lt(wtp, &NANOTIME_INF)) {

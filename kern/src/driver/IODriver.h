@@ -25,7 +25,7 @@ typedef errno_t (*IOHandlerFunc)(InodeRef _Nonnull ip, fd_flags_t flags, Handler
 // The max length of a devfs name entry (includes the trailing '\0' character).
 // The system will automatically make the name unique if necessary. It does this
 // by inserting a decimal number into the provided string. Place a '$' character
-// inside teh string to specify where the number should be inserted. The number
+// inside the string to specify where the number should be inserted. The number
 // is appended to the string if no '$' is inside the string. The '$' is removed
 // from the string and the provided string is used as provided if it is already
 // unique.
@@ -221,7 +221,7 @@ invoke_n(launch, IODriver, __self, __provider)
 invoke_0(terminate, IODriver, __self)
 
 
-// Awaits the termination of the driver by blocing the caller until teh driver
+// Awaits the termination of the driver by blocing the caller until the driver
 // has reached terminated state.
 extern void IODriver_AwaitTermination(IODriverRef _Nonnull self);
 

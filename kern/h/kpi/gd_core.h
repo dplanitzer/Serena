@@ -90,7 +90,7 @@ IOCMD_MAKE(IOPROTO_FB, 10, _IOCMD_ACC_RD, 0)
 
 // Switches the display to the display mode 'mode' and applies the dynamic
 // display parameters 'params' if specified. The switch is executed on the next
-// VBL and the caller is blocked until teh switch has completed. 'op' specifies
+// VBL and the caller is blocked until the switch has completed. 'op' specifies
 // how the switch should be executed:
 // GD_APPLY - the switch is executed.
 // GD_CHECK - the call verifies whether the switch would succeed but it does not

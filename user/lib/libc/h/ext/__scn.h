@@ -35,7 +35,7 @@ typedef int (*scn_ungetc_t)(int ch, void * _Nonnull s);
 // Callback to scan the next vararg from 'ap' and write it to the stream
 // associated with scanner 'self'. 'format' points to the character(s) that
 // specifies how to scan the next argument. 'self->cspec' holds the scan
-// parameters from teh format specifier.
+// parameters from the format specifier.
 typedef const char* _Nonnull (*scn_scan_t)(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap);
 
 

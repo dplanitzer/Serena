@@ -47,7 +47,7 @@ errno_t _proc_acquire_vcpu(ProcessRef _Nonnull _Locked self, vcpu_func_t _Nonnul
     }
 
 
-    // Don't acquire a new vcpu if we're in teh process of terminating
+    // Don't acquire a new vcpu if we're in the process of terminating
     if (_proc_is_terminating(self)) {
         return ECANCELED;
     }

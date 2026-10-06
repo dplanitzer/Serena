@@ -57,7 +57,7 @@ Copies a file from its current location in the filesystem to a new location in t
 ### Parameters
 
 * `src_path`: relative or absolute path to the file to copy
-* `dst_path`: relative or absolute path to the file to the destination directory where teh file should be copied to. May optionally include the filename of the new file
+* `dst_path`: relative or absolute path to the file to the destination directory where the file should be copied to. May optionally include the filename of the new file
 
 ## `cpu`
 

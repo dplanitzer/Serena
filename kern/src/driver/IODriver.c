@@ -139,7 +139,7 @@ static errno_t _create_dfs_entry(IODriverRef _Nonnull self)
     }
 
 
-    // Figure out where we should insert a number to make teh entry unique if needed
+    // Figure out where we should insert a number to make the entry unique if needed
     const char* p = strchr(g_dfs_info.name, '$');
     const char* dollar_p = (p) ? p : g_dfs_info.name + len;
     const size_t base_len = dollar_p - g_dfs_info.name;

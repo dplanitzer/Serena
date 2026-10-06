@@ -35,7 +35,7 @@ struct vcpu;
 // Do not allow the wakeup() call to immediately context switch to the waiting
 // vcpu even if the QoS class and the current execution context would in
 // principle allow for such a switch to happen. The waiting vcpu will still be
-// marked ready and added to teh ready queue. The context switch will be
+// marked ready and added to the ready queue. The context switch will be
 // deferred until preemption is reenabled and the quantum of the calling vcpu
 // has expired.
 #define WAKEUP_NO_IMMED_CSW  4

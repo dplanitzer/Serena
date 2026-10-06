@@ -63,8 +63,8 @@ typedef struct hid_cursor {
 } hid_cursor_t;
 
 // Sets the appearance of the mouse cursor to the image described by the
-// cursor structure 'cursor'. If 'cursor' is NULL then teh cursor is removed
-// from teh screen and cursor related resources are freed.
+// cursor structure 'cursor'. If 'cursor' is NULL then the cursor is removed
+// from the screen and cursor related resources are freed.
 // Note that only some pixel formats are supported:
 // GD_COLOR_INDEX2
 // Color index #0 is interpreted as transparent for all indexed pixel formats.

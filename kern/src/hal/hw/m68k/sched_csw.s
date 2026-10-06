@@ -23,7 +23,7 @@
 ;-------------------------------------------------------------------------------
 ; vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 ; Returns the highest priority vcpu ready for running. NULL if no vcpu is ready
-; to run. Note that this happens if the machine is idle, teh idle vcpu is already
+; to run. Note that this happens if the machine is idle, the idle vcpu is already
 ; scheduled and all higher priority vcpus are waiting for something. 
 ; @Entry Condition: preemption disabled
 _sched_highest_priority_ready:
@@ -134,7 +134,7 @@ _sched_switch_to_boot_vcpu:
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
 ; The vcpu_hard_reset_stacks() function takes care of this by pushing a format #0
-; CPU exception stack frame on the kernel stack of teh VP we want to switch to.
+; CPU exception stack frame on the kernel stack of the VP we want to switch to.
 ; 
 ; Expected base stack frame layout at entry:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)

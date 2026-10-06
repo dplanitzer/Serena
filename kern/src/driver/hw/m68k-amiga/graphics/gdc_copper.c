@@ -45,7 +45,7 @@ sprite_ctl_change_t             g_sprite_change_table[SPRITE_COUNT];    // xref 
 
 static void copper_start(void)
 {
-    // Wait until the end of teh current frame to turn video related DMAs on
+    // Wait until the end of the current frame to turn video related DMAs on
     chipset_wait_bof();
     hw_chips->cop1lc = g_copper_running_prog->odd_entry;
     hw_chips->copjmp1 = 0;

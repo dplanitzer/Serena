@@ -34,7 +34,7 @@ extern void IOSleep(mseconds_t ms);
 extern errno_t IOAcquireVirtualProcessor(vcpu_func_t _Nonnull func, void* _Nullable arg, int qos, int priority, vcpu_t _Nullable * _Nullable pOutVp);
 
 // Resume the I/O virtual processor 'vcpu'. Call this function on a newly acquired
-// virtual processor after you've finished initializing teh data on which the
+// virtual processor after you've finished initializing the data on which the
 // vcpu will depend.
 extern void IOResumeVirtualProcessor(vcpu_t _Nonnull vcpu);
 

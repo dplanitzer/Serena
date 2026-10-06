@@ -37,7 +37,7 @@ extern vcpuid_t vcpu_groupid(vcpu_t _Nonnull self);
 
 
 // Relinquishes the vcpu on which this call is executed back to the system and
-// makes it available for reuse. This is teh same as returning from the vcpu
+// makes it available for reuse. This is the same as returning from the vcpu
 // top-level function invocation.
 extern _Noreturn void vcpu_relinquish_self(void);
 

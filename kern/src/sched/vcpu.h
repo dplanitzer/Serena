@@ -29,7 +29,7 @@ struct Process;
 struct vcpu;
 
 
-// Exception state. Valid if teh vcpu has taken an exception and is in the
+// Exception state. Valid if the vcpu has taken an exception and is in the
 // process of handling it. Set up by cpu_exception() and torn down by
 // cpu_exception_return().
 typedef struct cpu_excpt_state {
@@ -74,7 +74,7 @@ typedef struct cpu_excpt_state {
 #define VP_FLAG_HAS_FPU             0x01    // Save/restore the FPU state
 #define VP_FLAG_HAS_BC              0x02    // Clear branch cache on context switch
 // bits 0..3 are reserved for flags that are accessible to C and asm code
-#define VP_FLAG_DID_WAIT            0x10    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
+#define VP_FLAG_DID_WAIT            0x10    // cleared by default; set when the vcpu has called wait() at one point while executing the current quantum
 #define VP_FLAG_FIXED_PRI           0x20    // set if the vcpu should be scheduled using a fixed priority policy. Derived from the QoS scheduling parameters
 
 
@@ -266,7 +266,7 @@ extern void vcpu_yield(void);
 // *) a vcpu A calls suspend() on a user vcpu B
 // Note that involuntary suspension is not supported if the vcpu that should be
 // suspended is owned by the kernel process.
-// Note that suspension is generically asynchronous. Since teh vcpu that you
+// Note that suspension is generically asynchronous. Since the vcpu that you
 // suspend is only able to enter suspended state if it is running user code or
 // when it reaches the end of an ongoing system call, it can take a while before
 // the vcpu will officially enter suspended state. Suspension related API try

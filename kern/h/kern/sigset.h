@@ -44,7 +44,7 @@ extern errno_t sigset_remove(sigset_t* _Nonnull set, int signo);
 // Removes all signals listed in the signal set 'oth' from 'set'.
 extern void sigset_removeall(sigset_t* _Nonnull set, const sigset_t* _Nonnull oth);
 
-// Returns true if the signal set 'set' contains teh signal 'signo' and false
+// Returns true if the signal set 'set' contains the signal 'signo' and false
 // otherwise.
 extern bool sigset_contains(const sigset_t* _Nonnull set, int signo);
 
