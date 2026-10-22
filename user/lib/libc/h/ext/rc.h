@@ -25,7 +25,7 @@ extern void rc_retain(volatile ref_count_t* _Nonnull rc);
 
 // Atomically releases a single strong reference and adjusts the retain count
 // accordingly. Returns true if the retain count has reached zero and the caller
-// should destroy the associated resources.
+// should destroy the associated resource.
 extern bool rc_release(volatile ref_count_t* _Nonnull rc);
 
 // Returns a copy of the current retain count. This should be used for debugging
