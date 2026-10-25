@@ -7,6 +7,7 @@
 //
 
 #include <string.h>
+#include <stddef.h>
 
 
 void splitpath_r(const char* _Nonnull path, char* _Nullable dir, size_t dir_len, char* _Nullable stem, size_t stem_len, char* _Nullable ext, size_t ext_len)
@@ -35,7 +36,7 @@ void splitpath_r(const char* _Nonnull path, char* _Nullable dir, size_t dir_len,
     // Find the last extension dot in the filename component.
     // Note that its only an extension if there is a character in front of it that isn't a slash
     const char *last_dot = strrchr(filename_start, '.');
-    if (last_dot == path || *(last_dot - 1) == '/') {
+    if (last_dot && (last_dot == path || *(last_dot - 1) == '/')) {
         last_dot = NULL;
     }
 

@@ -14,6 +14,17 @@
 
 #define PATH_SEPARATOR  '/'
 
+
+// Calculates the size of the directory, stem and extension components of the
+// path 'path'. This size includes an extra byte for the trailing '\0' that
+// splitpath_r() writes for each extracted component. Thus the results of this
+// function can be used to correctly and optimally size the result buffers that
+// are needed for splitpath_r().
+// The 'dir_len', 'stem_len' and 'ext_len' pointers may be NULL. A NULL entry is
+// ignored. Note that the stem plus extension equals the file name of a path.
+extern void sizepath_r(const char* _Nonnull path, size_t* _Nullable dir_len, size_t* _Nullable stem_len, size_t* _Nullable ext_len);
+
+
 // Splits the path 'path' into its directory, stem and extension components. The
 // directory component is the path prefix that includes all characters up until
 // and including the last occurrence of the path separator. The stem part is the
