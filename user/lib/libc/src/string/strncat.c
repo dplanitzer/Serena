@@ -9,13 +9,13 @@
 #include <string.h>
 
 
-char *strncat(char * _Restrict dst, const char * _Restrict src, size_t count)
+char *strncat(char * _Restrict dst, const char * _Restrict src, size_t max_chars)
 {
     char *p = &dst[strlen(dst)];
 
-    while (count > 0 && *src != '\0') {
+    while (max_chars > 0 && *src != '\0') {
         *p++ = *src++;
-        count--;
+        max_chars--;
     }
     *p = '\0';
 

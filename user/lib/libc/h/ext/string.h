@@ -17,12 +17,17 @@
 
 __CPP_BEGIN
 
-// Like strcpy()/strncpy() except that these functions here return a pointer
-// that points to the trailing '\0' in the destination buffer.
+// These functions are similar to strcpy() and strcat() expect that they return
+// a pointer to the trailing '\0' in the destination buffer. Thus these functions
+// can be used to easily and efficiently chain multiple string concatenations.
 extern char* _Nonnull strcpy_x(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
-
-// Returns a pointer to the trailing '\0' of 'dst'. Even if 'src' is an empty string.
 extern char * _Nonnull strcat_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src);
+
+// These functions are similar to strncpy() and strncat() except that they return
+// a pointer to teh trailing '\0' in the destination buffer and they append at
+// most 1 '\0' character to the destination buffer.
+extern char * _Nonnull strncpy_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t max_chars);
+extern char * _Nonnull strncat_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t max_chars);
 
 __CPP_END
 

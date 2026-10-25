@@ -9,15 +9,15 @@
 #include <string.h>
 
 
-char * _Nonnull strncpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t count)
+char * _Nonnull strncpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t max_chars)
 {
     char *r = dst;
 
-    while (count > 0 && *src != '\0') {
+    while (max_chars > 0 && *src != '\0') {
         *dst++ = *src++;
-        count--;
+        max_chars--;
     }
-    while (count-- > 0) {
+    while (max_chars-- > 0) {
         *dst++ = '\0';
     }
 

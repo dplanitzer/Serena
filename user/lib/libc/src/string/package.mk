@@ -17,8 +17,10 @@ STRING_C_SOURCES := $(STRING_SOURCES_DIR)/ctype.c \
 					 $(STRING_SOURCES_DIR)/strerror.c \
 					 $(STRING_SOURCES_DIR)/strlen.c \
 					 $(STRING_SOURCES_DIR)/strncat.c \
+					 $(STRING_SOURCES_DIR)/strncat_x.c \
 					 $(STRING_SOURCES_DIR)/strncmp.c \
 					 $(STRING_SOURCES_DIR)/strncpy.c \
+					 $(STRING_SOURCES_DIR)/strncpy_x.c \
 					 $(STRING_SOURCES_DIR)/strndup.c \
 					 $(STRING_SOURCES_DIR)/strnlen_s.c \
 					 $(STRING_SOURCES_DIR)/strrchr.c \
@@ -64,6 +66,7 @@ STRING_SC_SOURCES := $(STRING_SOURCES_DIR)/ctype.c \
 					 $(STRING_SOURCES_DIR)/memmove.c \
 					 $(STRING_SOURCES_DIR)/memset.c \
 					 $(STRING_SOURCES_DIR)/strcat.c \
+					 $(STRING_SOURCES_DIR)/strncat_x.c \
 					 $(STRING_SOURCES_DIR)/strchr.c \
 					 $(STRING_SOURCES_DIR)/strcmp.c \
 					 $(STRING_SOURCES_DIR)/strcpy.c \
@@ -71,6 +74,7 @@ STRING_SC_SOURCES := $(STRING_SOURCES_DIR)/ctype.c \
 					 $(STRING_SOURCES_DIR)/strncat.c \
 					 $(STRING_SOURCES_DIR)/strncmp.c \
 					 $(STRING_SOURCES_DIR)/strncpy.c \
+					 $(STRING_SOURCES_DIR)/strncpy_x.c \
 					 $(STRING_SOURCES_DIR)/strnlen_s.c \
 					 $(STRING_SOURCES_DIR)/strrchr.c \
 					 $(STRING_SOURCES_DIR)/strstr.c
