@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
+#include <ext/path.h>
 #include <string.h>
 #include <stddef.h>
 
