@@ -63,4 +63,14 @@ extern void splitpath_r(const char* _Nonnull path, char* _Nullable dir, size_t d
 // inputs.
 extern ssize_t makepath_r(char* _Nonnull path, size_t path_size, const char* _Nullable dir, const char* _Nullable stem, const char* _Nullable ext);
 
+
+// Converts the provided relative path 'rel_path' to an absolute path and stores
+// it in 'buf'. 'buf_size' is the size of 'buf' including the trailing '\0'
+// character. If 'rel_path' is actually absolute, then 'rel_path' is simply
+// copied to 'buf' as is. Otherwise 'rel_path' is prefixed with the path to the
+// process' current working directory and the result is stored in 'buf'. A
+// pointer to 'buf' is returned on success and NULL is returned and errno is set
+// to ERANGE if 'buf' is too small to hold the full path. 
+extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nullable rel_path);
+
 #endif /* _EXT_PATH_H */
