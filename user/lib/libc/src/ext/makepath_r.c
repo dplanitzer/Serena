@@ -11,7 +11,7 @@
 #include <errno.h>
 
 
-ssize_t makepath_r(char* _Nonnull path, size_t path_size, const char* _Nullable dir, const char* _Nullable stem, const char* _Nullable ext)
+ssize_t makepath_r(char* _Nullable buf, size_t buf_size, const char* _Nullable dir, const char* _Nullable stem, const char* _Nullable ext)
 {
     const size_t dir_len = dir ? strlen(dir) : 0;
     const size_t stem_len = stem ? strlen(stem) : 0;
@@ -24,20 +24,24 @@ ssize_t makepath_r(char* _Nonnull path, size_t path_size, const char* _Nullable 
 
     if (stem_len == 0 && ext_len > 0) {
         errno = EINVAL;
-        if (path_size > 0) {
-            path[0] = '\0';
+        if (buf_size > 0 && buf) {
+            buf[0] = '\0';
         }
         return -1;
     }
-    if (path_size == 0) {
+    if (buf == NULL) {
         return total_needed;
     }
-    
+    if (buf_size < 1) {
+        errno = EINVAL;
+        return -1;
+    }
 
-    char *cur_pos = path;
-    size_t remaining_space = path_size - 1; // reserve 1 byte for final '\0'
 
-    path[0] = '\0';
+    char *cur_pos = buf;
+    size_t remaining_space = buf_size - 1; // reserve 1 byte for final '\0'
+
+    *cur_pos = '\0';
 
 
     // Append directory component
@@ -79,5 +83,5 @@ ssize_t makepath_r(char* _Nonnull path, size_t path_size, const char* _Nullable 
     }
 
 
-    return total_needed;
+    return 0;
 }

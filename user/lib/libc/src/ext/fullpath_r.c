@@ -29,7 +29,7 @@ char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nul
     // Case #1: relative path is actually absolute
     if (rel_path[0] == '/') {
         if (rel_len + 1 >= buf_size) {
-            errno = ERANGE;
+            errno = ENAMETOOLONG;
             return NULL;
         }
 
@@ -41,7 +41,7 @@ char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nul
     // Case #2: 'rel_path' is actually relative. Read CWD directly into 'buf'.
     // and then append 'rel_path' to it.
     if (proc_cwd(buf, buf_size) < 0) {
-        errno = ERANGE;
+        errno = ENAMETOOLONG;
         return NULL;
     }
 
@@ -50,7 +50,7 @@ char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nul
 
     if (cwd_len + needs_sep + rel_len + 1 >= buf_size) {
         buf[0] = '\0';
-        errno = ERANGE;
+        errno = ENAMETOOLONG;
         return NULL; 
     }
 
@@ -61,5 +61,6 @@ char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nul
     }
     strcpy_x(end_ptr, rel_path);
 
+    
     return buf;
 }
