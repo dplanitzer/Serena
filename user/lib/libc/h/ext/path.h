@@ -69,6 +69,15 @@ extern ssize_t makepath_r(char* _Nullable buf, size_t buf_size, const char* _Nul
 // to ENAMETOOLONG if 'buf' is too small to hold the full path. 
 extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nullable rel_path);
 
+
+// Appends the path component 'component' to the path stored in the buffer 'buf'
+// and returns 0 on success. 'buf_size' is the size of the path buffer 'buf'.
+// Note that this size includes space for the trailing '\0' character. If 'buf'
+// is NULL then this function calculates the size of the resulting path including
+// the trailing '\0' and it returns this size. -1 is returned and errno is set to
+// ENAMETOOLONG if the resulting path does not fit in the provided buffer.
+extern ssize_t pathjoin_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull component);
+
 __CPP_END
 
 #endif /* _EXT_PATH_H */
