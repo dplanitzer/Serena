@@ -78,6 +78,16 @@ extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const cha
 // ENAMETOOLONG if the resulting path does not fit in the provided buffer.
 extern ssize_t pathjoin_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull component);
 
+
+// Extracts the last path component of the path 'path', stores it in 'buf' and.
+// returns 0 on success. 'buf' is of size 'buf_size'. This size includes space
+// for the trailing '\0' character. If 'buf' is NULL then this function calculates
+// the space needed to store the last path component and returns this number as
+// the function result. -1 is returned and errno is set to ENAMETOOLONG if 'buf'
+// is not big enough to hold the last path component. Note that this function
+// returns a last path component of "." if 'path' is the empty string.
+extern ssize_t basename_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull path);
+
 __CPP_END
 
 #endif /* _EXT_PATH_H */
