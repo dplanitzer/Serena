@@ -8,7 +8,6 @@
 
 #include <ext/path.h>
 #include <string.h>
-#include <stddef.h>
 
 
 void splitpath_r(const char* _Nonnull path, char* _Nullable dir, size_t dir_len, char* _Nullable stem, size_t stem_len, char* _Nullable ext, size_t ext_len)

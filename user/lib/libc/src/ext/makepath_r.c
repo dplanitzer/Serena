@@ -9,7 +9,6 @@
 #include <ext/path.h>
 #include <ext/string.h>
 #include <errno.h>
-#include <stddef.h>
 
 
 ssize_t makepath_r(char* _Nonnull path, size_t path_size, const char* _Nullable dir, const char* _Nullable stem, const char* _Nullable ext)

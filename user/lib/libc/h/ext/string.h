@@ -9,6 +9,7 @@
 #ifndef _EXT_STRING_H
 #define _EXT_STRING_H 1
 
+#include <_cmndef.h>
 #ifndef __STDC_WANT_LIB_EXT1__
 #define __STDC_WANT_LIB_EXT1__ 1
 #endif

@@ -8,9 +8,8 @@
 
 #include <ext/path.h>
 #include <ext/string.h>
-#include <errno.h>
-#include <stddef.h>
 #include <serena/process.h>
+#include <errno.h>
 
 
 char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nullable rel_path)

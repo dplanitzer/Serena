@@ -17,6 +17,8 @@
 #define PATH_SEPARATOR  '/'
 
 
+__CPP_BEGIN
+
 // Calculates the size of the directory, stem and extension components of the
 // path 'path'. This size includes an extra byte for the trailing '\0' that
 // splitpath_r() writes for each extracted component. Thus the results of this
@@ -72,5 +74,7 @@ extern ssize_t makepath_r(char* _Nonnull path, size_t path_size, const char* _Nu
 // pointer to 'buf' is returned on success and NULL is returned and errno is set
 // to ERANGE if 'buf' is too small to hold the full path. 
 extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nullable rel_path);
+
+__CPP_END
 
 #endif /* _EXT_PATH_H */

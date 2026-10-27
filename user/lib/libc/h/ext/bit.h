@@ -9,8 +9,11 @@
 #ifndef _EXT_BIT_H
 #define _EXT_BIT_H 1
 
+#include <_cmndef.h>
 #include <ext/limits.h>
 #include <stdbool.h>
+
+__CPP_BEGIN
 
 unsigned int leading_zeros_uc(unsigned char val);
 unsigned int leading_zeros_us(unsigned short val);
@@ -75,5 +78,7 @@ log2_ull((unsigned long long)__n)
 #else
 #error "unable to define log2_sz()"
 #endif
+
+__CPP_END
 
 #endif /* _EXT_BIT_H */

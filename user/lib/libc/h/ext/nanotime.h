@@ -26,6 +26,7 @@
 // input. The only exception is nanotime_normalize() which you can use to
 // convert a valid or non-valid nanotime into a valid nanotime.
 
+__CPP_BEGIN
 
 #define nanotime_from(__ts, __seconds, __nanoseconds) \
 (__ts)->tv_sec = (__seconds); \
@@ -88,5 +89,7 @@ extern void nanotime_normalize(nanotime_t* _Nonnull ts);
 
 extern const nanotime_t NANOTIME_ZERO;
 extern const nanotime_t NANOTIME_INF;
+
+__CPP_END
 
 #endif /* _EXT_NANOTIME_H */

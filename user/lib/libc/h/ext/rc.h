@@ -13,6 +13,8 @@
 #include <stdbool.h>
 
 
+__CPP_BEGIN
+
 // The rc_xxx functions below implement a preemption and interrupt safe retain
 // count mechanism.
 typedef int ref_count_t;
@@ -31,5 +33,7 @@ extern bool rc_release(volatile ref_count_t* _Nonnull rc);
 // Returns a copy of the current retain count. This should be used for debugging
 // purposes only.
 extern int rc_getcount(volatile ref_count_t* _Nonnull rc);
+
+__CPP_END
 
 #endif /* _EXT_RC_H */
