@@ -88,6 +88,11 @@ extern ssize_t pathjoin_r(char* _Nullable buf, size_t buf_size, const char* _Non
 // returns a last path component of "." if 'path' is the empty string.
 extern ssize_t basename_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull path);
 
+
+// Returns true if the provided path is a full (absolute) path and false otherwise.
+#define isfullpath(__path) \
+(*(__path) == PATH_SEPARATOR)
+
 __CPP_END
 
 #endif /* _EXT_PATH_H */
