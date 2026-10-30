@@ -8,13 +8,10 @@
 
 #include "diskimage.h"
 #include "FSManager.h"
-#include <stdio.h>
 #include <ext/errno.h>
 #include <handler/Handler.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
-
-#define BLOCK_SIZE  4096
 
 
 static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
@@ -30,7 +27,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
 
     if (err == EOK) {
         // Update the inode metadata
-        //XXX use channel versions once they exist
+        //XXX use handler versions once they exist
         err = FileManager_SetFileOwner(fm, path, uid, gid);
         if (err == EOK) {
             err = FileManager_SetFilePermissions(fm, path, fsperms);
@@ -45,49 +42,56 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     return err;
 }
 
-errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
+errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull dstPath, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
-    HandlerRef hnd = NULL;
-    FILE* fp = NULL;
-    char* buf = NULL;
-    char* dstPath = NULL;
+    HandlerRef dfp = NULL;
+    FILE* sfp = NULL;
 
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
-    try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
-    try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
+    try_null(sfp, fopen(srcPath, "rb"), errno);
+    try(set_dmg_path(dstPath));
 
-    try(_create_file(&m->fm, dstPath, fsperms, uid, gid, &hnd));
-    try_null(fp, fopen(srcPath, "rb"), errno);
+    const errno_t r = _create_file(&m->fm, g_dmg_path, fsperms, uid, gid, &dfp);
+    if (r == EISDIR) {
+        if (last_path_component(HOST_PATH, g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
+            throw(errno);
+        }
+        if (path_append(DMG_PATH, g_dmg_path, sizeof(g_dmg_path), g_last_path_comp) < 0) {
+            throw(errno);
+        }
+
+        try(_create_file(&m->fm, g_dmg_path, fsperms, uid, gid, &dfp));
+    }
+    else if (r != EOK) {
+        throw(r);
+    }
 
     while (true) {
-        const size_t nBytesRead = fread(buf, 1, BLOCK_SIZE, fp);
+        const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sfp);
         if (nBytesRead == 0) {
-            if (ferror(fp)) {
+            if (ferror(sfp)) {
                 err = errno;
             }
             break;
         }
 
         ssize_t nBytesWritten;
-        err = Handler_Write(hnd, buf, nBytesRead, &nBytesWritten);
+        err = Handler_Write(dfp, g_copy_buf, nBytesRead, &nBytesWritten);
         if (err != EOK) {
             break;
         }
     }
 
 catch:
-    if (fp) {
-        fclose(fp);
+    Object_Release(dfp);
+    if (sfp) {
+        fclose(sfp);
     }
-    Object_Release(hnd);
-
-    free(dstPath);
-    free(buf);
 
     FSManager_Destroy(m);
     if (err == EOK) {

@@ -8,41 +8,44 @@
 
 #include "diskimage.h"
 #include "FSManager.h"
-#include <stdio.h>
 #include <ext/errno.h>
 #include <kpi/file.h>
 #include <handler/Handler.h>
 
-#define BLOCK_SIZE  4096
-
-errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
+errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull dstPath, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
     HandlerRef hnd = NULL;
     FILE* fp = NULL;
-    char* buf = NULL;
-    char* dstPath = NULL;
 
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
-    try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
-    try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
-
     try(FileManager_OpenFile(&m->fm, srcPath, O_RDONLY, &hnd));
-    try_null(fp, fopen(dstPath, "wb"), errno);
+    try(set_host_path(dstPath));
+
+    if (is_host_directory(g_host_path)) {
+        if (last_path_component(DMG_PATH, g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
+            throw(errno);
+        }
+        if (path_append(HOST_PATH, g_host_path, sizeof(g_host_path), g_last_path_comp) < 0) {
+            throw(errno);
+        }
+    }
+
+    try_null(fp, fopen(g_host_path, "wb"), errno);
 
     while (true) {
         ssize_t nBytesRead;
         
-        err = Handler_Read(hnd, buf, BLOCK_SIZE, &nBytesRead);
+        err = Handler_Read(hnd, g_copy_buf, sizeof(g_copy_buf), &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
 
-        fwrite(buf, 1, nBytesRead, fp);
+        fwrite(g_copy_buf, 1, nBytesRead, fp);
         if (ferror(fp)) {
             err = errno;
             break;
@@ -58,9 +61,6 @@ catch:
         fclose(fp);
     }
     Object_Release(hnd);
-    
-    free(dstPath);
-    free(buf);
 
     FSManager_Destroy(m);
     Object_Release(disk);
