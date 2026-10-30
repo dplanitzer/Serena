@@ -70,6 +70,14 @@ extern ssize_t makepath_r(char* _Nullable buf, size_t buf_size, const char* _Nul
 extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nullable rel_path);
 
 
+// Copies the path 'path' into the path buffer 'buf' with size 'buf_size'. The
+// 'buf_size' includes the trailing '\0' character. The function returns 0 on
+// success and -1 on failure. It sets errno to ENAMETOOLONG if the provided path
+// does not fit in the destination buffer. Use this function to copy a path while
+// making sure that the path to copy isn't larger than expected.
+extern int pathcopy_r(char* _Nonnull buf, size_t buf_size, const char* _Nonnull path);
+
+
 // Appends the path component 'component' to the path stored in the buffer 'buf'
 // and returns 0 on success. 'buf_size' is the size of the path buffer 'buf'.
 // Note that this size includes space for the trailing '\0' character. If 'buf'

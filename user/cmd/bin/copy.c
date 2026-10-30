@@ -11,26 +11,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/path.h>
 #include <serena/file.h>
 #include <serena/process.h>
 
 
 #define COPY_BUF_SIZE   8192
 
-char path_buf[PATH_MAX];
-char copy_buf[COPY_BUF_SIZE];
+static char dst_path_buf[PATH_MAX];
+static char lpc_buf[FILENAME_MAX];
+static char copy_buf[COPY_BUF_SIZE];
 
 
-const char* src_path = "";
-const char* dst_path = "";
+const char* src_path_arg = "";
+const char* dst_path_arg = "";
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("copy <src_path> <dst_path>"),
 
-    CLAP_REQUIRED_POSITIONAL_STRING(&src_path, "expected a path to an existing file"),
-    CLAP_REQUIRED_POSITIONAL_STRING(&dst_path, "expected a path to the destination")
+    CLAP_REQUIRED_POSITIONAL_STRING(&src_path_arg, "expected a path to an existing file"),
+    CLAP_REQUIRED_POSITIONAL_STRING(&dst_path_arg, "expected a path to the destination")
 );
 
 
@@ -63,7 +65,7 @@ static int copy_file(const char* _Nonnull src_path, const fs_attr_t* _Nonnull sr
 
     sfd = fs_open(NULL, src_path, O_RDONLY);
     if (sfd >= 0) {
-        dfd = fs_create_file(NULL, dst_path, O_EXCL|O_WRONLY, fsperms);
+        dfd = fs_create_file(NULL, dst_path, O_WRONLY, fsperms);
     }
 
     if (sfd != -1 && dfd != -1) {
@@ -94,29 +96,6 @@ static int copy_file(const char* _Nonnull src_path, const fs_attr_t* _Nonnull sr
     return (sfd != -1 && dfd != -1) ? 0 : -1;
 }
 
-static const char* _Nullable make_path(const char* _Nonnull dirPath, const char* _Nonnull lastPathComponent)
-{
-    const size_t dstPathLen = strlen(dirPath);
-    const size_t lastPathComponentLen = strlen(lastPathComponent);
-    const size_t hasSlash = (dirPath[dstPathLen - 1] == '/') ? 1 : 0;
-    const size_t pathLen = dstPathLen + hasSlash + lastPathComponentLen;
-    char* p = path_buf;
-
-    if (pathLen > PATH_MAX - 1) {
-        errno = EINVAL;
-        return NULL;
-    }
-
-    memcpy(p, dirPath, dstPathLen);
-    p += dstPathLen;
-    if (!hasSlash) {
-        *p++ = '/';
-    }
-    memcpy(p, lastPathComponent, lastPathComponentLen);
-    
-    return path_buf;
-}
-
 static int copy_obj(const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
     fs_attr_t src_attr, dst_attr;
@@ -137,7 +116,7 @@ static int copy_obj(const char* _Nonnull src_path, const char* _Nonnull dst_path
     }
 
     // Destination must not exist or not be a directory
-    if (hasDst && (dst_attr.file_type != FS_FTYPE_DIR)) {
+    if (hasDst && !(dst_attr.file_type == FS_FTYPE_DIR || dst_attr.file_type == FS_FTYPE_REG)) {
         errno = EINVAL;
         return -1;
     }
@@ -145,10 +124,18 @@ static int copy_obj(const char* _Nonnull src_path, const char* _Nonnull dst_path
 
     // Compute the final destination path if 'dst_path' points to a directory
     if (hasDst && (dst_attr.file_type == FS_FTYPE_DIR)) {
-        const char* lastSrcPathComponent = strrchr(src_path, '/');
-        const char* fileName = (lastSrcPathComponent) ? lastSrcPathComponent + 1 : src_path;
+        if (basename_r(lpc_buf, sizeof(lpc_buf), src_path) < 0) {
+            return -1;
+        }
 
-        dst_path = make_path(dst_path, fileName);
+        if (pathcopy_r(dst_path_buf, sizeof(dst_path_buf), dst_path) < 0) {
+            return -1;
+        }
+        if (pathjoin_r(dst_path_buf, sizeof(dst_path_buf), lpc_buf) < 0) {
+            return -1;
+        }
+
+        dst_path = dst_path_buf;
     }
 
 
@@ -160,11 +147,11 @@ int main(int argc, char* argv[])
 {
     clap_parse(0, params, argc, argv);
 
-    if (copy_obj(src_path, dst_path) == 0) {
+    if (copy_obj(src_path_arg, dst_path_arg) == 0) {
         return EXIT_SUCCESS;
     }
     else {
-        clap_error(argv[0], "%s: %s", src_path, strerror(errno));
+        clap_error(argv[0], "%s: %s", src_path_arg, strerror(errno));
         return EXIT_FAILURE;
     }
 }
