@@ -246,8 +246,9 @@ errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
 
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
+    try(set_dmg_path(path));
 
-    err = do_list(&m->fm, path, false);
+    err = do_list(&m->fm, g_dmg_path, false);
 
 catch:
     FSManager_Destroy(m);
