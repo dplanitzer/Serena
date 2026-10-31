@@ -42,6 +42,11 @@ extern ssize_t makepath_r(char* _Nullable buf, size_t buf_size, const char* _Nul
 extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nullable rel_path);
 
 
+// Returns true if the provided path is a full (absolute) path and false otherwise.
+#define isfullpath(__path) \
+(*(__path) == PATH_SEPARATOR)
+
+
 // Copies the path 'path' into the path buffer 'buf' with size 'buf_size'. The
 // 'buf_size' includes the trailing '\0' character. The function returns 0 on
 // success and -1 on failure. It sets errno to ENAMETOOLONG if the provided path
@@ -90,9 +95,30 @@ extern ssize_t stemname_r(char* _Nullable buf, size_t buf_size, const char* _Non
 extern ssize_t extname_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull path);
 
 
-// Returns true if the provided path is a full (absolute) path and false otherwise.
-#define isfullpath(__path) \
-(*(__path) == PATH_SEPARATOR)
+// Path iterator structure
+typedef struct path_iter {
+    // Outputs
+    int index;              // 0-based component index
+
+    const char* _Nullable   start;      // Pointer to the first character of the current path component. NULL if there is no more component
+    const char* _Nullable   end;        // Pointer to the '/' or '\0' following the path component. NULL if there is no more component
+    size_t  length;                     // Length of teh path component. 0 if there is no more component
+    
+    // Internal (do not modify)
+    const char* _Nullable   _next_ptr;
+} path_iter_t;
+
+
+// Initialize a path iterator
+#define PATH_ITER_INITIALIZER {0, 0, 0, 0, 0}
+
+// Iterates through the path 'path' and returns the next path component on each
+// invocation. A pointer to the first character of the path component and a pointer
+// that points to the trailing '/' or '\0' of the path component is returned plus
+// its length and index in the path. The index of the first path component is 0.
+// The function returns false if a path component is available and has been
+// returned and 1 if no more path component is available.
+extern int pathnext(path_iter_t* _Nonnull it, const char* _Nonnull path);
 
 __CPP_END
 
