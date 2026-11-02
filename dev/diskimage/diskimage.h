@@ -74,6 +74,24 @@ typedef enum {
 } di_path_type;
 
 
+// Path iterator structure
+typedef struct di_path_iter {
+    // Outputs
+    int index;              // 0-based component index
+
+    const char* _Nullable   start;      // Pointer to the first character of the current path component. NULL if there is no more component
+    const char* _Nullable   end;        // Pointer to the '/' or '\0' following the path component. NULL if there is no more component
+    size_t  length;                     // Length of teh path component. 0 if there is no more component
+    
+    // Internal (do not modify)
+    const char* _Nullable   _next_ptr;
+} di_path_iter_t;
+
+
+// Initialize a path iterator
+#define DI_PATH_ITER_INITIALIZER {0, 0, 0, 0, 0}
+
+
 #ifdef _WIN32
 #define HOST_PATH_MAX   MAX_PATH
 #else
@@ -96,6 +114,7 @@ extern errno_t set_host_path(const char* _Nonnull path);
 extern errno_t set_dmg_path(const char* _Nonnull path);
 
 extern bool is_host_directory(const char* _Nonnull path);
+extern int path_next(di_path_iter_t* _Nonnull it, di_path_type path_type, const char* _Nonnull path);
 
 extern ssize_t path_append(di_path_type path_type, char* _Nullable buf, size_t buf_size, const char* _Nonnull component);
 extern ssize_t last_path_component(di_path_type path_type, char* _Nullable buf, size_t buf_size, const char* _Nonnull path);

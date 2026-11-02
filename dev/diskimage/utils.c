@@ -265,3 +265,38 @@ ssize_t last_path_component(di_path_type path_type, char* _Nullable buf, size_t 
 
     return 0;
 }
+
+int path_next(di_path_iter_t* _Nonnull it, di_path_type path_type, const char* _Nonnull path)
+{
+    const di_path_type cpath_type = concrete_path_type(path_type);
+
+    // First-time initialization
+    if (it->_next_ptr == NULL) {
+        it->_next_ptr = path;
+        it->index = -1;
+    }
+
+    // Find the start of the next path component
+    while (is_separator(cpath_type, *(it->_next_ptr))) {
+        it->_next_ptr++;
+    }
+
+    if (*(it->_next_ptr) == '\0') {
+        it->start = NULL;
+        it->end = NULL;
+        it->length = 0;
+        return 1;
+    }
+
+    it->start = it->_next_ptr;
+    it->index++;
+
+    // Find the end of the next path component
+    while (*(it->_next_ptr) != '\0' && !is_separator(cpath_type, *(it->_next_ptr))) {
+        it->_next_ptr++;
+    }
+    it->end = it->_next_ptr;
+    it->length = it->end - it->start;
+
+    return 0;
+}

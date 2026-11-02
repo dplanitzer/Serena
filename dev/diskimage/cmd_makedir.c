@@ -14,7 +14,7 @@
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
 
-static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
+static errno_t create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
 {
     decl_try_err();
 
@@ -30,61 +30,37 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
     return err;
 }
 
-static errno_t _create_directory_recursively(FileManagerRef fm, char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
+static errno_t create_directory_recursively(FileManagerRef fm, char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
-    char* p = path;
+    di_path_iter_t it = DI_PATH_ITER_INITIALIZER;
+    fs_attr_t attr;
 
-    while (*p == '/') {
-        p++;
+    // Iterate through the path string
+    while (!path_next(&it, DMG_PATH, path)) {
+        char* p = (char*)it.end;
+
+        if (*p == '/') {
+            *p = '\0';
+
+            err = create_directory(fm, path, permissions, uid, gid);
+            if (err != EOK) {
+                // Stop if the intermediate "directory" is actually a file
+                if (err == EEXIST && FileManager_GetAttributes(fm, path, &attr) == EOK && attr.file_type != FS_FTYPE_DIR) {
+                    err = ENOTDIR;
+                    break;
+                }
+            }
+
+            *p = '/';
+        }
     }
 
-    do {
-        char* ps = strchr(p, '/');
-
-        if (ps) { *ps = '\0'; }
-
-        err = _create_directory(fm, path, permissions, uid, gid);
-        if (ps) { *ps = '/'; }
-
-        if (err != EOK && err != EEXIST || ps == NULL) {
-            break;
-        }
-
-        p = ps;
-        while (*p == '/') {
-            p++;
-        }
-    } while(*p != '\0');
-
-    return err;
-}
-
-// Iterate the path components from the root on down and try creating the
-// corresponding directory. If it fails with EEXIST then we know that this
-// directory already exists. Any other error is treated as fatal. If it worked
-// then continue until we hit the end of the path.
-// Note that we may find ourselves racing with another process that is busy
-// deleting one of the path components we thought existed. Ie we try to do
-// a create directory on path component X that comes back with EEXIST. We now
-// move on to the child X/Y and try the create directory there. However this
-// may now come back with ENOENT because X was empty and it got deleted by
-// another process. We simply start over again from the root of our path in
-// this case.
-static errno_t create_directory_recursively(FileManagerRef _Nonnull fm, char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
-{
-    decl_try_err();
-    int i = 0;
-
-    while (i < 16) {
-        err = _create_directory_recursively(fm, path, permissions, uid, gid);
-        if (err == EOK || err != ENOENT) {
-            break;
-        }
-
-        i++;
+    // Create the final target directory
+    if (err == EOK) {
+        err = create_directory(fm, path, permissions, uid, gid);
     }
-    
+
     return err;
 }
 
@@ -103,7 +79,7 @@ errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gi
 
     try(set_dmg_path(dirPath));
 
-    err = _create_directory(&m->fm, g_dmg_path, dirPerms, uid, gid);
+    err = create_directory(&m->fm, g_dmg_path, dirPerms, uid, gid);
     if (err != EOK) {
         if (err == ENOENT && shouldCreateParents) {
             err = create_directory_recursively(&m->fm, g_dmg_path, dirPerms, uid, gid);
