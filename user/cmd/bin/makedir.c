@@ -11,69 +11,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/path.h>
 #include <serena/directory.h>
+#include <serena/file.h>
 
 
-static int _create_directory_recursively(char* _Nonnull path, fs_perms_t fsperms)
-{
-    char* p = path;
-
-    while (*p == '/') {
-        p++;
-    }
-
-    do {
-        char* ps = strchr(p, '/');
-
-        if (ps) { *ps = '\0'; }
-
-        const int r = fs_create_directory(NULL, path, fsperms);
-        if (ps) { *ps = '/'; }
-
-        if (r != 0 && errno != EEXIST) {
-            return -1;
-        }
-        if (ps == NULL) {
-            break;
-        }
-
-        p = ps;
-        while (*p == '/') {
-            p++;
-        }
-    } while(*p != '\0');
-
-    return 0;
-}
-
-// Iterate the path components from the root on down and try creating the
-// corresponding directory. If it fails with EEXIST then we know that this
-// directory already exists. Any other error is treated as fatal. If it worked
-// then continue until we hit the end of the path.
-// Note that we may find ourselves racing with another process that is busy
-// deleting one of the path components we thought existed. Ie we try to do
-// a create directory on path component X that comes back with EEXIST. We now
-// move on to the child X/Y and try the create directory there. However this
-// may now come back with ENOENT because X was empty and it got deleted by
-// another process. We simply start over again from the root of our path in
-// this case.
 static int create_directory_recursively(char* _Nonnull path, fs_perms_t fsperms)
 {
-    int i = 0;
+    path_iter_t it = PATH_ITER_INITIALIZER;
+    fs_attr_t attr;
 
-    while (i < 16) {
-        if (_create_directory_recursively(path, fsperms) == 0) {
-            break;
-        }
-        
-        if (errno != ENOENT) {
-            return -1;
-        }
+    // Iterate through the path string
+    while (!pathnext(&it, path)) {
+        char* p = (char*)it.end;
 
-        i++;
+        if (*p == '/') {
+            *p = '\0';
+
+            if (fs_create_directory(NULL, path, fsperms) != 0) {
+                // Stop if the intermediate "directory" is actually a file
+                if (errno == EEXIST && fs_attr(NULL, path, &attr) == 0 && attr.file_type != FS_FTYPE_DIR) {
+                    errno = ENOTDIR;
+                    return -1;
+                }
+            }
+
+            *p = '/';
+        }
     }
-    
-    return 0;
+
+    // Create the final target directory
+    return fs_create_directory(NULL, path, fsperms);
 }
 
 
@@ -103,18 +71,22 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < paths.count; i++) {
         char* path = (char*)paths.strings[i];
 
-        r = fs_create_directory(NULL, path, fsperms);
-        if (r != 0) {
-            if (errno == ENOENT && should_create_parents) {
+        if (strlen(path) < PATH_MAX) {
+            if (should_create_parents) {
                 r = create_directory_recursively(path, fsperms);
             }
-
-            if (r != 0) {
-                clap_error(argv[0], "%s: %s", path, strerror(errno));
+            else {
+                r = fs_create_directory(NULL, path, fsperms);
             }
         }
+        else {
+            errno = ENAMETOOLONG;
+            r = -1;
+        }
+
 
         if (r != 0) {
+            clap_error(argv[0], "%s: %s", path, strerror(errno));
             break;
         }
     }
