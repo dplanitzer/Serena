@@ -53,6 +53,7 @@ static errno_t create_directory_recursively(FileManagerRef fm, char* _Nonnull pa
             }
 
             *p = '/';
+            err = EOK;
         }
     }
 
@@ -79,11 +80,11 @@ errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gi
 
     try(set_dmg_path(dirPath));
 
-    err = create_directory(&m->fm, g_dmg_path, dirPerms, uid, gid);
-    if (err != EOK) {
-        if (err == ENOENT && shouldCreateParents) {
-            err = create_directory_recursively(&m->fm, g_dmg_path, dirPerms, uid, gid);
-        }
+    if (shouldCreateParents) {
+        err = create_directory_recursively(&m->fm, g_dmg_path, dirPerms, uid, gid);
+    }
+    else {
+        err = create_directory(&m->fm, g_dmg_path, dirPerms, uid, gid);
     }
 
 catch:

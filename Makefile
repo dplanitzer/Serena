@@ -298,7 +298,7 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /tmp $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /Users $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /Volumes $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxrwxrwx /Volumes/FD1 $(BOOT_DMG_FILE)
+	$(DISKIMAGE) makedir -m=rwxrwxrwx -p /Volumes/FD1 $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-x--- -o=1000:1000 -p /Users/admin $(BOOT_DMG_FILE)
 
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/ $(BOOT_DMG_FILE)
