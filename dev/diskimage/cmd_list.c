@@ -214,29 +214,7 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t do_list(FileManagerRef _Nonnull fm, const char* _Nonnull path, bool isPrintAll)
-{
-    decl_try_err();
-
-    list_ctx_t* ctx = calloc(1, sizeof(list_ctx_t));
-    if (ctx == NULL) {
-        return ENOMEM;
-    }
-
-    ctx->fm = fm;
-    ctx->flags.printAll = isPrintAll;
-
-    if (is_dir(ctx, path)) {
-        err = list_dir(ctx, path);
-    }
-    else {
-        err = list_file(ctx, path);
-    }
-
-    free(ctx);
-
-    return err;
-}
+static list_ctx_t g_list_ctx;
 
 errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
@@ -248,7 +226,18 @@ errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
     try(FSManager_Create(disk, &m));
     try(set_dmg_path(path));
 
-    err = do_list(&m->fm, g_dmg_path, false);
+
+    memset(&g_list_ctx, 0, sizeof(list_ctx_t));
+    g_list_ctx.fm = &m->fm;
+    g_list_ctx.flags.printAll = false;
+
+    if (is_dir(&g_list_ctx, g_dmg_path)) {
+        err = list_dir(&g_list_ctx, g_dmg_path);
+    }
+    else {
+        err = list_file(&g_list_ctx, g_dmg_path);
+    }
+
 
 catch:
     FSManager_Destroy(m);
