@@ -47,6 +47,26 @@ extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const cha
 (*(__path) == PATH_SEPARATOR)
 
 
+// Converts the path 'path' to a real path. The following transformations are
+// applied to 'path' to produce the real path:
+// - the path is converted into an absolute path if it is relative
+// - multiple consecutive slashes are collapsed into a single slash
+// - "." entries are removed
+// - ".." entries and the path component right in front of it are removed
+// - symlinks are expanded (not yet implemented)
+// Note that this function also validates that each path component exists in the
+// filesystem. -1 is returned and errno is set to a suitable error if a path
+// component does not exist. The validation is applied to all path components
+// including the last one. If 'path' ends in a '/' character then the last path
+// component has to point to a directory. -1 is returned and errno is set to
+// ENOTDIR if the last path component is not a directory in this case.
+// The final path is written to the buffer 'buf' of size 'buf_size'. The buffer
+// size is assumed to include the space needed for the trailing '\0' character.
+// -1 is returned and errno is set to ENAMETOOLONG if the resolved path does not
+// fit in the provided buffer.
+extern int realpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nonnull path);
+
+
 // Copies the path 'path' into the path buffer 'buf' with size 'buf_size'. The
 // 'buf_size' includes the trailing '\0' character. The function returns 0 on
 // success and -1 on failure. It sets errno to ENAMETOOLONG if the provided path
@@ -116,8 +136,14 @@ typedef struct path_iter {
 // invocation. A pointer to the first character of the path component and a pointer
 // that points to the trailing '/' or '\0' of the path component is returned plus
 // its length and index in the path. The index of the first path component is 0.
-// The function returns false if a path component is available and has been
-// returned and 1 if no more path component is available.
+// The index is incremented for each recognized path component. The function
+// returns 0 when it recognized a new path component and 1 if all path components
+// have been enumerated. The index entry in the iterator marks the index of the
+// last recognized path component when the function returns 1. Note that the
+// index is set to -1 if the function returns with 1 and no path component has
+// been recognized at all. I.e. a path of the form "/" has no recognized path
+// component and thus the function will return immediately with 1 as the result
+// and index set to -1.
 extern int pathnext(path_iter_t* _Nonnull it, const char* _Nonnull path);
 
 __CPP_END
