@@ -67,6 +67,20 @@ extern char* _Nullable fullpath_r(char* _Nonnull buf, size_t buf_size, const cha
 extern int realpath_r(char* _Nonnull buf, size_t buf_size, const char* _Nonnull path);
 
 
+// Calculates a relative path based on the (absolute) path 'path' and the path
+// prefix 'path_prefix'. The relative path is the suffix of 'path' that does not
+// include the prefix 'path_prefix' and this path is written to the buffer 'buf'.
+// The size of the buffer 'buf' is 'buf_size' and this size includes space for a
+// trailing '\0' character. If 'buf' is NULL then this function calculates the
+// amount of space that is needed for the relative path and it returns this
+// amount as the function result. If 'buf' is not NULL then the relative path is
+// written to 'buf' and 0 is returned. If the relative path does not fit in 'buf'
+// errno is set to ENAMETOOLONG and the function returns -1.
+// Multiple consecutive path separators in 'path_prefix' and 'path' are treated
+// as if they would be a single path separator for matching purposes.  
+extern ssize_t relpath_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull path_prefix, const char* _Nonnull path);
+
+
 // Copies the path 'path' into the path buffer 'buf' with size 'buf_size'. The
 // 'buf_size' includes the trailing '\0' character. The function returns 0 on
 // success and -1 on failure. It sets errno to ENAMETOOLONG if the provided path
