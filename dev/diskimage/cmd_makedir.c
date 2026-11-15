@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include "path_utils.h"
 #include "FSManager.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +38,7 @@ static errno_t create_directory_recursively(FileManagerRef fm, char* _Nonnull pa
     fs_attr_t attr;
 
     // Iterate through the path string
-    while (!path_next(&it, DMG_PATH, path)) {
+    while (!dmg_path_next(&it, path)) {
         char* p = (char*)it.end;
 
         if (*p == '/') {
@@ -78,7 +79,7 @@ errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gi
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
-    try(set_dmg_path(dirPath));
+    try(dmg_set_path(dirPath));
 
     if (shouldCreateParents) {
         err = create_directory_recursively(&m->fm, g_dmg_path, dirPerms, uid, gid);

@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include "path_utils.h"
 #include "FSManager.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -224,7 +225,7 @@ errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
 
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
-    try(set_dmg_path(path));
+    try(dmg_set_path(path));
 
 
     memset(&g_list_ctx, 0, sizeof(list_ctx_t));

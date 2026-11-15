@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include "path_utils.h"
 #include "FSManager.h"
 #include <ext/errno.h>
 #include <handler/Handler.h>
@@ -54,14 +55,14 @@ errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull 
     try(FSManager_Create(disk, &m));
 
     try_null(sfp, fopen(srcPath, "rb"), errno);
-    try(set_dmg_path(dstPath));
+    try(dmg_set_path(dstPath));
 
     const errno_t r = _create_file(&m->fm, g_dmg_path, fsperms, uid, gid, &dfp);
     if (r == EISDIR) {
-        if (last_path_component(HOST_PATH, g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
+        if (host_last_path_component(g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
             throw(errno);
         }
-        if (path_append(DMG_PATH, g_dmg_path, sizeof(g_dmg_path), g_last_path_comp) < 0) {
+        if (dmg_path_append(g_dmg_path, sizeof(g_dmg_path), g_last_path_comp) < 0) {
             throw(errno);
         }
 

@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include "path_utils.h"
 #include "FSManager.h"
 #include <ext/errno.h>
 #include <kpi/file.h>
@@ -24,13 +25,13 @@ errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull dstPath, con
     try(FSManager_Create(disk, &m));
 
     try(FileManager_OpenFile(&m->fm, srcPath, O_RDONLY, &hnd));
-    try(set_host_path(dstPath));
+    try(host_set_path(dstPath));
 
-    if (is_host_directory(g_host_path)) {
-        if (last_path_component(DMG_PATH, g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
+    if (host_is_directory(g_host_path)) {
+        if (dmg_last_path_component(g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
             throw(errno);
         }
-        if (path_append(HOST_PATH, g_host_path, sizeof(g_host_path), g_last_path_comp) < 0) {
+        if (host_path_append(g_host_path, sizeof(g_host_path), g_last_path_comp) < 0) {
             throw(errno);
         }
     }

@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include "path_utils.h"
 #include "FSManager.h"
 #include <kpi/file.h>
 
@@ -19,7 +20,7 @@ errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath)
 
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
-    try(set_dmg_path(path));
+    try(dmg_set_path(path));
 
     try(FileManager_Unlink(&m->fm, g_dmg_path, __FS_ULNK_ANY));
 
