@@ -11,24 +11,22 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <ext/try.h>
-#include <kpi/types.h>
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 
 // Path iterator structure
 typedef struct di_path_iter {
     // Outputs
-    int index;              // 0-based component index
+    int         index;      // 0-based component index
 
-    const char* _Nullable   start;      // Pointer to the first character of the current path component. NULL if there is no more component
-    const char* _Nullable   end;        // Pointer to the '/' or '\0' following the path component. NULL if there is no more component
-    size_t  length;                     // Length of teh path component. 0 if there is no more component
+    const char* start;      // Pointer to the first character of the current path component. NULL if there is no more component
+    const char* end;        // Pointer to the '/' or '\0' following the path component. NULL if there is no more component
+    size_t      length;                     // Length of teh path component. 0 if there is no more component
     
     // Internal (do not modify)
-    const char* _Nullable   _next_ptr;
+    const char* _next_ptr;
 } di_path_iter_t;
 
 
@@ -54,8 +52,8 @@ extern char g_last_path_comp[LPC_SIZE];
 
 
 
-extern errno_t host_set_path(const char* _Nonnull path);
-extern errno_t dmg_set_path(const char* _Nonnull path);
+extern errno_t host_set_path(const char* path);
+extern errno_t dmg_set_path(const char* path);
 
 
 #ifdef _WIN32
@@ -114,17 +112,17 @@ posix_last_path_component(__buf, __buf_size, __path)
 // fopen() (UTF-8 in a UTF-8 locale, otherwise the ANSI or OEM code page)
 extern UINT win32_code_page(void);
 
-extern bool win32_is_directory(const char* _Nonnull path);
-extern int win32_path_next(di_path_iter_t* _Nonnull it, const char* _Nonnull path);
+extern bool win32_is_directory(const char* path);
+extern int win32_path_next(di_path_iter_t* it, const char*  path);
 
-extern ssize_t win32_path_append(char* _Nullable buf, size_t buf_size, const char* _Nonnull component);
-extern ssize_t win32_last_path_component(char* _Nullable buf, size_t buf_size, const char* _Nonnull path);
+extern int win32_path_append(char* buf, size_t buf_size, const char*  component);
+extern int win32_last_path_component(char* buf, size_t buf_size, const char* path);
 #endif /* _WIN32 */
 
-extern bool posix_is_directory(const char* _Nonnull path);
-extern int posix_path_next(di_path_iter_t* _Nonnull it, const char* _Nonnull path);
+extern bool posix_is_directory(const char*  path);
+extern int posix_path_next(di_path_iter_t*  it, const char*  path);
 
-extern ssize_t posix_path_append(char* _Nullable buf, size_t buf_size, const char* _Nonnull component);
-extern ssize_t posix_last_path_component(char* _Nullable buf, size_t buf_size, const char* _Nonnull path);
+extern int posix_path_append(char* buf, size_t buf_size, const char* component);
+extern int posix_last_path_component(char* buf, size_t buf_size, const char* path);
 
 #endif /* path_utils_h */

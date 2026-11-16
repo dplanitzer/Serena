@@ -1,9 +1,9 @@
 //
-//  utils.c
+//  path_utils_posix.c
 //  diskimage
 //
-//  Created by Dietmar Planitzer on 12/20/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 11/14/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include "path_utils.h"
@@ -15,7 +15,7 @@ char g_host_path[HOST_PATH_MAX];
 char g_dmg_path[DMG_PATH_MAX];
 char g_last_path_comp[LPC_SIZE];
 
-errno_t host_set_path(const char* _Nonnull path)
+errno_t host_set_path(const char* path)
 {
     const size_t len = strlen(path);
 
@@ -26,10 +26,10 @@ errno_t host_set_path(const char* _Nonnull path)
     memcpy(g_host_path, path, len);
     g_host_path[len] = '\0';
 
-    return EOK;
+    return 0;
 }
 
-errno_t dmg_set_path(const char* _Nonnull path)
+errno_t dmg_set_path(const char* path)
 {
     const size_t len = strlen(path);
 
@@ -40,7 +40,7 @@ errno_t dmg_set_path(const char* _Nonnull path)
     memcpy(g_dmg_path, path, len);
     g_dmg_path[len] = '\0';
 
-    return EOK;
+    return 0;
 }
 
 #if defined(__APPLE__)
@@ -48,7 +48,7 @@ errno_t dmg_set_path(const char* _Nonnull path)
 #include <sys/types.h>
 #include <sys/stat.h>
 
-bool posix_is_directory(const char* _Nonnull path)
+bool posix_is_directory(const char* path)
 {
     struct stat path_stat;
     
@@ -61,7 +61,7 @@ bool posix_is_directory(const char* _Nonnull path)
 
 #endif /* __APPLE__ */
 
-ssize_t posix_path_append(char* _Nullable buf, size_t buf_size, const char* _Nonnull component)
+int posix_path_append(char* buf, size_t buf_size, const char* component)
 {
     while (*component == '/') {
         component++;
@@ -111,7 +111,7 @@ ssize_t posix_path_append(char* _Nullable buf, size_t buf_size, const char* _Non
     return 0;
 }
 
-ssize_t posix_last_path_component(char* _Nullable buf, size_t buf_size, const char* _Nonnull path)
+int posix_last_path_component(char* buf, size_t buf_size, const char* path)
 {
     const size_t path_len = strlen(path);
     size_t total_size = 1;
@@ -132,7 +132,7 @@ ssize_t posix_last_path_component(char* _Nullable buf, size_t buf_size, const ch
     }
     else {
         // Strip trailing slashes to find the true end of the last component
-        ssize_t end = (ssize_t)path_len - 1;
+        int end = (int)path_len - 1;
         while (end > 0 && path[end] == '/') {
             end--;
         }
@@ -144,7 +144,7 @@ ssize_t posix_last_path_component(char* _Nullable buf, size_t buf_size, const ch
         }
         else {
             // Find the start of the last component by moving backward to the next slash
-            ssize_t start = end;
+            int start = end;
 
             while (start >= 0 && path[start] != '/') {
                 start--;
@@ -158,7 +158,7 @@ ssize_t posix_last_path_component(char* _Nullable buf, size_t buf_size, const ch
     }
 
     if (buf == NULL) {
-        return (ssize_t)total_size;
+        return (int)total_size;
     }
 
 
@@ -183,7 +183,7 @@ ssize_t posix_last_path_component(char* _Nullable buf, size_t buf_size, const ch
     return 0;
 }
 
-int posix_path_next(di_path_iter_t* _Nonnull it, const char* _Nonnull path)
+int posix_path_next(di_path_iter_t* it, const char* path)
 {
     // First-time initialization
     if (it->_next_ptr == NULL) {

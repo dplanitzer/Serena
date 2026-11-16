@@ -73,7 +73,7 @@ extern errno_t cmd_diff_disks(const char* _Nonnull dmgPath1, const char* _Nonnul
 extern errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex);
 extern errno_t cmd_put_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
 
-extern errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath);
+extern errno_t cmd_delete(const char* _Nonnull path, bool bRecursive, const char* _Nonnull dmgPath);
 extern errno_t cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull dmgPath);
 extern errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath);
 extern errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path, const char* _Nonnull dmgPath);
@@ -83,9 +83,5 @@ extern errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _N
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);
 extern void di_chs_from_lba(size_t* _Nonnull pOutCylinder, size_t* _Nonnull pOutHead, size_t* _Nonnull pOutSector, const DiskImage* _Nonnull info, size_t lba);
-
-#if defined(__APPLE__)
-extern char * _Nullable strdup(const char * _Nonnull src);
-#endif
 
 #endif /* diskimage_h */

@@ -432,6 +432,7 @@ static bool is_hex = false;
 
 // diskimage delete
 static char* path = "";
+static bool should_delete_recursive = false;
 
 // diskimage format
 static bool should_quick_format = false;
@@ -486,6 +487,7 @@ CLAP_DECL(params,
     //
 
     CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
+        CLAP_BOOL('r', "recursive", &should_delete_recursive, "Recursively delete a file hierarchy"),
         CLAP_POSITIONAL_STRING(&path),
         CLAP_POSITIONAL_STRING(&dmg_path),
 
@@ -592,7 +594,7 @@ int main(int argc, const char* argv[])
     }
     else if (!strcmp(cmd_id, "delete")) {
         // diskimage delete
-        try(cmd_delete(path, dmg_path));
+        try(cmd_delete(path, should_delete_recursive, dmg_path));
     }
     else if (!strcmp(cmd_id, "format")) {
         // diskimage format

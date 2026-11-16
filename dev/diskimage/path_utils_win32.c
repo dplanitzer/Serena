@@ -1,9 +1,9 @@
 //
-//  utils.c
+//  path_utils_win32.c
 //  diskimage
 //
-//  Created by Dietmar Planitzer on 12/20/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 11/14/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #ifdef _WIN32
@@ -13,10 +13,9 @@
 #include <string.h>
 #include <locale.h>
 
-// Pure Windows host path functions. Unlike the di_path_type based functions
-// above, these understand drive letters ("C:"), UNC shares ("\\server\share")
-// and device paths ("\\?\C:\", "\\.\COM1"). Both '\' and '/' are accepted as
-// separators, and '\' is generated.
+// Pure Windows host path functions which understand drive letters ("C:"),
+// UNC shares ("\\server\share") and device paths ("\\?\C:\", "\\.\COM1").
+// Both '\' and '/' are accepted as separators, and '\' is generated.
 //
 // Host paths are in the code page that win32_code_page() returns. In a DBCS
 // code page (e.g. Shift-JIS) a '\' byte that is the second half of a
@@ -57,13 +56,13 @@ UINT win32_code_page(void)
 
 // Returns the length in bytes of the character at 'p'. UTF-8 multi-byte
 // sequences never contain ASCII bytes, so UTF-8 can be scanned byte by byte.
-static size_t win32_char_len(UINT cp, const char* _Nonnull p)
+static size_t win32_char_len(UINT cp, const char* p)
 {
     return (cp != CP_UTF8 && p[1] != '\0' && IsDBCSLeadByteEx(cp, (BYTE)p[0])) ? 2 : 1;
 }
 
 // Returns the index of the first separator or '\0' at or after index 'i'
-static size_t win32_skip_name(UINT cp, const char* _Nonnull path, size_t i)
+static size_t win32_skip_name(UINT cp, const char* path, size_t i)
 {
     while (path[i] != '\0' && !win32_is_sep(path[i])) {
         i += win32_char_len(cp, &path[i]);
@@ -71,12 +70,12 @@ static size_t win32_skip_name(UINT cp, const char* _Nonnull path, size_t i)
     return i;
 }
 
-static bool win32_is_drive(const char* _Nonnull p)
+static bool win32_is_drive(const char* p)
 {
     return ((p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= 'a' && p[0] <= 'z')) && p[1] == ':';
 }
 
-static bool win32_ends_with_sep(const char* _Nonnull s, size_t len)
+static bool win32_ends_with_sep(const char* s, size_t len)
 {
     const UINT cp = win32_code_page();
     size_t i = 0, last = 0;
@@ -97,7 +96,7 @@ static bool win32_ends_with_sep(const char* _Nonnull s, size_t len)
 //   "\\?\C:\", "\\.\C:\"               device path to a drive
 //   "\\?\UNC\server\share\"            device path to a UNC share
 //   "\\?\Volume{...}\", "\\.\COM1"     other device paths
-static size_t win32_root_len(UINT cp, const char* _Nonnull path)
+static size_t win32_root_len(UINT cp, const char* path)
 {
     size_t i = 0;
 
@@ -134,7 +133,7 @@ static size_t win32_root_len(UINT cp, const char* _Nonnull path)
     return i;
 }
 
-bool win32_is_directory(const char* _Nonnull path)
+bool win32_is_directory(const char* path)
 {
     const UINT cp = win32_code_page();
     const int wide_chars_needed = MultiByteToWideChar(cp, 0, path, -1, NULL, 0);
@@ -160,7 +159,7 @@ bool win32_is_directory(const char* _Nonnull path)
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-ssize_t win32_path_append(char* _Nullable buf, size_t buf_size, const char* _Nonnull component)
+int win32_path_append(char* buf, size_t buf_size, const char* component)
 {
     size_t base_len = 0;
     size_t needs_sep = 0;
@@ -212,7 +211,7 @@ ssize_t win32_path_append(char* _Nullable buf, size_t buf_size, const char* _Non
     return 0;
 }
 
-ssize_t win32_last_path_component(char* _Nullable buf, size_t buf_size, const char* _Nonnull path)
+int win32_last_path_component(char* buf, size_t buf_size, const char* path)
 {
     const UINT cp = win32_code_page();
     const size_t root_len = win32_root_len(cp, path);
@@ -259,7 +258,7 @@ ssize_t win32_last_path_component(char* _Nullable buf, size_t buf_size, const ch
     const size_t total_size = src_len + 1;
 
     if (buf == NULL) {
-        return (ssize_t)total_size;
+        return (int)total_size;
     }
 
 
@@ -275,7 +274,7 @@ ssize_t win32_last_path_component(char* _Nullable buf, size_t buf_size, const ch
     return 0;
 }
 
-int win32_path_next(di_path_iter_t* _Nonnull it, const char* _Nonnull path)
+int win32_path_next(di_path_iter_t* it, const char* path)
 {
     const UINT cp = win32_code_page();
 

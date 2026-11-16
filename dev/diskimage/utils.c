@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "diskimage.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <string.h>
 
