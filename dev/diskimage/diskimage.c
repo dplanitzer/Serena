@@ -417,6 +417,7 @@ static di_permissions_spec_t permissions = {0, false};
 static di_owner_spec_t owner = {UID_ROOT, GID_ROOT, false};
 static clap_string_array_t paths = {NULL, 0};
 static const char* cmd_id = "";
+static bool should_recurse = false;
 
 // diskimage create
 static size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
@@ -432,7 +433,6 @@ static bool is_hex = false;
 
 // diskimage delete
 static char* path = "";
-static bool should_delete_recursive = false;
 
 // diskimage format
 static bool should_quick_format = false;
@@ -487,7 +487,7 @@ CLAP_DECL(params,
     //
 
     CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
-        CLAP_BOOL('r', "recursive", &should_delete_recursive, "Recursively delete a file hierarchy"),
+        CLAP_BOOL('r', "recursive", &should_recurse, "Recursively delete a file hierarchy"),
         CLAP_POSITIONAL_STRING(&path),
         CLAP_POSITIONAL_STRING(&dmg_path),
 
@@ -511,6 +511,7 @@ CLAP_DECL(params,
         CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' in the local filesystem."),
+        CLAP_BOOL('r', "recursive", &should_recurse, "Recursively pull a file hierarchy"),
         CLAP_POSITIONAL_STRING(&path),
         CLAP_POSITIONAL_STRING(&dst_path),
         CLAP_POSITIONAL_STRING(&dmg_path),
@@ -594,7 +595,7 @@ int main(int argc, const char* argv[])
     }
     else if (!strcmp(cmd_id, "delete")) {
         // diskimage delete
-        try(cmd_delete(path, should_delete_recursive, dmg_path));
+        try(cmd_delete(path, should_recurse, dmg_path));
     }
     else if (!strcmp(cmd_id, "format")) {
         // diskimage format
@@ -626,7 +627,7 @@ int main(int argc, const char* argv[])
     }
     else if (!strcmp(cmd_id, "pull")) {
         // diskimage pull
-        try(cmd_pull(path, dst_path, dmg_path));
+        try(cmd_pull(path, dst_path, should_recurse, dmg_path));
     }
     else if (!strcmp(cmd_id, "push")) {
         // diskimage push

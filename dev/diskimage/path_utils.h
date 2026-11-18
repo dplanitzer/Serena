@@ -15,6 +15,14 @@
 #include <windows.h>
 #endif
 
+/* What a path refers to */
+enum {
+    KIND_ERROR = -1,    /* it couldn't be determined; errno is set */
+    KIND_NONE = 0,      /* nothing */
+    KIND_DIRECTORY = 1,
+    KIND_OTHER = 2      /* a file or anything else that isn't a directory */
+};
+
 
 // Path iterator structure
 typedef struct di_path_iter {
@@ -57,8 +65,8 @@ extern errno_t dmg_set_path(const char* path);
 
 
 #ifdef _WIN32
-#define host_is_directory(__path) \
-win32_is_directory(__path)
+#define host_ends_with_separator(__path) \
+win32_ends_with_separator(__path)
 
 #define host_path_next(__it, __path) \
 win32_path_next(__it, __path)
@@ -69,10 +77,16 @@ win32_path_append(__buf, __buf_size, __component)
 #define host_last_path_component(__buf, __buf_size, __path) \
 win32_last_path_component(__buf, __buf_size, __path)
 
-#else
 
-#define host_is_directory(__path) \
-posix_is_directory(__path)
+#define host_path_kind(__path) \
+win32_path_kind(__path)
+
+#define host_create_dir(__path, __created) \
+win32_create_dir(__path, __created)
+
+#else
+#define host_ends_with_separator(__path) \
+posix_ends_with_separator(__path)
 
 #define host_path_next(__it, __path) \
 posix_path_next(__it, __path)
@@ -82,11 +96,19 @@ posix_path_append(__buf, __buf_size, __component)
 
 #define host_last_path_component(__buf, __buf_size, __path) \
 posix_last_path_component(__buf, __buf_size, __path)
+
+
+#define host_path_kind(__path) \
+posix_path_kind(__path)
+
+#define host_create_dir(__path, __created) \
+posix_create_dir(__path, __created)
+
 #endif
 
 
-#define dmg_is_directory(__path) \
-posix_is_host_directory(__path)
+#define dmg_ends_with_separator(__path) \
+posix_ends_with_separator(__path)
 
 #define dmg_path_next(__it, __path) \
 posix_path_next(__it, __path)
@@ -108,21 +130,34 @@ posix_last_path_component(__buf, __buf_size, __path)
 // The root ("C:\", "\\server\share\", ...) is a prefix of the first component
 // that host_path_next() returns; a bare drive "C:" is a component of its own.
 
-// The code page of narrow host paths: the one the C runtime uses for argv and
-// fopen() (UTF-8 in a UTF-8 locale, otherwise the ANSI or OEM code page)
-extern UINT win32_code_page(void);
-
-extern bool win32_is_directory(const char* path);
+/*
+ * Whether 'path' ends with a separator ('\' or '/'). In a DBCS code page
+ * (932, 936, 949, 950) the second byte of a double-byte character is 0x40
+ * or higher, so it can be 0x5C ('\') but never 0x2F ('/'). Only a final '\'
+ * therefore needs a closer look: walking the characters from the start
+ * tells whether it begins a character of its own. UTF-8 multi-byte
+ * sequences never contain ASCII bytes, so there a final '\' is always one.
+ */
+extern bool win32_ends_with_separator(const char *path);
 extern int win32_path_next(di_path_iter_t* it, const char*  path);
 
 extern int win32_path_append(char* buf, size_t buf_size, const char*  component);
 extern int win32_last_path_component(char* buf, size_t buf_size, const char* path);
+
+extern int win32_path_kind(const char *path);
+extern int win32_create_dir(const char *path, int *created);
 #endif /* _WIN32 */
 
-extern bool posix_is_directory(const char*  path);
+
+extern bool posix_ends_with_separator(const char *path);
 extern int posix_path_next(di_path_iter_t*  it, const char*  path);
 
 extern int posix_path_append(char* buf, size_t buf_size, const char* component);
 extern int posix_last_path_component(char* buf, size_t buf_size, const char* path);
+
+#if defined(__APPLE__)
+extern int posix_path_kind(const char *path);
+extern int posix_create_dir(const char *path, int *created);
+#endif /* __APPLE__ */
 
 #endif /* path_utils_h */

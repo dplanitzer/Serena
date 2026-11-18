@@ -21,10 +21,10 @@
 
 #include <windows.h>
 #include <errno.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <windows.h>
 
 /*
  * The Win32 calls use the wide (UTF-16) API on a "\\?\" prefixed absolute

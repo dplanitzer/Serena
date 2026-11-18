@@ -13,10 +13,6 @@
 
 ssize_t pathjoin_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull component)
 {
-    while (*component == '/') {
-        component++;
-    }
-
     size_t base_len = 0;
     size_t needs_sep = 0;
 
@@ -24,6 +20,14 @@ ssize_t pathjoin_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull co
         base_len = strlen(buf);
         if (base_len > 0 && buf[base_len - 1] != '/') {
             needs_sep = 1;
+        }
+    }
+
+    // Leading separators are only dropped when appending to a path. Appended
+    // to an empty path, a component stays as it is, so "/usr" stays absolute.
+    if (base_len > 0) {
+        while (*component == '/') {
+            component++;
         }
     }
 

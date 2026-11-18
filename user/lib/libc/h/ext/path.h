@@ -95,6 +95,10 @@ extern int pathcopy_r(char* _Nonnull buf, size_t buf_size, const char* _Nonnull 
 // is NULL then this function calculates the size of the resulting path including
 // the trailing '\0' and it returns this size. -1 is returned and errno is set to
 // ENAMETOOLONG if the resulting path does not fit in the provided buffer.
+// If 'buf' holds an empty string then the 'component' is appended as is to the
+// empty string and without removing any leading '/' characters. If 'buf' holds
+// a non-empty string then leading '/' characters are stripped from 'component'
+// and a single '/' is appended to 'buf' together with the remainder of 'component'.
 extern ssize_t pathjoin_r(char* _Nullable buf, size_t buf_size, const char* _Nonnull component);
 
 

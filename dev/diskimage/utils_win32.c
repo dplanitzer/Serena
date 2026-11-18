@@ -18,9 +18,38 @@
 #include "utils.h"
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
+// Whether the C runtime's current locale is UTF-8, e.g. after
+// setlocale(LC_ALL, ".UTF-8")
+static bool win32_locale_is_utf8(void)
+{
+    const char* loc = setlocale(LC_CTYPE, NULL);
+    const char* dot = (loc != NULL) ? strrchr(loc, '.') : NULL;
+
+    if (dot == NULL) {
+        return false;
+    }
+    dot++;
+    return _stricmp(dot, "utf8") == 0 || _stricmp(dot, "utf-8") == 0;
+}
+
+UINT win32_code_page(void)
+{
+    // The same rule the C runtime uses for argv and for the file names it
+    // passes to Windows (fopen() etc.), so that paths from the command line,
+    // from the CRT and from these functions all agree. Without a UTF-8
+    // locale this is the ANSI code page, which is UTF-8 only if the
+    // executable's manifest or the system-wide "Beta: Use Unicode UTF-8"
+    // option asks for it.
+    if (win32_locale_is_utf8()) {
+        return CP_UTF8;
+    }
+    return AreFileApisANSI() ? GetACP() : GetOEMCP();
+}
 
 int win32_errno_from_error(DWORD err)
 {
@@ -74,11 +103,7 @@ void win32_set_errno(void)
     errno = win32_errno_from_error(GetLastError());
 }
 
-/*
- * Converts a NUL terminated narrow string to a newly allocated wide string.
- * Returns NULL with errno set on failure (EILSEQ for invalid input).
- */
-static wchar_t *win32_narrow_to_wide(UINT cp, const char *src)
+wchar_t *win32_narrow_to_wide(UINT cp, const char *src)
 {
     DWORD flags = MB_ERR_INVALID_CHARS;
     int n = MultiByteToWideChar(cp, flags, src, -1, NULL, 0);

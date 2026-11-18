@@ -43,30 +43,15 @@ errno_t dmg_set_path(const char* path)
     return 0;
 }
 
-#if defined(__APPLE__)
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
-bool posix_is_directory(const char* path)
+bool posix_ends_with_separator(const char *path)
 {
-    struct stat path_stat;
-    
-    if (stat(path, &path_stat) != 0) {
-        return false; 
-    }
-    
-    return S_ISDIR(path_stat.st_mode);
-}
+    const size_t len = strlen(path);
 
-#endif /* __APPLE__ */
+    return len > 0 && path[len - 1] == '/';
+}
 
 int posix_path_append(char* buf, size_t buf_size, const char* component)
 {
-    while (*component == '/') {
-        component++;
-    }
-
     size_t base_len = 0;
     size_t needs_sep = 0;
 
@@ -74,6 +59,14 @@ int posix_path_append(char* buf, size_t buf_size, const char* component)
         base_len = strlen(buf);
         if (base_len > 0 && buf[base_len - 1] != '/') {
             needs_sep = 1;
+        }
+    }
+
+    // Leading separators are only dropped when appending to a path. Appended
+    // to an empty path, a component stays as it is, so "/usr" stays absolute.
+    if (base_len > 0) {
+        while (*component == '/') {
+            component++;
         }
     }
 
@@ -215,3 +208,48 @@ int posix_path_next(di_path_iter_t* it, const char* path)
 
     return 0;
 }
+
+
+#if defined(__APPLE__)
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+/*
+ * Returns what 'path' refers to (a link is followed), or KIND_ERROR with
+ * errno set. The kernel applies a trailing slash itself: "file/" fails with
+ * ENOTDIR, which is also what cp reports.
+ */
+int path_kind(const char *path)
+{
+    struct stat st;
+
+    if (stat(path, &st) != 0) {
+        return (errno == ENOENT) ? KIND_NONE : KIND_ERROR;
+    }
+    return S_ISDIR(st.st_mode) ? KIND_DIRECTORY : KIND_OTHER;
+}
+
+int posix_create_dir(const char *path, int *created)
+{
+    if (mkdir(dst, 0755) == 0) {
+        *created = 1;
+        return 0;
+    }
+    if (errno != EEXIST) {
+        return -1;
+    }
+
+    struct stat dst_st;
+    if (stat(dst, &dst_st) != 0) {
+        return -1;
+    }
+    if (!S_ISDIR(dst_st.st_mode)) {
+        errno = ENOTDIR;
+        return -1;
+    }
+    *created = 0;
+    return 0;
+}
+#endif /* __APPLE__ */

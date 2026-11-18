@@ -9,9 +9,11 @@
 #ifdef _WIN32
 
 #include "path_utils.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
+#include <windows.h>
+
 
 // Pure Windows host path functions which understand drive letters ("C:"),
 // UNC shares ("\\server\share") and device paths ("\\?\C:\", "\\.\COM1").
@@ -24,34 +26,6 @@
 static bool win32_is_sep(char ch)
 {
     return ch == '\\' || ch == '/';
-}
-
-// Whether the C runtime's current locale is UTF-8, e.g. after
-// setlocale(LC_ALL, ".UTF-8")
-static bool win32_locale_is_utf8(void)
-{
-    const char* loc = setlocale(LC_CTYPE, NULL);
-    const char* dot = (loc != NULL) ? strrchr(loc, '.') : NULL;
-
-    if (dot == NULL) {
-        return false;
-    }
-    dot++;
-    return _stricmp(dot, "utf8") == 0 || _stricmp(dot, "utf-8") == 0;
-}
-
-UINT win32_code_page(void)
-{
-    // The same rule the C runtime uses for argv and for the file names it
-    // passes to Windows (fopen() etc.), so that paths from the command line,
-    // from the CRT and from these functions all agree. Without a UTF-8
-    // locale this is the ANSI code page, which is UTF-8 only if the
-    // executable's manifest or the system-wide "Beta: Use Unicode UTF-8"
-    // option asks for it.
-    if (win32_locale_is_utf8()) {
-        return CP_UTF8;
-    }
-    return AreFileApisANSI() ? GetACP() : GetOEMCP();
 }
 
 // Returns the length in bytes of the character at 'p'. UTF-8 multi-byte
@@ -73,19 +47,6 @@ static size_t win32_skip_name(UINT cp, const char* path, size_t i)
 static bool win32_is_drive(const char* p)
 {
     return ((p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= 'a' && p[0] <= 'z')) && p[1] == ':';
-}
-
-static bool win32_ends_with_sep(const char* s, size_t len)
-{
-    const UINT cp = win32_code_page();
-    size_t i = 0, last = 0;
-
-    // Forward, so that the start of the last character is known
-    while (i < len) {
-        last = i;
-        i += win32_char_len(cp, &s[i]);
-    }
-    return len > 0 && win32_is_sep(s[last]);
 }
 
 // Returns the length of the path's root: the prefix that isn't a file or
@@ -133,30 +94,31 @@ static size_t win32_root_len(UINT cp, const char* path)
     return i;
 }
 
-bool win32_is_directory(const char* path)
+bool win32_ends_with_separator(const char *path)
 {
+    const size_t len = strlen(path);
+
+    if (len == 0) {
+        return false;
+    }
+    if (path[len - 1] == '/') {
+        return true;
+    }
+    if (path[len - 1] != '\\') {
+        return false;
+    }
+
     const UINT cp = win32_code_page();
-    const int wide_chars_needed = MultiByteToWideChar(cp, 0, path, -1, NULL, 0);
-
-    if (wide_chars_needed <= 0) {
-        return false;
+    if (cp == CP_UTF8) {
+        return true;
     }
 
-    wchar_t* wide_path = malloc(wide_chars_needed * sizeof(wchar_t));
-    if (wide_path == NULL) {
-        return false;
+    size_t i = 0, last = 0;
+    while (i < len) {
+        last = i;
+        i += (i + 1 < len && IsDBCSLeadByteEx(cp, (BYTE)path[i])) ? 2 : 1;
     }
-
-    if (MultiByteToWideChar(cp, 0, path, -1, wide_path, wide_chars_needed) == 0) {
-        free(wide_path);
-        return false;
-    }
-
-    const DWORD attributes = GetFileAttributesW(wide_path);
-
-    free(wide_path);
-
-    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    return last == len - 1;
 }
 
 int win32_path_append(char* buf, size_t buf_size, const char* component)
@@ -168,7 +130,7 @@ int win32_path_append(char* buf, size_t buf_size, const char* component)
         base_len = strlen(buf);
         // No separator after a bare drive: "C:" + "a" is "C:a", which is
         // relative to the drive's current directory, while "C:\a" is not
-        if (base_len > 0 && !win32_ends_with_sep(buf, base_len) && !(base_len == 2 && win32_is_drive(buf))) {
+        if (base_len > 0 && !win32_ends_with_separator(buf) && !(base_len == 2 && win32_is_drive(buf))) {
             needs_sep = 1;
         }
     }
@@ -319,6 +281,70 @@ int win32_path_next(di_path_iter_t* it, const char* path)
     it->_next_ptr = &path[win32_skip_name(cp, path, (size_t)(it->_next_ptr - path))];
     it->end = it->_next_ptr;
     it->length = it->end - it->start;
+
+    return 0;
+}
+
+
+int win32_path_kind(const char *path)
+{
+    wchar_t *wpath = win32_narrow_to_wide(win32_code_page(), path);
+    if (wpath == NULL) {
+        return KIND_ERROR;
+    }
+
+    /* "file\" would be an invalid name; a root keeps its separator ("C:\", "\") */
+    size_t len = wcslen(wpath);
+    while (len > 1 && (wpath[len - 1] == L'\\' || wpath[len - 1] == L'/')
+           && wpath[len - 2] != L':') {
+        wpath[--len] = L'\0';
+    }
+
+    const DWORD attr = GetFileAttributesW(wpath);
+    const DWORD err = GetLastError();
+    free(wpath);
+
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+            return KIND_NONE;
+        }
+        errno = win32_errno_from_error(err);
+        return KIND_ERROR;
+    }
+    return (attr & FILE_ATTRIBUTE_DIRECTORY) ? KIND_DIRECTORY : KIND_OTHER;
+}
+
+int win32_create_dir(const char *path, int *created)
+{
+    UINT cp = win32_code_page();
+    wchar_t* wpath = win32_make_long_path(cp, path);
+    if (wpath == NULL) {
+        return -1;
+    }
+
+
+    BOOL ok = CreateDirectoryW(wpath, NULL);
+    free(wpath);
+
+    if (ok) {
+        *created = 1;
+    } else {
+        DWORD err = GetLastError();
+        if (err != ERROR_ALREADY_EXISTS) {
+            errno = win32_errno_from_error(err);
+            return -1;
+        }
+        DWORD attr = GetFileAttributesW(wpath);
+        if (attr == INVALID_FILE_ATTRIBUTES) {
+            errno = win32_errno_from_error(GetLastError());
+            return -1;
+        }
+        if (!(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+            errno = ENOTDIR;
+            return -1;
+        }
+        *created = 0;
+    }
 
     return 0;
 }
