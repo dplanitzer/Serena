@@ -78,7 +78,7 @@ extern errno_t cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid
 extern errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath);
 extern errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path, const char* _Nonnull dmgPath);
 extern errno_t cmd_pull(const char* _Nonnull path, const char* _Nonnull dstPath, bool bRecursive, const char* _Nonnull dmgPath);
-extern errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath);
+extern errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, bool bRecursive, const char* _Nonnull dmgPath);
 
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);

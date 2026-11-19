@@ -519,6 +519,7 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path> <dimg_path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image 'dimg_path'."),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
+        CLAP_BOOL('r', "recursive", &should_recurse, "Recursively push a file hierarchy"),
         CLAP_POSITIONAL_STRING(&src_path),
         CLAP_POSITIONAL_STRING(&path),
         CLAP_POSITIONAL_STRING(&dmg_path)
@@ -639,7 +640,7 @@ int main(int argc, const char* argv[])
             owner.gid = GID_ROOT;
             owner.isValid = true;
         }
-        try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, dmg_path));
+        try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, should_recurse, dmg_path));
     }
     else {
         throw(EINVAL);

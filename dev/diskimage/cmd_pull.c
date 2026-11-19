@@ -23,7 +23,7 @@ static char g_cp_path[DMG_PATH_MAX];
 static char g_cp_tmp[DMG_PATH_MAX];
 
 
-errno_t copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, const char* _Nonnull dst_path)
+static errno_t copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
     decl_try_err();
     HandlerRef hnd = NULL;

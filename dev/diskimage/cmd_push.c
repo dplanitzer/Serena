@@ -8,14 +8,24 @@
 
 #include "diskimage.h"
 #include "path_utils.h"
+#include "hdir.h"
+#include "utils.h"
 #include "FSManager.h"
+#include <stdio.h>
 #include <ext/errno.h>
 #include <handler/Handler.h>
 #include <kpi/file.h>
 #include <kpi/fs_perms.h>
 
+extern int dmg_path_kind(FSManagerRef fsm, const char *path);
 
-static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
+
+/* Intermediate paths. Static, so neither reentrant nor thread-safe. */
+static char g_cp_path[DMG_PATH_MAX];
+static char g_cp_tmp[DMG_PATH_MAX];
+
+
+static errno_t dmg_create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef hnd = NULL;
@@ -43,34 +53,14 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     return err;
 }
 
-errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull dstPath, const char* _Nonnull dmgPath)
+static errno_t copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
     decl_try_err();
-    RamContainerRef disk = NULL;
-    FSManagerRef m = NULL;
     HandlerRef dfp = NULL;
     FILE* sfp = NULL;
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &m));
-
-    try_null(sfp, fopen(srcPath, "rb"), errno);
-    try(dmg_set_path(dstPath));
-
-    const errno_t r = _create_file(&m->fm, g_dmg_path, fsperms, uid, gid, &dfp);
-    if (r == EISDIR) {
-        if (host_last_path_component(g_last_path_comp, sizeof(g_last_path_comp), srcPath) < 0) {
-            throw(errno);
-        }
-        if (dmg_path_append(g_dmg_path, sizeof(g_dmg_path), g_last_path_comp) < 0) {
-            throw(errno);
-        }
-
-        try(_create_file(&m->fm, g_dmg_path, fsperms, uid, gid, &dfp));
-    }
-    else if (r != EOK) {
-        throw(r);
-    }
+    try_null(sfp, fopen(src_path, "rb"), errno);
+    try(dmg_create_file(&fsm->fm, dst_path, fsperms, uid, gid, &dfp));
 
     while (true) {
         const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sfp);
@@ -94,7 +84,176 @@ catch:
         fclose(sfp);
     }
 
-    FSManager_Destroy(m);
+    return err;
+}
+
+static int dmg_create_dir(FSManagerRef fsm, const char *path, int *created)
+{
+    errno_t err;
+
+    err = FileManager_CreateDirectory(&fsm->fm, path, 0755);
+    if (err == 0) {
+        *created = 1;
+        return 0;
+    }
+    if (err != EEXIST) {
+        errno = err;
+        return -1;
+    }
+
+    fs_attr_t attr;
+    err = FileManager_GetAttributes(&fsm->fm, path, &attr);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    if (attr.file_type != FS_FTYPE_DIR) {
+        errno = ENOTDIR;
+        return -1;
+    }
+    *created = 0;
+
+    return 0;
+}
+
+
+static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path)
+{
+    hdir_t it = NULL;
+    const hdir_entry_t *e;
+    int created;
+    int result = -1;
+
+    if (dmg_create_dir(fsm, dst_path, &created) != 0) {
+        goto out;
+    }
+
+
+    it = hdir_open(src_path);
+    if (it == NULL) {
+        goto out;
+    }
+
+    while ((e = hdir_next(it)) != NULL) {
+        int r;
+
+        if (e->type == HDIR_TYPE_END_DIRECTORY) {
+            continue;
+        }
+
+        g_cp_tmp[0] = '\0';
+        dmg_path_append(g_cp_tmp, sizeof(g_cp_tmp), dst_path);
+        dmg_path_append(g_cp_tmp, sizeof(g_cp_tmp), e->rel_path);
+        const char *src = e->full_path;
+        const char* dst = g_cp_tmp;
+
+        switch (e->type) {
+        case HDIR_TYPE_BEGIN_DIRECTORY:
+            r = dmg_create_dir(fsm, dst, &created);
+            break;
+
+        case HDIR_TYPE_FILE:
+            r = copy_file(fsm, fsperms, uid, gid, src, dst);
+            break;
+
+        default:
+            break;
+        }
+
+        if (r != 0) {
+            errno = r;
+            goto out;
+        }
+    }
+    if (errno != 0) {
+        goto out;       /* the iteration ended with an error */
+    }
+    result = 0;
+
+out:
+    {
+        int saved = errno;
+        hdir_close(it);
+        errno = saved;
+    }
+    return result;
+}
+
+
+static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
+{
+    const char *target = dst_path;
+    int src_kind, dst_kind;
+
+    if (src_path[0] == '\0' || dst_path[0] == '\0') {
+        return ENOENT;
+    }
+
+    /* The source */
+    src_kind = host_path_kind(src_path);
+    if (src_kind < 0) {
+        return errno;
+    }
+    if (src_kind == KIND_NONE) {
+        return ENOENT;
+    }
+    if (host_ends_with_separator(src_path) && src_kind != KIND_DIRECTORY) {
+        return ENOTDIR;            /* "file/" */
+    }
+    if (src_kind == KIND_DIRECTORY && !bRecursive) {
+        return EISDIR;             /* a directory needs -R */
+    }
+
+    /* The destination */
+    dst_kind = dmg_path_kind(fsm, dst_path);
+    if (dst_kind < 0) {
+        return errno;
+    }
+    if (dst_kind == KIND_DIRECTORY) {
+        /* Copy into it: dst/<last component of src> */
+        if (host_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
+            return errno;
+        }
+        /* Appended to an empty path, dst_path is kept as is (an absolute one stays absolute) */
+        g_cp_path[0] = '\0';
+        if (dmg_path_append(g_cp_path, sizeof(g_cp_path), dst_path) < 0
+            || dmg_path_append(g_cp_path, sizeof(g_cp_path), g_cp_tmp) < 0) {
+            return errno;
+        }
+        target = g_cp_path;
+    }
+    else if (dmg_ends_with_separator(dst_path)) {
+        /* "dst/" must be an existing directory */
+        return (dst_kind == KIND_NONE) ? ENOENT : ENOTDIR;
+    }
+    else if (dst_kind == KIND_OTHER && src_kind == KIND_DIRECTORY) {
+        return ENOTDIR;            /* a directory can't replace a non-directory */
+    }
+    /* Otherwise 'dst_path' doesn't exist and is created, or is a file that is overwritten */
+
+
+    if (src_kind == KIND_DIRECTORY) {
+        return copy_file_hierarchy(fsm, fsperms, uid, gid, src_path, target);
+    }
+    else {
+        return copy_file(fsm, fsperms, uid, gid, src_path, target);
+    }
+}
+
+
+errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull dstPath, bool bRecursive, const char* _Nonnull dmgPath)
+{
+    decl_try_err();
+    RamContainerRef disk = NULL;
+    FSManagerRef fsm = NULL;
+
+    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(FSManager_Create(disk, &fsm));
+
+    try(do_copy(fsm, fsperms, uid, gid, srcPath, dstPath, bRecursive));
+
+catch:
+    FSManager_Destroy(fsm);
     if (err == EOK) {
         err = RamContainer_WriteToPath(disk, dmgPath);
     }
