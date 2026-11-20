@@ -94,17 +94,23 @@ out:
     return err;
 }
 
-errno_t cmd_delete(const char* _Nonnull path, bool bRecursive, const char* _Nonnull dmgPath)
+errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_string_array_t* _Nonnull paths)
 {
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef fsm = NULL;
 
+    if (paths->count < 1) {
+        return ERANGE;
+    }
+
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &fsm));
-    try(dmg_set_path(path));
 
-    try(delete_file_hierarchy(fsm, g_dmg_path, bRecursive));
+    for (size_t i = 0; i < paths->count; i++) {
+        try(dmg_set_path(paths->strings[i]));
+        try(delete_file_hierarchy(fsm, g_dmg_path, bRecursive));
+    }
 
 catch:
     FSManager_Destroy(fsm);

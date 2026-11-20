@@ -217,28 +217,33 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 static list_ctx_t g_list_ctx;
 
-errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
+errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths)
 {
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
 
+    if (paths->count < 1) {
+        return ERANGE;
+    }
+
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
-    try(dmg_set_path(path));
 
+    for (size_t i = 0; i < paths->count; i++) {
+        try(dmg_set_path(paths->strings[i]));
 
-    memset(&g_list_ctx, 0, sizeof(list_ctx_t));
-    g_list_ctx.fm = &m->fm;
-    g_list_ctx.flags.printAll = false;
+        memset(&g_list_ctx, 0, sizeof(list_ctx_t));
+        g_list_ctx.fm = &m->fm;
+        g_list_ctx.flags.printAll = false;
 
-    if (is_dir(&g_list_ctx, g_dmg_path)) {
-        err = list_dir(&g_list_ctx, g_dmg_path);
+        if (is_dir(&g_list_ctx, g_dmg_path)) {
+            try(list_dir(&g_list_ctx, g_dmg_path));
+        }
+        else {
+            try(list_file(&g_list_ctx, g_dmg_path));
+        }
     }
-    else {
-        err = list_file(&g_list_ctx, g_dmg_path);
-    }
-
 
 catch:
     FSManager_Destroy(m);

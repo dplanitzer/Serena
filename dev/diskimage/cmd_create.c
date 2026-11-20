@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 
-errno_t cmd_create(const DiskImageFormat* _Nonnull dmgFmt, const char* _Nonnull dmgPath)
+errno_t cmd_create(const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull dmgFmt)
 {
     decl_try_err();
     RamContainerRef fsContainer;

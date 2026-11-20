@@ -18,6 +18,7 @@
 #include <kpi/file.h>
 #include <kpi/types.h>
 #include <kpi/uid.h>
+#include <clap.h>
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -66,19 +67,18 @@ typedef struct di_owner_spec {
 } di_owner_spec_t;
 
 
-extern errno_t cmd_create(const DiskImageFormat* _Nonnull diskImageFormat, const char* _Nonnull dmgPath);
-extern errno_t cmd_create_disk(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
+extern errno_t cmd_create(const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
 extern errno_t cmd_describe_disk(const char* _Nonnull dmgPath);
 extern errno_t cmd_diff_disks(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2);
 extern errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex);
 extern errno_t cmd_put_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
 
-extern errno_t cmd_delete(const char* _Nonnull path, bool bRecursive, const char* _Nonnull dmgPath);
-extern errno_t cmd_format(bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull dmgPath);
-extern errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath);
-extern errno_t cmd_makedir(bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path, const char* _Nonnull dmgPath);
-extern errno_t cmd_pull(const char* _Nonnull path, const char* _Nonnull dstPath, bool bRecursive, const char* _Nonnull dmgPath);
-extern errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, bool bRecursive, const char* _Nonnull dmgPath);
+extern errno_t cmd_format(const char* _Nonnull dmgPath, bool bQuick, fs_perms_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label);
+extern errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths);
+extern errno_t cmd_makedir(const char* _Nonnull dmgPath, bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths);
+extern errno_t cmd_pull(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths, bool bRecursive);
+extern errno_t cmd_push(const char* _Nonnull dmgPath, fs_perms_t fsperms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths, bool bRecursive);
+extern errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_string_array_t* _Nonnull paths);
 
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);

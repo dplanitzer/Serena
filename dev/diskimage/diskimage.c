@@ -24,7 +24,6 @@
 #include <kpi/fs_perms.h>
 #include <kpi/smg.h>
 #include <machine/amiga/adf.h>
-#include <clap.h>
 
 static const char* gArgv_Zero = "";
 
@@ -431,9 +430,6 @@ static char* dmg_path2 = "";
 static di_slice_t disk_slice = {0};
 static bool is_hex = false;
 
-// diskimage delete
-static char* path = "";
-
 // diskimage format
 static bool should_quick_format = false;
 static char* fs_type = "";
@@ -441,12 +437,6 @@ static char* vol_label = "";
 
 // diskimage makedir
 static bool should_create_parents = false;
-
-// diskimage pull
-static char* dst_path = "";
-
-// diskimage push
-static char* src_path = "";
 
 
 CLAP_DECL(params,
@@ -485,9 +475,9 @@ CLAP_DECL(params,
     // filesystem-level commands
     //
 
-    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path>", "Deletes the file or directory at 'path' inside the disk image."),
+    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path>...", "Delete a file or directory at 'path'."),
         CLAP_BOOL('r', "recursive", &should_recurse, "Recursively delete a file hierarchy"),
-        CLAP_POSITIONAL_STRING(&path),
+        CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type>", "Formats a disk image with the filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
@@ -496,26 +486,24 @@ CLAP_DECL(params,
         CLAP_STRING('l', "label", &vol_label, "Specify the volume label"),
         CLAP_POSITIONAL_STRING(&fs_type),
 
-    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path>", "Lists the contents of the directory at 'path'."),
-        CLAP_POSITIONAL_STRING(&path),
+    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path>...", "Lists the contents of the directory at 'path'."),
+        CLAP_VARARG(&paths),
 
-    CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path>", "Creates a new directory at 'path'."),
+    CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path>...", "Creates a new directory at 'path'."),
         CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
-        CLAP_POSITIONAL_STRING(&path),
+        CLAP_VARARG(&paths),
 
-    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path>", "Copies the file at 'path' from the disk image to the location 'dst_path' in the local filesystem."),
+    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<src_path>... <dst_path>", "Copies the file at 'src_path' from the disk image to the location 'dst_path' in the local filesystem."),
         CLAP_BOOL('r', "recursive", &should_recurse, "Recursively pull a file hierarchy"),
-        CLAP_POSITIONAL_STRING(&path),
-        CLAP_POSITIONAL_STRING(&dst_path),
+        CLAP_VARARG(&paths),
 
-    CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image."),
+    CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path>... <path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image."),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_BOOL('r', "recursive", &should_recurse, "Recursively push a file hierarchy"),
-        CLAP_POSITIONAL_STRING(&src_path),
-        CLAP_POSITIONAL_STRING(&path)
+        CLAP_VARARG(&paths)
 );
 
 
@@ -565,7 +553,7 @@ int main(int argc, const char* argv[])
             }
         }
 
-        try(cmd_create(&fmt, dmg_path));
+        try(cmd_create(dmg_path, &fmt));
     }
     else if (!strcmp(cmd_id, "describe")) {
         // diskimage describe
@@ -589,7 +577,7 @@ int main(int argc, const char* argv[])
     }
     else if (!strcmp(cmd_id, "delete")) {
         // diskimage delete
-        try(cmd_delete(path, should_recurse, dmg_path));
+        try(cmd_delete(dmg_path, should_recurse, &paths));
     }
     else if (!strcmp(cmd_id, "format")) {
         // diskimage format
@@ -601,11 +589,11 @@ int main(int argc, const char* argv[])
             owner.gid = GID_ROOT;
             owner.isValid = true;
         }
-        try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, dmg_path));
+        try(cmd_format(dmg_path, should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label));
     }
     else if (!strcmp(cmd_id, "list")) {
         // diskimage list
-        try(cmd_list(path, dmg_path));
+        try(cmd_list(dmg_path, &paths));
     }
     else if (!strcmp(cmd_id, "makedir")) {
         // diskimage makedir
@@ -617,11 +605,11 @@ int main(int argc, const char* argv[])
             owner.gid = GID_ROOT;
             owner.isValid = true;
         }
-        try(cmd_makedir(should_create_parents, permissions.p, owner.uid, owner.gid, path, dmg_path));
+        try(cmd_makedir(dmg_path, should_create_parents, permissions.p, owner.uid, owner.gid, &paths));
     }
     else if (!strcmp(cmd_id, "pull")) {
         // diskimage pull
-        try(cmd_pull(path, dst_path, should_recurse, dmg_path));
+        try(cmd_pull(dmg_path, &paths, should_recurse));
     }
     else if (!strcmp(cmd_id, "push")) {
         // diskimage push
@@ -633,7 +621,7 @@ int main(int argc, const char* argv[])
             owner.gid = GID_ROOT;
             owner.isValid = true;
         }
-        try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, should_recurse, dmg_path));
+        try(cmd_push(dmg_path, permissions.p, owner.uid, owner.gid, &paths, should_recurse));
     }
     else {
         throw(EINVAL);

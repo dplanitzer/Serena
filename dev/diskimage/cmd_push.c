@@ -241,16 +241,23 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
 }
 
 
-errno_t cmd_push(fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull dstPath, bool bRecursive, const char* _Nonnull dmgPath)
+errno_t cmd_push(const char* _Nonnull dmgPath, fs_perms_t fsperms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths, bool bRecursive)
 {
     decl_try_err();
     RamContainerRef disk = NULL;
     FSManagerRef fsm = NULL;
 
+    if (paths->count < 2) {
+        return ERANGE;
+    }
+
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &fsm));
 
-    try(do_copy(fsm, fsperms, uid, gid, srcPath, dstPath, bRecursive));
+    const char* dst_path = paths->strings[paths->count - 1];
+    for (size_t i = 0; i < paths->count - 1; i++) {
+        try(do_copy(fsm, fsperms, uid, gid, paths->strings[i], dst_path, bRecursive));
+    }
 
 catch:
     FSManager_Destroy(fsm);
