@@ -290,39 +290,39 @@ build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(C_TEST_FILE) \
 
 $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	@echo Making boot_disk.adf
-	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
-	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) create $(BOOT_DMG_CONFIG)
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) format sefs --label "Serena FD"
 
-	$(DISKIMAGE) makedir -p /System/Commands $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxr-xr-x /dev $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxrwxrwx /tmp $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxr-xr-x /Users $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxrwxrwx /Volumes $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxrwxrwx -p /Volumes/FD1 $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -m=rwxr-x--- -o=1000:1000 -p /Users/admin $(BOOT_DMG_FILE)
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -p /System/Commands
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxr-xr-x /dev
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxrwxrwx /tmp
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxr-xr-x /Users
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxrwxrwx /Volumes
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxrwxrwx -p /Volumes/FD1
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxr-x--- -o=1000:1000 -p /Users/admin
 
-	$(DISKIMAGE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(COPY_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(CPU_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(STATUS_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(TOUCH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(COPY_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(CPU_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(STATUS_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(TOUCH_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/
 
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(C_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DQ_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(FLOWTERM_TEST_FILE) /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(HELLODISPATCH_FILE) /Users/admin/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(SNAKE_FILE) /Users/admin/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(C_TEST_FILE) /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(DQ_TEST_FILE) /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(FLOWTERM_TEST_FILE) /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(HELLODISPATCH_FILE) /Users/admin/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(SNAKE_FILE) /Users/admin/
 
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
 	@echo Making ROM

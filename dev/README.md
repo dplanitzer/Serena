@@ -50,32 +50,30 @@ The generated ROM image is 256KB in size and it includes the necessary IRQ auto-
 
 ## Diskimage
 
-The diskimage tool supports the creation of a disk image from a directory stored in the local file system and it supports a number of commands to work with disk images. The current version allows you to create Amiga DD and HD ADF disk images, plus Serena disk images. It creates Amiga DD disk images by default. Use the `--disk` option to select the disk image format (one of `adf-dd`, `adf-hd` or `smg`). Use the `--size` option to specify the size for a Serena disk image.
+The diskimage tool supports the creation of disk images from a directory stored in the host file system and it implements a collection of commands that allow you to work with disk images. The current version of diskimage supports the creation of Amiga DD (`adf-dd`), HD ADF (`adf-hd`) and Serena (`smg`) disk images. It creates Amiga DD disk images by default. Use the `--size` option to specify the target size of an Serena disk image.
 
-The diskimage tool expects a path to a directory on the host system as input. The directory at this path represents the root folder of the disk image that should be created. Diskimage first creates an empty disk image file, formats it with SerenaFS and then recursively copies all directories and files from the host file system to the SerenaFS disk image. However, hidden files, special files and system files are not copied.
-
-You create an empty disk image by executing the following command:
+Use the `create` command to create a new and empty disk image:
 
 ```
-diskimage create disk_type path/to/dmg
+diskimage -d "path/to/dmg" create <disk_type>
 ```
-Where the first argument tells diskimage what kind of disk image file it should create. The currently supported disk image formats are `adf-dd`, `adf-hd` and `smg`. The second argument tells diskimage where in the local filesystem the disk image file should be created. Note that the created disk image is empty. You must format the disk with the `format` command before you can use it to store files on it.
+The `-d` (or `--disk`) switch tells diskimage where in the host file system the new disk image should be placed. The `create` sub-command instructs diskimage to create a new disk image and the <disk_type> argument specifies the type of the disk image. Currently supported disk image formats are `adf-dd` (Amiga DD), `adf-hd` (Amiga HD) and `smg` (Serena Disk Image). Note that the created disk image is empty and not formatted. You must format the disk with the `format` command before it is possible to store files on it.
 
-Use the describe command to print information about a disk image:
+Use the `describe` command to print the geometry information of a disk image:
 ```
-diskimage describe path/to/dmg
+diskimage -d "path/to/dmg" describe
 ```
-This prints the type of the disk image, the geometry of the disk and the sector and disk size to the console.
+This prints the type and geometry information of a disk image to the console.
 
-The diff command can be used to compare two disk images to see which sectors differ:
+The `diff` command can be used to compare two disk images to see which sectors differ:
 ```
-diskimage diff path/to/dmg1 path/to/dmg1
+diskimage -d "path/to/dmg1" diff path/to/dmg1
 ```
 This command lists the LBA and CHS address of every sector that is different between the two disk image files. Note that both disk image files must be of the same type.
 
-Use the get command to read a single sector or track from a disk image:
+Use the `get` command to read a single sector or track from a disk image:
 ```
-diskimage get --sector=c:h:s --hex path/to/dmg
+diskimage -d "path/to/dmg" get --sector=c:h:s --hex
 ```
 Where 'c' is the cylinder number, 'h' is the head number and 's' is the sector number of the sector you want to read from the disk image. Note that the cylinder and head numbers are 0-based while the sector number is 1-based. The contents of the sector is written to the console as a hex dump. Invoke the command without the `--hex` switch to output the raw binary data.
 
@@ -83,51 +81,51 @@ Another way to address a sector is to use a logical block address like this: `--
 
 The contents of a whole track can be read by issuing this kind of command:
 ```
-diskimage get --track=c:h path/to/dmg
+diskimage -d "path/to/dmg" get --track=c:h
 ```
 Where 'c' is the cylinder and 'h' is the head number of the first sector in the track.
 
-Use the put command to replace the contents of a sector or track with new data:
+Use the `put` command to replace the contents of a sector or track with new data:
 ```
-diskimage put --sector=c:h:s path/to/dmg
+diskimage -d "path/to/dmg" put --sector=c:h:s
 ```
 The new sector/track data is read from stdin. The data must be in raw binary form.
 
-Use the delete command to delete a file or directory in a disk image:
+Format a disk image by issuing a `format` command like this:
 ```
-diskimage delete /path/to/object path/to/dmg
+diskimage -d "path/to/dmg" format fs_type
 ```
-The first path argument specifies the directory or file that should be delete and the second path argument specifies the disk image.
+Where the <fs_type> parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image. Use the `-o` option to specify the root directory user and group id and the `-x` option to specify the root directory permissions. Use the `-l` option to assign a label to the diskimage.
 
-Format a disk image by issuing a format command like this:
+Use the `list` command to list the contents of a disk image directory:
 ```
-diskimage format fs_type path/to/dmg
+diskimage -d "path/to/dmg" list /path/to/directory
 ```
-Where the fs_type parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image. Use the `-o` option to specify the root directory user and group id and the `-x` option to specify the root directory permissions. Use the `-l` option to assign a label to the diskimage.
+The "path/to/directory" path points to the directory that should be listed.
 
-You can list the contents of a SeFS formatted disk image with the list command:
+Create an empty directory with the `makedir` command:
 ```
-diskimage list /path/to/directory path/to/dmg
+diskimage -d "path/to/dmg" makedir /path/to/directory
 ```
-Where the first path specifies the directory in the filesystem whose contents you want to list and the second path specifies the disk image.
+The "/path/to/directory" path points to teh location inside the disk image where the new directory should be created. Add the `-p` switch if the diskimage tool should automatically create all missing parent directories. Use the `-o` option to specify the directory user and group id and the `-x` option to specify the directory permissions.
 
-You can create a new directory with the help of the makedir command:
+The `pull` command allows you to copy a file from a disk image to the local filesystem:
 ```
-diskimage makedir /path/to/directory path/to/dmg
+diskimage -d "path/to/dmg" pull /path/to/file /path/to/local
 ```
-The first path argument is the path and the name of the new directory and the second path argument specifies the disk image. Add the `-p` switch if the diskimage too should automatically create all missing parent directories Use the `-o` option to specify the directory user and group id and the `-x` option to specify the directory permissions.
+The first path argument specifies the file that should be copied from the disk image. The second path argument is the path to the location in the local filesystem where the copy should be placed. Use the `-r` or `--recursive` switch to recursively copy a directory tree.
 
-The pull command allows you to copy a file from a disk image to the local filesystem:
+Use the `push` command to copy a file from the local filesystem to a disk image:
 ```
-diskimage pull /path/to/file /path/to/local path/to/dmg
+diskimage -d "path/to/dmg" push /path/to/local /path/to/file
 ```
-The first path argument specifies the file that should be copied from the disk image. The second path argument is the path to the location in the local filesystem where the copy should be placed and the third path argument specifies the disk image.
+The first path argument specifies the location of the file to copy from the local filesystem. The second path argument specifies the location inside the disk image where the copied file should be placed. Use the `-r` or `--recursive` switch to recursively copy a directory tree. Use the `-o` option to specify the file user and group id and the `-x` option to specify the file permissions.
 
-Use the push command to copy a file from the local filesystem to a disk image:
+Use the `delete` command to delete a file or directory in a disk image:
 ```
-diskimage push /path/to/local /path/to/file path/to/dmg
+diskimage -d "path/to/dmg" delete /path/to/object
 ```
-The first path argument specifies the location of the file to copy from the local filesystem. The second path argument specifies the location inside the disk image where the copied file should be placed and the third path argument specifies the path to the disk image. Use the `-o` option to specify the file user and group id and the `-x` option to specify the file permissions.
+The "/path/to/object" specifies the path to the file or directory inside the disk image that should be deleted. Use the `-r` or `--recursive` switch to recursively delete a directory and its contents.
 
 ## Keymap
 

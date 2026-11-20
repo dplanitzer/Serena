@@ -452,77 +452,70 @@ static char* src_path = "";
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
-    CLAP_USAGE("diskimage <command> ..."),
+    CLAP_USAGE("diskimage --disk <dmg_path> <command> ..."),
+
+    CLAP_REQUIRED_STRING('d', "disk", &dmg_path, "Specify the disk image path"),
+
 
     //
     // block-level commands
     //
 
-    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<disk_type> <dimg_path>", "Creates an empty disk image file of format 'disk_type' and stores it in the location 'dimg_path'."),
+    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<disk_type>", "Creates an empty disk image of format 'disk_type'."),
         CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the disk image (default: depends on the disk image format)"),
         CLAP_POSITIONAL_STRING(&disk_type),
+
+    CLAP_REQUIRED_COMMAND("describe", &cmd_id, "", "Print information about a disk image."),
         CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("describe", &cmd_id, "<dimg_path>", "Prints information about the disk image at path 'dimg_path'."),
-        CLAP_POSITIONAL_STRING(&dmg_path),
-
-    CLAP_REQUIRED_COMMAND("diff", &cmd_id, "<dimg1_path> <dimg2_path>", "Compares disk images 'dimg1_path' and 'dimg2_path' and prints a list of the sectors with differing contents."),
-        CLAP_POSITIONAL_STRING(&dmg_path),
+    CLAP_REQUIRED_COMMAND("diff", &cmd_id, "<dimg2_path>", "Compares two disk images and prints a list of the sectors with differing contents."),
         CLAP_POSITIONAL_STRING(&dmg_path2),
 
-    CLAP_REQUIRED_COMMAND("get", &cmd_id, "<dimg_path>", "Reads a sector from the ADF disk image 'dimg_path' and writes it to stdout."),
+    CLAP_REQUIRED_COMMAND("get", &cmd_id, "", "Reads a sector from a disk image writes it to stdout."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to read. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to read. Accepts a logical block address or a cylinder:head style address"),
         CLAP_BOOL('x', "hex", &is_hex, "Output the disk contents as a hex dump instead of binary data"),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("put", &cmd_id, "<dimg_path>", "Replaces a sector in the ADF disk image 'dimg_path' with bytes from stdin."),
+    CLAP_REQUIRED_COMMAND("put", &cmd_id, "", "Replaces a sector in a disk image with bytes from stdin."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to replace. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to replace. Accepts a logical block address or a cylinder:head style address"),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
 
     //
     // filesystem-level commands
     //
 
-    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
+    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path>", "Deletes the file or directory at 'path' inside the disk image."),
         CLAP_BOOL('r', "recursive", &should_recurse, "Recursively delete a file hierarchy"),
         CLAP_POSITIONAL_STRING(&path),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with the filesystem <fs_type> (SeFS)."),
+    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type>", "Formats a disk image with the filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_STRING('l', "label", &vol_label, "Specify the volume label"),
         CLAP_POSITIONAL_STRING(&fs_type),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path> <dimg_path>", "Lists the contents of the directory 'path' in the disk image 'dimg_path'."),
+    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path>", "Lists the contents of the directory at 'path'."),
         CLAP_POSITIONAL_STRING(&path),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path> <dimg_path>", "Creates a new directory at 'path' in the disk image 'dimg_path'."),
+    CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path>", "Creates a new directory at 'path'."),
         CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_POSITIONAL_STRING(&path),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' in the local filesystem."),
+    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path>", "Copies the file at 'path' from the disk image to the location 'dst_path' in the local filesystem."),
         CLAP_BOOL('r', "recursive", &should_recurse, "Recursively pull a file hierarchy"),
         CLAP_POSITIONAL_STRING(&path),
         CLAP_POSITIONAL_STRING(&dst_path),
-        CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path> <dimg_path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image 'dimg_path'."),
+    CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image."),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_BOOL('r', "recursive", &should_recurse, "Recursively push a file hierarchy"),
         CLAP_POSITIONAL_STRING(&src_path),
-        CLAP_POSITIONAL_STRING(&path),
-        CLAP_POSITIONAL_STRING(&dmg_path)
+        CLAP_POSITIONAL_STRING(&path)
 );
 
 
