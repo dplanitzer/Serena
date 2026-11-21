@@ -301,18 +301,7 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxrwxrwx -p /Volumes/FD1
 	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -m=rwxr-x--- -o=1000:1000 -p /Users/admin
 
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(COPY_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(CPU_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(STATUS_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(TOUCH_FILE) /System/Commands/
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-xr-x $(PRODUCT_CMD_DIR)/* /System/Commands/
 
 	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(C_TEST_FILE) /Users/admin/
 	$(DISKIMAGE) -d $(BOOT_DMG_FILE) push -m=rwxr-x--- -o=1000:1000 $(DQ_TEST_FILE) /Users/admin/
