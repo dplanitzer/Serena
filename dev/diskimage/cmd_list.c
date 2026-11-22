@@ -231,17 +231,19 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
     try(FSManager_Create(disk, &m));
 
     for (size_t i = 0; i < paths->count; i++) {
-        try(dmg_set_path(paths->strings[i]));
+        const char* cur_path = paths->strings[i];
+
+        try(dmg_validate_path(cur_path));
 
         memset(&g_list_ctx, 0, sizeof(list_ctx_t));
         g_list_ctx.fm = &m->fm;
         g_list_ctx.flags.printAll = false;
 
-        if (is_dir(&g_list_ctx, g_dmg_path)) {
-            try(list_dir(&g_list_ctx, g_dmg_path));
+        if (is_dir(&g_list_ctx, cur_path)) {
+            try(list_dir(&g_list_ctx, cur_path));
         }
         else {
-            try(list_file(&g_list_ctx, g_dmg_path));
+            try(list_file(&g_list_ctx, cur_path));
         }
     }
 

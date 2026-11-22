@@ -9,11 +9,8 @@
 #include "diskimage.h"
 #include "path_utils.h"
 #include "FSManager.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <kpi/file.h>
-#include <kpi/fs_perms.h>
 
 static errno_t create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
 {
@@ -31,7 +28,7 @@ static errno_t create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull
     return err;
 }
 
-static errno_t create_directory_recursively(FileManagerRef fm, char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
+static errno_t create_directory_recursively(FileManagerRef fm, const char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     di_path_iter_t it = DI_PATH_ITER_INITIALIZER;
@@ -84,13 +81,15 @@ errno_t cmd_makedir(const char* _Nonnull dmgPath, bool shouldCreateParents, fs_p
     try(FSManager_Create(disk, &m));
 
     for (size_t i = 0; i < paths->count; i++) {
-        try(dmg_set_path(paths->strings[i]));
+        const char* cur_path = paths->strings[i];
+
+        try(dmg_validate_path(cur_path));
 
         if (shouldCreateParents) {
-            try(create_directory_recursively(&m->fm, g_dmg_path, dirPerms, uid, gid));
+            try(create_directory_recursively(&m->fm, cur_path, dirPerms, uid, gid));
         }
         else {
-            try(create_directory(&m->fm, g_dmg_path, dirPerms, uid, gid));
+            try(create_directory(&m->fm, cur_path, dirPerms, uid, gid));
         }
     }
 

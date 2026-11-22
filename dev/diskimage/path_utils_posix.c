@@ -11,34 +11,38 @@
 #include <string.h>
 
 char g_copy_buf[COPY_BUF_SIZE];
-char g_host_path[HOST_PATH_MAX];
-char g_dmg_path[DMG_PATH_MAX];
 char g_last_path_comp[LPC_SIZE];
 
-errno_t host_set_path(const char* path)
+errno_t host_validate_path(const char* path)
 {
     const size_t len = strlen(path);
 
+    if (len == 0) {
+        return EINVAL;
+    }
     if (len > HOST_PATH_MAX-1) {
         return ENAMETOOLONG;
     }
 
-    memcpy(g_host_path, path, len);
-    g_host_path[len] = '\0';
-
     return 0;
 }
 
-errno_t dmg_set_path(const char* path)
+errno_t dmg_validate_path(const char* path)
 {
     const size_t len = strlen(path);
 
+    if (len == 0) {
+        // must have a path
+        return EINVAL;
+    }
     if (len > DMG_PATH_MAX-1) {
+        // path must not be too long
         return ENAMETOOLONG;
     }
-
-    memcpy(g_dmg_path, path, len);
-    g_dmg_path[len] = '\0';
+    if (path[0] != '/') {
+        // path must be absolute
+        return EINVAL;
+    }
 
     return 0;
 }

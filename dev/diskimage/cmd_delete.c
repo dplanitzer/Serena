@@ -108,8 +108,10 @@ errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_str
     try(FSManager_Create(disk, &fsm));
 
     for (size_t i = 0; i < paths->count; i++) {
-        try(dmg_set_path(paths->strings[i]));
-        try(delete_file_hierarchy(fsm, g_dmg_path, bRecursive));
+        const char* cur_path = paths->strings[i];
+
+        try(dmg_validate_path(cur_path));
+        try(delete_file_hierarchy(fsm, cur_path, bRecursive));
     }
 
 catch:

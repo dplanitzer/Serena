@@ -199,7 +199,10 @@ errno_t cmd_pull(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
 
     const char* dst_path = paths->strings[paths->count - 1];
     for (size_t i = 0; i < paths->count - 1; i++) {
-        try(do_copy(fsm, paths->strings[i], dst_path, bRecursive));
+        const char* src_path = paths->strings[i];
+
+        try(dmg_validate_path(src_path));
+        try(do_copy(fsm, src_path, dst_path, bRecursive));
     }
 
 catch:

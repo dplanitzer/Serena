@@ -54,14 +54,12 @@ typedef struct di_path_iter {
 
 
 extern char g_copy_buf[COPY_BUF_SIZE];
-extern char g_host_path[HOST_PATH_MAX];
-extern char g_dmg_path[DMG_PATH_MAX];
 extern char g_last_path_comp[LPC_SIZE];
 
 
 
-extern errno_t host_set_path(const char* path);
-extern errno_t dmg_set_path(const char* path);
+extern errno_t host_validate_path(const char* path);
+extern errno_t dmg_validate_path(const char* path);
 
 
 #ifdef _WIN32

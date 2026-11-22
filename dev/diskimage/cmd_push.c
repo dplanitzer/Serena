@@ -15,7 +15,6 @@
 #include <ext/errno.h>
 #include <handler/Handler.h>
 #include <kpi/file.h>
-#include <kpi/fs_perms.h>
 
 extern int dmg_path_kind(FSManagerRef fsm, const char *path);
 
@@ -256,7 +255,10 @@ errno_t cmd_push(const char* _Nonnull dmgPath, fs_perms_t fsperms, uid_t uid, gi
 
     const char* dst_path = paths->strings[paths->count - 1];
     for (size_t i = 0; i < paths->count - 1; i++) {
-        try(do_copy(fsm, fsperms, uid, gid, paths->strings[i], dst_path, bRecursive));
+        const char* src_path = paths->strings[i];
+
+        try(host_validate_path(src_path));
+        try(do_copy(fsm, fsperms, uid, gid, src_path, dst_path, bRecursive));
     }
 
 catch:
