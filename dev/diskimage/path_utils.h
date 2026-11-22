@@ -84,6 +84,9 @@ win32_path_kind(__path)
 #define host_create_dir(__path, __created) \
 win32_create_dir(__path, __created)
 
+#define host_fopen(__path, __mode) \
+win32_fopen(__path, __mode)
+
 #else
 #define host_ends_with_separator(__path) \
 posix_ends_with_separator(__path)
@@ -103,6 +106,9 @@ posix_path_kind(__path)
 
 #define host_create_dir(__path, __created) \
 posix_create_dir(__path, __created)
+
+#define host_fopen(__path, __mode) \
+fopen(__path, __mode)
 
 #endif
 
@@ -146,6 +152,7 @@ extern int win32_last_path_component(char* buf, size_t buf_size, const char* pat
 
 extern int win32_path_kind(const char *path);
 extern int win32_create_dir(const char *path, int *created);
+extern FILE* win32_fopen(const char *path, const char* mode);
 #endif /* _WIN32 */
 
 

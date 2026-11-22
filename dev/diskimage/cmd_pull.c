@@ -30,7 +30,7 @@ static errno_t copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_pat
     FILE* fp = NULL;
 
     try(FileManager_OpenFile(&fsm->fm, src_path, O_RDONLY, &hnd));
-    try_null(fp, fopen(dst_path, "wb"), errno);
+    try_null(fp, host_fopen(dst_path, "wb"), errno);
 
     while (true) {
         ssize_t nBytesRead;

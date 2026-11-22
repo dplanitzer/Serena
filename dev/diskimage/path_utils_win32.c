@@ -349,4 +349,25 @@ int win32_create_dir(const char *path, int *created)
     return 0;
 }
 
+FILE *win32_fopen(const char *path, const char *mode)
+{
+    UINT cp = win32_code_page();
+    wchar_t* wpath = win32_make_long_path(cp, path);
+    if (wpath == NULL) {
+        return NULL;
+    }
+
+    wchar_t wmode[8];
+    size_t i = 0;
+    for (; mode[i] != '\0' && i < sizeof(wmode); i++) {
+        wmode[i] = (wchar_t)(unsigned char)mode[i];
+    }
+    wmode[i] = L'\0';
+
+    FILE *fp = _wfopen(wpath, wmode);
+    free(wpath);
+
+    return fp;
+}
+
 #endif  /* _WIN32 */

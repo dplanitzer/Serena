@@ -59,7 +59,7 @@ static errno_t copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t ui
     HandlerRef dfp = NULL;
     FILE* sfp = NULL;
 
-    try_null(sfp, fopen(src_path, "rb"), errno);
+    try_null(sfp, host_fopen(src_path, "rb"), errno);
     try(dmg_create_file(&fsm->fm, dst_path, fsperms, uid, gid, &dfp));
 
     while (true) {
