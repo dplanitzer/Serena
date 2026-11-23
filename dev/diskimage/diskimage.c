@@ -31,7 +31,7 @@ _Noreturn void vfatal(const char* _Nonnull fmt, va_list ap)
 {
     clap_verror(gArgv_Zero, fmt, ap);
     exit(EXIT_FAILURE);
-    // NOT REACHED
+    /* NOT REACHED */
 }
 
 _Noreturn void fatal(const char* _Nonnull fmt, ...)
@@ -444,7 +444,7 @@ CLAP_DECL(params,
     CLAP_HELP(),
     CLAP_USAGE("diskimage --disk <dmg_path> <command> ..."),
 
-    CLAP_REQUIRED_STRING('d', "disk", &dmg_path, "Specify the disk image path"),
+    CLAP_STRING('d', "disk", &dmg_path, "Path to the disk image file [env: DISKIMAGE_DISK]"),
 
 
     //
@@ -538,6 +538,15 @@ int main(int argc, const char* argv[])
 #endif
 
     init();
+
+    if (*dmg_path == '\0') {
+        dmg_path = getenv("DISKIMAGE_DISK");
+        
+        if (dmg_path == NULL) {
+            fatal("missing disk image file path");
+            /* NOT REACHED */
+        }
+    }
 
     if (!strcmp(cmd_id, "create")) {
         // diskimage create

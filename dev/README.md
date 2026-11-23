@@ -52,6 +52,8 @@ The generated ROM image is 256KB in size and it includes the necessary IRQ auto-
 
 The diskimage tool supports the creation of disk images from a directory stored in the host filesystem and it implements a collection of commands that allow you to work with disk images. The current version of diskimage supports the creation of Amiga DD (`adf-dd`), HD ADF (`adf-hd`) and Serena (`smg`) disk images. It creates Amiga DD disk images by default. Use the `--size` option to specify the target size of an Serena disk image.
 
+You can use one of two different ways to specify the disk image file on which a diskimage sub-command should operate: either use the `--disk` or `-d` switch to specify the path or define an environment variable named `DISKIMAGE_DISK` with the desired disk image file path. The diskimage tool falls back to the environment variable if no `--disk` or `-d` is provided on the command line.
+
 Use the `create` command to create a new and empty disk image:
 
 ```
