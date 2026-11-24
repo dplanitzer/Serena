@@ -10,23 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-char g_copy_buf[COPY_BUF_SIZE];
-char g_last_path_comp[LPC_SIZE];
-
-errno_t host_validate_path(const char* path)
-{
-    const size_t len = strlen(path);
-
-    if (len == 0) {
-        return EINVAL;
-    }
-    if (len > HOST_PATH_MAX-1) {
-        return ENAMETOOLONG;
-    }
-
-    return 0;
-}
-
 errno_t dmg_validate_path(const char* path)
 {
     const size_t len = strlen(path);
@@ -212,48 +195,3 @@ int posix_path_next(di_path_iter_t* it, const char* path)
 
     return 0;
 }
-
-
-#if defined(__APPLE__)
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-/*
- * Returns what 'path' refers to (a link is followed), or KIND_ERROR with
- * errno set. The kernel applies a trailing slash itself: "file/" fails with
- * ENOTDIR, which is also what cp reports.
- */
-int path_kind(const char *path)
-{
-    struct stat st;
-
-    if (stat(path, &st) != 0) {
-        return (errno == ENOENT) ? KIND_NONE : KIND_ERROR;
-    }
-    return S_ISDIR(st.st_mode) ? KIND_DIRECTORY : KIND_OTHER;
-}
-
-int posix_create_dir(const char *path, int *created)
-{
-    if (mkdir(dst, 0755) == 0) {
-        *created = 1;
-        return 0;
-    }
-    if (errno != EEXIST) {
-        return -1;
-    }
-
-    struct stat dst_st;
-    if (stat(dst, &dst_st) != 0) {
-        return -1;
-    }
-    if (!S_ISDIR(dst_st.st_mode)) {
-        errno = ENOTDIR;
-        return -1;
-    }
-    *created = 0;
-    return 0;
-}
-#endif /* __APPLE__ */

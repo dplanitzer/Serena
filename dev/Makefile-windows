@@ -110,12 +110,14 @@ KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/security/perm_check.c
 
 KOBJ_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/kobj/*.c)
 SERENAFS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs/*.c)
+DISKIMAGE_HD_C_SOURCES := $(wildcard diskimage/hd/*.c)
 DISKIMAGE_C_SOURCES := $(wildcard diskimage/*.c)
 
 ALL_DISKIMAGE_C_SOURCES := $(LIBC_C_SOURCES) \
 						   $(KERNEL_C_SOURCES) \
 						   $(KOBJ_C_SOURCES) \
 						   $(SERENAFS_C_SOURCES) \
+						   $(DISKIMAGE_HD_C_SOURCES) \
 						   $(DISKIMAGE_C_SOURCES)
 
 DISKIMAGE_INCLUDES := /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_SOURCES_DIR)

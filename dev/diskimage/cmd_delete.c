@@ -9,6 +9,7 @@
 #include "diskimage.h"
 #include "path_utils.h"
 #include "rdir.h"
+#include <hd/hd.h>
 #include <kpi/file.h>
 
 
@@ -18,7 +19,7 @@ static int is_dot_name(const char *path)
     /* A longer component doesn't fit and fails with ENAMETOOLONG, so it can't be either. */
     char last[3];
 
-    return host_last_path_component(last, sizeof(last), path) == 0
+    return hd_last_path_component(last, sizeof(last), path) == 0
         && (strcmp(last, ".") == 0 || strcmp(last, "..") == 0);
 }
 

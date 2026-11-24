@@ -1,5 +1,5 @@
 //
-//  path_utils_win32.c
+//  hd_path_win32.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 11/14/26.
@@ -8,8 +8,8 @@
 
 #ifdef _WIN32
 
-#include "path_utils.h"
-#include "utils.h"
+#include "hd_path.h"
+#include "utils_win32.h"
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
@@ -94,7 +94,7 @@ static size_t win32_root_len(UINT cp, const char* path)
     return i;
 }
 
-bool win32_ends_with_separator(const char *path)
+bool hd_ends_with_separator(const char *path)
 {
     const size_t len = strlen(path);
 
@@ -121,7 +121,7 @@ bool win32_ends_with_separator(const char *path)
     return last == len - 1;
 }
 
-int win32_path_append(char* buf, size_t buf_size, const char* component)
+int hd_path_append(char* buf, size_t buf_size, const char* component)
 {
     size_t base_len = 0;
     size_t needs_sep = 0;
@@ -130,7 +130,7 @@ int win32_path_append(char* buf, size_t buf_size, const char* component)
         base_len = strlen(buf);
         // No separator after a bare drive: "C:" + "a" is "C:a", which is
         // relative to the drive's current directory, while "C:\a" is not
-        if (base_len > 0 && !win32_ends_with_separator(buf) && !(base_len == 2 && win32_is_drive(buf))) {
+        if (base_len > 0 && !hd_ends_with_separator(buf) && !(base_len == 2 && win32_is_drive(buf))) {
             needs_sep = 1;
         }
     }
@@ -173,7 +173,7 @@ int win32_path_append(char* buf, size_t buf_size, const char* component)
     return 0;
 }
 
-int win32_last_path_component(char* buf, size_t buf_size, const char* path)
+int hd_last_path_component(char* buf, size_t buf_size, const char* path)
 {
     const UINT cp = win32_code_page();
     const size_t root_len = win32_root_len(cp, path);
@@ -236,7 +236,7 @@ int win32_last_path_component(char* buf, size_t buf_size, const char* path)
     return 0;
 }
 
-int win32_path_next(di_path_iter_t* it, const char* path)
+int hd_path_next(hd_path_iter_t* it, const char* path)
 {
     const UINT cp = win32_code_page();
 
@@ -283,91 +283,6 @@ int win32_path_next(di_path_iter_t* it, const char* path)
     it->length = it->end - it->start;
 
     return 0;
-}
-
-
-int win32_path_kind(const char *path)
-{
-    wchar_t *wpath = win32_narrow_to_wide(win32_code_page(), path);
-    if (wpath == NULL) {
-        return KIND_ERROR;
-    }
-
-    /* "file\" would be an invalid name; a root keeps its separator ("C:\", "\") */
-    size_t len = wcslen(wpath);
-    while (len > 1 && (wpath[len - 1] == L'\\' || wpath[len - 1] == L'/')
-           && wpath[len - 2] != L':') {
-        wpath[--len] = L'\0';
-    }
-
-    const DWORD attr = GetFileAttributesW(wpath);
-    const DWORD err = GetLastError();
-    free(wpath);
-
-    if (attr == INVALID_FILE_ATTRIBUTES) {
-        if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
-            return KIND_NONE;
-        }
-        errno = win32_errno_from_error(err);
-        return KIND_ERROR;
-    }
-    return (attr & FILE_ATTRIBUTE_DIRECTORY) ? KIND_DIRECTORY : KIND_OTHER;
-}
-
-int win32_create_dir(const char *path, int *created)
-{
-    UINT cp = win32_code_page();
-    wchar_t* wpath = win32_make_long_path(cp, path);
-    if (wpath == NULL) {
-        return -1;
-    }
-
-
-    BOOL ok = CreateDirectoryW(wpath, NULL);
-    free(wpath);
-
-    if (ok) {
-        *created = 1;
-    } else {
-        DWORD err = GetLastError();
-        if (err != ERROR_ALREADY_EXISTS) {
-            errno = win32_errno_from_error(err);
-            return -1;
-        }
-        DWORD attr = GetFileAttributesW(wpath);
-        if (attr == INVALID_FILE_ATTRIBUTES) {
-            errno = win32_errno_from_error(GetLastError());
-            return -1;
-        }
-        if (!(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-            errno = ENOTDIR;
-            return -1;
-        }
-        *created = 0;
-    }
-
-    return 0;
-}
-
-FILE *win32_fopen(const char *path, const char *mode)
-{
-    UINT cp = win32_code_page();
-    wchar_t* wpath = win32_make_long_path(cp, path);
-    if (wpath == NULL) {
-        return NULL;
-    }
-
-    wchar_t wmode[8];
-    size_t i = 0;
-    for (; mode[i] != '\0' && i < sizeof(wmode); i++) {
-        wmode[i] = (wchar_t)(unsigned char)mode[i];
-    }
-    wmode[i] = L'\0';
-
-    FILE *fp = _wfopen(wpath, wmode);
-    free(wpath);
-
-    return fp;
 }
 
 #endif  /* _WIN32 */

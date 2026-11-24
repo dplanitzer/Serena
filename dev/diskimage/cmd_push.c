@@ -8,15 +8,17 @@
 
 #include "diskimage.h"
 #include "path_utils.h"
-#include "hdir.h"
-#include "utils.h"
 #include "FSManager.h"
+#include <hd/hd.h>
 #include <stdio.h>
 #include <ext/errno.h>
 #include <handler/Handler.h>
 #include <kpi/file.h>
 
 extern int dmg_path_kind(FSManagerRef fsm, const char *path);
+
+#define COPY_BUF_SIZE   4096
+static char g_copy_buf[COPY_BUF_SIZE];
 
 
 /* Intermediate paths. Static, so neither reentrant nor thread-safe. */
@@ -58,7 +60,7 @@ static errno_t copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t ui
     HandlerRef dfp = NULL;
     FILE* sfp = NULL;
 
-    try_null(sfp, host_fopen(src_path, "rb"), errno);
+    try_null(sfp, hd_fopen(src_path, "rb"), errno);
     try(dmg_create_file(&fsm->fm, dst_path, fsperms, uid, gid, &dfp));
 
     while (true) {
@@ -118,8 +120,8 @@ static int dmg_create_dir(FSManagerRef fsm, const char *path, int *created)
 
 static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path)
 {
-    hdir_t it = NULL;
-    const hdir_entry_t *e;
+    hd_rdir_t it = NULL;
+    const hd_rdir_entry_t *e;
     int created;
     int result = -1;
 
@@ -128,15 +130,15 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
     }
 
 
-    it = hdir_open(src_path);
+    it = hd_rdir_open(src_path);
     if (it == NULL) {
         goto out;
     }
 
-    while ((e = hdir_next(it)) != NULL) {
+    while ((e = hd_rdir_next(it)) != NULL) {
         int r;
 
-        if (e->type == HDIR_TYPE_END_DIRECTORY) {
+        if (e->type == HD_RDIR_TYPE_END_DIRECTORY) {
             continue;
         }
 
@@ -147,11 +149,11 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
         const char* dst = g_cp_tmp;
 
         switch (e->type) {
-        case HDIR_TYPE_BEGIN_DIRECTORY:
+        case HD_RDIR_TYPE_BEGIN_DIRECTORY:
             r = dmg_create_dir(fsm, dst, &created);
             break;
 
-        case HDIR_TYPE_FILE:
+        case HD_RDIR_TYPE_FILE:
             r = copy_file(fsm, fsperms, uid, gid, src, dst);
             break;
 
@@ -172,7 +174,7 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
 out:
     {
         int saved = errno;
-        hdir_close(it);
+        hd_rdir_close(it);
         errno = saved;
     }
     return result;
@@ -189,17 +191,17 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
     }
 
     /* The source */
-    src_kind = host_path_kind(src_path);
+    src_kind = hd_path_kind(src_path);
     if (src_kind < 0) {
         return errno;
     }
-    if (src_kind == KIND_NONE) {
+    if (src_kind == HD_KIND_NONE) {
         return ENOENT;
     }
-    if (host_ends_with_separator(src_path) && src_kind != KIND_DIRECTORY) {
+    if (hd_ends_with_separator(src_path) && src_kind != HD_KIND_DIRECTORY) {
         return ENOTDIR;            /* "file/" */
     }
-    if (src_kind == KIND_DIRECTORY && !bRecursive) {
+    if (src_kind == HD_KIND_DIRECTORY && !bRecursive) {
         return EISDIR;             /* a directory needs -R */
     }
 
@@ -210,7 +212,7 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
     }
     if (dst_kind == KIND_DIRECTORY) {
         /* Copy into it: dst/<last component of src> */
-        if (host_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
+        if (hd_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
             return errno;
         }
         /* Appended to an empty path, dst_path is kept as is (an absolute one stays absolute) */
@@ -225,13 +227,13 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
         /* "dst/" must be an existing directory */
         return (dst_kind == KIND_NONE) ? ENOENT : ENOTDIR;
     }
-    else if (dst_kind == KIND_OTHER && src_kind == KIND_DIRECTORY) {
+    else if (dst_kind == KIND_OTHER && src_kind == HD_KIND_DIRECTORY) {
         return ENOTDIR;            /* a directory can't replace a non-directory */
     }
     /* Otherwise 'dst_path' doesn't exist and is created, or is a file that is overwritten */
 
 
-    if (src_kind == KIND_DIRECTORY) {
+    if (src_kind == HD_KIND_DIRECTORY) {
         return copy_file_hierarchy(fsm, fsperms, uid, gid, src_path, target);
     }
     else {
@@ -257,7 +259,7 @@ errno_t cmd_push(const char* _Nonnull dmgPath, fs_perms_t fsperms, uid_t uid, gi
     for (size_t i = 0; i < paths->count - 1; i++) {
         const char* src_path = paths->strings[i];
 
-        try(host_validate_path(src_path));
+        try(hd_validate_path(src_path));
         try(do_copy(fsm, fsperms, uid, gid, src_path, dst_path, bRecursive));
     }
 

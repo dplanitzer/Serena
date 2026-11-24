@@ -15,7 +15,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include "utils.h"
+#include "utils_win32.h"
 
 #include <errno.h>
 #include <stdbool.h>

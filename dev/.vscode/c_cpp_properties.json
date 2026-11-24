@@ -8,7 +8,8 @@
                 "${workspaceFolder}/../user/lib/libc/h/**",
                 "${workspaceFolder}/../user/lib/libclap/h/**",
                 "${workspaceFolder}/../kern/h/**",
-                "${workspaceFolder}/../kern/src/**"
+                "${workspaceFolder}/../kern/src/**",
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "__IDE__",
