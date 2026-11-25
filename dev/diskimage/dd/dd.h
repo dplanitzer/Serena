@@ -13,6 +13,8 @@
 #include <dd/dd_path.h>
 #include <dd/dd_rdir.h>
 #include "FSManager.h"
+#include <kpi/attr.h>
+#include <kpi/types.h>
 
 /* What a path refers to */
 enum {
@@ -24,5 +26,11 @@ enum {
 
 
 extern int dd_path_kind(FSManagerRef fsm, const char *path);
+
+extern int dd_makedir(FSManagerRef fsm, const char *path, fs_perms_t perms);
+extern int dd_remove(FSManagerRef fsm, const char *path);
+
+extern int dd_chown(FSManagerRef fsm, const char *path, uid_t uid, gid_t gid);
+extern int dd_attr(FSManagerRef fsm, const char *path, fs_attr_t *attr);
 
 #endif /* DD_H */

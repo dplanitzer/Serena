@@ -9,10 +9,8 @@
 #include "diskimage.h"
 #include <dd/dd.h>
 #include <hd/hd.h>
-#include <stdio.h>
 #include <ext/errno.h>
 #include <handler/Handler.h>
-#include <kpi/file.h>
 
 #define COPY_BUF_SIZE   4096
 static char g_copy_buf[COPY_BUF_SIZE];
@@ -23,27 +21,27 @@ static char g_cp_path[DD_PATH_MAX];
 static char g_cp_tmp[DD_PATH_MAX];
 
 
-static errno_t dd_create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
+static errno_t create_file(FSManagerRef _Nonnull fsm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef hnd = NULL;
 
-    err = FileManager_OpenFile(fm, path, O_WRONLY | O_TRUNC, &hnd);
+    err = FileManager_OpenFile(&fsm->fm, path, O_WRONLY | O_TRUNC, &hnd);
     if (err == ENOENT) {
         // File doesn't exist yet. Create it
-        err = FileManager_CreateFile(fm, path, O_WRONLY, fsperms, &hnd);
+        err = FileManager_CreateFile(&fsm->fm, path, O_WRONLY, fsperms, &hnd);
     }
 
     if (err == EOK) {
         // Update the inode metadata
         //XXX use handler versions once they exist
-        err = FileManager_SetFileOwner(fm, path, uid, gid);
+        err = FileManager_SetFileOwner(&fsm->fm, path, uid, gid);
         if (err == EOK) {
-            err = FileManager_SetFilePermissions(fm, path, fsperms);
+            err = FileManager_SetFilePermissions(&fsm->fm, path, fsperms);
         }
 
         if (err != EOK) {
-            FileManager_Unlink(fm, path, __FS_ULNK_ANY);
+            dd_remove(fsm, path);
         }
     }
 
@@ -58,7 +56,7 @@ static errno_t copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t ui
     FILE* sfp = NULL;
 
     try_null(sfp, hd_fopen(src_path, "rb"), errno);
-    try(dd_create_file(&fsm->fm, dst_path, fsperms, uid, gid, &dfp));
+    try(create_file(fsm, dst_path, fsperms, uid, gid, &dfp));
 
     while (true) {
         const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sfp);
@@ -85,29 +83,23 @@ catch:
     return err;
 }
 
-static int dd_create_dir(FSManagerRef fsm, const char *path, int *created)
+static int create_directory(FSManagerRef fsm, const char *path, int *created)
 {
-    errno_t err;
-
-    err = FileManager_CreateDirectory(&fsm->fm, path, 0755);
-    if (err == 0) {
+    if (!dd_makedir(fsm, path, 0755)) {
         *created = 1;
         return 0;
     }
-    if (err != EEXIST) {
-        errno = err;
+    if (errno != EEXIST) {
         return -1;
     }
 
-    fs_attr_t attr;
-    err = FileManager_GetAttributes(&fsm->fm, path, &attr);
-    if (err != 0) {
-        errno = err;
-        return -1;
-    }
-    if (attr.file_type != FS_FTYPE_DIR) {
-        errno = ENOTDIR;
-        return -1;
+    switch (dd_path_kind(fsm, path)) {
+        case DD_KIND_ERROR:
+            return -1;
+
+        case DD_KIND_OTHER:
+            errno = ENOTDIR;
+            return -1;
     }
     *created = 0;
 
@@ -122,7 +114,7 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
     int created;
     int result = -1;
 
-    if (dd_create_dir(fsm, dst_path, &created) != 0) {
+    if (create_directory(fsm, dst_path, &created) != 0) {
         goto out;
     }
 
@@ -147,7 +139,7 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
 
         switch (e->type) {
         case HD_RDIR_TYPE_BEGIN_DIRECTORY:
-            r = dd_create_dir(fsm, dst, &created);
+            r = create_directory(fsm, dst, &created);
             break;
 
         case HD_RDIR_TYPE_FILE:
