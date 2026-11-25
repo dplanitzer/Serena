@@ -1,16 +1,15 @@
 //
-//  path_utils_posix.c
+//  dd_path.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 11/14/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include "path_utils.h"
-#include <stdlib.h>
+#include "dd_path.h"
 #include <string.h>
 
-errno_t dmg_validate_path(const char* path)
+errno_t dd_validate_path(const char* path)
 {
     const size_t len = strlen(path);
 
@@ -18,7 +17,7 @@ errno_t dmg_validate_path(const char* path)
         // must have a path
         return EINVAL;
     }
-    if (len > DMG_PATH_MAX-1) {
+    if (len > DD_PATH_MAX-1) {
         // path must not be too long
         return ENAMETOOLONG;
     }
@@ -30,14 +29,14 @@ errno_t dmg_validate_path(const char* path)
     return 0;
 }
 
-bool posix_ends_with_separator(const char *path)
+bool dd_ends_with_separator(const char *path)
 {
     const size_t len = strlen(path);
 
     return len > 0 && path[len - 1] == '/';
 }
 
-int posix_path_append(char* buf, size_t buf_size, const char* component)
+int dd_path_append(char* buf, size_t buf_size, const char* component)
 {
     size_t base_len = 0;
     size_t needs_sep = 0;
@@ -91,7 +90,7 @@ int posix_path_append(char* buf, size_t buf_size, const char* component)
     return 0;
 }
 
-int posix_last_path_component(char* buf, size_t buf_size, const char* path)
+int dd_last_path_component(char* buf, size_t buf_size, const char* path)
 {
     const size_t path_len = strlen(path);
     size_t total_size = 1;
@@ -163,7 +162,7 @@ int posix_last_path_component(char* buf, size_t buf_size, const char* path)
     return 0;
 }
 
-int posix_path_next(di_path_iter_t* it, const char* path)
+int dd_path_next(dd_path_iter_t* it, const char* path)
 {
     // First-time initialization
     if (it->_next_ptr == NULL) {

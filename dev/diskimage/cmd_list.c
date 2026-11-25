@@ -7,13 +7,12 @@
 //
 
 #include "diskimage.h"
-#include "path_utils.h"
-#include "FSManager.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 #include <ext/stdlib.h>
+#include <dd/dd.h>
 #include <handler/Handler.h>
 #include <kpi/directory.h>
 #include <kpi/fs_perms.h>
@@ -233,7 +232,7 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
 
-        try(dmg_validate_path(cur_path));
+        try(dd_validate_path(cur_path));
 
         memset(&g_list_ctx, 0, sizeof(list_ctx_t));
         g_list_ctx.fm = &m->fm;

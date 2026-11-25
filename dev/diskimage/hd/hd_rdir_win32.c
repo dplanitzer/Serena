@@ -16,7 +16,7 @@
 #endif
 
 #include "hd_rdir.h"
-#include "path_utils.h"
+#include "hd_path.h"
 #include "utils_win32.h"
 
 #include <windows.h>

@@ -1,5 +1,5 @@
 //
-//  hd_path.h
+//  hd.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 11/14/26.

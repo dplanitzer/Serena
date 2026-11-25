@@ -7,9 +7,8 @@
 //
 
 #include "diskimage.h"
-#include "path_utils.h"
-#include "FSManager.h"
 #include <string.h>
+#include <dd/dd.h>
 #include <kpi/file.h>
 
 static errno_t create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
@@ -31,11 +30,11 @@ static errno_t create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull
 static errno_t create_directory_recursively(FileManagerRef fm, const char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
-    di_path_iter_t it = DI_PATH_ITER_INITIALIZER;
+    dd_path_iter_t it = DD_PATH_ITER_INITIALIZER;
     fs_attr_t attr;
 
     // Iterate through the path string
-    while (!dmg_path_next(&it, path)) {
+    while (!dd_path_next(&it, path)) {
         char* p = (char*)it.end;
 
         if (*p == '/') {
@@ -83,7 +82,7 @@ errno_t cmd_makedir(const char* _Nonnull dmgPath, bool shouldCreateParents, fs_p
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
 
-        try(dmg_validate_path(cur_path));
+        try(dd_validate_path(cur_path));
 
         if (shouldCreateParents) {
             try(create_directory_recursively(&m->fm, cur_path, dirPerms, uid, gid));

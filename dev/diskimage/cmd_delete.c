@@ -7,8 +7,7 @@
 //
 
 #include "diskimage.h"
-#include "path_utils.h"
-#include "rdir.h"
+#include <dd/dd.h>
 #include <hd/hd.h>
 #include <kpi/file.h>
 
@@ -27,8 +26,8 @@ static int is_dot_name(const char *path)
 errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursive)
 {
     fs_attr_t attr, root_attr;
-    rdir_t it = NULL;
-    const rdir_entry_t *e;
+    dd_rdir_t it = NULL;
+    const dd_rdir_entry_t *e;
     errno_t err;
     int result = -1;
 
@@ -62,14 +61,14 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
     }
 
 
-    it = rdir_open(fsm, path);
+    it = dd_rdir_open(fsm, path);
     if (it == NULL) {
         return errno;
     }
 
     err = 0;
-    while ((e = rdir_next(it)) != NULL) {
-        if (e->type == RDIR_TYPE_BEGIN_DIRECTORY) {
+    while ((e = dd_rdir_next(it)) != NULL) {
+        if (e->type == DD_RDIR_TYPE_BEGIN_DIRECTORY) {
             continue;   /* removed at its END entry, once its contents are gone */
         }
         /*
@@ -86,12 +85,12 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
         goto out;       /* the iteration ended with an error */
     }
 
-    rdir_close(it);   /* closes the root directory */
+    dd_rdir_close(it);   /* closes the root directory */
     it = NULL;
     return FileManager_Unlink(&fsm->fm, path, __FS_ULNK_DIR_ONLY);
 
 out:
-    rdir_close(it);
+    dd_rdir_close(it);
     return err;
 }
 
@@ -111,7 +110,7 @@ errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_str
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
 
-        try(dmg_validate_path(cur_path));
+        try(dd_validate_path(cur_path));
         try(delete_file_hierarchy(fsm, cur_path, bRecursive));
     }
 

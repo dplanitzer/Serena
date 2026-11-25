@@ -1,13 +1,13 @@
 //
-//  rdir.h
+//  dd_rdir.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 11/15/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef RDIR_H
-#define RDIR_H
+#ifndef DD_RDIR_H
+#define DD_RDIR_H
 
 /*
  * Recursive, depth-first iterator over a directory tree.
@@ -34,38 +34,38 @@
 
 
 /* An iterator; rdir_open() returns one, rdir_close() frees it. */
-typedef struct rdir *rdir_t;
+typedef struct dd_rdir *dd_rdir_t;
 
 /* Kind of entry. */
-typedef enum rdir_type {
-    RDIR_TYPE_FILE,             /* regular file */
-    RDIR_TYPE_BEGIN_DIRECTORY,  /* entering a directory; its contents follow */
-    RDIR_TYPE_END_DIRECTORY,    /* leaving a directory; all its contents were reported */
-    RDIR_TYPE_SYMLINK,          /* symbolic link; Windows: also junction / mount point */
-    RDIR_TYPE_OTHER             /* FIFO, socket, device, or the type could not be determined */
-} rdir_type_t;
+typedef enum dd_rdir_type {
+    DD_RDIR_TYPE_FILE,              /* regular file */
+    DD_RDIR_TYPE_BEGIN_DIRECTORY,   /* entering a directory; its contents follow */
+    DD_RDIR_TYPE_END_DIRECTORY,     /* leaving a directory; all its contents were reported */
+    DD_RDIR_TYPE_SYMLINK,           /* symbolic link; Windows: also junction / mount point */
+    DD_RDIR_TYPE_OTHER              /* FIFO, socket, device, or the type could not be determined */
+} dd_rdir_type_t;
 
-typedef struct rdir_entry {
+typedef struct dd_rdir_entry {
     const char      *full_path; /* e.g. "src/a/b/c.txt" */
     const char      *rel_path;  /* points into 'full_path': relative to the root, e.g. "a/b/c.txt" */
     const char      *name;      /* points into 'full_path': the last component, e.g. "c.txt" */
-    rdir_type_t      type;
+    dd_rdir_type_t   type;
     int              depth;     /* 1 for entries directly inside the root, 2 for
                                    entries inside those directories, ... Both
                                    entries of a directory have the same depth. */
-} rdir_entry_t;
+} dd_rdir_entry_t;
 
 /*
  * Creates an iterator for the tree rooted at 'root_path'.
  * Returns NULL and sets errno if the root can not be opened, is too long
- * for DMG_PATH_MAX (ENAMETOOLONG) or memory can not be allocated.
+ * for DD_PATH_MAX (ENAMETOOLONG) or memory can not be allocated.
  */
-rdir_t rdir_open(FSManagerRef fsm, const char *root_path);
+dd_rdir_t dd_rdir_open(FSManagerRef fsm, const char *root_path);
 
 /*
  * Frees all resources owned by the iterator. Passing NULL is allowed.
  */
-void rdir_close(rdir_t it);
+void dd_rdir_close(dd_rdir_t it);
 
 /*
  * Advances to the next entry and returns it. The entry and the strings it
@@ -80,10 +80,10 @@ void rdir_close(rdir_t it);
  * when an error occurred (errno is nonzero). An error ends the iteration:
  * all further calls return NULL with the same errno, until
  * rdir_rewind() is called.
- *   ENAMETOOLONG  a full path plus its NUL doesn't fit in DMG_PATH_MAX
+ *   ENAMETOOLONG  a full path plus its NUL doesn't fit in DD_PATH_MAX
  *                 bytes
  *   other         a directory could not be opened or read (e.g. EACCES)
  */
-const rdir_entry_t *rdir_next(rdir_t it);
+const dd_rdir_entry_t *dd_rdir_next(dd_rdir_t it);
 
-#endif /* RDIR_H */
+#endif /* DD_RDIR_H */

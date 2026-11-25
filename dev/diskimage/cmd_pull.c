@@ -7,23 +7,19 @@
 //
 
 #include "diskimage.h"
-#include "path_utils.h"
-#include "rdir.h"
-#include "FSManager.h"
+#include <dd/dd.h>
 #include <hd/hd.h>
 #include <stdio.h>
 #include <ext/errno.h>
 #include <handler/Handler.h>
-
-extern int dmg_path_kind(FSManagerRef fsm, const char *path);
 
 #define COPY_BUF_SIZE   4096
 static char g_copy_buf[COPY_BUF_SIZE];
 
 
 /* Intermediate paths. Static, so neither reentrant nor thread-safe. */
-static char g_cp_path[DMG_PATH_MAX];
-static char g_cp_tmp[DMG_PATH_MAX];
+static char g_cp_path[DD_PATH_MAX];
+static char g_cp_tmp[DD_PATH_MAX];
 
 
 static errno_t copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, const char* _Nonnull dst_path)
@@ -66,8 +62,8 @@ catch:
 
 static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path, const char * _Nonnull dst_path)
 {
-    rdir_t it = NULL;
-    const rdir_entry_t *e;
+    dd_rdir_t it = NULL;
+    const dd_rdir_entry_t *e;
     int created;
     int result = -1;
 
@@ -76,15 +72,15 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonn
     }
 
 
-    it = rdir_open(fsm, src_path);
+    it = dd_rdir_open(fsm, src_path);
     if (it == NULL) {
         goto out;
     }
 
-    while ((e = rdir_next(it)) != NULL) {
+    while ((e = dd_rdir_next(it)) != NULL) {
         int r;
 
-        if (e->type == RDIR_TYPE_END_DIRECTORY) {
+        if (e->type == DD_RDIR_TYPE_END_DIRECTORY) {
             continue;
         }
 
@@ -95,11 +91,11 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonn
         const char* dst = g_cp_tmp;
 
         switch (e->type) {
-        case RDIR_TYPE_BEGIN_DIRECTORY:
+        case DD_RDIR_TYPE_BEGIN_DIRECTORY:
             r = hd_create_dir(dst, &created);
             break;
 
-        case RDIR_TYPE_FILE:
+        case DD_RDIR_TYPE_FILE:
             r = copy_file(fsm, src, dst);
             break;
 
@@ -120,7 +116,7 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonn
 out:
     {
         int saved = errno;
-        rdir_close(it);
+        dd_rdir_close(it);
         errno = saved;
     }
     return result;
@@ -137,17 +133,17 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
     }
 
     /* The source */
-    src_kind = dmg_path_kind(fsm, src_path);
+    src_kind = dd_path_kind(fsm, src_path);
     if (src_kind < 0) {
         return errno;
     }
-    if (src_kind == KIND_NONE) {
+    if (src_kind == DD_KIND_NONE) {
         return ENOENT;
     }
-    if (dmg_ends_with_separator(src_path) && src_kind != KIND_DIRECTORY) {
+    if (dd_ends_with_separator(src_path) && src_kind != DD_KIND_DIRECTORY) {
         return ENOTDIR;            /* "file/" */
     }
-    if (src_kind == KIND_DIRECTORY && !bRecursive) {
+    if (src_kind == DD_KIND_DIRECTORY && !bRecursive) {
         return EISDIR;             /* a directory needs -R */
     }
 
@@ -158,7 +154,7 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
     }
     if (dst_kind == HD_KIND_DIRECTORY) {
         /* Copy into it: dst/<last component of src> */
-        if (dmg_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
+        if (dd_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
             return errno;
         }
         /* Appended to an empty path, dst_path is kept as is (an absolute one stays absolute) */
@@ -173,13 +169,13 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
         /* "dst/" must be an existing directory */
         return (dst_kind == HD_KIND_NONE) ? ENOENT : ENOTDIR;
     }
-    else if (dst_kind == HD_KIND_OTHER && src_kind == KIND_DIRECTORY) {
+    else if (dst_kind == HD_KIND_OTHER && src_kind == DD_KIND_DIRECTORY) {
         return ENOTDIR;            /* a directory can't replace a non-directory */
     }
     /* Otherwise 'dst_path' doesn't exist and is created, or is a file that is overwritten */
 
 
-    if (src_kind == KIND_DIRECTORY) {
+    if (src_kind == DD_KIND_DIRECTORY) {
         return copy_file_hierarchy(fsm, src_path, target);
     }
     else {
@@ -204,7 +200,7 @@ errno_t cmd_pull(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
     for (size_t i = 0; i < paths->count - 1; i++) {
         const char* src_path = paths->strings[i];
 
-        try(dmg_validate_path(src_path));
+        try(dd_validate_path(src_path));
         try(do_copy(fsm, src_path, dst_path, bRecursive));
     }
 

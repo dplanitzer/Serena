@@ -7,26 +7,23 @@
 //
 
 #include "diskimage.h"
-#include "path_utils.h"
-#include "FSManager.h"
+#include <dd/dd.h>
 #include <hd/hd.h>
 #include <stdio.h>
 #include <ext/errno.h>
 #include <handler/Handler.h>
 #include <kpi/file.h>
 
-extern int dmg_path_kind(FSManagerRef fsm, const char *path);
-
 #define COPY_BUF_SIZE   4096
 static char g_copy_buf[COPY_BUF_SIZE];
 
 
 /* Intermediate paths. Static, so neither reentrant nor thread-safe. */
-static char g_cp_path[DMG_PATH_MAX];
-static char g_cp_tmp[DMG_PATH_MAX];
+static char g_cp_path[DD_PATH_MAX];
+static char g_cp_tmp[DD_PATH_MAX];
 
 
-static errno_t dmg_create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
+static errno_t dd_create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
 {
     decl_try_err();
     HandlerRef hnd = NULL;
@@ -61,7 +58,7 @@ static errno_t copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t ui
     FILE* sfp = NULL;
 
     try_null(sfp, hd_fopen(src_path, "rb"), errno);
-    try(dmg_create_file(&fsm->fm, dst_path, fsperms, uid, gid, &dfp));
+    try(dd_create_file(&fsm->fm, dst_path, fsperms, uid, gid, &dfp));
 
     while (true) {
         const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sfp);
@@ -88,7 +85,7 @@ catch:
     return err;
 }
 
-static int dmg_create_dir(FSManagerRef fsm, const char *path, int *created)
+static int dd_create_dir(FSManagerRef fsm, const char *path, int *created)
 {
     errno_t err;
 
@@ -125,7 +122,7 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
     int created;
     int result = -1;
 
-    if (dmg_create_dir(fsm, dst_path, &created) != 0) {
+    if (dd_create_dir(fsm, dst_path, &created) != 0) {
         goto out;
     }
 
@@ -143,14 +140,14 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
         }
 
         g_cp_tmp[0] = '\0';
-        dmg_path_append(g_cp_tmp, sizeof(g_cp_tmp), dst_path);
-        dmg_path_append(g_cp_tmp, sizeof(g_cp_tmp), e->rel_path);
+        dd_path_append(g_cp_tmp, sizeof(g_cp_tmp), dst_path);
+        dd_path_append(g_cp_tmp, sizeof(g_cp_tmp), e->rel_path);
         const char *src = e->full_path;
         const char* dst = g_cp_tmp;
 
         switch (e->type) {
         case HD_RDIR_TYPE_BEGIN_DIRECTORY:
-            r = dmg_create_dir(fsm, dst, &created);
+            r = dd_create_dir(fsm, dst, &created);
             break;
 
         case HD_RDIR_TYPE_FILE:
@@ -206,28 +203,28 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
     }
 
     /* The destination */
-    dst_kind = dmg_path_kind(fsm, dst_path);
+    dst_kind = dd_path_kind(fsm, dst_path);
     if (dst_kind < 0) {
         return errno;
     }
-    if (dst_kind == KIND_DIRECTORY) {
+    if (dst_kind == DD_KIND_DIRECTORY) {
         /* Copy into it: dst/<last component of src> */
         if (hd_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
             return errno;
         }
         /* Appended to an empty path, dst_path is kept as is (an absolute one stays absolute) */
         g_cp_path[0] = '\0';
-        if (dmg_path_append(g_cp_path, sizeof(g_cp_path), dst_path) < 0
-            || dmg_path_append(g_cp_path, sizeof(g_cp_path), g_cp_tmp) < 0) {
+        if (dd_path_append(g_cp_path, sizeof(g_cp_path), dst_path) < 0
+            || dd_path_append(g_cp_path, sizeof(g_cp_path), g_cp_tmp) < 0) {
             return errno;
         }
         target = g_cp_path;
     }
-    else if (dmg_ends_with_separator(dst_path)) {
+    else if (dd_ends_with_separator(dst_path)) {
         /* "dst/" must be an existing directory */
-        return (dst_kind == KIND_NONE) ? ENOENT : ENOTDIR;
+        return (dst_kind == DD_KIND_NONE) ? ENOENT : ENOTDIR;
     }
-    else if (dst_kind == KIND_OTHER && src_kind == HD_KIND_DIRECTORY) {
+    else if (dst_kind == DD_KIND_OTHER && src_kind == HD_KIND_DIRECTORY) {
         return ENOTDIR;            /* a directory can't replace a non-directory */
     }
     /* Otherwise 'dst_path' doesn't exist and is created, or is a file that is overwritten */
