@@ -9,6 +9,9 @@
 #ifndef DD_RDIR_H
 #define DD_RDIR_H
 
+#include <limits.h>
+#include <dd/FSManager.h>
+
 /*
  * Recursive, depth-first iterator over a directory tree.
  *
@@ -28,9 +31,6 @@
  * infinite recursion:
  *   POSIX:   symbolic links.
  */
-
-#include <limits.h>
-#include "FSManager.h"
 
 
 /* An iterator; rdir_open() returns one, rdir_close() frees it. */

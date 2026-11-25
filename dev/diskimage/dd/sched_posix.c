@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#if defined(__APPLE__)
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 
 #include <sched/mtx.h>
 

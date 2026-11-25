@@ -8,7 +8,6 @@
 
 #include <stdlib.h>
 #include <time.h>
-#include <ext/math.h>
 #include <filesystem/FSUtilities.h>
 
 
@@ -16,7 +15,7 @@
 // for filesystem objects.
 void FSGetCurrentTime(nanotime_t* _Nonnull ts)
 {
-#if defined(__APPLE__)
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
     ts->tv_sec = time(NULL);
     ts->tv_nsec = 0;
 #else

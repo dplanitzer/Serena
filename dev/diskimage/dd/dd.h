@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <dd/dd_path.h>
 #include <dd/dd_rdir.h>
-#include "FSManager.h"
+#include <dd/FSManager.h>
 #include <kpi/attr.h>
 #include <kpi/types.h>
 
