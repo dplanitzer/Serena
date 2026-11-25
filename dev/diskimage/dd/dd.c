@@ -8,6 +8,7 @@
 
 #include "dd.h"
 #include "FSManager.h"
+#include <handler/Handler.h>
 #include <errno.h>
 
 
@@ -70,6 +71,63 @@ int dd_attr(FSManagerRef fsm, const char *path, fs_attr_t *attr)
     if (err == EOK) {
         return 0;
     } 
+    else {
+        errno = err;
+        return -1;
+    }
+}
+
+
+dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags)
+{
+    HandlerRef hnd;
+    fd_flags_t oflags = O_RDONLY;
+
+    if ((flags & DD_WRONLY) == DD_WRONLY) {
+        oflags |= O_WRONLY;
+    }
+
+    const errno_t err = FileManager_OpenFile(&fsm->fm, path, oflags, &hnd);
+    if (err == EOK) {
+        return hnd;
+    }
+    else {
+        errno = err;
+        return NULL;
+    }
+}
+
+int dd_close(dd_fd_t fd)
+{
+    if (fd) {
+        Object_Release((HandlerRef)fd);
+    }
+
+    return 0;
+}
+
+ssize_t dd_read(dd_fd_t fd, char *buf, size_t count)
+{
+    ssize_t nBytesRead = 0;
+    const errno_t err = Handler_Read((HandlerRef)fd, buf, count, &nBytesRead);
+
+    if (err == EOK) {
+        return nBytesRead;
+    }
+    else {
+        errno = err;
+        return -1;
+    }
+}
+
+ssize_t dd_write(dd_fd_t fd, const char *buf, size_t count)
+{
+    ssize_t nBytesWritten = 0;
+    const errno_t err = Handler_Write((HandlerRef)fd, buf, count, &nBytesWritten);
+
+    if (err == EOK) {
+        return nBytesWritten;
+    }
     else {
         errno = err;
         return -1;

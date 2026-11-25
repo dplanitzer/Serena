@@ -55,7 +55,9 @@ int hd_create_dir(const char *path, int *created)
     free(wpath);
 
     if (ok) {
-        *created = 1;
+        if (created) {
+            *created = 1;
+        }
     } else {
         DWORD err = GetLastError();
         if (err != ERROR_ALREADY_EXISTS) {
@@ -71,7 +73,9 @@ int hd_create_dir(const char *path, int *created)
             errno = ENOTDIR;
             return -1;
         }
-        *created = 0;
+        if (created) {
+            *created = 0;
+        }
     }
 
     return 0;

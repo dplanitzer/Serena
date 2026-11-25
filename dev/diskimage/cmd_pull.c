@@ -9,9 +9,6 @@
 #include "diskimage.h"
 #include <dd/dd.h>
 #include <hd/hd.h>
-#include <stdio.h>
-#include <ext/errno.h>
-#include <handler/Handler.h>
 
 #define COPY_BUF_SIZE   4096
 static char g_copy_buf[COPY_BUF_SIZE];
@@ -22,64 +19,55 @@ static char g_cp_path[DD_PATH_MAX];
 static char g_cp_tmp[DD_PATH_MAX];
 
 
-static errno_t copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, const char* _Nonnull dst_path)
+static int copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
-    decl_try_err();
-    HandlerRef hnd = NULL;
-    FILE* fp = NULL;
+    dd_fd_t sp = NULL;
+    FILE* dp = NULL;
 
-    try(FileManager_OpenFile(&fsm->fm, src_path, O_RDONLY, &hnd));
-    try_null(fp, hd_fopen(dst_path, "wb"), errno);
+    errno = 0;
+    sp = dd_open(fsm, src_path, DD_RDONLY);
+    if (sp == NULL) {
+        return -1;
+    }
 
-    while (true) {
-        ssize_t nBytesRead;
+    dp = hd_fopen(dst_path, "wb");
+    if (dp) {
+        for (;;) {
+            const ssize_t nBytesRead = dd_read(sp, g_copy_buf, sizeof(g_copy_buf));
         
-        err = Handler_Read(hnd, g_copy_buf, sizeof(g_copy_buf), &nBytesRead);
-        if (err != EOK || nBytesRead == 0) {
-            break;
+            if (nBytesRead <= 0) {
+                break;
+            }
+
+            fwrite(g_copy_buf, 1, nBytesRead, dp);
+            if (ferror(dp)) {
+                break;
+            }
         }
 
-        fwrite(g_copy_buf, 1, nBytesRead, fp);
-        if (ferror(fp)) {
-            err = errno;
-            break;
-        }
-        else if (feof(fp)) {
-            err = EIO;
-            break;
-        }
+        fclose(dp);
     }
+    dd_close(sp);
 
-catch:
-    if (fp) {
-        fclose(fp);
-    }
-    Object_Release(hnd);
-
-    return err;
+    return (errno == 0) ? 0 : -1;
 }
 
 
-static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path, const char * _Nonnull dst_path)
+static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path, const char * _Nonnull dst_path)
 {
-    dd_rdir_t it = NULL;
+    dd_rdir_t it;
     const dd_rdir_entry_t *e;
-    int created;
-    int result = -1;
 
-    if (hd_create_dir(dst_path, &created) != 0) {
-        goto out;
+    if (hd_create_dir(dst_path, NULL) < 0) {
+        return -1;
     }
-
 
     it = dd_rdir_open(fsm, src_path);
     if (it == NULL) {
-        goto out;
+        return -1;
     }
 
     while ((e = dd_rdir_next(it)) != NULL) {
-        int r;
-
         if (e->type == DD_RDIR_TYPE_END_DIRECTORY) {
             continue;
         }
@@ -89,10 +77,11 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonn
         hd_path_append(g_cp_tmp, sizeof(g_cp_tmp), e->rel_path);
         const char *src = e->full_path;
         const char* dst = g_cp_tmp;
+        int r;
 
         switch (e->type) {
         case DD_RDIR_TYPE_BEGIN_DIRECTORY:
-            r = hd_create_dir(dst, &created);
+            r = hd_create_dir(dst, NULL);
             break;
 
         case DD_RDIR_TYPE_FILE:
@@ -103,23 +92,16 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonn
             break;
         }
 
-        if (r != 0) {
-            errno = r;
-            goto out;
+        if (r < 0) {
+            break;
         }
     }
-    if (errno != 0) {
-        goto out;       /* the iteration ended with an error */
-    }
-    result = 0;
 
-out:
-    {
-        int saved = errno;
-        dd_rdir_close(it);
-        errno = saved;
-    }
-    return result;
+    int saved = errno;
+    dd_rdir_close(it);
+    errno = saved;
+    
+    return (errno == 0) ? 0 : -1;
 }
 
 
@@ -176,11 +158,17 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
 
 
     if (src_kind == DD_KIND_DIRECTORY) {
-        return copy_file_hierarchy(fsm, src_path, target);
+        if (copy_file_hierarchy(fsm, src_path, target) < 0) {
+            return errno;
+        }
     }
     else {
-        return copy_file(fsm, src_path, target);
+        if (copy_file(fsm, src_path, target) < 0) {
+            return errno;
+        }
     }
+
+    return 0;
 }
 
 errno_t cmd_pull(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths, bool bRecursive)

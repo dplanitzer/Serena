@@ -33,7 +33,9 @@ int hd_path_kind(const char *path)
 int hd_create_dir(const char *path, int *created)
 {
     if (mkdir(dst, 0755) == 0) {
-        *created = 1;
+        if (created) {
+            *created = 1;
+        }
         return 0;
     }
     if (errno != EEXIST) {
@@ -48,7 +50,11 @@ int hd_create_dir(const char *path, int *created)
         errno = ENOTDIR;
         return -1;
     }
-    *created = 0;
+    
+    if (created) {
+        *created = 0;
+    }
+
     return 0;
 }
 
