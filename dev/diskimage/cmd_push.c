@@ -9,8 +9,6 @@
 #include "diskimage.h"
 #include <dd/dd.h>
 #include <hd/hd.h>
-#include <ext/errno.h>
-#include <handler/Handler.h>
 
 #define COPY_BUF_SIZE   4096
 static char g_copy_buf[COPY_BUF_SIZE];
@@ -21,72 +19,65 @@ static char g_cp_path[DD_PATH_MAX];
 static char g_cp_tmp[DD_PATH_MAX];
 
 
-static errno_t create_file(FSManagerRef _Nonnull fsm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid, HandlerRef _Nullable * _Nonnull pOutHandler)
+static dd_fd_t create_file(FSManagerRef _Nonnull fsm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid)
 {
-    decl_try_err();
-    HandlerRef hnd = NULL;
+    errno = 0;
 
-    err = FileManager_OpenFile(&fsm->fm, path, O_WRONLY | O_TRUNC, &hnd);
-    if (err == ENOENT) {
-        // File doesn't exist yet. Create it
-        err = FileManager_CreateFile(&fsm->fm, path, O_WRONLY, fsperms, &hnd);
+    dd_fd_t fd = dd_open(fsm, path, DD_WRONLY | DD_TRUNC);
+    if ((fd == NULL) && (errno == ENOENT)) {
+        errno = 0;
+        fd = dd_create(fsm, path, DD_WRONLY, fsperms);
     }
 
-    if (err == EOK) {
+    if (fd) {
         // Update the inode metadata
-        //XXX use handler versions once they exist
-        err = FileManager_SetFileOwner(&fsm->fm, path, uid, gid);
-        if (err == EOK) {
-            err = FileManager_SetFilePermissions(&fsm->fm, path, fsperms);
-        }
-
-        if (err != EOK) {
+        if ((dd_chown(fsm, path, uid, gid) < 0) || (dd_chperm(fsm, path, fsperms) < 0)) {
+            dd_close(fd);
             dd_remove(fsm, path);
+            fd = NULL;
         }
     }
 
-    *pOutHandler = hnd;
-    return err;
+    return fd;
 }
 
-static errno_t copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull src_path, const char* _Nonnull dst_path)
+static int copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
-    decl_try_err();
-    HandlerRef dfp = NULL;
-    FILE* sfp = NULL;
+    dd_fd_t dp = NULL;
+    FILE* sp = NULL;
 
-    try_null(sfp, hd_fopen(src_path, "rb"), errno);
-    try(create_file(fsm, dst_path, fsperms, uid, gid, &dfp));
+    sp = hd_fopen(src_path, "rb");
+    if (sp == NULL) {
+        return -1;
+    }
+    
+    dp = create_file(fsm, dst_path, fsperms, uid, gid);
+    if (dp) {
+        for (;;) {
+            const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sp);
 
-    while (true) {
-        const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sfp);
-        if (nBytesRead == 0) {
-            if (ferror(sfp)) {
-                err = errno;
+            if (nBytesRead == 0) {
+                break;
             }
-            break;
+
+            if (dd_write(dp, g_copy_buf, nBytesRead) < 0) {
+                break;
+            }
         }
 
-        ssize_t nBytesWritten;
-        err = Handler_Write(dfp, g_copy_buf, nBytesRead, &nBytesWritten);
-        if (err != EOK) {
-            break;
-        }
+        dd_close(dp);
     }
+    fclose(sp);
 
-catch:
-    Object_Release(dfp);
-    if (sfp) {
-        fclose(sfp);
-    }
-
-    return err;
+    return (errno == 0) ? 0 : -1;
 }
 
 static int create_directory(FSManagerRef fsm, const char *path, int *created)
 {
     if (!dd_makedir(fsm, path, 0755)) {
-        *created = 1;
+        if (created) {
+            *created = 1;
+        }
         return 0;
     }
     if (errno != EEXIST) {
@@ -101,32 +92,30 @@ static int create_directory(FSManagerRef fsm, const char *path, int *created)
             errno = ENOTDIR;
             return -1;
     }
-    *created = 0;
+    if (created) {
+        *created = 0;
+    }
 
     return 0;
 }
 
 
-static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path)
+static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path)
 {
-    hd_rdir_t it = NULL;
+    hd_rdir_t it;
     const hd_rdir_entry_t *e;
-    int created;
-    int result = -1;
 
-    if (create_directory(fsm, dst_path, &created) != 0) {
-        goto out;
+    if (create_directory(fsm, dst_path, NULL) < 0) {
+        return -1;
     }
 
 
     it = hd_rdir_open(src_path);
     if (it == NULL) {
-        goto out;
+        return -1;
     }
 
     while ((e = hd_rdir_next(it)) != NULL) {
-        int r;
-
         if (e->type == HD_RDIR_TYPE_END_DIRECTORY) {
             continue;
         }
@@ -136,10 +125,11 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
         dd_path_append(g_cp_tmp, sizeof(g_cp_tmp), e->rel_path);
         const char *src = e->full_path;
         const char* dst = g_cp_tmp;
+        int r;
 
         switch (e->type) {
         case HD_RDIR_TYPE_BEGIN_DIRECTORY:
-            r = create_directory(fsm, dst, &created);
+            r = create_directory(fsm, dst, NULL);
             break;
 
         case HD_RDIR_TYPE_FILE:
@@ -150,23 +140,16 @@ static errno_t copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms
             break;
         }
 
-        if (r != 0) {
-            errno = r;
-            goto out;
+        if (r < 0) {
+            break;
         }
     }
-    if (errno != 0) {
-        goto out;       /* the iteration ended with an error */
-    }
-    result = 0;
 
-out:
-    {
-        int saved = errno;
-        hd_rdir_close(it);
-        errno = saved;
-    }
-    return result;
+    int saved = errno;
+    hd_rdir_close(it);
+    errno = saved;
+
+    return (errno == 0) ? 0 : -1;
 }
 
 
@@ -223,11 +206,17 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
 
 
     if (src_kind == HD_KIND_DIRECTORY) {
-        return copy_file_hierarchy(fsm, fsperms, uid, gid, src_path, target);
+        if (copy_file_hierarchy(fsm, fsperms, uid, gid, src_path, target) < 0) {
+            return errno;
+        }
     }
     else {
-        return copy_file(fsm, fsperms, uid, gid, src_path, target);
+        if (copy_file(fsm, fsperms, uid, gid, src_path, target) < 0) {
+            return errno;
+        }
     }
+
+    return 0;
 }
 
 

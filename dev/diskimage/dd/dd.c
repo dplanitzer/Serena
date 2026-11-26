@@ -64,6 +64,19 @@ int dd_chown(FSManagerRef fsm, const char *path, uid_t uid, gid_t gid)
     }
 }
 
+int dd_chperm(FSManagerRef fsm, const char *path, fs_perms_t perms)
+{
+    const errno_t err = FileManager_SetFilePermissions(&fsm->fm, path, perms);
+
+    if (err == EOK) {
+        return 0;
+    }
+    else {
+        errno = err;
+        return -1;
+    }
+}
+
 int dd_attr(FSManagerRef fsm, const char *path, fs_attr_t *attr)
 {
     const errno_t err = FileManager_GetAttributes(&fsm->fm, path, attr);
@@ -86,8 +99,30 @@ dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags)
     if ((flags & DD_WRONLY) == DD_WRONLY) {
         oflags |= O_WRONLY;
     }
+    if ((flags & DD_TRUNC) == DD_TRUNC) {
+        oflags |= O_TRUNC;
+    }
 
     const errno_t err = FileManager_OpenFile(&fsm->fm, path, oflags, &hnd);
+    if (err == EOK) {
+        return hnd;
+    }
+    else {
+        errno = err;
+        return NULL;
+    }
+}
+
+dd_fd_t dd_create(FSManagerRef fsm, const char *path, int flags, fs_perms_t perms)
+{
+    HandlerRef hnd;
+    fd_flags_t oflags = O_RDONLY;
+
+    if ((flags & DD_WRONLY) == DD_WRONLY) {
+        oflags |= O_WRONLY;
+    }
+
+    const errno_t err = FileManager_CreateFile(&fsm->fm, path, oflags, perms, &hnd);
     if (err == EOK) {
         return hnd;
     }
