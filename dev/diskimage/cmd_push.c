@@ -145,7 +145,7 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, ui
         }
     }
 
-    int saved = errno;
+    const int saved = errno;
     hd_rdir_close(it);
     errno = saved;
 

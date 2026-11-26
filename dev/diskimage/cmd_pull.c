@@ -97,7 +97,7 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull 
         }
     }
 
-    int saved = errno;
+    const int saved = errno;
     dd_rdir_close(it);
     errno = saved;
     

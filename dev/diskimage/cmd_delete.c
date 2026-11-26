@@ -9,7 +9,6 @@
 #include "diskimage.h"
 #include <dd/dd.h>
 #include <hd/hd.h>
-#include <kpi/file.h>
 
 
 /* Returns true if the last component of 'path' is "." or "..". */
@@ -28,8 +27,6 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
     fs_attr_t attr, root_attr;
     dd_rdir_t it = NULL;
     const dd_rdir_entry_t *e;
-    errno_t err;
-    int result = -1;
 
     if (path == NULL) {
         return EINVAL;
@@ -42,22 +39,30 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
         return EINVAL;
     }
 
-    err = FileManager_GetAttributes(&fsm->fm, path, &attr);
-    if (err != 0) {
-        return err;
+    if (dd_attr(fsm, path, &attr) < 0) {
+        return errno;
     }
     if (attr.file_type != FS_FTYPE_DIR) {
-        return FileManager_Unlink(&fsm->fm, path, __FS_ULNK_FIL_ONLY); /* a file or a link: never followed */
+        /* a file or a link: never followed */
+        if (dd_remove(fsm, path) < 0) {
+            return errno;
+        } else {
+            return 0;
+        }
     }
 
-    err = FileManager_GetAttributes(&fsm->fm, "/", &root_attr);
-    if (err == 0 && attr.fsid == root_attr.fsid && attr.ino == root_attr.ino) {
+    if (dd_attr(fsm, "/", &root_attr) < 0) {
+        return errno;
+    }
+    if (attr.fsid == root_attr.fsid && attr.ino == root_attr.ino) {
         /* don't allow deleting the root directory */
         return EBUSY;
     }
 
     if (!bRecursive) {
-        return 0;
+        /* complain that the user wants to delete a directory without the -r switch */
+        errno = EISDIR;
+        return errno;
     }
 
 
@@ -66,7 +71,7 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
         return errno;
     }
 
-    err = 0;
+    errno = 0;
     while ((e = dd_rdir_next(it)) != NULL) {
         if (e->type == DD_RDIR_TYPE_BEGIN_DIRECTORY) {
             continue;   /* removed at its END entry, once its contents are gone */
@@ -76,22 +81,22 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
          * it. Everything else is unlinked: files, links (never followed),
          * FIFOs, ...
          */
-        err = FileManager_Unlink(&fsm->fm, e->full_path, __FS_ULNK_ANY);
-        if (err != 0 && err != ENOENT) {
-            goto out;
+        if (dd_remove(fsm, e->full_path) < 0 && errno != ENOENT) {
+            break;
         }
-    }
-    if (err != 0) {
-        goto out;       /* the iteration ended with an error */
+
+        errno = 0;
     }
 
-    dd_rdir_close(it);   /* closes the root directory */
-    it = NULL;
-    return FileManager_Unlink(&fsm->fm, path, __FS_ULNK_DIR_ONLY);
-
-out:
+    const int saved = errno;
     dd_rdir_close(it);
-    return err;
+    errno = saved;
+
+    if (errno == 0) {
+        dd_remove(fsm, path);
+    }
+
+    return errno;
 }
 
 errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_string_array_t* _Nonnull paths)
