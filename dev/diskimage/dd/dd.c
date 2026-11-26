@@ -141,7 +141,7 @@ int dd_close(dd_fd_t fd)
     return 0;
 }
 
-ssize_t dd_read(dd_fd_t fd, char *buf, size_t count)
+ssize_t dd_read(dd_fd_t fd, void *buf, size_t count)
 {
     ssize_t nBytesRead = 0;
     const errno_t err = Handler_Read((HandlerRef)fd, buf, count, &nBytesRead);
@@ -155,7 +155,7 @@ ssize_t dd_read(dd_fd_t fd, char *buf, size_t count)
     }
 }
 
-ssize_t dd_write(dd_fd_t fd, const char *buf, size_t count)
+ssize_t dd_write(dd_fd_t fd, const void *buf, size_t count)
 {
     ssize_t nBytesWritten = 0;
     const errno_t err = Handler_Write((HandlerRef)fd, buf, count, &nBytesWritten);
@@ -167,4 +167,24 @@ ssize_t dd_write(dd_fd_t fd, const char *buf, size_t count)
         errno = err;
         return -1;
     }
+}
+
+ssize_t dd_write_all(dd_fd_t fd, const void *buf, size_t count)
+{
+    const char *ptr = (const char *)buf;
+    size_t nTotalWritten = 0;
+
+    while (nTotalWritten < count) {
+        const ssize_t n = dd_write(fd, &ptr[nTotalWritten], count - nTotalWritten);
+        
+        if (n < 0) {
+            return -1;
+        }
+        if (n == 0) {
+            break;
+        }
+        nTotalWritten += (size_t)n;
+    }
+
+    return (ssize_t)nTotalWritten;
 }

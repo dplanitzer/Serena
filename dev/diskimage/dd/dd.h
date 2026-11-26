@@ -49,7 +49,8 @@ extern dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags);
 extern dd_fd_t dd_create(FSManagerRef fsm, const char *path, int flags, fs_perms_t perms);
 extern int dd_close(dd_fd_t fd);
 
-extern ssize_t dd_read(dd_fd_t fd, char *buf, size_t count);
-extern ssize_t dd_write(dd_fd_t fd, const char *buf, size_t count);
+extern ssize_t dd_read(dd_fd_t fd, void *buf, size_t count);
+extern ssize_t dd_write(dd_fd_t fd, const void *buf, size_t count);
+extern ssize_t dd_write_all(dd_fd_t fd, const void *buf, size_t count);
 
 #endif /* DD_H */

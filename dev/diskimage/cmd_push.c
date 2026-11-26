@@ -60,7 +60,7 @@ static int copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, g
                 break;
             }
 
-            if (dd_write(dp, g_copy_buf, nBytesRead) < 0) {
+            if (dd_write_all(dp, g_copy_buf, nBytesRead) < 0) {
                 break;
             }
         }
