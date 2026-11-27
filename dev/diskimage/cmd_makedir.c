@@ -10,19 +10,19 @@
 #include <string.h>
 #include <dd/dd.h>
 
-static errno_t create_directory(FSManagerRef _Nonnull fsm, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
+static errno_t create_directory(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
 {
     errno = 0;
 
-    if (!dd_makedir(fsm, path, perms)) {
-        if (dd_chown(fsm, path, uid, gid) < 0) {
-            dd_remove(fsm, path);
+    if (!dd_makedir(fs, path, perms)) {
+        if (dd_chown(fs, path, uid, gid) < 0) {
+            dd_remove(fs, path);
         }
     }
     return errno;
 }
 
-static errno_t create_directory_recursively(FSManagerRef fsm, const char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
+static errno_t create_directory_recursively(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     dd_path_iter_t it = DD_PATH_ITER_INITIALIZER;
@@ -34,10 +34,10 @@ static errno_t create_directory_recursively(FSManagerRef fsm, const char* _Nonnu
         if (*p == '/') {
             *p = '\0';
 
-            err = create_directory(fsm, path, permissions, uid, gid);
+            err = create_directory(fs, path, permissions, uid, gid);
             if (err != EOK) {
                 // Stop if the intermediate "directory" is actually a file
-                if (err == EEXIST && dd_path_kind(fsm, path) == DD_KIND_OTHER) {
+                if (err == EEXIST && dd_path_kind(fs, path) == DD_KIND_OTHER) {
                     err = ENOTDIR;
                     break;
                 }
@@ -50,7 +50,7 @@ static errno_t create_directory_recursively(FSManagerRef fsm, const char* _Nonnu
 
     // Create the final target directory
     if (err == EOK) {
-        err = create_directory(fsm, path, permissions, uid, gid);
+        err = create_directory(fs, path, permissions, uid, gid);
     }
 
     return err;
@@ -63,15 +63,13 @@ static errno_t create_directory_recursively(FSManagerRef fsm, const char* _Nonnu
 errno_t cmd_makedir(const char* _Nonnull dmgPath, bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths)
 {
     decl_try_err();
-    RamContainerRef disk = NULL;
-    FSManagerRef fsm = NULL;
+    dd_fs_t fs = NULL;
 
     if (paths->count < 1) {
         return ERANGE;
     }
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &fsm));
+    try_null(fs, dd_mount(dmgPath), errno);
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
@@ -79,18 +77,14 @@ errno_t cmd_makedir(const char* _Nonnull dmgPath, bool shouldCreateParents, fs_p
         try(dd_validate_path(cur_path));
 
         if (shouldCreateParents) {
-            try(create_directory_recursively(fsm, cur_path, dirPerms, uid, gid));
+            try(create_directory_recursively(fs, cur_path, dirPerms, uid, gid));
         }
         else {
-            try(create_directory(fsm, cur_path, dirPerms, uid, gid));
+            try(create_directory(fs, cur_path, dirPerms, uid, gid));
         }
     }
 
 catch:
-    FSManager_Destroy(fsm);
-    if (err == EOK) {
-        err = RamContainer_WriteToPath(disk, dmgPath);
-    }
-    Object_Release(disk);
+    dd_unmount(fs, (err == 0) ? DD_USYNC : 0);
     return err;
 }

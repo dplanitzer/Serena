@@ -19,13 +19,13 @@ static char g_cp_path[DD_PATH_MAX];
 static char g_cp_tmp[DD_PATH_MAX];
 
 
-static int copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, const char* _Nonnull dst_path)
+static int copy_file(dd_fs_t _Nonnull fs, const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
     dd_fd_t sp = NULL;
     FILE* dp = NULL;
 
     errno = 0;
-    sp = dd_open(fsm, src_path, DD_RDONLY);
+    sp = dd_open(fs, src_path, DD_RDONLY);
     if (sp == NULL) {
         return -1;
     }
@@ -53,7 +53,7 @@ static int copy_file(FSManagerRef _Nonnull fsm, const char* _Nonnull src_path, c
 }
 
 
-static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path, const char * _Nonnull dst_path)
+static int copy_file_hierarchy(dd_fs_t _Nonnull fs, const char * _Nonnull src_path, const char * _Nonnull dst_path)
 {
     dd_rdir_t it;
     const dd_rdir_entry_t *e;
@@ -62,7 +62,7 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull 
         return -1;
     }
 
-    it = dd_rdir_open(fsm, src_path);
+    it = dd_rdir_open(fs, src_path);
     if (it == NULL) {
         return -1;
     }
@@ -85,7 +85,7 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull 
             break;
 
         case DD_RDIR_TYPE_FILE:
-            r = copy_file(fsm, src, dst);
+            r = copy_file(fs, src, dst);
             break;
 
         default:
@@ -105,7 +105,7 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, const char * _Nonnull 
 }
 
 
-static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
+static errno_t do_copy(dd_fs_t _Nonnull fs, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
 {
     const char *target = dst_path;
     int src_kind, dst_kind;
@@ -115,7 +115,7 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
     }
 
     /* The source */
-    src_kind = dd_path_kind(fsm, src_path);
+    src_kind = dd_path_kind(fs, src_path);
     if (src_kind < 0) {
         return errno;
     }
@@ -158,12 +158,12 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
 
 
     if (src_kind == DD_KIND_DIRECTORY) {
-        if (copy_file_hierarchy(fsm, src_path, target) < 0) {
+        if (copy_file_hierarchy(fs, src_path, target) < 0) {
             return errno;
         }
     }
     else {
-        if (copy_file(fsm, src_path, target) < 0) {
+        if (copy_file(fs, src_path, target) < 0) {
             return errno;
         }
     }
@@ -174,26 +174,23 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, const char * _Nonnull src_path
 errno_t cmd_pull(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths, bool bRecursive)
 {
     decl_try_err();
-    RamContainerRef disk = NULL;
-    FSManagerRef fsm = NULL;
+    dd_fs_t fs = NULL;
 
     if (paths->count < 2) {
         return ERANGE;
     }
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &fsm));
+    try_null(fs, dd_mount(dmgPath), errno);
 
     const char* dst_path = paths->strings[paths->count - 1];
     for (size_t i = 0; i < paths->count - 1; i++) {
         const char* src_path = paths->strings[i];
 
         try(dd_validate_path(src_path));
-        try(do_copy(fsm, src_path, dst_path, bRecursive));
+        try(do_copy(fs, src_path, dst_path, bRecursive));
     }
 
 catch:
-    FSManager_Destroy(fsm);
-    Object_Release(disk);
+    dd_unmount(fs, 0);
     return err;
 }

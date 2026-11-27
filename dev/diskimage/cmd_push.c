@@ -19,21 +19,21 @@ static char g_cp_path[DD_PATH_MAX];
 static char g_cp_tmp[DD_PATH_MAX];
 
 
-static dd_fd_t create_file(FSManagerRef _Nonnull fsm, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid)
+static dd_fd_t create_file(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t fsperms, uid_t uid, gid_t gid)
 {
     errno = 0;
 
-    dd_fd_t fd = dd_open(fsm, path, DD_WRONLY | DD_TRUNC);
+    dd_fd_t fd = dd_open(fs, path, DD_WRONLY | DD_TRUNC);
     if ((fd == NULL) && (errno == ENOENT)) {
         errno = 0;
-        fd = dd_create(fsm, path, DD_WRONLY, fsperms);
+        fd = dd_create(fs, path, DD_WRONLY, fsperms);
     }
 
     if (fd) {
         // Update the inode metadata
-        if ((dd_chown(fsm, path, uid, gid) < 0) || (dd_chperm(fsm, path, fsperms) < 0)) {
+        if ((dd_chown(fs, path, uid, gid) < 0) || (dd_chperm(fs, path, fsperms) < 0)) {
             dd_close(fd);
-            dd_remove(fsm, path);
+            dd_remove(fs, path);
             fd = NULL;
         }
     }
@@ -41,7 +41,7 @@ static dd_fd_t create_file(FSManagerRef _Nonnull fsm, const char* _Nonnull path,
     return fd;
 }
 
-static int copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull src_path, const char* _Nonnull dst_path)
+static int copy_file(dd_fs_t _Nonnull fs, fs_perms_t fsperms, uid_t uid, gid_t gid, const char* _Nonnull src_path, const char* _Nonnull dst_path)
 {
     dd_fd_t dp = NULL;
     FILE* sp = NULL;
@@ -51,7 +51,7 @@ static int copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, g
         return -1;
     }
     
-    dp = create_file(fsm, dst_path, fsperms, uid, gid);
+    dp = create_file(fs, dst_path, fsperms, uid, gid);
     if (dp) {
         for (;;) {
             const size_t nBytesRead = fread(g_copy_buf, 1, sizeof(g_copy_buf), sp);
@@ -72,9 +72,9 @@ static int copy_file(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, g
     return (errno == 0) ? 0 : -1;
 }
 
-static int create_directory(FSManagerRef fsm, const char *path, int *created)
+static int create_directory(dd_fs_t _Nonnull fs, const char *path, int *created)
 {
-    if (!dd_makedir(fsm, path, 0755)) {
+    if (!dd_makedir(fs, path, 0755)) {
         if (created) {
             *created = 1;
         }
@@ -84,7 +84,7 @@ static int create_directory(FSManagerRef fsm, const char *path, int *created)
         return -1;
     }
 
-    switch (dd_path_kind(fsm, path)) {
+    switch (dd_path_kind(fs, path)) {
         case DD_KIND_ERROR:
             return -1;
 
@@ -100,12 +100,12 @@ static int create_directory(FSManagerRef fsm, const char *path, int *created)
 }
 
 
-static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path)
+static int copy_file_hierarchy(dd_fs_t _Nonnull fs, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path)
 {
     hd_rdir_t it;
     const hd_rdir_entry_t *e;
 
-    if (create_directory(fsm, dst_path, NULL) < 0) {
+    if (create_directory(fs, dst_path, NULL) < 0) {
         return -1;
     }
 
@@ -129,11 +129,11 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, ui
 
         switch (e->type) {
         case HD_RDIR_TYPE_BEGIN_DIRECTORY:
-            r = create_directory(fsm, dst, NULL);
+            r = create_directory(fs, dst, NULL);
             break;
 
         case HD_RDIR_TYPE_FILE:
-            r = copy_file(fsm, fsperms, uid, gid, src, dst);
+            r = copy_file(fs, fsperms, uid, gid, src, dst);
             break;
 
         default:
@@ -153,7 +153,7 @@ static int copy_file_hierarchy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, ui
 }
 
 
-static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
+static errno_t do_copy(dd_fs_t _Nonnull fs, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
 {
     const char *target = dst_path;
     int src_kind, dst_kind;
@@ -178,7 +178,7 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
     }
 
     /* The destination */
-    dst_kind = dd_path_kind(fsm, dst_path);
+    dst_kind = dd_path_kind(fs, dst_path);
     if (dst_kind < 0) {
         return errno;
     }
@@ -206,12 +206,12 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
 
 
     if (src_kind == HD_KIND_DIRECTORY) {
-        if (copy_file_hierarchy(fsm, fsperms, uid, gid, src_path, target) < 0) {
+        if (copy_file_hierarchy(fs, fsperms, uid, gid, src_path, target) < 0) {
             return errno;
         }
     }
     else {
-        if (copy_file(fsm, fsperms, uid, gid, src_path, target) < 0) {
+        if (copy_file(fs, fsperms, uid, gid, src_path, target) < 0) {
             return errno;
         }
     }
@@ -223,29 +223,23 @@ static errno_t do_copy(FSManagerRef _Nonnull fsm, fs_perms_t fsperms, uid_t uid,
 errno_t cmd_push(const char* _Nonnull dmgPath, fs_perms_t fsperms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths, bool bRecursive)
 {
     decl_try_err();
-    RamContainerRef disk = NULL;
-    FSManagerRef fsm = NULL;
+    dd_fs_t fs = NULL;
 
     if (paths->count < 2) {
         return ERANGE;
     }
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &fsm));
+    try_null(fs, dd_mount(dmgPath), errno);
 
     const char* dst_path = paths->strings[paths->count - 1];
     for (size_t i = 0; i < paths->count - 1; i++) {
         const char* src_path = paths->strings[i];
 
         try(hd_validate_path(src_path));
-        try(do_copy(fsm, fsperms, uid, gid, src_path, dst_path, bRecursive));
+        try(do_copy(fs, fsperms, uid, gid, src_path, dst_path, bRecursive));
     }
 
 catch:
-    FSManager_Destroy(fsm);
-    if (err == EOK) {
-        err = RamContainer_WriteToPath(disk, dmgPath);
-    }
-    Object_Release(disk);
+    dd_unmount(fs, (err == 0) ? DD_USYNC : 0);
     return err;
 }

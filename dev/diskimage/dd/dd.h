@@ -10,10 +10,10 @@
 #define DD_H
 
 #include <stdio.h>
+#include <dd/dd_types.h>
 #include <dd/dd_path.h>
 #include <dd/dd_dir.h>
 #include <dd/dd_rdir.h>
-#include <dd/FSManager.h>
 #include <kpi/attr.h>
 #include <kpi/types.h>
 
@@ -25,29 +25,32 @@ enum {
     DD_KIND_OTHER = 2       /* a file or anything else that isn't a directory */
 };
 
-
-// Disk image file descriptor (this one is a pointer)
-typedef void* dd_fd_t;
-
-
 // dd_open() flags
 #define DD_RDONLY   0
 #define DD_WRONLY   1
 #define DD_RW       (DD_RDONLY | DD_WRONLY)
 #define DD_TRUNC    2
 
+// dd_unmount() flags
+#define DD_USYNC    1
 
-extern int dd_path_kind(FSManagerRef fsm, const char *path);
 
-extern int dd_makedir(FSManagerRef fsm, const char *path, fs_perms_t perms);
-extern int dd_remove(FSManagerRef fsm, const char *path);
+extern dd_fs_t dd_mount(const char *path);
+extern int dd_unmount(dd_fs_t fs, int flags);
 
-extern int dd_chown(FSManagerRef fsm, const char *path, uid_t uid, gid_t gid);
-extern int dd_chperm(FSManagerRef fsm, const char *path, fs_perms_t perms);
-extern int dd_attr(FSManagerRef fsm, const char *path, fs_attr_t *attr);
+extern int dd_sync(dd_fs_t fs);
 
-extern dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags);
-extern dd_fd_t dd_create(FSManagerRef fsm, const char *path, int flags, fs_perms_t perms);
+extern int dd_path_kind(dd_fs_t fs, const char *path);
+
+extern int dd_makedir(dd_fs_t fs, const char *path, fs_perms_t perms);
+extern int dd_remove(dd_fs_t fs, const char *path);
+
+extern int dd_chown(dd_fs_t fs, const char *path, uid_t uid, gid_t gid);
+extern int dd_chperm(dd_fs_t fs, const char *path, fs_perms_t perms);
+extern int dd_attr(dd_fs_t fs, const char *path, fs_attr_t *attr);
+
+extern dd_fd_t dd_open(dd_fs_t fs, const char *path, int flags);
+extern dd_fd_t dd_create(dd_fs_t fs, const char *path, int flags, fs_perms_t perms);
 extern int dd_close(dd_fd_t fd);
 
 extern ssize_t dd_read(dd_fd_t fd, void *buf, size_t count);

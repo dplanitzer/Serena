@@ -7,15 +7,15 @@
 //
 
 #include "dd.h"
-#include "FSManager.h"
+#include "dd_priv.h"
 #include <handler/Handler.h>
 #include <errno.h>
 
 
-int dd_path_kind(FSManagerRef fsm, const char *path)
+int dd_path_kind(dd_fs_t fs, const char *path)
 {
     fs_attr_t attr;
-    errno_t err = FileManager_GetAttributes(&fsm->fm, path, &attr);
+    errno_t err = FileManager_GetAttributes(&fs->fm, path, &attr);
 
     if (err != EOK) {
         errno = err;
@@ -25,9 +25,9 @@ int dd_path_kind(FSManagerRef fsm, const char *path)
     return (attr.file_type == FS_FTYPE_DIR) ? DD_KIND_DIRECTORY : DD_KIND_OTHER;
 }
 
-int dd_makedir(FSManagerRef fsm, const char *path, fs_perms_t perms)
+int dd_makedir(dd_fs_t fs, const char *path, fs_perms_t perms)
 {
-    const errno_t err = FileManager_CreateDirectory(&fsm->fm, path, perms);
+    const errno_t err = FileManager_CreateDirectory(&fs->fm, path, perms);
     
     if (err == EOK) {
         return 0;
@@ -38,9 +38,9 @@ int dd_makedir(FSManagerRef fsm, const char *path, fs_perms_t perms)
     }
 }
 
-int dd_remove(FSManagerRef fsm, const char *path)
+int dd_remove(dd_fs_t fs, const char *path)
 {
-    const errno_t err = FileManager_Unlink(&fsm->fm, path, __FS_ULNK_ANY);
+    const errno_t err = FileManager_Unlink(&fs->fm, path, __FS_ULNK_ANY);
 
     if (err == EOK) {
         return 0;
@@ -51,9 +51,9 @@ int dd_remove(FSManagerRef fsm, const char *path)
     }
 }
 
-int dd_chown(FSManagerRef fsm, const char *path, uid_t uid, gid_t gid)
+int dd_chown(dd_fs_t fs, const char *path, uid_t uid, gid_t gid)
 {
-    const errno_t err = FileManager_SetFileOwner(&fsm->fm, path, uid, gid);
+    const errno_t err = FileManager_SetFileOwner(&fs->fm, path, uid, gid);
 
     if (err == EOK) {
         return 0;
@@ -64,9 +64,9 @@ int dd_chown(FSManagerRef fsm, const char *path, uid_t uid, gid_t gid)
     }
 }
 
-int dd_chperm(FSManagerRef fsm, const char *path, fs_perms_t perms)
+int dd_chperm(dd_fs_t fs, const char *path, fs_perms_t perms)
 {
-    const errno_t err = FileManager_SetFilePermissions(&fsm->fm, path, perms);
+    const errno_t err = FileManager_SetFilePermissions(&fs->fm, path, perms);
 
     if (err == EOK) {
         return 0;
@@ -77,9 +77,9 @@ int dd_chperm(FSManagerRef fsm, const char *path, fs_perms_t perms)
     }
 }
 
-int dd_attr(FSManagerRef fsm, const char *path, fs_attr_t *attr)
+int dd_attr(dd_fs_t fs, const char *path, fs_attr_t *attr)
 {
-    const errno_t err = FileManager_GetAttributes(&fsm->fm, path, attr);
+    const errno_t err = FileManager_GetAttributes(&fs->fm, path, attr);
 
     if (err == EOK) {
         return 0;
@@ -91,7 +91,7 @@ int dd_attr(FSManagerRef fsm, const char *path, fs_attr_t *attr)
 }
 
 
-dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags)
+dd_fd_t dd_open(dd_fs_t fs, const char *path, int flags)
 {
     HandlerRef hnd;
     fd_flags_t oflags = O_RDONLY;
@@ -103,7 +103,7 @@ dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags)
         oflags |= O_TRUNC;
     }
 
-    const errno_t err = FileManager_OpenFile(&fsm->fm, path, oflags, &hnd);
+    const errno_t err = FileManager_OpenFile(&fs->fm, path, oflags, &hnd);
     if (err == EOK) {
         return hnd;
     }
@@ -113,7 +113,7 @@ dd_fd_t dd_open(FSManagerRef fsm, const char *path, int flags)
     }
 }
 
-dd_fd_t dd_create(FSManagerRef fsm, const char *path, int flags, fs_perms_t perms)
+dd_fd_t dd_create(dd_fs_t fs, const char *path, int flags, fs_perms_t perms)
 {
     HandlerRef hnd;
     fd_flags_t oflags = O_RDONLY;
@@ -122,7 +122,7 @@ dd_fd_t dd_create(FSManagerRef fsm, const char *path, int flags, fs_perms_t perm
         oflags |= O_WRONLY;
     }
 
-    const errno_t err = FileManager_CreateFile(&fsm->fm, path, oflags, perms, &hnd);
+    const errno_t err = FileManager_CreateFile(&fs->fm, path, oflags, perms, &hnd);
     if (err == EOK) {
         return hnd;
     }

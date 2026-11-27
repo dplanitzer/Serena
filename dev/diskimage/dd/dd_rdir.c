@@ -8,6 +8,7 @@
 
 #include "dd_rdir.h"
 #include "dd_path.h"
+#include "dd_priv.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +22,7 @@ typedef struct rdir_frame {
 } rdir_frame;
 
 struct dd_rdir {
-    FSManagerRef    fsm;
+    dd_fs_t         fs;
     rdir_frame     *stack;
     size_t          depth;
     size_t          stack_cap;
@@ -116,7 +117,7 @@ static int set_root_path(dd_rdir_t it, const char *root)
 static dd_rdir_type_t entry_type(dd_rdir_t it, HandlerRef parent)
 {
     fs_attr_t attr;
-    const errno_t err = FileManager_GetAttributes(&it->fsm->fm, it->path, &attr);
+    const errno_t err = FileManager_GetAttributes(&it->fs->fm, it->path, &attr);
     if (err != 0) {
         return DD_RDIR_TYPE_OTHER;     /* vanished or inaccessible: report it, but don't descend */
     }
@@ -130,9 +131,9 @@ static dd_rdir_type_t entry_type(dd_rdir_t it, HandlerRef parent)
 }
 
 
-dd_rdir_t dd_rdir_open(FSManagerRef fsm, const char *root_path)
+dd_rdir_t dd_rdir_open(dd_fs_t fs, const char *root_path)
 {
-    if (fsm == NULL || root_path == NULL) {
+    if (fs == NULL || root_path == NULL) {
         errno = EINVAL;
         return NULL;
     }
@@ -142,14 +143,14 @@ dd_rdir_t dd_rdir_open(FSManagerRef fsm, const char *root_path)
         errno = ENOMEM;
         return NULL;
     }
-    it->fsm = fsm;
+    it->fs = fs;
     if (set_root_path(it, root_path) != 0) {
         goto fail;
     }
 
     /* The root itself may be a symlink; only links inside the tree are not followed. */
     HandlerRef root = NULL;
-    const errno_t err = FileManager_OpenDirectory(&fsm->fm, root_path, &root);
+    const errno_t err = FileManager_OpenDirectory(&fs->fm, root_path, &root);
     if (err != 0) {
         errno = err;
         goto fail;
@@ -240,7 +241,7 @@ const dd_rdir_entry_t *dd_rdir_next(dd_rdir_t it)
         if (type == DD_RDIR_TYPE_BEGIN_DIRECTORY) {
             /* Entered right away, so BEGIN is only reported for directories that can be read. */
             HandlerRef d = NULL;
-            const errno_t err = FileManager_OpenDirectory(&it->fsm->fm, it->path, &d);
+            const errno_t err = FileManager_OpenDirectory(&it->fs->fm, it->path, &d);
             if (err != 0) {
                 return fail(it, err);
             }

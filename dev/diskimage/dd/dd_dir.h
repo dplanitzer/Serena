@@ -9,7 +9,7 @@
 #ifndef DD_DIR_H
 #define DD_DIR_H 1
 
-#include <dd/FSManager.h>
+#include <dd/dd_types.h>
 
 typedef struct dd_dir *dd_dir_t;
 typedef unsigned int   dd_ino_t;
@@ -25,7 +25,7 @@ typedef struct dd_dir_entry {
 // Opens the directory at the filesystem location 'path' for reading. Call
 // dd_closedir() once you are done with the directory.
 // @Concurrency: Not Safe
-extern dd_dir_t dd_opendir(FSManagerRef fsm, const char* path);
+extern dd_dir_t dd_opendir(dd_fs_t fs, const char* path);
 
 // Closes the given directory descriptor.
 // @Concurrency: Not Safe

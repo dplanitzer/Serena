@@ -7,6 +7,7 @@
 //
 
 #include "dd_dir.h"
+#include "dd_priv.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <kpi/directory.h>
@@ -29,12 +30,12 @@ struct dd_dir {
 };
 
 
-dd_dir_t dd_opendir(FSManagerRef fsm, const char* path)
+dd_dir_t dd_opendir(dd_fs_t fs, const char* path)
 {
-    dd_dir_t dir = malloc(sizeof(struct dd_dir));
+    dd_dir_t dir = calloc(1, sizeof(struct dd_dir));
 
     if (dir) {
-        const errno_t err = FileManager_OpenDirectory(&fsm->fm, path, &dir->hnd);
+        const errno_t err = FileManager_OpenDirectory(&fs->fm, path, &dir->hnd);
 
         if (err != EOK) {
             free(dir);

@@ -10,7 +10,7 @@
 #define DD_RDIR_H
 
 #include <limits.h>
-#include <dd/FSManager.h>
+#include <dd/dd_types.h>
 
 /*
  * Recursive, depth-first iterator over a directory tree.
@@ -60,7 +60,7 @@ typedef struct dd_rdir_entry {
  * Returns NULL and sets errno if the root can not be opened, is too long
  * for DD_PATH_MAX (ENAMETOOLONG) or memory can not be allocated.
  */
-dd_rdir_t dd_rdir_open(FSManagerRef fsm, const char *root_path);
+dd_rdir_t dd_rdir_open(dd_fs_t fs, const char *root_path);
 
 /*
  * Frees all resources owned by the iterator. Passing NULL is allowed.

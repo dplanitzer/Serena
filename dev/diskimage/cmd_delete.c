@@ -22,7 +22,7 @@ static int is_dot_name(const char *path)
 }
 
 
-errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursive)
+errno_t delete_file_hierarchy(dd_fs_t fs, const char *path, bool bRecursive)
 {
     fs_attr_t attr, root_attr;
     dd_rdir_t it = NULL;
@@ -39,19 +39,19 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
         return EINVAL;
     }
 
-    if (dd_attr(fsm, path, &attr) < 0) {
+    if (dd_attr(fs, path, &attr) < 0) {
         return errno;
     }
     if (attr.file_type != FS_FTYPE_DIR) {
         /* a file or a link: never followed */
-        if (dd_remove(fsm, path) < 0) {
+        if (dd_remove(fs, path) < 0) {
             return errno;
         } else {
             return 0;
         }
     }
 
-    if (dd_attr(fsm, "/", &root_attr) < 0) {
+    if (dd_attr(fs, "/", &root_attr) < 0) {
         return errno;
     }
     if (attr.fsid == root_attr.fsid && attr.ino == root_attr.ino) {
@@ -66,7 +66,7 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
     }
 
 
-    it = dd_rdir_open(fsm, path);
+    it = dd_rdir_open(fs, path);
     if (it == NULL) {
         return errno;
     }
@@ -81,7 +81,7 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
          * it. Everything else is unlinked: files, links (never followed),
          * FIFOs, ...
          */
-        if (dd_remove(fsm, e->full_path) < 0 && errno != ENOENT) {
+        if (dd_remove(fs, e->full_path) < 0 && errno != ENOENT) {
             break;
         }
 
@@ -93,7 +93,7 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
     errno = saved;
 
     if (errno == 0) {
-        dd_remove(fsm, path);
+        dd_remove(fs, path);
     }
 
     return errno;
@@ -102,28 +102,23 @@ errno_t delete_file_hierarchy(FSManagerRef fsm, const char *path, bool bRecursiv
 errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_string_array_t* _Nonnull paths)
 {
     decl_try_err();
-    RamContainerRef disk = NULL;
-    FSManagerRef fsm = NULL;
+    dd_fs_t fs = NULL;
 
     if (paths->count < 1) {
         return ERANGE;
     }
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &fsm));
+    try_null(fs, dd_mount(dmgPath), errno);
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
 
         try(dd_validate_path(cur_path));
-        try(delete_file_hierarchy(fsm, cur_path, bRecursive));
+        try(delete_file_hierarchy(fs, cur_path, bRecursive));
     }
 
 catch:
-    FSManager_Destroy(fsm);
-    if (err == EOK) {
-        err = RamContainer_WriteToPath(disk, dmgPath);
-    }
-    Object_Release(disk);
+    dd_unmount(fs, (err == 0) ? DD_USYNC : 0);
+
     return err;
 }

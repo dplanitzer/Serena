@@ -30,7 +30,7 @@
 
 
 typedef struct list_ctx {
-    FSManagerRef _Nonnull       fsm;
+    dd_fs_t _Nonnull            fs;
 
     int                         linkCountWidth;
     int                         uidWidth;
@@ -44,9 +44,7 @@ typedef struct list_ctx {
     }                           flags;
 
     char                        buf[BUF_SIZE];
-    char                        pathbuf[PATH_MAX];
-
-    dir_entry_t                 dirbuf[ENTBUF_COUNT];
+    char                        pathbuf[DD_PATH_MAX];
 } list_ctx_t;
 
 
@@ -70,7 +68,7 @@ static int format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, co
 {
     fs_attr_t attr;
 
-    if (dd_attr(self->fsm, path, &attr) < 0) {
+    if (dd_attr(self->fs, path, &attr) < 0) {
         return -1;
     }
     
@@ -93,7 +91,7 @@ static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, con
     fs_attr_t attr;
     char tc;
 
-    if (dd_attr(self->fsm, path, &attr) < 0) {
+    if (dd_attr(self->fs, path, &attr) < 0) {
         return -1;
     }
 
@@ -174,7 +172,7 @@ static int iterate_dir(list_ctx_t* _Nonnull self, dd_dir_t _Nonnull dir, const c
 
 static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    dd_dir_t dir = dd_opendir(self->fsm, path);
+    dd_dir_t dir = dd_opendir(self->fs, path);
 
     if (dir) {
         if (iterate_dir(self, dir, path, format_dir_entry) == 0) {
@@ -199,7 +197,7 @@ static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    return (dd_path_kind(self->fsm, path) == DD_KIND_DIRECTORY) ? true : false;
+    return (dd_path_kind(self->fs, path) == DD_KIND_DIRECTORY) ? true : false;
 }
 
 
@@ -210,15 +208,13 @@ static list_ctx_t g_list_ctx;
 errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths)
 {
     decl_try_err();
-    RamContainerRef disk = NULL;
-    FSManagerRef fsm = NULL;
+    dd_fs_t fs = NULL;
 
     if (paths->count < 1) {
         return ERANGE;
     }
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &fsm));
+    try_null(fs, dd_mount(dmgPath), errno);
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
@@ -226,7 +222,7 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
         try(dd_validate_path(cur_path));
 
         memset(&g_list_ctx, 0, sizeof(list_ctx_t));
-        g_list_ctx.fsm = fsm;
+        g_list_ctx.fs = fs;
         g_list_ctx.flags.printAll = false;
 
         if (is_dir(&g_list_ctx, cur_path)) {
@@ -238,7 +234,6 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
     }
 
 catch:
-    FSManager_Destroy(fsm);
-    Object_Release(disk);
+    dd_unmount(fs, 0);
     return err;
 }
