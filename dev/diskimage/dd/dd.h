@@ -9,7 +9,6 @@
 #ifndef DD_H
 #define DD_H
 
-#include <stdio.h>
 #include <dd/dd_types.h>
 #include <dd/dd_path.h>
 #include <dd/dd_dir.h>

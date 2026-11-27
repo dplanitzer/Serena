@@ -154,7 +154,7 @@ static int iterate_dir(list_ctx_t* _Nonnull self, dd_dir_t _Nonnull dir, const c
     errno = 0;
 
     for (;;) {
-        const dd_dir_entry_t* dep = dd_dirnext(dir);
+        const dir_entry_t* dep = dd_dirnext(dir);
         
         if (dep == NULL) {
             break;

@@ -9,17 +9,12 @@
 #ifndef DD_DIR_H
 #define DD_DIR_H 1
 
+#include <kpi/directory.h>
+#include <kpi/types.h>
 #include <dd/dd_types.h>
 
 typedef struct dd_dir *dd_dir_t;
 typedef unsigned int   dd_ino_t;
-
-#define DD_NAME_MAX 255
-
-typedef struct dd_dir_entry {
-    dd_ino_t    inid;
-    char        name[DD_NAME_MAX];
-} dd_dir_entry_t;
 
 
 // Opens the directory at the filesystem location 'path' for reading. Call
@@ -36,7 +31,7 @@ extern int dd_closedir(dd_dir_t dir);
 // Call dd_rewinddir() to rewind to the beginning of the directory listing and to
 // start over again with the reading process.
 // @Concurrency: Not Safe
-extern const dd_dir_entry_t* dd_dirnext(dd_dir_t dir);
+extern const dir_entry_t* dd_dirnext(dd_dir_t dir);
 
 // Resets the read position of the directory identified by 'dir' to the beginning.
 // The next dd_dirnext() call will start reading directory entries from the

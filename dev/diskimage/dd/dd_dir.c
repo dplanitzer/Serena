@@ -67,7 +67,7 @@ void dd_rewinddir(dd_dir_t dir)
     dir->endOfBuffer = dir->entbuf;
 }
 
-const dd_dir_entry_t* dd_dirnext(dd_dir_t dir)
+const dir_entry_t* dd_dirnext(dd_dir_t dir)
 {
     if (dir->nextEntryToRead >= dir->endOfBuffer) {
         ssize_t nBytesRead;
@@ -84,5 +84,5 @@ const dd_dir_entry_t* dd_dirnext(dd_dir_t dir)
     dir_entry_t* dp = dir->nextEntryToRead;
     dir->nextEntryToRead++;
 
-    return (dd_dir_entry_t*)dp;
+    return dp;
 }
