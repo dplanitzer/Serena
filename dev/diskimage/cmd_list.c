@@ -170,12 +170,15 @@ static int iterate_dir(list_ctx_t* _Nonnull self, dd_dir_t _Nonnull dir, const c
     return (errno == 0) ? 0 : -1;
 }
 
-static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
+static int list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     dd_dir_t dir = dd_opendir(self->fs, path);
+    int r = -1;
 
     if (dir) {
-        if (iterate_dir(self, dir, path, format_dir_entry) == 0) {
+        r = iterate_dir(self, dir, path, format_dir_entry);
+
+        if (!r) {
             dd_rewinddir(dir);
             iterate_dir(self, dir, path, print_dir_entry);
         }
@@ -183,16 +186,17 @@ static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
         dd_closedir(dir);
     }
 
-    return errno;
+    return r;
 }
 
 static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    if (format_inode(self, path, path) == 0) {
+    if (!format_inode(self, path, path)) {
         print_inode(self, path, path);
+        return 0;
     }
 
-    return errno;
+    return -1;
 }
 
 static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
@@ -207,33 +211,39 @@ static list_ctx_t g_list_ctx;
 
 errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnull paths)
 {
-    decl_try_err();
-    dd_fs_t fs = NULL;
-
     if (paths->count < 1) {
         return ERANGE;
     }
 
-    try_null(fs, dd_mount(dmgPath), errno);
+    dd_fs_t fs = dd_mount(dmgPath);
+    if (fs == NULL) {
+        return errno;
+    }
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
+        int r;
 
-        try(dd_validate_path(cur_path));
+        if (dd_validate_path(cur_path) < 0) {
+            break;
+        }
 
         memset(&g_list_ctx, 0, sizeof(list_ctx_t));
         g_list_ctx.fs = fs;
         g_list_ctx.flags.printAll = false;
 
         if (is_dir(&g_list_ctx, cur_path)) {
-            try(list_dir(&g_list_ctx, cur_path));
+            r = list_dir(&g_list_ctx, cur_path);
         }
         else {
-            try(list_file(&g_list_ctx, cur_path));
+            r = list_file(&g_list_ctx, cur_path);
+        }
+
+        if (r < 0) {
+            break;
         }
     }
 
-catch:
     dd_unmount(fs, 0);
-    return err;
+    return errno;
 }

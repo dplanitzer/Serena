@@ -22,53 +22,53 @@ static int is_dot_name(const char *path)
 }
 
 
-errno_t delete_file_hierarchy(dd_fs_t fs, const char *path, bool bRecursive)
+static int delete_file_hierarchy(dd_fs_t fs, const char *path, bool bRecursive)
 {
     fs_attr_t attr, root_attr;
     dd_rdir_t it = NULL;
     const dd_rdir_entry_t *e;
 
     if (path == NULL) {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
     if (path[0] == '\0') {
-        return ENOENT;     /* checked first: the last component of "" is "." */
+        errno = ENOENT;     /* checked first: the last component of "" is "." */
+        return -1;
     }
     /* Like rm, refuse "." and "..": the walk would empty a directory that can't be removed. */
     if (is_dot_name(path)) {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 
     if (dd_attr(fs, path, &attr) < 0) {
-        return errno;
+        return -1;
     }
     if (attr.file_type != FS_FTYPE_DIR) {
         /* a file or a link: never followed */
-        if (dd_remove(fs, path) < 0) {
-            return errno;
-        } else {
-            return 0;
-        }
+        return dd_remove(fs, path);
     }
 
     if (dd_attr(fs, "/", &root_attr) < 0) {
-        return errno;
+        return -1;
     }
     if (attr.fsid == root_attr.fsid && attr.ino == root_attr.ino) {
         /* don't allow deleting the root directory */
-        return EBUSY;
+        errno = EBUSY;
+        return -1;
     }
 
     if (!bRecursive) {
         /* complain that the user wants to delete a directory without the -r switch */
         errno = EISDIR;
-        return errno;
+        return -1;
     }
 
 
     it = dd_rdir_open(fs, path);
     if (it == NULL) {
-        return errno;
+        return -1;
     }
 
     errno = 0;
@@ -96,29 +96,32 @@ errno_t delete_file_hierarchy(dd_fs_t fs, const char *path, bool bRecursive)
         dd_remove(fs, path);
     }
 
-    return errno;
+    return (errno == 0) ? 0 : -1;
 }
 
 errno_t cmd_delete(const char* _Nonnull dmgPath, bool bRecursive, const clap_string_array_t* _Nonnull paths)
 {
-    decl_try_err();
-    dd_fs_t fs = NULL;
-
     if (paths->count < 1) {
         return ERANGE;
     }
 
-    try_null(fs, dd_mount(dmgPath), errno);
+    dd_fs_t fs = dd_mount(dmgPath);
+    if (fs == NULL) {
+        return errno;
+    }
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
 
-        try(dd_validate_path(cur_path));
-        try(delete_file_hierarchy(fs, cur_path, bRecursive));
+        if (dd_validate_path(cur_path) < 0) {
+            break;
+        }
+        if (delete_file_hierarchy(fs, cur_path, bRecursive) < 0) {
+            break;
+        }
     }
 
-catch:
-    dd_unmount(fs, (err == 0) ? DD_USYNC : 0);
+    dd_unmount(fs, (errno == 0) ? DD_USYNC : 0);
 
-    return err;
+    return errno;
 }

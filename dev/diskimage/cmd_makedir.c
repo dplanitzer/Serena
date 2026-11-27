@@ -10,21 +10,22 @@
 #include <string.h>
 #include <dd/dd.h>
 
-static errno_t create_directory(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
+static int create_directory(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t perms, uid_t uid, gid_t gid)
 {
     errno = 0;
 
     if (!dd_makedir(fs, path, perms)) {
-        if (dd_chown(fs, path, uid, gid) < 0) {
-            dd_remove(fs, path);
+        if (!dd_chown(fs, path, uid, gid)) {
+            return 0;
         }
+
+        dd_remove(fs, path);
     }
-    return errno;
+    return -1;
 }
 
-static errno_t create_directory_recursively(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
+static int create_directory_recursively(dd_fs_t _Nonnull fs, const char* _Nonnull path, fs_perms_t permissions, uid_t uid, gid_t gid)
 {
-    decl_try_err();
     dd_path_iter_t it = DD_PATH_ITER_INITIALIZER;
 
     // Iterate through the path string
@@ -34,26 +35,25 @@ static errno_t create_directory_recursively(dd_fs_t _Nonnull fs, const char* _No
         if (*p == '/') {
             *p = '\0';
 
-            err = create_directory(fs, path, permissions, uid, gid);
-            if (err != EOK) {
+            if (create_directory(fs, path, permissions, uid, gid) < 0) {
                 // Stop if the intermediate "directory" is actually a file
-                if (err == EEXIST && dd_path_kind(fs, path) == DD_KIND_OTHER) {
-                    err = ENOTDIR;
+                if (errno == EEXIST && dd_path_kind(fs, path) == DD_KIND_OTHER) {
+                    errno = ENOTDIR;
                     break;
                 }
             }
 
             *p = '/';
-            err = EOK;
+            errno = 0;
         }
     }
 
     // Create the final target directory
-    if (err == EOK) {
-        err = create_directory(fs, path, permissions, uid, gid);
+    if (errno == 0) {
+        create_directory(fs, path, permissions, uid, gid);
     }
 
-    return err;
+    return (errno == 0) ? 0 : -1;
 }
 
 
@@ -62,29 +62,35 @@ static errno_t create_directory_recursively(dd_fs_t _Nonnull fs, const char* _No
 
 errno_t cmd_makedir(const char* _Nonnull dmgPath, bool shouldCreateParents, fs_perms_t dirPerms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths)
 {
-    decl_try_err();
-    dd_fs_t fs = NULL;
-
     if (paths->count < 1) {
         return ERANGE;
     }
 
-    try_null(fs, dd_mount(dmgPath), errno);
+    dd_fs_t fs = dd_mount(dmgPath);
+    if (fs == NULL) {
+        return errno;
+    }
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
+        int r;
 
-        try(dd_validate_path(cur_path));
+        if (dd_validate_path(cur_path) < 0) {
+            break;
+        }
 
         if (shouldCreateParents) {
-            try(create_directory_recursively(fs, cur_path, dirPerms, uid, gid));
+            r = create_directory_recursively(fs, cur_path, dirPerms, uid, gid);
         }
         else {
-            try(create_directory(fs, cur_path, dirPerms, uid, gid));
+            r = create_directory(fs, cur_path, dirPerms, uid, gid);
+        }
+
+        if (r < 0) {
+            break;
         }
     }
 
-catch:
-    dd_unmount(fs, (err == 0) ? DD_USYNC : 0);
-    return err;
+    dd_unmount(fs, (errno == 0) ? DD_USYNC : 0);
+    return errno;
 }

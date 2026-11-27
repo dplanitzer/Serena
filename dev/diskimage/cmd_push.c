@@ -153,93 +153,96 @@ static int copy_file_hierarchy(dd_fs_t _Nonnull fs, fs_perms_t fsperms, uid_t ui
 }
 
 
-static errno_t do_copy(dd_fs_t _Nonnull fs, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
+static int do_copy(dd_fs_t _Nonnull fs, fs_perms_t fsperms, uid_t uid, gid_t gid, const char * _Nonnull src_path, const char * _Nonnull dst_path, bool bRecursive)
 {
     const char *target = dst_path;
     int src_kind, dst_kind;
 
     if (src_path[0] == '\0' || dst_path[0] == '\0') {
-        return ENOENT;
+        errno = ENOENT;
+        return -1;
     }
 
     /* The source */
     src_kind = hd_path_kind(src_path);
     if (src_kind < 0) {
-        return errno;
+        return -1;
     }
     if (src_kind == HD_KIND_NONE) {
-        return ENOENT;
+        errno = ENOENT;
+        return -1;
     }
     if (hd_ends_with_separator(src_path) && src_kind != HD_KIND_DIRECTORY) {
-        return ENOTDIR;            /* "file/" */
+        errno = ENOTDIR;            /* "file/" */
+        return -1;
     }
     if (src_kind == HD_KIND_DIRECTORY && !bRecursive) {
-        return EISDIR;             /* a directory needs -R */
+        errno = EISDIR;             /* a directory needs -R */
+        return -1;
     }
 
     /* The destination */
     dst_kind = dd_path_kind(fs, dst_path);
     if (dst_kind < 0) {
-        return errno;
+        return -1;
     }
     if (dst_kind == DD_KIND_DIRECTORY) {
         /* Copy into it: dst/<last component of src> */
         if (hd_last_path_component(g_cp_tmp, sizeof(g_cp_tmp), src_path) < 0) {
-            return errno;
+            return -1;
         }
         /* Appended to an empty path, dst_path is kept as is (an absolute one stays absolute) */
         g_cp_path[0] = '\0';
         if (dd_path_append(g_cp_path, sizeof(g_cp_path), dst_path) < 0
             || dd_path_append(g_cp_path, sizeof(g_cp_path), g_cp_tmp) < 0) {
-            return errno;
+            return -1;
         }
         target = g_cp_path;
     }
     else if (dd_ends_with_separator(dst_path)) {
         /* "dst/" must be an existing directory */
-        return (dst_kind == DD_KIND_NONE) ? ENOENT : ENOTDIR;
+        errno = (dst_kind == DD_KIND_NONE) ? ENOENT : ENOTDIR;
+        return -1;
     }
     else if (dst_kind == DD_KIND_OTHER && src_kind == HD_KIND_DIRECTORY) {
-        return ENOTDIR;            /* a directory can't replace a non-directory */
+        errno = ENOTDIR;            /* a directory can't replace a non-directory */
+        return -1;
     }
     /* Otherwise 'dst_path' doesn't exist and is created, or is a file that is overwritten */
 
 
     if (src_kind == HD_KIND_DIRECTORY) {
-        if (copy_file_hierarchy(fs, fsperms, uid, gid, src_path, target) < 0) {
-            return errno;
-        }
+        return copy_file_hierarchy(fs, fsperms, uid, gid, src_path, target);
     }
     else {
-        if (copy_file(fs, fsperms, uid, gid, src_path, target) < 0) {
-            return errno;
-        }
+        return copy_file(fs, fsperms, uid, gid, src_path, target);
     }
-
-    return 0;
 }
 
 
 errno_t cmd_push(const char* _Nonnull dmgPath, fs_perms_t fsperms, uid_t uid, gid_t gid, const clap_string_array_t* _Nonnull paths, bool bRecursive)
 {
-    decl_try_err();
-    dd_fs_t fs = NULL;
-
     if (paths->count < 2) {
         return ERANGE;
     }
 
-    try_null(fs, dd_mount(dmgPath), errno);
+    dd_fs_t fs = dd_mount(dmgPath);
+    if (fs == NULL) {
+        return errno;
+    }
 
     const char* dst_path = paths->strings[paths->count - 1];
     for (size_t i = 0; i < paths->count - 1; i++) {
         const char* src_path = paths->strings[i];
 
-        try(hd_validate_path(src_path));
-        try(do_copy(fs, fsperms, uid, gid, src_path, dst_path, bRecursive));
+        if (hd_validate_path(src_path) < 0) {
+            break;
+        }
+        if (do_copy(fs, fsperms, uid, gid, src_path, dst_path, bRecursive) < 0) {
+            break;
+        }
     }
 
-catch:
-    dd_unmount(fs, (err == 0) ? DD_USYNC : 0);
-    return err;
+    dd_unmount(fs, (errno == 0) ? DD_USYNC : 0);
+    return errno;
 }
