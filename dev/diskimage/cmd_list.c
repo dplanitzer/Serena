@@ -13,8 +13,6 @@
 #include <inttypes.h>
 #include <ext/stdlib.h>
 #include <dd/dd.h>
-#include <handler/Handler.h>
-#include <kpi/directory.h>
 #include <kpi/fs_perms.h>
 
 #define PINID   PRIu32
@@ -32,7 +30,7 @@
 
 
 typedef struct list_ctx {
-    FileManagerRef _Nonnull     fm;
+    FSManagerRef _Nonnull       fsm;
 
     int                         linkCountWidth;
     int                         uidWidth;
@@ -48,11 +46,11 @@ typedef struct list_ctx {
     char                        buf[BUF_SIZE];
     char                        pathbuf[PATH_MAX];
 
-    dir_entry_t               dirbuf[ENTBUF_COUNT];
+    dir_entry_t                 dirbuf[ENTBUF_COUNT];
 } list_ctx_t;
 
 
-typedef errno_t (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
+typedef int (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
 
 
 static void file_permissions_to_text(fs_perms_t perms, char* _Nonnull buf)
@@ -68,62 +66,67 @@ static void file_permissions_to_text(fs_perms_t perms, char* _Nonnull buf)
     }
 }
 
-static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
+static int format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     fs_attr_t attr;
-    const errno_t err = FileManager_GetAttributes(self->fm, path, &attr);
-    
-    if (err == EOK) {
-        itoa(attr.nlink, self->buf, 10);
-        self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
-        itoa(attr.uid, self->buf, 10);
-        self->uidWidth = __max(self->uidWidth, strlen(self->buf));
-        itoa(attr.gid, self->buf, 10);
-        self->gidWidth = __max(self->gidWidth, strlen(self->buf));
-        lltoa(attr.size, self->buf, 10);
-        self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
-        itoa(attr.ino, self->buf, 10);
-        self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->buf));
+
+    if (dd_attr(self->fsm, path, &attr) < 0) {
+        return -1;
     }
-    return err;
+    
+    itoa(attr.nlink, self->buf, 10);
+    self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
+    itoa(attr.uid, self->buf, 10);
+    self->uidWidth = __max(self->uidWidth, strlen(self->buf));
+    itoa(attr.gid, self->buf, 10);
+    self->gidWidth = __max(self->gidWidth, strlen(self->buf));
+    lltoa(attr.size, self->buf, 10);
+    self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
+    itoa(attr.ino, self->buf, 10);
+    self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->buf));
+
+    return 0;
 }
 
-static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
+static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     fs_attr_t attr;
-    const errno_t err = FileManager_GetAttributes(self->fm, path, &attr);
-    
-    if (err == EOK) {
-        char tc;
+    char tc;
 
-        switch (attr.file_type) {
-            case FS_FTYPE_DEV:   tc = 'h'; break;
-            case FS_FTYPE_DIR:   tc = 'd'; break;
-            case FS_FTYPE_FIFO:   tc = 'p'; break;
-            case FS_FTYPE_LNK:   tc = 'l'; break;
-            default:        tc = '-'; break;
-        }
-        self->buf[0] = tc;
-
-        for (int i = 1; i < PERMISSIONS_STRING_LENGTH; i++) {
-            self->buf[i] = '-';
-        }
-
-        file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_USR), &self->buf[1]);
-        file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_GRP), &self->buf[4]);
-        file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_OTH), &self->buf[7]);
-        self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
-
-        printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
-            self->buf,
-            self->linkCountWidth, attr.nlink,
-            self->uidWidth, attr.uid,
-            self->gidWidth, attr.gid,
-            self->sizeWidth, attr.size,
-            self->inodeIdWidth, attr.ino,
-            entryName);
+    if (dd_attr(self->fsm, path, &attr) < 0) {
+        return -1;
     }
-    return err;
+
+
+    switch (attr.file_type) {
+        case FS_FTYPE_DEV:   tc = 'h'; break;
+        case FS_FTYPE_DIR:   tc = 'd'; break;
+        case FS_FTYPE_FIFO:   tc = 'p'; break;
+        case FS_FTYPE_LNK:   tc = 'l'; break;
+        default:        tc = '-'; break;
+    }
+    self->buf[0] = tc;
+
+    for (int i = 1; i < PERMISSIONS_STRING_LENGTH; i++) {
+        self->buf[i] = '-';
+    }
+
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_USR), &self->buf[1]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_GRP), &self->buf[4]);
+    file_permissions_to_text(fs_perms_get(attr.permissions, FS_CLS_OTH), &self->buf[7]);
+    self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
+
+    printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
+        self->buf,
+        self->linkCountWidth, attr.nlink,
+        self->uidWidth, attr.uid,
+        self->gidWidth, attr.gid,
+        self->sizeWidth, attr.size,
+        self->inodeIdWidth, attr.ino,
+        entryName
+    );
+
+    return 0;
 }
 
 
@@ -134,81 +137,69 @@ static void concat_path(char* _Nonnull path, const char* _Nonnull dir, const cha
     strcat(path, fileName);
 }
 
-static errno_t format_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+static int format_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
     concat_path(self->pathbuf, dirPath, entryName);
 
     return format_inode(self, self->pathbuf, entryName);
 }
 
-static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+static int print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
     concat_path(self->pathbuf, dirPath, entryName);
 
     return print_inode(self, self->pathbuf, entryName);
 }
 
-static errno_t iterate_dir(list_ctx_t* _Nonnull self, HandlerRef _Nonnull hnd, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static int iterate_dir(list_ctx_t* _Nonnull self, dd_dir_t _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
-    decl_try_err();
-    ssize_t nBytesRead;
+    errno = 0;
 
-    while (err == EOK) {
-        err = Handler_Read(hnd, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
-        if (err != EOK || nBytesRead == 0) {
+    for (;;) {
+        const dd_dir_entry_t* dep = dd_dirnext(dir);
+        
+        if (dep == NULL) {
             break;
         }
 
-        const dir_entry_t* dep = self->dirbuf;
-        
-        while (nBytesRead > 0) {
-            if (self->flags.printAll || dep->name[0] != '.') {
-                err = cb(self, path, dep->name);
-                if (err != EOK) {
-                    break;
-                }
+        if (self->flags.printAll || dep->name[0] != '.') {
+            if (cb(self, path, dep->name) != 0) {
+                break;
             }
-
-            nBytesRead -= sizeof(dir_entry_t);
-            dep++;
         }
     }
 
-    return err;
+    return (errno == 0) ? 0 : -1;
 }
 
 static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    decl_try_err();
-    HandlerRef hnd = NULL;
+    dd_dir_t dir = dd_opendir(self->fsm, path);
 
-    try(FileManager_OpenDirectory(self->fm, path, &hnd));
-    try(iterate_dir(self, hnd, path, format_dir_entry));
-    try(Handler_Seek(hnd, 0ll, NULL, SEEK_SET));
-    try(iterate_dir(self, hnd, path, print_dir_entry));
+    if (dir) {
+        if (iterate_dir(self, dir, path, format_dir_entry) == 0) {
+            dd_rewinddir(dir);
+            iterate_dir(self, dir, path, print_dir_entry);
+        }
+    
+        dd_closedir(dir);
+    }
 
-catch:
-    Object_Release(hnd);
-    return err;
+    return errno;
 }
 
 static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    decl_try_err();
-
-    err = format_inode(self, path, path);
-    if (err == EOK) {
-        err = print_inode(self, path, path);
+    if (format_inode(self, path, path) == 0) {
+        print_inode(self, path, path);
     }
 
-    return err;
+    return errno;
 }
 
 static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    fs_attr_t attr;
-
-    return (FileManager_GetAttributes(self->fm, path, &attr) == EOK && (attr.file_type == FS_FTYPE_DIR)) ? true : false;
+    return (dd_path_kind(self->fsm, path) == DD_KIND_DIRECTORY) ? true : false;
 }
 
 
@@ -220,14 +211,14 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
 {
     decl_try_err();
     RamContainerRef disk = NULL;
-    FSManagerRef m = NULL;
+    FSManagerRef fsm = NULL;
 
     if (paths->count < 1) {
         return ERANGE;
     }
 
     try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
-    try(FSManager_Create(disk, &m));
+    try(FSManager_Create(disk, &fsm));
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* cur_path = paths->strings[i];
@@ -235,7 +226,7 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
         try(dd_validate_path(cur_path));
 
         memset(&g_list_ctx, 0, sizeof(list_ctx_t));
-        g_list_ctx.fm = &m->fm;
+        g_list_ctx.fsm = fsm;
         g_list_ctx.flags.printAll = false;
 
         if (is_dir(&g_list_ctx, cur_path)) {
@@ -247,7 +238,7 @@ errno_t cmd_list(const char* _Nonnull dmgPath, const clap_string_array_t* _Nonnu
     }
 
 catch:
-    FSManager_Destroy(m);
+    FSManager_Destroy(fsm);
     Object_Release(disk);
     return err;
 }

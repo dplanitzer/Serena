@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <dd/dd_path.h>
+#include <dd/dd_dir.h>
 #include <dd/dd_rdir.h>
 #include <dd/FSManager.h>
 #include <kpi/attr.h>
