@@ -57,9 +57,9 @@ You can use one of two different ways to specify the disk image file on which a 
 Use the `create` command to create a new and empty disk image:
 
 ```
-diskimage -d <dmg_path> create <disk_type>
+diskimage -d <dmg_path> create [-f/--force] <disk_type>
 ```
-The `-d` (or `--disk`) switch tells diskimage where in the host file system the new disk image should be placed. The `create` sub-command instructs diskimage to create a new disk image and the <disk_type> argument specifies the type of the disk image. Currently supported disk image formats are `adf-dd` (Amiga DD), `adf-hd` (Amiga HD) and `smg` (Serena Disk Image). Note that the created disk image is empty and not formatted. You must format the disk with the `format` command before it is possible to store files on it.
+The required `-d` (or `--disk`) option tells diskimage where in the host file system the new disk image should be placed. The `create` sub-command instructs diskimage to create a new disk image and the <disk_type> argument specifies the type of the disk image. Currently supported disk image formats are `adf-dd` (Amiga DD), `adf-hd` (Amiga HD) and `smg` (Serena Disk Image). Note that the created disk image is empty and not formatted. You must format the disk with the `format` command before it is possible to store files on it. By default the `create` command fails if a file already exists at <dmg_path>. Use the `-f` (or `--force`) flag to force the creation of the disk image file by overriding an existing file if necessary.
 
 Use the `describe` command to print the geometry information of a disk image:
 ```

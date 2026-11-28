@@ -37,8 +37,6 @@ enum {
 extern dd_fs_t dd_mount(const char *path);
 extern int dd_unmount(dd_fs_t fs, int flags);
 
-extern int dd_sync(dd_fs_t fs);
-
 extern int dd_path_kind(dd_fs_t fs, const char *path);
 
 extern int dd_makedir(dd_fs_t fs, const char *path, fs_perms_t perms);

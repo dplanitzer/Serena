@@ -16,10 +16,10 @@
 
 
 struct dd_fs {
-    char* _Nonnull              dmgPath;
     RamContainerRef _Nonnull    fsContainer;
     FilesystemRef _Nonnull      fs;
     FileManager                 fm;
+    bool                        isFsUp;
     bool                        isFmUp;
 };
 

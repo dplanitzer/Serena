@@ -8,31 +8,19 @@
 
 #include "diskimage.h"
 #include <dd/RamContainer.h>
-#include <stdio.h>
 
 
-errno_t cmd_create(const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull dmgFmt)
+errno_t cmd_create(const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull dmgFmt, bool bOverrideExisting)
 {
     decl_try_err();
     RamContainerRef fsContainer;
-    bool doCreateDiskImage = true;
+    const int flags = (bOverrideExisting) ? kRamContainer_OverwriteExisting : 0;
 
-    err = RamContainer_CreateWithContentsOfPath(dmgPath, &fsContainer);
+    err = RamContainer_Create(dmgPath, dmgFmt, flags, &fsContainer);
     if (err == EOK) {
-        if (dmgFmt->format == fsContainer->format
-            && dmgFmt->blockSize == FSContainer_GetBlockSize(fsContainer)
-            && dmgFmt->blocksPerDisk == FSContainer_GetBlockCount(fsContainer)) {
-            doCreateDiskImage = false;
-        }
+        err = RamContainer_Sync(fsContainer);
     }
 
-    if (doCreateDiskImage) {
-        remove(dmgPath);
-        try(RamContainer_Create(dmgFmt, &fsContainer));
-        try(RamContainer_WriteToPath(fsContainer, dmgPath));
-    }
-
-catch:
     Object_Release(fsContainer);
     return err;
 }

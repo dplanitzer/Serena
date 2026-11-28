@@ -10,25 +10,34 @@
 #define RamContainer_h
 
 #include <filesystem/FSContainer.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include "DiskImageFormat.h"
 
 
 open_class(RamContainer, FSContainer,
-    uint8_t* _Nonnull   diskImage;
-    uint8_t* _Nonnull   mappedFlags;    // One flag per block: false -> block not mapped; true -> block is mapped
-    size_t              blockShift;
-    size_t              blockMask;
-    blkno_t               lowestWrittenToLba;
-    blkno_t               highestWrittenToLba;
+    FILE* _Nonnull              fp;
+    uint8_t* _Nonnull           diskImage;
+    uint8_t* _Nonnull           mappedFlags;    // One flag per block: false -> block not mapped; true -> block is mapped
+    size_t                      blockShift;
+    size_t                      blockMask;
+    blkno_t                     lowestWrittenToLba;
+    blkno_t                     highestWrittenToLba;
     enum DiskImageFormatType    format;
+    bool                        isDirty;
 );
 open_class_funcs(RamContainer, FSContainer,
 );
 class_ref(RamContainer);
 
 
-extern errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainerRef _Nullable * _Nonnull pOutSelf);
-extern errno_t RamContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamContainerRef _Nullable * _Nonnull pOutSelf);
+enum {
+    kRamContainer_OverwriteExisting = 1     // RamContainer_Create()
+};
+
+
+extern errno_t RamContainer_Create(const char* _Nonnull path, const DiskImageFormat* _Nonnull format, int flags, RamContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RamContainer_Open(const char* _Nonnull path, RamContainerRef _Nullable * _Nonnull pOutSelf);
 
 extern void RamContainer_Destroy(RamContainerRef _Nullable self);
 
@@ -38,7 +47,7 @@ extern errno_t RamContainer_Write(RamContainerRef _Nonnull self, const void* _No
 // Overrides all disk data with 0
 extern void RamContainer_WipeDisk(RamContainerRef _Nonnull self);
 
-// Writes the contents of the disk to the given path as a regular file.
-extern errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path);
+// Syncs the in-memory disk image to its backing file on disk.
+extern errno_t RamContainer_Sync(RamContainerRef _Nonnull self);
 
 #endif /* RamContainer_h */

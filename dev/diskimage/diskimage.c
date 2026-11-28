@@ -422,6 +422,7 @@ static bool should_recurse = false;
 static size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
 static char* disk_type = "";
 static char* dmg_path = "";
+static bool should_override_existing = false;
 
 // diskimage diff
 static char* dmg_path2 = "";
@@ -452,6 +453,7 @@ CLAP_DECL(params,
     //
 
     CLAP_REQUIRED_COMMAND("create", &cmd_id, "<disk_type>", "Creates an empty disk image of format 'disk_type'."),
+        CLAP_BOOL('f', "force", &should_override_existing, "Force diskimage to override an existing file"),
         CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the disk image (default: depends on the disk image format)"),
         CLAP_POSITIONAL_STRING(&disk_type),
 
@@ -562,7 +564,7 @@ int main(int argc, const char* argv[])
             }
         }
 
-        try(cmd_create(dmg_path, &fmt));
+        try(cmd_create(dmg_path, &fmt, should_override_existing));
     }
     else if (!strcmp(cmd_id, "describe")) {
         // diskimage describe

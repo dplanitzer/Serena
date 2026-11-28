@@ -16,19 +16,26 @@
 #include <string.h>
 #include <ext/endian.h>
 #include <ext/math.h>
-#include <filesystem/FSUtilities.h>
 #include <kpi/disk.h>
 #include <kpi/smg.h>
 
 
-errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainerRef _Nullable * _Nonnull pOutSelf)
+static errno_t _RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainerRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
     RamContainerRef self;
 
-    try(FSContainer_Create(class(RamContainer), format->blocksPerDisk, format->blockSize, 0, (FSContainerRef*)&self));
-    try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
-    try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
+    const errno_t err = FSContainer_Create(class(RamContainer), format->blocksPerDisk, format->blockSize, 0, (FSContainerRef*)&self);
+    if (err != EOK) {
+        return err;
+    }
+
+    self->diskImage = calloc(format->blocksPerDisk, format->blockSize);
+    self->mappedFlags = calloc(format->blocksPerDisk, sizeof(uint8_t));
+    if (self->diskImage == NULL || self->mappedFlags == NULL) {
+        Object_Release(self);
+        return ENOMEM;
+    }
+
     self->blockShift = log2_sz(format->blockSize);
     self->blockMask = format->blockSize - 1;
     self->lowestWrittenToLba = ~0;
@@ -37,53 +44,81 @@ errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainer
 
     *pOutSelf = self;
     return EOK;
-
-catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
-    return err;
 }
 
-errno_t RamContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t RamContainer_Create(const char* _Nonnull path, const DiskImageFormat* _Nonnull format, int flags, RamContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    FILE* fp = NULL;
-    RamContainerRef self = NULL;
+    RamContainerRef self;
+
+    err = _RamContainer_Create(format, &self);
+    if (err != EOK) {
+        return err;
+    }
+
+
+    const char *mode = ((flags & kRamContainer_OverwriteExisting) != 0) ? "w+b" : "w+bx";
+    self->fp = fopen(path, mode);
+    if (self->fp == NULL) {
+        Object_Release(self);
+        return errno;
+    }
+
+    self->isDirty = true;
+    *pOutSelf = self;
+    return EOK;
+}
+
+errno_t RamContainer_Open(const char* _Nonnull path, RamContainerRef _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    RamContainerRef self;
     DiskImageFormat dif;
     DiskImage fmt;
 
-    try(di_describe_diskimage(path, &fmt));
+    err = di_describe_diskimage(path, &fmt);
+    if (err != EOK) {
+        return err;
+    }
+
     dif.name = "";
     dif.blockSize = fmt.bytesPerSector;
     dif.blocksPerDisk = fmt.sectorsPerTrack * fmt.headsPerCylinder * fmt.cylindersPerDisk;
     dif.format = fmt.format;
 
-    try(RamContainer_Create(&dif, &self));
-
-    try_null(fp, fopen(path, "rb"), errno);
-    if (fread(self->diskImage, dif.blockSize, dif.blocksPerDisk, fp) != dif.blocksPerDisk) {
-        throw(EIO);
+    err = _RamContainer_Create(&dif, &self);
+    if (err != EOK) {
+        return err;
     }
-    fclose(fp);
+
+
+    self->fp = fopen(path, "r+b");
+    if (self->fp == NULL) {
+        Object_Release(self);
+        return errno;
+    }
+
+    if (fread(self->diskImage, dif.blockSize, dif.blocksPerDisk, self->fp) != dif.blocksPerDisk) {
+        Object_Release(self);
+        return EIO;
+    }
+    rewind(self->fp);
 
     *pOutSelf = self;
     return EOK;
-
-catch:
-    if (fp) {
-        fclose(fp);
-    }
-    Object_Release(self);
-    *pOutSelf = NULL;
-    return err;
 }
 
 void RamContainer_deinit(RamContainerRef _Nonnull self)
 {
-    FSDeallocate(self->mappedFlags);
+    if (self->fp) {
+        fclose(self->fp);
+        self->fp = NULL;
+    }
+
+    free(self->mappedFlags);
     self->mappedFlags = NULL;
 
-    FSDeallocate(self->diskImage);
+    free(self->diskImage);
     self->diskImage = NULL;
 }
 
@@ -155,6 +190,7 @@ errno_t RamContainer_unmapBlock(struct RamContainer* _Nonnull self, intptr_t tok
                     self->highestWrittenToLba = lba;
                 }
 
+                self->isDirty = true;
                 self->mappedFlags[lba] = false;
             }
             else {
@@ -328,18 +364,21 @@ void RamContainer_WipeDisk(RamContainerRef _Nonnull self)
     
     self->lowestWrittenToLba = 0;
     self->highestWrittenToLba = blockCount - 1;
+    self->isDirty = true;
 }
 
-// Writes the contents of the disk to the given path as a regular file.
-errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path)
+errno_t RamContainer_Sync(RamContainerRef _Nonnull self)
 {
-    decl_try_err();
     const blkcnt_t blockCount = FSContainer_GetBlockCount(self);
     const size_t blockSize = FSContainer_GetBlockSize(self);
-    FILE* fp;
 
-    try_null(fp, fopen(path, "wb"), EIO);
-    
+    if (!self->isDirty) {
+        return EOK;
+    }
+
+    rewind(self->fp);
+    errno = 0;
+
     if (self->format == kDiskImage_Serena) {
         SMG_Header  hdr;
 
@@ -351,9 +390,9 @@ errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path
         hdr.blockSize = htobe32(blockSize);
         hdr.options = 0;
 
-        fwrite(&hdr, SMG_HEADER_SIZE, 1, fp);
-        if (ferror(fp)) {
-            throw(EIO);
+        fwrite(&hdr, SMG_HEADER_SIZE, 1, self->fp);
+        if (ferror(self->fp)) {
+            return errno;
         }
     }
 
@@ -362,14 +401,15 @@ errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path
         nBlocksToWrite = __min(nBlocksToWrite, self->highestWrittenToLba + 1);
     }
 
-    fwrite(self->diskImage, blockSize, nBlocksToWrite, fp);
-    if (ferror(fp)) {
-        throw(EIO);
+    fwrite(self->diskImage, blockSize, nBlocksToWrite, self->fp);
+    fflush(self->fp);
+    if (ferror(self->fp)) {
+        return errno;
     }
 
-catch:
-    fclose(fp);
-    return err;
+    self->isDirty = false;
+
+    return EOK;
 }
 
 

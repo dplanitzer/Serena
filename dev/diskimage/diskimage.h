@@ -67,7 +67,7 @@ typedef struct di_owner_spec {
 } di_owner_spec_t;
 
 
-extern errno_t cmd_create(const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
+extern errno_t cmd_create(const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat, bool bOverrideExisting);
 extern errno_t cmd_describe_disk(const char* _Nonnull dmgPath);
 extern errno_t cmd_diff_disks(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2);
 extern errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex);

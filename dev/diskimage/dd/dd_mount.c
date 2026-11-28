@@ -35,11 +35,10 @@ dd_fs_t dd_mount(const char *path)
         return NULL;
     }
 
-    try_null(self->dmgPath, malloc(pathLen + 1), errno);
-    strcpy(self->dmgPath, path);
-    try(RamContainer_CreateWithContentsOfPath(path, &self->fsContainer));
+    try(RamContainer_Open(path, &self->fsContainer));
     try(SerenaFS_Create((FSContainerRef)self->fsContainer, (SerenaFSRef*)&self->fs));
     try(Filesystem_Start(self->fs, ""));
+    self->isFsUp = true;
 
     try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
@@ -55,6 +54,7 @@ catch:
     Object_Release(fh);
     Inode_Relinquish(rootDir);
     dd_unmount(self, 0);
+    errno = err;
 
     return NULL;
 }
@@ -69,7 +69,9 @@ int dd_unmount(dd_fs_t self, int flags)
         }
 
         if (self->fs) {
-            assert(Filesystem_Stop(self->fs, true) == EOK);
+            if (self->isFsUp) {
+                assert(Filesystem_Stop(self->fs, true) == EOK);
+            }
             Filesystem_Disconnect(self->fs);
             Object_Release(self->fs);
             self->fs = NULL;
@@ -77,29 +79,15 @@ int dd_unmount(dd_fs_t self, int flags)
 
         if (self->fsContainer) {
             if ((flags & DD_USYNC) == DD_USYNC) {
-                err = RamContainer_WriteToPath(self->fsContainer, self->dmgPath);
+                err = RamContainer_Sync(self->fsContainer);
             }
             Object_Release(self->fsContainer);
             self->fsContainer = NULL;
         }
 
-        free(self->dmgPath);
         free(self);
     }
 
-
-    if (err == EOK) {
-        return 0;
-    }
-    else {
-        errno = err;
-        return -1;
-    }
-}
-
-int dd_sync(dd_fs_t fs)
-{
-    const errno_t err = RamContainer_WriteToPath(fs->fsContainer, fs->dmgPath);
 
     if (err == EOK) {
         return 0;

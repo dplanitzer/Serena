@@ -290,7 +290,7 @@ build-all-demos: $(HELLODISPATCH_FILE) $(SNAKE_FILE) $(C_TEST_FILE) \
 
 $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	@echo Making boot_disk.adf
-	$(DISKIMAGE) -d $(BOOT_DMG_FILE) create $(BOOT_DMG_CONFIG)
+	$(DISKIMAGE) -d $(BOOT_DMG_FILE) create --force $(BOOT_DMG_CONFIG)
 	$(DISKIMAGE) -d $(BOOT_DMG_FILE) format sefs --label "Serena FD"
 
 	$(DISKIMAGE) -d $(BOOT_DMG_FILE) makedir -p /System/Commands

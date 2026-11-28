@@ -32,7 +32,7 @@ errno_t cmd_format(const char* _Nonnull dmgPath, bool bQuick, fs_perms_t rootDir
         throw(EINVAL);
     }
 
-    try(RamContainer_CreateWithContentsOfPath(dmgPath, &fsContainer));
+    try(RamContainer_Open(dmgPath, &fsContainer));
     
     if (!bQuick) {
         RamContainer_WipeDisk(fsContainer);
@@ -40,7 +40,7 @@ errno_t cmd_format(const char* _Nonnull dmgPath, bool bQuick, fs_perms_t rootDir
 
     FSGetCurrentTime(&now);
     try(sefs_init((intptr_t)fsContainer, block_write, FSContainer_GetBlockCount(fsContainer), FSContainer_GetBlockSize(fsContainer), &now, rootDirUid, rootDirGid, rootDirPerms, label));
-    err = RamContainer_WriteToPath(fsContainer, dmgPath);
+    err = RamContainer_Sync(fsContainer);
 
 catch:
     Object_Release(fsContainer);
